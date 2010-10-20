@@ -59,6 +59,7 @@ TOOLS_INSTALL = " \
   syslog-ng \
   task-proper-tools \
   u-boot-utils \
+  vim-vimrc \
  "
 
 USRP_EMBEDDED_INSTALL = " \
