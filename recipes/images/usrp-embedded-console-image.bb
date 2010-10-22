@@ -64,12 +64,14 @@ TOOLS_INSTALL = " \
 
 USRP_EMBEDDED_INSTALL = " \
   kernel-modules \
-  oprofile \
+#  oprofile \
   screen \
   task-native-gnuradio-sdk \
   gdb \
   uhd-srctree \
   uhd-srctree-dev \
+  uhd-srctree-examples \
+  uhd-srctree-tests \
 "
 
 IMAGE_INSTALL += " \
