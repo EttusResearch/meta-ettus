@@ -2,7 +2,7 @@ require recipes/uhd/uhd.inc
 
 INHERIT += "srctree"
 
-EXTRA_OECMAKE += "-DENABLE_USRP_E=TRUE"
+EXTRA_OECMAKE += "-DENABLE_USRP_E100=TRUE"
 
 PR = "${INC_PR}.0"
 
