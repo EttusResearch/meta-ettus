@@ -2,6 +2,8 @@ DESCRIPTION = "Image based on the GNOME desktop"
 
 inherit image
 
+PR = "r1"
+
 XSERVER ?= "xserver-xorg \
            xf86-input-evdev \
            xf86-input-mouse \
@@ -23,6 +25,7 @@ IMAGE_INSTALL += " \
   task-base-extended \
   ${IMAGE_SPLASH} \
   angstrom-task-gnome \
+  task-gnome-apps \
   task-proper-tools \
   task-usrp-embedded \
   task-gnuradio \

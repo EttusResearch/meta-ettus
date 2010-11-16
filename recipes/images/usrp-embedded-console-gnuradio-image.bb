@@ -1,17 +1,14 @@
-# X11 for the USRP Embedded
+require recipes/images/console-base-image.bb
 
-require usrp-embedded-console-image.bb
-
-IMAGE_EXTRA_INSTALL ?= ""
-
-#IMAGE_FEATURES += "dbg"
-
-GNURADIO = "\
-  gnuradio-srctree \
-  gnuradio-srctree-examples \
-"
+DEPENDS += "task-base-extended \
+	   "
 
 IMAGE_INSTALL += " \
-  ${GNURADIO} \
+  task-base-extended \
+  task-proper-tools \
+  task-usrp-embedded \
+  task-gnuradio \
 "
 
+
+export IMAGE_BASENAME = "ue-console-image"
