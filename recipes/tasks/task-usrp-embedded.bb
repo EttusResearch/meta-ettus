@@ -1,5 +1,7 @@
 DESCRIPTION = "Base software to install on USRP Embedded"
 
+PR = "r1"
+
 inherit task
 
 RDEPENDS_${PN} = "\
@@ -12,4 +14,5 @@ RDEPENDS_${PN} = "\
   uhd-srctree-dev \
   uhd-srctree-examples \
   uhd-srctree-tests \
+  vim-vimrc \
 "
