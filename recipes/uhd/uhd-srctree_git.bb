@@ -15,7 +15,14 @@ do_clean_append() {
 	oe.path.remove(d.getVar("OECMAKE_BUILDPATH", True))
 }
 
-#do_copy_to_target() {
-#    scp -rp ${D}/* root@192.168.1.171:/
-#}
-#addtask copy_to_target after do_install before do_package
+UHD_COPY_TO_TARGET = "192.168.1.137"
+
+# Set UHD_COPY_TO_TARGET to the ip address of a board to copy the built files to
+# Make sure the scp will work without requiring user input, otherwise the
+# command hangs. To copy files to the target run:
+# bitbake -c copy_to_target uhd-srctree
+
+do_copy_to_target() {
+    scp -rp ${D}/* root@${UHD_COPY_TO_TARGET}:/
+}
+addtask copy_to_target after do_install
