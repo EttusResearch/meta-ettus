@@ -5,6 +5,7 @@ KERNEL_IMAGETYPE = "uImage"
 
 COMPATIBLE_MACHINE = "usrp-embedded"
 
+DEFAULT_PREFERENCE = "-1"
 
 FILESPATHPKG_prepend = "linux-usrp-embedded-git:"
 
