@@ -1,6 +1,6 @@
 DESCRIPTION = "Base software to install on USRP Embedded"
 
-PR = "r1"
+PR = "r2"
 
 inherit task
 
@@ -10,9 +10,9 @@ RDEPENDS_${PN} = "\
   screen \
   task-native-gnuradio-sdk \
   gdb \
-  uhd-srctree \
-  uhd-srctree-dev \
-  uhd-srctree-examples \
-  uhd-srctree-tests \
+  uhd \
+  uhd-dev \
+  uhd-examples \
+  uhd-tests \
   vim-vimrc \
 "
