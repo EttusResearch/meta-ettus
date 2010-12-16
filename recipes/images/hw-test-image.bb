@@ -12,4 +12,4 @@ IMAGE_INSTALL += " \
   ethtool \
 "
 
-export IMAGE_BASENAME = "usrp-embedded-hw-test-image"
+export IMAGE_BASENAME = "hw-test-image"

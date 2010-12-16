@@ -11,4 +11,4 @@ IMAGE_INSTALL += " \
 "
 
 
-export IMAGE_BASENAME = "usrp-embedded-console-image"
+export IMAGE_BASENAME = "console-gnuradio-image"

@@ -12,7 +12,7 @@ XSERVER ?= "xserver-xorg \
            xf86-input-keyboard \
 "
 
-export IMAGE_BASENAME = "usrp-embedded-gnome-image"
+export IMAGE_BASENAME = "gnome-gnuradio-image"
 
 #IMAGE_LINGUAS = "de-de fr-fr en-gb en-us pt-br es-es kn-in ml-in ta-in"
 #ROOTFS_POSTPROCESS_COMMAND += 'install_linguas;'
