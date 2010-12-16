@@ -3,11 +3,11 @@ require recipes/linux/linux.inc
 DESCRIPTION = "Linux kernel for OMAP processors"
 KERNEL_IMAGETYPE = "uImage"
 
-COMPATIBLE_MACHINE = "usrp-embedded"
+COMPATIBLE_MACHINE = "usrp-e1xx"
 
 DEFAULT_PREFERENCE = "-1"
 
-FILESPATHPKG_prepend = "linux-usrp-embedded-git:"
+FILESPATHPKG_prepend = "linux-usrp-e1xx-git:"
 
 PV = "2.6.35"
 
