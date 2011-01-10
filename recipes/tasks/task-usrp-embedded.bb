@@ -8,6 +8,8 @@ RDEPENDS_${PN} = "\
   kernel-modules \
   oprofile \
   screen \
+  htop \
+  powertop \
   task-native-gnuradio-sdk \
   gdb \
   uhd \
