@@ -1,4 +1,4 @@
-From e52a3f87e0ec9c695a10b3d60425b1debe2d7cc2 Mon Sep 17 00:00:00 2001
+From 1dbaee30dae696eb294f6e6bc899f48311ad054f Mon Sep 17 00:00:00 2001
 From: Philip Balister <balister@moose.(none)>
 Date: Mon, 3 May 2010 15:13:47 -0400
 Subject: [PATCH 3/4] Add defconfig to save working kernel .config.
@@ -2638,5 +2638,5 @@ index 0000000..20a8f02
 +CONFIG_HAS_DMA=y
 +CONFIG_NLATTR=y
 -- 
-1.7.2.3
+1.7.4.2
 

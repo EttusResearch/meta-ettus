@@ -6,7 +6,7 @@ KERNEL_IMAGETYPE = "uImage"
 COMPATIBLE_MACHINE = "usrp-e1xx"
 
 
-FILESPATHPKG_prepend = "linux-usrp-e1xx-2.6.35:"
+FILESPATHPKG_prepend = "linux-usrp-embedded-2.6.35:"
 
 PV = "2.6.35"
 

@@ -1,4 +1,4 @@
-From e98123662dc108cc75b091034345f865adc701fb Mon Sep 17 00:00:00 2001
+From 01e460ba9b17f00301c167fa334f333001d3733d Mon Sep 17 00:00:00 2001
 From: Philip Balister <balister@nomad.(none)>
 Date: Wed, 17 Feb 2010 14:51:39 -0800
 Subject: [PATCH 1/4] Add defines to set config options in GPMC per CS control registers.
@@ -48,5 +48,5 @@ index 145838a..8587b42 100644
   * Note that all values in this struct are in nanoseconds, while
   * the register values are in gpmc_fck cycles.
 -- 
-1.7.2.3
+1.7.4.2
 

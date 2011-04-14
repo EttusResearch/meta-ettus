@@ -1,20 +1,20 @@
-From 005c31a9e05874f29f46352251552ca9cced4c92 Mon Sep 17 00:00:00 2001
+From 39cb0dbf1e6b8ff472f6bbd7cb32396ccbb38241 Mon Sep 17 00:00:00 2001
 From: Philip Balister <balister@moose.(none)>
 Date: Wed, 13 Jan 2010 14:35:39 -0500
 Subject: [PATCH 4/4] usrp-embedded : Add driver for USRP Embedded FPGA interface.
 
 ---
- arch/arm/mach-omap2/board-overo.c |  169 +++++-
+ arch/arm/mach-omap2/board-overo.c |  175 +++++-
  drivers/misc/Kconfig              |   19 +-
  drivers/misc/Makefile             |    1 +
- drivers/misc/usrp_e.c             | 1481 +++++++++++++++++++++++++++++++++++++
- include/linux/usrp_e.h            |   87 +++
- 5 files changed, 1741 insertions(+), 16 deletions(-)
+ drivers/misc/usrp_e.c             | 1350 +++++++++++++++++++++++++++++++++++++
+ include/linux/usrp_e.h            |   90 +++
+ 5 files changed, 1619 insertions(+), 16 deletions(-)
  create mode 100644 drivers/misc/usrp_e.c
  create mode 100644 include/linux/usrp_e.h
 
 diff --git a/arch/arm/mach-omap2/board-overo.c b/arch/arm/mach-omap2/board-overo.c
-index 95efc77..1a036fe 100644
+index 95efc77..97f42bc 100644
 --- a/arch/arm/mach-omap2/board-overo.c
 +++ b/arch/arm/mach-omap2/board-overo.c
 @@ -34,6 +34,8 @@
@@ -79,7 +79,7 @@ index 95efc77..1a036fe 100644
  		.ocr_mask	= 0x00100000,	/* 3.3V */
  	},
  	{}	/* Terminator */
-@@ -692,6 +707,148 @@ static struct omap_musb_board_data musb_board_data = {
+@@ -692,6 +707,154 @@ static struct omap_musb_board_data musb_board_data = {
  	.power			= 100,
  };
  
@@ -90,6 +90,9 @@ index 95efc77..1a036fe 100644
 +	printk("Setup up gpmc timing.\n");
 +
 +// Set up CS4, data read/write
++
++	gpmc_cs_write_reg(4, GPMC_CS_CONFIG7, 0x0);
++	udelay(100);
 +
 +#if 1
 +	// Signal control parameters per chip select
@@ -112,7 +115,7 @@ index 95efc77..1a036fe 100644
 +	gpmc_cs_write_reg(4, GPMC_CS_CONFIG2, tmp);
 +#endif 
 +
-+#if 0
++#if 1
 +	// nADV signal timing parameter configuration
 +        tmp = 0;
 +        tmp |= GPMC_CONFIG3_ADVONTIME(1);
@@ -158,12 +161,15 @@ index 95efc77..1a036fe 100644
 +
 +// Configure timing for CS6, wishbone access
 +
++	gpmc_cs_write_reg(6, GPMC_CS_CONFIG7, 0x0);
++	udelay(100);
++
 +#if 1
 +	// Signal control parameters per chip select
 +	tmp = gpmc_cs_read_reg(6, GPMC_CS_CONFIG1);
 +//	tmp |= (GPMC_CONFIG1_MUXADDDATA);
-+	tmp |= (GPMC_CONFIG1_WRITETYPE_SYNC);
-+	tmp |= (GPMC_CONFIG1_READTYPE_SYNC);
++//	tmp |= (GPMC_CONFIG1_WRITETYPE_SYNC);
++//	tmp |= (GPMC_CONFIG1_READTYPE_SYNC);
 +	tmp |= (GPMC_CONFIG1_FCLK_DIV(0));
 +	gpmc_cs_write_reg(6, GPMC_CS_CONFIG1, tmp);
 +	printk("GPMC_CONFIG1 reg: %x\n", tmp);
@@ -173,13 +179,13 @@ index 95efc77..1a036fe 100644
 +	// CS signal timing parameter configuration
 +	tmp = 0;
 +	tmp |= GPMC_CONFIG2_CSONTIME(1);
-+	tmp |= GPMC_CONFIG2_CSWROFFTIME(17);
-+	tmp |= GPMC_CONFIG2_CSRDOFFTIME(17);
++	tmp |= GPMC_CONFIG2_CSWROFFTIME(20);
++	tmp |= GPMC_CONFIG2_CSRDOFFTIME(20);
 +	printk("GPMC_CONFIG2 reg: %x\n", tmp);
 +	gpmc_cs_write_reg(6, GPMC_CS_CONFIG2, tmp);
 +#endif 
 +
-+#if 0
++#if 1
 +	// nADV signal timing parameter configuration
 +        tmp = 0;
 +        tmp |= GPMC_CONFIG3_ADVONTIME(1);
@@ -189,24 +195,24 @@ index 95efc77..1a036fe 100644
 +        gpmc_cs_write_reg(6, GPMC_CS_CONFIG3, tmp);
 +#endif
 +
-+#if 0
++#if 1
 +	// nWE and nOE signals timing parameter configuration
 +	tmp = 0;
 +	tmp |= GPMC_CONFIG4_WEONTIME(3);
-+	tmp |= GPMC_CONFIG4_WEOFFTIME(4);
++	tmp |= GPMC_CONFIG4_WEOFFTIME(18);
 +	tmp |= GPMC_CONFIG4_OEONTIME(3);
-+	tmp |= GPMC_CONFIG4_OEOFFTIME(4);
++	tmp |= GPMC_CONFIG4_OEOFFTIME(18);
 +	printk("GPMC_CONFIG4 reg: %x\n", tmp);
 +	gpmc_cs_write_reg(6, GPMC_CS_CONFIG4, tmp);
 +#endif
 +
-+#if 0
++#if 1
 +	// RdAccess time and Cycle time timing paraters configuration
 +	tmp = 0;
 +	tmp |= GPMC_CONFIG5_PAGEBURSTACCESSTIME(1);
-+	tmp |= GPMC_CONFIG5_RDACCESSTIME(4);
-+	tmp |= GPMC_CONFIG5_WRCYCLETIME(5);
-+	tmp |= GPMC_CONFIG5_RDCYCLETIME(5);
++	tmp |= GPMC_CONFIG5_RDACCESSTIME(18);
++	tmp |= GPMC_CONFIG5_WRCYCLETIME(21);
++	tmp |= GPMC_CONFIG5_RDCYCLETIME(21);
 +	printk("GPMC_CONFIG5 reg: %x\n", tmp);
 +	gpmc_cs_write_reg(6, GPMC_CS_CONFIG5, tmp);
 +#endif
@@ -228,7 +234,7 @@ index 95efc77..1a036fe 100644
  static void __init overo_init(void)
  {
  	omap3_mux_init(board_mux, OMAP_PACKAGE_CBB);
-@@ -703,8 +860,14 @@ static void __init overo_init(void)
+@@ -703,8 +866,14 @@ static void __init overo_init(void)
  	usb_ehci_init(&ehci_pdata);
  	overo_spi_init();
  	overo_init_smsc911x();
@@ -290,10 +296,10 @@ index 6ed06a1..5d09111 100644
  obj-$(CONFIG_VMWARE_BALLOON)	+= vmware_balloon.o
 diff --git a/drivers/misc/usrp_e.c b/drivers/misc/usrp_e.c
 new file mode 100644
-index 0000000..aea1887
+index 0000000..6661d33
 --- /dev/null
 +++ b/drivers/misc/usrp_e.c
-@@ -0,0 +1,1481 @@
+@@ -0,0 +1,1350 @@
 +/*
 + * -*- linux-c -*-
 + * Interface for USRP Embedded from Ettus Research, LLC.
@@ -324,6 +330,7 @@ index 0000000..aea1887
 +#include "linux/kthread.h"
 +#include "linux/poll.h"
 +#include "linux/slab.h"
++#include "linux/delay.h"
 +
 +#include "plat/gpmc.h"
 +#include "plat/gpio.h"
@@ -370,6 +377,11 @@ index 0000000..aea1887
 +	unsigned long phys_to;
 +};
 +
++#define UE_REG_MISC_RX_LEN (10)
++#define UE_REG_MISC_TX_LEN (12)
++#define UE_SR_CLEAR_GLOBAL ((8 << 7) + 4*48 + 4*2)
++
++#if 0 // Clean out this code
 +#define MISC_REGS_BASE 0x0
 +
 +#define UE_REG_MISC_LED (MISC_REGS_BASE + 0)
@@ -380,8 +392,8 @@ index 0000000..aea1887
 +#define UE_REG_SLAVE(n) ((n)<<7)
 +#define UE_REG_SR_ADDR(n) ((UE_REG_SLAVE(5)) + (4*(n)))
 +
-+#define UE_REG_CTRL_TX_CLEAR_UNDERRUN UE_REG_SR_ADDR(25)
-+#define UE_SR_CLEAR_FIFO UE_REG_SR_ADDR(6)
++#define UE_SR_CLEAR_FIFO UE_REG_SR_ADDR(48)
++#endif
 +
 +#define CTL_SPI_BASE 0x100
 +
@@ -499,10 +511,11 @@ index 0000000..aea1887
 +#define NUM_PAGES_TX_FLAGS 1
 +#define NUM_TX_FRAMES 100
 +
-+static int tx_rb_write;
 +static int tx_rb_read;
 +static int rx_rb_write;
-+static int rx_rb_read;
++
++static DEFINE_SPINLOCK(tx_rb_read_lock);
++static DEFINE_SPINLOCK(rx_rb_write_lock);
 +
 +static int alloc_ring_buffer(struct ring_buffer *rb,
 +			unsigned int num_bufs, enum dma_data_direction direction);
@@ -528,11 +541,6 @@ index 0000000..aea1887
 +static DECLARE_WAIT_QUEUE_HEAD(space_available_queue);
 +static DECLARE_WAIT_QUEUE_HEAD(received_data_from_user);
 +static DECLARE_WAIT_QUEUE_HEAD(tx_rb_space_available);
-+
-+static int tx_dma_waiting_for_data;
-+static int waiting_for_space_in_tx_rb;
-+
-+#define DEBUG_RX 1
 +
 +static DECLARE_MUTEX(dma_lock);
 +
@@ -624,10 +632,6 @@ index 0000000..aea1887
 +
 +	p->ctl_addr = ioremap_nocache(p->control_mem_base, SZ_2K);
 +
-+	/* Initialize wishbone SPI and I2C interfaces */
-+
-+	usrp_e_spi_init();
-+	usrp_e_i2c_init();
 +
 +	/* Configure GPIO's */
 +
@@ -668,7 +672,6 @@ index 0000000..aea1887
 +		printk(KERN_ERR "Could not claim GPIO for Debug3\n");
 +		return -1;
 +	}
-+
 +
 +	rb_size.num_pages_rx_flags = NUM_PAGES_RX_FLAGS;
 +	rb_size.num_rx_frames = NUM_RX_FRAMES;
@@ -743,25 +746,21 @@ index 0000000..aea1887
 +		return -EBUSY;
 +	}
 +
-+	/* Clear rx and tx fifos in the fpga */
-+	writel(1, p->ctl_addr + UE_SR_CLEAR_FIFO);
-+	writel(2, p->ctl_addr + UE_SR_CLEAR_FIFO);
++	/* reset the FPGA */
++	writew(0, p->ctl_addr + UE_SR_CLEAR_GLOBAL);
++	mdelay(1);
 +
-+#if 0
-+	usrp_e_devp = container_of(inode->i_cdev, struct usrp_e_dev, cdev);
++	/* Initialize wishbone SPI and I2C interfaces */
 +
-+	file->private_data = usrp_e_devp;
-+#endif
++	usrp_e_spi_init();
++	usrp_e_i2c_init();
 +
 +	ret = init_dma_controller();
 +	if (ret < 0)
 +		return ret;
 +
-+	tx_rb_write = 0;
 +	tx_rb_read = 0;
-+
 +	rx_rb_write = 0;
-+	rx_rb_read = 0;
 +
 +	tx_dma_active = 0;
 +	rx_dma_active = 0;
@@ -821,73 +820,14 @@ index 0000000..aea1887
 +static ssize_t
 +usrp_e_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 +{
-+	size_t ret;
-+	int rx_pkt_len;
 +
-+	if (count > SZ_2K)
-+		return -EMSGSIZE;
-+
-+	if (!((*rx_rb.rbi)[rx_rb_read].flags & RB_USER)) {
-+		if (wait_event_interruptible(data_received_queue,
-+			      (((*rx_rb.rbi)[rx_rb_read].flags & RB_USER))))
-+			return -EINTR;
-+	}
-+
-+	rx_pkt_len = (*rx_rb.rbi)[rx_rb_read].len;
-+	ret = copy_to_user(buf, (*rx_rb.rbe)[rx_rb_read].frame_addr, rx_pkt_len);
-+
-+	(*rx_rb.rbi)[rx_rb_read].flags = RB_KERNEL;
-+
-+	rx_rb_read++;
-+	if (rx_rb_read == rb_size.num_rx_frames)
-+		rx_rb_read = 0;
-+
-+	get_frame_from_fpga_start();
-+
-+	return ((ret == 0) ?  rx_pkt_len : -ret);
++	return count;
 +}
 +
 +static ssize_t
 +usrp_e_write(struct file *file, const char *buf, size_t count, loff_t *ppos)
 +{
-+	size_t ret;
 +
-+#if 0
-+//	printk("In write.\n");
-+
-+	/* Trigger a DMA transfer. Used to start transmit after writing */
-+	/* data into the transmit ring buffer from user space */
-+	if (count < 0) {
-+		send_frame_to_fpga_start();
-+		return 0;
-+	}
-+
-+	if (count > SZ_2K)
-+		return -EMSGSIZE;
-+
-+//	printk("Write flags: %d\n", (*tx_rb.rbe)[tx_rb_write].flags);
-+	if (!((*tx_rb.rbi)[tx_rb_write].flags & RB_KERNEL)) {
-+		waiting_for_space_in_tx_rb = 1;
-+//		printk("Sleeping\n");
-+		if (wait_event_interruptible(tx_rb_space_available,
-+			       ((*tx_rb.rbi)[tx_rb_write].flags & RB_KERNEL)))
-+			return -EINTR;
-+//		printk("Waking\n");
-+	}
-+
-+	ret = copy_from_user((*tx_rb.rbe)[tx_rb_write].frame_addr, buf, count);
-+	if (ret)
-+		return -ret;
-+
-+	(*tx_rb.rbi)[tx_rb_write].len = count;
-+	(*tx_rb.rbi)[tx_rb_write].flags = RB_USER;
-+
-+	tx_rb_write++;
-+	if (tx_rb_write == rb_size.num_tx_frames)
-+		tx_rb_write = 0;
-+
-+//	printk("Calling send_to_fpga_start from write\n");
-+#endif
 +	send_frame_to_fpga_start();
 +
 +	return count;
@@ -963,7 +903,6 @@ index 0000000..aea1887
 +static int usrp_e_get_rb_info(unsigned long arg)
 +{
 +	struct usrp_e_ring_buffer_size_t __user *argp = (struct usrp_e_ring_buffer_size_t __user *) arg;
-+	int i;
 +
 +	if (copy_to_user(argp, &rb_size, sizeof(rb_size)))
 +		return -EFAULT;
@@ -976,14 +915,14 @@ index 0000000..aea1887
 +	struct usrp_e_dev *p = usrp_e_devp;
 +
 +	p->ctl_spi = (struct spi_regs_wb *)(p->ctl_addr + CTL_SPI_BASE);
-+	p->ctl_spi->div = 64; /* 1 = Div by 4 (12.5 MHz) */
++	writel(64, &p->ctl_spi->div); /* 1 = Div by 4 (12.5 MHz) */
 +}
 +
 +static int usrp_e_spi_wait(void)
 +{
 +	struct usrp_e_dev *p = usrp_e_devp;
 +
-+	while (p->ctl_spi->ctrl & UE_SPI_CTRL_GO_BSY) {
++	while (readl(&p->ctl_spi->ctrl) & UE_SPI_CTRL_GO_BSY) {
 +		if (signal_pending(current)) {
 +			printk(KERN_DEBUG "Signal received.\n");
 +			set_current_state(TASK_RUNNING);
@@ -1013,12 +952,12 @@ index 0000000..aea1887
 +	if (ret < 0)
 +		return ret;
 +
-+	p->ctl_spi->ss = spi_cmd.slave & 0xff;
++	writel((spi_cmd.slave & 0xff), &p->ctl_spi->ss);
 +
-+	p->ctl_spi->txrx0 = spi_cmd.data;
++	writel(spi_cmd.data, &p->ctl_spi->txrx0);
 +
-+	p->ctl_spi->ctrl = ctrl;
-+	p->ctl_spi->ctrl = ctrl | UE_SPI_CTRL_GO_BSY;
++	writel(ctrl, &p->ctl_spi->ctrl);
++	writel((ctrl | UE_SPI_CTRL_GO_BSY), &p->ctl_spi->ctrl);
 +
 +	if (spi_cmd.readback) {
 +		usrp_e_spi_wait();
@@ -1183,6 +1122,9 @@ index 0000000..aea1887
 +	case USRP_E_GET_RB_INFO:
 +		return usrp_e_get_rb_info(arg);
 +
++	case USRP_E_GET_COMPAT_NUMBER:
++		return USRP_E_COMPAT_NUMBER;
++
 +	default:
 +		return -ENOTTY;
 +	}
@@ -1193,19 +1135,18 @@ index 0000000..aea1887
 +static unsigned int usrp_e_poll(struct file *filp, poll_table *wait)
 +{
 +	unsigned int mask = 0;
++	unsigned long flags;
 +
 +	poll_wait(filp, &data_received_queue, wait);
 +	poll_wait(filp, &tx_rb_space_available, wait);
 +
-+	// Make sure write is active before sleeping
++	/* Make sure write is active (if needed) before sleeping */
 +	send_frame_to_fpga_start();
 +
-+	/* Make sure to read in case the rx ring buffer is full */
++	/* Make sure to read in case the rx ring buffer is empty */
 +	get_frame_from_fpga_start();
 +
-+	// This likely needs some locking. The pointer is incremented
-+	// before the flag state is updated.
-+
++	spin_lock_irqsave(&rx_rb_write_lock, flags);
 +	if (rx_rb_write == 0) {
 +		if ((*rx_rb.rbi)[rb_size.num_rx_frames - 1].flags & RB_USER)
 +			mask |= POLLIN | POLLRDNORM;
@@ -1213,7 +1154,9 @@ index 0000000..aea1887
 +		if ((*rx_rb.rbi)[rx_rb_write - 1].flags & RB_USER)
 +			mask |= POLLIN | POLLRDNORM;
 +	}
++	spin_unlock_irqrestore(&rx_rb_write_lock, flags);
 +
++	spin_lock_irqsave(&tx_rb_read_lock, flags);
 +	if (tx_rb_read == 0) {
 +		if ((*tx_rb.rbi)[rb_size.num_tx_frames - 1].flags & RB_KERNEL)
 +			mask |= POLLOUT | POLLWRNORM;
@@ -1221,6 +1164,7 @@ index 0000000..aea1887
 +		if ((*tx_rb.rbi)[tx_rb_read - 1].flags & RB_KERNEL)
 +			mask |= POLLOUT | POLLWRNORM;
 +	}
++	spin_unlock_irqrestore(&tx_rb_read_lock, flags);
 +
 +	return mask;
 +
@@ -1253,8 +1197,6 @@ index 0000000..aea1887
 +	int err;
 +	struct page *page;
 +
-+	printk("In mmap\n");
-+
 +	if (vma->vm_pgoff)
 +		return -EINVAL;
 +
@@ -1263,7 +1205,7 @@ index 0000000..aea1887
 +		+ (rb_size.num_pages_rx_flags + rb_size.num_pages_tx_flags) * PAGE_SIZE;
 +
 +	size = vma->vm_end - vma->vm_start;
-+	printk(KERN_DEBUG "Size = %d, expected sixe = %d\n", size, expected_size);
++	printk(KERN_DEBUG "Size = %ld, expected sixe = %ld\n", size, expected_size);
 +
 +	if (size != expected_size)
 +		return -EINVAL;
@@ -1303,6 +1245,9 @@ index 0000000..aea1887
 +		start += PAGE_SIZE;
 +	}
 +
++//	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
++	vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
++
 +	vma->vm_ops = &usrp_e_mmap_ops;
 +
 +	return 0;
@@ -1320,7 +1265,7 @@ index 0000000..aea1887
 +	.mmap           =       usrp_e_mmap,
 +};
 +
-+MODULE_VERSION("0.1");
++MODULE_VERSION("0.2");
 +MODULE_ALIAS(DEVICE_NAME);
 +MODULE_DESCRIPTION(DEVICE_NAME);
 +MODULE_AUTHOR("Philip Balister <philip@opensdr.com>");
@@ -1333,18 +1278,9 @@ index 0000000..aea1887
 +{
 +	int serviced = IRQ_NONE;
 +
-+#ifdef DEBUG_TX
-+	gpio_set_value(22, 1);
-+#endif
-+
-+//	printk("Calling send_to_fpga_start from space_available irq\n");
 +	send_frame_to_fpga_start();
 +
 +	serviced = IRQ_HANDLED;
-+
-+#ifdef DEBUG_TX
-+	gpio_set_value(22, 0);
-+#endif
 +
 +	return serviced;
 +}
@@ -1352,37 +1288,18 @@ index 0000000..aea1887
 +static void usrp_rx_dma_irq(int ch, u16 stat, void *data)
 +{
 +
-+#ifdef DEBUG_RX
-+	gpio_set_value(23, 1);
-+#endif
-+
 +	rx_dma_active = 0;
 +
 +	get_frame_from_fpga_finish();
 +
-+#ifdef DEBUG_RX
-+	gpio_set_value(23, 0);
-+#endif
 +}
 +
 +static void usrp_tx_dma_irq(int ch, u16 stat, void *data)
 +{
 +
-+#ifdef DEBUG_TX
-+	gpio_set_value(23, 1);
-+#endif
 +	tx_dma_active = 0;
 +
 +	send_frame_to_fpga_finish();
-+
-+#ifdef DEBUG_TX
-+	gpio_set_value(23, 0);
-+#endif
-+
-+/* Save
-+	gpio_set_value(21, 1);
-+	gpio_set_value(21, 0);
-+*/
 +
 +}
 +
@@ -1390,17 +1307,10 @@ index 0000000..aea1887
 +{
 +	int serviced = IRQ_NONE;
 +
-+#ifdef DEBUG_RX
-+	gpio_set_value(22, 1);
-+#endif
-+
 +	get_frame_from_fpga_start();
 +
 +	serviced = IRQ_HANDLED;
 +
-+#ifdef DEBUG_RX
-+	gpio_set_value(22, 0);
-+#endif
 +	return serviced;
 +}
 +
@@ -1446,8 +1356,10 @@ index 0000000..aea1887
 +	omap_set_dma_params(rx_dma->ch, &rx_dma->params);
 +
 +// Play with these with a real application
-+//G	omap_set_dma_src_burst_mode(rx_dma->ch, OMAP_DMA_DATA_BURST_16);
-+//	omap_set_dma_dest_burst_mode(rx_dma->ch, OMAP_DMA_DATA_BURST_16);
++	omap_set_dma_src_burst_mode(rx_dma->ch, OMAP_DMA_DATA_BURST_16);
++	omap_set_dma_dest_burst_mode(rx_dma->ch, OMAP_DMA_DATA_BURST_16);
++	omap_set_dma_src_data_pack(rx_dma->ch, 1);
++	omap_set_dma_dest_data_pack(rx_dma->ch, 1);
 +
 +#if 0 // Need to find implentations of the endian calls
 +	omap_set_dma_src_endian_type(rx_dma->ch, OMAP_DMA_BIG_ENDIAN);
@@ -1493,8 +1405,10 @@ index 0000000..aea1887
 +	omap_set_dma_params(tx_dma->ch, &tx_dma->params);
 +
 +// Play with these with a real application
-+//G	omap_set_dma_src_burst_mode(tx_dma->ch, OMAP_DMA_DATA_BURST_16);
-+//	omap_set_dma_dest_burst_mode(tx_dma->ch, OMAP_DMA_DATA_BURST_16);
++	omap_set_dma_src_burst_mode(tx_dma->ch, OMAP_DMA_DATA_BURST_16);
++	omap_set_dma_dest_burst_mode(tx_dma->ch, OMAP_DMA_DATA_BURST_16);
++	omap_set_dma_src_data_pack(tx_dma->ch, 1);
++	omap_set_dma_dest_data_pack(tx_dma->ch, 1);
 +
 +	return 0;
 +}
@@ -1512,45 +1426,59 @@ index 0000000..aea1887
 +static int get_frame_from_fpga_start()
 +{
 +	struct usrp_e_dev *p = usrp_e_devp;
-+	struct ring_buffer_info *rbi = &(*rx_rb.rbi)[rx_rb_write];
-+	struct ring_buffer_entry *rbe = &(*rx_rb.rbe)[rx_rb_write];
++	struct ring_buffer_info *rbi;
++	struct ring_buffer_entry *rbe;
 +	u16 elements_to_read;
++	unsigned long flags;
++
++	spin_lock_irqsave(&rx_rb_write_lock, flags);
++
++	rbi = &(*rx_rb.rbi)[rx_rb_write];
++	rbe = &(*rx_rb.rbe)[rx_rb_write];
 +
 +	/* Check for space available in the ring buffer */
 +	/* If no space, drop data. A read call will restart dma transfers. */
 +	if (((*rx_rb.rbi)[rx_rb_write].flags & RB_KERNEL) && (gpio_get_value(RX_DATA_READY_GPIO)) && !rx_dma_active  && !shutting_down) {
 +
 +		rx_dma_active = 1;
-+#ifdef DEBUG_RX
-+		gpio_set_value(14, 1);
-+#endif
 +
 +		elements_to_read = readw(p->ctl_addr + UE_REG_MISC_RX_LEN);
 +		
 +		rbi->flags = RB_DMA_ACTIVE;
 +		
++// writew(1, p->ctl_addr + 54);
 +		rbi->len = elements_to_read << 1;
 +		
++// writew(2, p->ctl_addr + 54);
 +		omap_set_dma_dest_addr_size(rx_dma->ch, rbe->dma_addr,
 +					elements_to_read);
 +		
-+		dma_sync_single_for_device(NULL, rbe->dma_addr, SZ_2K, DMA_FROM_DEVICE);
-+		
-+		omap_start_dma(rx_dma->ch);
-+	}
++// writew(3, p->ctl_addr + 54);
++		spin_unlock_irqrestore(&rx_rb_write_lock, flags);
 +
++		omap_start_dma(rx_dma->ch);
++
++// writew(4, p->ctl_addr + 54);
++		dma_sync_single_for_device(NULL, rbe->dma_addr, SZ_2K, DMA_FROM_DEVICE);
++	} else {
++		spin_unlock_irqrestore(&rx_rb_write_lock, flags);
++	}
 +	return 0;
 +}
 +
 +
 +static int get_frame_from_fpga_finish()
 +{
++	unsigned long flags;
++
 +	dma_sync_single_for_cpu(NULL, (*rx_rb.rbe)[rx_rb_write].dma_addr, SZ_2K, DMA_FROM_DEVICE);
 +
++	spin_lock_irqsave(&rx_rb_write_lock, flags);
 +	(*rx_rb.rbi)[rx_rb_write].flags = RB_USER;
 +	rx_rb_write++;
 +	if (rx_rb_write == rb_size.num_rx_frames)
 +		rx_rb_write = 0;
++	spin_unlock_irqrestore(&rx_rb_write_lock, flags);
 +
 +	wake_up_interruptible(&data_received_queue);
 +
@@ -1558,30 +1486,29 @@ index 0000000..aea1887
 +
 +	get_frame_from_fpga_start();
 +
-+#ifdef DEBUG_RX
-+	gpio_set_value(14, 0);
-+#endif
-+
 +	return 0;
 +}
 +
 +static int send_frame_to_fpga_start()
 +{
 +	struct usrp_e_dev *p = usrp_e_devp;
-+	struct ring_buffer_info *rbi = &(*tx_rb.rbi)[tx_rb_read];
-+	struct ring_buffer_entry *rbe = &(*tx_rb.rbe)[tx_rb_read];
++	struct ring_buffer_info *rbi;
++	struct ring_buffer_entry *rbe;
 +	u16 elements_to_write;
++	unsigned long flags;
 +
 +//	printk("In send_frame_to_fpga_start.\n");
 +
 +	/* Check if there is data to write to the FPGA, if so send it */
 +	/* Otherwise, do nothing. Process is restarted by calls to write */
-+	if (((*tx_rb.rbi)[tx_rb_read].flags & RB_USER) && !tx_dma_active && (gpio_get_value(TX_SPACE_AVAILABLE_GPIO)) && !shutting_down) {
++
++	spin_lock_irqsave(&tx_rb_read_lock, flags);
++	rbi = &(*tx_rb.rbi)[tx_rb_read];
++	rbe = &(*tx_rb.rbe)[tx_rb_read];
++
++	if ((rbi->flags & RB_USER) && !tx_dma_active && (gpio_get_value(TX_SPACE_AVAILABLE_GPIO)) && !shutting_down) {
 +//		printk("In send_frame_to_fpga_start, past if.\n");
 +		tx_dma_active = 1;
-+#ifdef DEBUG_TX
-+		gpio_set_value(14, 1);
-+#endif
 +
 +		elements_to_write = ((rbi->len) >> 1);
 +		
@@ -1589,37 +1516,42 @@ index 0000000..aea1887
 +		
 +		rbi->flags = RB_DMA_ACTIVE;
 +		
++// writew(1, p->ctl_addr + 54);
 +		omap_set_dma_src_addr_size(tx_dma->ch, rbe->dma_addr,
 +					elements_to_write);
 +		
-+		dma_sync_single_for_device(NULL, rbe->dma_addr, SZ_2K, DMA_TO_DEVICE);
++		spin_unlock_irqrestore(&tx_rb_read_lock, flags);
++// writew(2, p->ctl_addr + 54);
++//		dma_sync_single_for_device(NULL, rbe->dma_addr, SZ_2K, DMA_TO_DEVICE);
++		dsb();
 +		
++// writew(3, p->ctl_addr + 54);
 +		omap_start_dma(tx_dma->ch);
++	} else {
++		spin_unlock_irqrestore(&tx_rb_read_lock, flags);
 +	}
-+
 +	return 0;
 +}
 +
 +static int send_frame_to_fpga_finish()
 +{
++	unsigned long flags;
 +
-+	dma_sync_single_for_cpu(NULL, (*tx_rb.rbe)[tx_rb_read].dma_addr, SZ_2K, DMA_TO_DEVICE);
++//	dma_sync_single_for_cpu(NULL, (*tx_rb.rbe)[tx_rb_read].dma_addr, SZ_2K, DMA_TO_DEVICE);
 +	
++	spin_lock_irqsave(&tx_rb_read_lock, flags);
 +	(*tx_rb.rbi)[tx_rb_read].flags = RB_KERNEL;
 +	
 +	tx_rb_read++;
 +	if (tx_rb_read == rb_size.num_tx_frames)
 +		tx_rb_read = 0;
++	spin_unlock_irqrestore(&tx_rb_read_lock, flags);
 +	
 +	wake_up_interruptible(&tx_rb_space_available);
 +
 +	tx_dma_active = 0;
 +
 +	send_frame_to_fpga_start();
-+
-+#ifdef DEBUG_TX
-+	gpio_set_value(14, 0);
-+#endif
 +
 +	return 0;
 +}
@@ -1629,7 +1561,7 @@ index 0000000..aea1887
 +{
 +	int i;
 +
-+	rb->rbi = __get_free_page(GFP_KERNEL | __GFP_COMP | __GFP_ZERO | __GFP_NOWARN);
++	rb->rbi = (void *) __get_free_page(GFP_KERNEL | __GFP_COMP | __GFP_ZERO | __GFP_NOWARN);
 +
 +	rb->rbe = kzalloc(sizeof(struct ring_buffer_entry) * num_bufs, GFP_KERNEL);
 +	if (!rb) {
@@ -1646,12 +1578,12 @@ index 0000000..aea1887
 +	}
 +
 +	for (i = 0; i < rb->num_pages; i++) {
-+		(*rb->pages)[i] = __get_free_page(GFP_KERNEL | __GFP_DMA | __GFP_COMP | __GFP_ZERO | __GFP_NOWARN);
++		(*rb->pages)[i] =  __get_free_page(GFP_KERNEL | __GFP_DMA | __GFP_COMP | __GFP_ZERO | __GFP_NOWARN);
 +
 +		(*(rb->rbe))[i*2].frame_addr =
-+			(*(rb->pages))[i];
++			(void *) (*(rb->pages))[i];
 +		(*(rb->rbe))[i*2 + 1].frame_addr =
-+			((*(rb->pages))[i] + SZ_2K);
++			(void *) ((*(rb->pages))[i] + SZ_2K);
 +		if (!(*(rb->rbe))[i*2].frame_addr || !(*(rb->rbe))[i*2 + 1].frame_addr) {
 +			printk(KERN_ERR "Failed to allocate memory dma buf\n");
 +			return -ENOMEM;
@@ -1684,7 +1616,7 @@ index 0000000..aea1887
 +		free_page((*rb->pages)[i]);
 +	}
 +
-+	free_page(rb->rbi);
++	free_page((unsigned long) rb->rbi);
 +
 +	kfree(rb->pages);
 +	kfree(rb->rbe);
@@ -1718,69 +1650,12 @@ index 0000000..aea1887
 +
 +}
 +
-+#if 0
-+static int tx_dma_func(void *data)
-+{
-+	int ret;
-+	struct sched_param s = { .sched_priority = 1};
-+
-+	printk(KERN_DEBUG "In tx_dma_func\n");
-+
-+	allow_signal(SIGSTOP);
-+
-+	sched_setscheduler(current, SCHED_FIFO, &s);
-+
-+	while (!kthread_should_stop() && !closing_driver) {
-+
-+		if (!((*tx_rb.rbe)[tx_rb_read].flags & RB_USER)) {
-+			tx_dma_waiting_for_data = 1;
-+			ret = wait_event_interruptible(received_data_from_user,
-+				     (*tx_rb.rbe)[tx_rb_read].flags & RB_USER);
-+			if (ret) {
-+				printk(KERN_DEBUG
-+					"tx_dma_func received signal %d\n",
-+					ret);
-+				if (closing_driver)
-+					break;
-+
-+			}
-+			tx_dma_waiting_for_data = 0;
-+		}
-+
-+		if (wait_event_interruptible(space_available_queue,
-+				gpio_get_value(TX_SPACE_AVAILABLE_GPIO))) {
-+			printk(KERN_DEBUG "tx_dma received signal waiting for space.\n");
-+			if (closing_driver)
-+				break;
-+		}
-+
-+		if (send_frame_to_fpga(&(*tx_rb.rbe)[tx_rb_read]) != 0) {
-+			printk(KERN_DEBUG "send_frame received signal.\n");
-+			if (closing_driver)
-+				break;
-+		}
-+
-+		(*tx_rb.rbe)[tx_rb_read].flags = RB_KERNEL;
-+
-+		tx_rb_read++;
-+		if (tx_rb_read == RB_SIZE)
-+			tx_rb_read = 0;
-+
-+#if 0
-+		if (waiting_for_space_in_tx_rb)
-+#endif
-+			wake_up_interruptible(&tx_rb_space_queue);
-+
-+	}
-+	return 0;
-+}
-+#endif
 diff --git a/include/linux/usrp_e.h b/include/linux/usrp_e.h
 new file mode 100644
-index 0000000..e52f709
+index 0000000..7b34267
 --- /dev/null
 +++ b/include/linux/usrp_e.h
-@@ -0,0 +1,87 @@
+@@ -0,0 +1,90 @@
 +
 +/*
 + *  Copyright (C) 2010 Ettus Research, LLC
@@ -1848,6 +1723,9 @@ index 0000000..e52f709
 +#define USRP_E_I2C_READ		_IOWR(USRP_E_IOC_MAGIC, 0x25, struct usrp_e_i2c)
 +#define USRP_E_I2C_WRITE	_IOW(USRP_E_IOC_MAGIC, 0x26, struct usrp_e_i2c)
 +#define USRP_E_GET_RB_INFO      _IOR(USRP_E_IOC_MAGIC, 0x27, struct usrp_e_ring_buffer_size_t)
++#define USRP_E_GET_COMPAT_NUMBER _IO(USRP_E_IOC_MAGIC, 0x28)
++
++#define USRP_E_COMPAT_NUMBER 1
 +
 +/* Flag defines */
 +#define RB_USER (BIT(0))
@@ -1869,5 +1747,5 @@ index 0000000..e52f709
 +
 +#endif
 -- 
-1.7.2.3
+1.7.4.2
 
