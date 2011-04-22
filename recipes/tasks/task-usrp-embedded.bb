@@ -1,6 +1,6 @@
 DESCRIPTION = "Base software to install on USRP Embedded"
 
-PR = "r3"
+PR = "r4"
 
 inherit task
 
