@@ -3,6 +3,8 @@ require recipes/images/console-base-image.bb
 DEPENDS += "task-base-extended \
 	   "
 
+DISTRO_SSH_DAEMON = "openssh"
+
 IMAGE_INSTALL += " \
   task-base-extended \
   task-proper-tools \

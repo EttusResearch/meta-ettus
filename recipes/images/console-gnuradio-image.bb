@@ -1,5 +1,7 @@
 require recipes/images/console-base-image.bb
 
+DISTRO_SSH_DAEMON = "openssh"
+
 DEPENDS += "task-base-extended \
 	   "
 

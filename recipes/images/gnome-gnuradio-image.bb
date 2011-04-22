@@ -2,6 +2,8 @@ DESCRIPTION = "Image based on the GNOME desktop"
 
 inherit image
 
+DISTRO_SSH_DAEMON = "openssh"
+
 PR = "r1"
 
 XSERVER ?= "xserver-xorg \
