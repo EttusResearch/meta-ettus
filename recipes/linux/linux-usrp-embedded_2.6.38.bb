@@ -5,10 +5,10 @@ KERNEL_IMAGETYPE = "uImage"
 
 COMPATIBLE_MACHINE = "usrp-e1xx"
 
-
 FILESPATHPKG_prepend = "linux-usrp-embedded-2.6.38:"
 
 PV = "2.6.38"
+MACHINE_KERNEL_PR_append = "a"
 
 SRCREV = "b64c340026c567c911c566c028d91b2bb7569340"
 SRC_URI = "git://www.sakoman.com/git/linux-omap-2.6.git;branch=omap-2.6.38;protocol=git \
