@@ -1,0 +1,23 @@
+This layer depends on:
+
+URI: git://git.openembedded.org/openembedded-core
+branch: master
+revision: HEAD
+
+URI: git://git.openembedded.net/meta-openembedded
+branch: master
+revision: HEAD
+
+It is recommended to follow the instruction at http://www.angstrom-distribution.org/building-angstrom with one important difference:
+
+After "Step 1" go into the newl created 'setup-scripts' directory and do
+
+	git checkout origin/oe-core -b oe-core
+
+This will set it up for the OpenEmbedded-core layout instead of the old OpenEmbedded-dev layout.
+
+Use github for pull requests: https://github.com/koenkooi/meta-ettus/pulls
+
+Main layer maintainer: Koen Kooi <koen@dominion.thruhere.net>
+
+
