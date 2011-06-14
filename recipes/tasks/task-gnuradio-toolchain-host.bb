@@ -4,7 +4,7 @@ LICENSE = "MIT"
 
 ALLOW_EMPTY = "1"
 
-inherit sdk
+inherit nativesdk
 
 PACKAGES = "${PN}"
 
