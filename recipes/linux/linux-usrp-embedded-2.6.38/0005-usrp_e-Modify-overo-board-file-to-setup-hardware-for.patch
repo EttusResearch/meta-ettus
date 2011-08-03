@@ -1,8 +1,9 @@
-From 4f6c8fa3a33ba374ce1f8f3e83ebae2bcc505962 Mon Sep 17 00:00:00 2001
+From 5ea1ab785c1e1f921017258c88b348d6836edf67 Mon Sep 17 00:00:00 2001
 From: Philip Balister <philip@opensdr.com>
 Date: Wed, 11 May 2011 12:06:20 -0400
-Subject: [PATCH 5/5] usrp_e : Modify overo board file to setup hardware for usrp_e driver.
+Subject: [PATCH 2/2] usrp_e : Modify overo board file to setup hardware for usrp_e driver.
 
+Signed-off-by: Philip Balister <philip@opensdr.com>
 ---
  arch/arm/mach-omap2/board-overo.c |  181 ++++++++++++++++++++++++++++++++++++-
  1 files changed, 179 insertions(+), 2 deletions(-)
@@ -268,5 +269,5 @@ index 69c9cd2..234fa5d 100644
  	omap_mux_init_signal("sdrc_cke0", OMAP_PIN_OUTPUT);
  	omap_mux_init_signal("sdrc_cke1", OMAP_PIN_OUTPUT);
 -- 
-1.7.3.4
+1.6.6.1
 
