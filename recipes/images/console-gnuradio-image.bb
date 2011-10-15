@@ -1,4 +1,4 @@
-require recipes-angstrom/images/systemd-image.bb
+require recipes-images/angstrom/systemd-image.bb
 
 IMAGE_INSTALL += " \
   task-base-extended \
