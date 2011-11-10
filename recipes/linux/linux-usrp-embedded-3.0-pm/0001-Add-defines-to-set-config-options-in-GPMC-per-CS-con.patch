@@ -1,4 +1,4 @@
-From 526259a82322370628f769e7ba4db6d97eecd75f Mon Sep 17 00:00:00 2001
+From 8cb09c8cf67696adece6fff34d873c1b05c7cddb Mon Sep 17 00:00:00 2001
 From: Philip Balister <balister@nomad.(none)>
 Date: Wed, 17 Feb 2010 14:51:39 -0800
 Subject: [PATCH 1/5] Add defines to set config options in GPMC per CS control

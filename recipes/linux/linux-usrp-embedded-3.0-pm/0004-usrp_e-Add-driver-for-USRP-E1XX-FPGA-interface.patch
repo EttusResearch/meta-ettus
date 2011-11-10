@@ -1,4 +1,4 @@
-From b3b167791c44775d00007a02792534255ddbf719 Mon Sep 17 00:00:00 2001
+From 9c409f8e4aad357b09c84a7470a7cfa35f56fc77 Mon Sep 17 00:00:00 2001
 From: Philip Balister <philip@opensdr.com>
 Date: Wed, 11 May 2011 12:09:20 -0400
 Subject: [PATCH 4/5] usrp_e : Add driver for USRP-E1XX FPGA interface.

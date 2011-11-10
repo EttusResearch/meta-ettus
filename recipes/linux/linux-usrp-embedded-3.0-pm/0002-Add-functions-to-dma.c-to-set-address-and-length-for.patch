@@ -1,4 +1,4 @@
-From a682367a80ff011e0ffd02edec66f619ffd7c96f Mon Sep 17 00:00:00 2001
+From e734b2ff9d1b5c0992179b1dd8a7593f80ff09b3 Mon Sep 17 00:00:00 2001
 From: Philip Balister <philip@opensdr.com>
 Date: Thu, 22 Apr 2010 19:41:58 -0700
 Subject: [PATCH 2/5] Add functions to dma.c to set address and length for src

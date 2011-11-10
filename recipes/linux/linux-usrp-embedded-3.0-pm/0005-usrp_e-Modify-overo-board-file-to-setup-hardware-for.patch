@@ -1,4 +1,4 @@
-From f1679a40413db8d65eb37e440ff03cc065021b5b Mon Sep 17 00:00:00 2001
+From 6768d4d1ef44317f14f275ad201ad500200b8d36 Mon Sep 17 00:00:00 2001
 From: Philip Balister <philip@opensdr.com>
 Date: Wed, 11 May 2011 12:06:20 -0400
 Subject: [PATCH 5/5] usrp_e : Modify overo board file to setup hardware for
@@ -10,7 +10,7 @@ Signed-off-by: Philip Balister <philip@opensdr.com>
  1 files changed, 163 insertions(+), 3 deletions(-)
 
 diff --git a/arch/arm/mach-omap2/board-overo.c b/arch/arm/mach-omap2/board-overo.c
-index 615aebb..6d0b532 100644
+index e6d2441..67a4daf 100644
 --- a/arch/arm/mach-omap2/board-overo.c
 +++ b/arch/arm/mach-omap2/board-overo.c
 @@ -38,6 +38,8 @@
@@ -22,7 +22,7 @@ index 615aebb..6d0b532 100644
  #include <asm/mach-types.h>
  #include <asm/mach/arch.h>
  #include <asm/mach/flash.h>
-@@ -138,8 +140,13 @@ static struct omap_smsc911x_platform_data smsc911x2_cfg = {
+@@ -202,8 +204,13 @@ static struct omap_smsc911x_platform_data smsc911x2_cfg = {
  
  static void __init overo_init_smsc911x(void)
  {
@@ -36,7 +36,7 @@ index 615aebb..6d0b532 100644
  }
  
  #else
-@@ -308,8 +315,7 @@ static struct omap2_hsmmc_info mmc[] = {
+@@ -372,8 +379,7 @@ static struct omap2_hsmmc_info mmc[] = {
  		.mmc		= 2,
  		.caps		= MMC_CAP_4_BIT_DATA,
  		.gpio_cd	= -EINVAL,
@@ -46,7 +46,7 @@ index 615aebb..6d0b532 100644
  		.ocr_mask	= 0x00100000,	/* 3.3V */
  	},
  	{}	/* Terminator */
-@@ -323,6 +329,7 @@ static struct regulator_consumer_supply overo_vmmc1_supply[] = {
+@@ -387,6 +393,7 @@ static struct regulator_consumer_supply overo_vmmc1_supply[] = {
  #include <linux/leds.h>
  
  static struct gpio_led gpio_leds[] = {
@@ -54,7 +54,7 @@ index 615aebb..6d0b532 100644
  	{
  		.name			= "overo:red:gpio21",
  		.default_trigger	= "heartbeat",
-@@ -335,6 +342,7 @@ static struct gpio_led gpio_leds[] = {
+@@ -399,6 +406,7 @@ static struct gpio_led gpio_leds[] = {
  		.gpio			= 22,
  		.active_low		= true,
  	},
@@ -62,7 +62,7 @@ index 615aebb..6d0b532 100644
  	{
  		.name			= "overo:blue:COM",
  		.default_trigger	= "mmc0",
-@@ -413,7 +421,7 @@ static int overo_twl_gpio_setup(struct device *dev,
+@@ -477,7 +485,7 @@ static int overo_twl_gpio_setup(struct device *dev,
  
  #if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
  	/* TWL4030_GPIO_MAX + 1 == ledB, PMU_STAT (out, active low LED) */
@@ -71,7 +71,7 @@ index 615aebb..6d0b532 100644
  #endif
  
  	return 0;
-@@ -590,6 +598,154 @@ static struct omap_musb_board_data musb_board_data = {
+@@ -654,6 +662,154 @@ static struct omap_musb_board_data musb_board_data = {
  	.power			= 100,
  };
  
@@ -226,7 +226,7 @@ index 615aebb..6d0b532 100644
  static void __init overo_init(void)
  {
  	int ret;
-@@ -604,11 +760,15 @@ static void __init overo_init(void)
+@@ -668,12 +824,16 @@ static void __init overo_init(void)
  	usbhs_init(&usbhs_bdata);
  	overo_spi_init();
  	overo_init_smsc911x();
@@ -236,6 +236,7 @@ index 615aebb..6d0b532 100644
  	overo_init_led();
  	overo_init_keys();
  	overo_opp_init();
+ 	overo_camera_init();
  
 +	usrp1_e_init();
 +

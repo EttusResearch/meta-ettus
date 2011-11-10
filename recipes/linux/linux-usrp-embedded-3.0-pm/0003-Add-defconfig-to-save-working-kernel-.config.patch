@@ -1,4 +1,4 @@
-From 9514cdc1b799b90ce9278063a82c08a09be98b6e Mon Sep 17 00:00:00 2001
+From 82842113c985f92ff6bb2c853346af4b7034bdb8 Mon Sep 17 00:00:00 2001
 From: Philip Balister <balister@moose.(none)>
 Date: Mon, 3 May 2010 15:13:47 -0400
 Subject: [PATCH 3/5] Add defconfig to save working kernel .config.
