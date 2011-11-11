@@ -1,35 +1,34 @@
-DESCRIPTION = "Image based on the GNOME desktop"
-
-inherit image
-
-DISTRO_SSH_DAEMON = "openssh"
-
-PR = "r1"
-
-XSERVER ?= "xserver-xorg \
-           xf86-input-evdev \
-           xf86-input-mouse \
-           xf86-video-fbdev \
-           xf86-video-sisusb \
-           xf86-input-keyboard \
-"
-
-export IMAGE_BASENAME = "gnome-gnuradio-image"
-
-#IMAGE_LINGUAS = "de-de fr-fr en-gb en-us pt-br es-es kn-in ml-in ta-in"
-#ROOTFS_POSTPROCESS_COMMAND += 'install_linguas;'
-IMAGE_PREPROCESS_COMMAND = "create_etc_timestamp"
-
-IMAGE_LOGIN_MANAGER = "shadow"
-IMAGE_SPLASH = "psplash-angstrom"
+require recipes-images/angstrom/systemd-image.bb
 
 IMAGE_INSTALL += " \
-  task-base-extended \
-  ${IMAGE_SPLASH} \
-  angstrom-task-gnome \
-  task-gnome-apps \
-  task-proper-tools \
   task-usrp-embedded \
-  task-gnuradio \
+  task-sdk-gnuradio-target \
+  uhd \
+  uhd-dev \
+  uhd-examples \
+  uhd-tests \
+  uhd-e1xx \
+  gnuradio \
+  gnuradio-dev \
+  gnuradio-grc \
+  gnuradio-examples \
+  qmake2 \
+  qt4-tools \
+  qt4-x11-free-dev \
+  qt4-mkspecs \
+  qwt \
+  qwt-dev \
+  qwt-examples \
+  task-gnome \
+  task-gnome-apps \
+  task-gnome-themes \
+  task-gnome-xserver-base \
+  task-xserver \
+  task-gnome-fonts \
 "
 
+
+#  task-base-extended \
+#  task-proper-tools \
+
+export IMAGE_BASENAME = "gnome-gnuradio-image"
