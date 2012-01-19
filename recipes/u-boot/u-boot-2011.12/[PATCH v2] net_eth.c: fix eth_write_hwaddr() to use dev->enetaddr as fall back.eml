@@ -1,0 +1,139 @@
+Path: news.gmane.org!not-for-mail
+From: Dirk Behme <dirk.behme@de.bosch.com>
+Newsgroups: gmane.comp.boot-loaders.u-boot
+Subject: [PATCH v2] net/eth.c: fix eth_write_hwaddr() to use
+	dev->enetaddr as fall back
+Date: Thu, 19 Jan 2012 09:56:33 +0100
+Lines: 57
+Approved: news@gmane.org
+Message-ID: <1326963393-7338-1-git-send-email-dirk.behme@de.bosch.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1326963423 1989 80.91.229.12 (19 Jan 2012 08:57:03 GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 19 Jan 2012 08:57:03 +0000 (UTC)
+Cc: Philip Balister <philip@balister.org>, Zach Sadecki <zach@itwatchdogs.com>,
+	Stefan Roese <sr@denx.de>, Eric Miao <eric.miao@linaro.org>
+To: <u-boot@lists.denx.de>
+Original-X-From: u-boot-bounces@lists.denx.de Thu Jan 19 09:56:56 2012
+Return-path: <u-boot-bounces@lists.denx.de>
+Envelope-to: gcbu-u-boot-users@m.gmane.org
+Original-Received: from theia.denx.de ([85.214.87.163])
+	by lo.gmane.org with esmtp (Exim 4.69)
+	(envelope-from <u-boot-bounces@lists.denx.de>)
+	id 1Rnnnj-0002d0-JK
+	for gcbu-u-boot-users@m.gmane.org; Thu, 19 Jan 2012 09:56:55 +0100
+Original-Received: from localhost (localhost [127.0.0.1])
+	by theia.denx.de (Postfix) with ESMTP id 2D8EB283B5;
+	Thu, 19 Jan 2012 09:56:49 +0100 (CET)
+X-Virus-Scanned: Debian amavisd-new at theia.denx.de
+Original-Received: from theia.denx.de ([127.0.0.1])
+	by localhost (theia.denx.de [127.0.0.1]) (amavisd-new, port 10024)
+	with ESMTP id KktqbaYJYTqF; Thu, 19 Jan 2012 09:56:48 +0100 (CET)
+Original-Received: from theia.denx.de (localhost [127.0.0.1])
+	by theia.denx.de (Postfix) with ESMTP id EFC04283AA;
+	Thu, 19 Jan 2012 09:56:47 +0100 (CET)
+Original-Received: from localhost (localhost [127.0.0.1])
+	by theia.denx.de (Postfix) with ESMTP id C79F5283AA
+	for <u-boot@lists.denx.de>; Thu, 19 Jan 2012 09:56:45 +0100 (CET)
+X-Virus-Scanned: Debian amavisd-new at theia.denx.de
+Original-Received: from theia.denx.de ([127.0.0.1])
+	by localhost (theia.denx.de [127.0.0.1]) (amavisd-new, port 10024)
+	with ESMTP id junUu3owbf+0 for <u-boot@lists.denx.de>;
+	Thu, 19 Jan 2012 09:56:44 +0100 (CET)
+X-policyd-weight: NOT_IN_SBL_XBL_SPAMHAUS=-1.5 NOT_IN_SPAMCOP=-1.5
+	NOT_IN_BL_NJABL=-1.5 (only DNSBL check requested)
+Original-Received: from smtp2-v.fe.bosch.de (smtp2-v.fe.bosch.de [139.15.237.6])
+	by theia.denx.de (Postfix) with ESMTPS id 12B59283A8
+	for <u-boot@lists.denx.de>; Thu, 19 Jan 2012 09:56:42 +0100 (CET)
+Original-Received: from vsmta13.fe.internet.bosch.com (unknown [10.4.98.30])
+	by imta23.fe.bosch.de (Postfix) with ESMTP id 6D487582081F
+	for <u-boot@lists.denx.de>; Thu, 19 Jan 2012 09:56:40 +0100 (CET)
+Original-Received: from localhost (vsgw3.fe.internet.bosch.com [10.4.98.16])
+	by vsmta13.fe.internet.bosch.com (Postfix) with SMTP id 796BB5CA04A3
+	for <u-boot@lists.denx.de>; Thu, 19 Jan 2012 09:56:40 +0100 (CET)
+Original-Received: from FE-HUB1000.de.bosch.com (10.4.103.107) by fe-hub01.de.bosch.com
+	(10.3.153.37) with Microsoft SMTP Server (TLS) id 8.3.213.0;
+	Thu, 19 Jan 2012 09:56:35 +0100
+Original-Received: from hi-z5661.hi.de.bosch.com (10.34.217.179) by
+	FE-HUB1000.de.bosch.com (10.4.103.107) with Microsoft SMTP Server id
+	14.1.355.2; Thu, 19 Jan 2012 09:56:34 +0100
+Original-Received: from localhost.localdomain (localhost [127.0.0.1])	by
+	hi-z5661.hi.de.bosch.com (Postfix) with ESMTP id D7FE34003C;
+	Thu, 19 Jan 2012 09:56:34 +0100 (CET)
+X-Mailer: git-send-email 1.7.0.4
+X-BeenThere: u-boot@lists.denx.de
+X-Mailman-Version: 2.1.11
+Precedence: list
+List-Id: U-Boot discussion <u-boot.lists.denx.de>
+List-Unsubscribe: <http://lists.denx.de/mailman/options/u-boot>,
+	<mailto:u-boot-request@lists.denx.de?subject=unsubscribe>
+List-Archive: <http://lists.denx.de/pipermail/u-boot>
+List-Post: <mailto:u-boot@lists.denx.de>
+List-Help: <mailto:u-boot-request@lists.denx.de?subject=help>
+List-Subscribe: <http://lists.denx.de/mailman/listinfo/u-boot>,
+	<mailto:u-boot-request@lists.denx.de?subject=subscribe>
+Original-Sender: u-boot-bounces@lists.denx.de
+Errors-To: u-boot-bounces@lists.denx.de
+Xref: news.gmane.org gmane.comp.boot-loaders.u-boot:123254
+Archived-At: <http://permalink.gmane.org/gmane.comp.boot-loaders.u-boot/123254>
+
+From: Eric Miao <eric.miao@linaro.org>
+
+Ignore the return value of eth_getenv_enetaddr_by_index(), and if it
+fails, fall back to use dev->enetaddr, which could be filled up by
+the ethernet device driver:
+
+With the current code, introduced with below commit, eth_write_hwaddr()
+will fail immediately if there is no eth<n>addr in the environment variables.
+
+However, e.g. for an overo based product that uses the SMSC911x ethernet
+chip (with the MAC address set via EEPROM connected to the SMSC911x chip),
+the MAC address is still OK.
+
+On mx28 boards that are depending on the OCOTP bits to set the MAC address
+(like the Denx m28 board), the OCOTP bits should be used instead of
+failing on the environment variables.
+
+Actually, this was the original behavior, and was later changed by
+commit 7616e7850804c7c69e0a22c179dfcba9e8f3f587.
+
+Signed-off-by: Eric Miao <eric.miao@linaro.org>
+Acked-by: Simon Glass <sjg@chromium.org>
+Acked-by: Dirk Behme <dirk.behme@de.bosch.com>
+CC: Stefan Roese <sr@denx.de>
+CC: Eric Miao <eric.miao@linaro.org>
+CC: Wolfgang Denk <wd@denx.de>
+CC: Philip Balister <philip@balister.org>
+CC: Zach Sadecki <zach@itwatchdogs.com>
+---
+v2: Correct the referenced commit ID and update the commit message.
+    No functional change at the code itself.
+
+Note: This resend is based on my understanding from
+
+      http://lists.denx.de/pipermail/u-boot/2012-January/116118.html
+
+      Please let Eric and me know if I missed anything there.
+
+ net/eth.c |    3 +--
+ 1 files changed, 1 insertions(+), 2 deletions(-)
+
+diff --git a/net/eth.c b/net/eth.c
+index b4b9b43..451568f 100644
+--- a/net/eth.c
++++ b/net/eth.c
+@@ -175,8 +175,7 @@ int eth_write_hwaddr(struct eth_device *dev, const char *base_name,
+ 	unsigned char env_enetaddr[6];
+ 	int ret = 0;
+ 
+-	if (!eth_getenv_enetaddr_by_index(base_name, eth_number, env_enetaddr))
+-		return -1;
++	eth_getenv_enetaddr_by_index(base_name, eth_number, env_enetaddr);
+ 
+ 	if (memcmp(env_enetaddr, "\0\0\0\0\0\0", 6)) {
+ 		if (memcmp(dev->enetaddr, "\0\0\0\0\0\0", 6) &&
+-- 
+1.7.0.4

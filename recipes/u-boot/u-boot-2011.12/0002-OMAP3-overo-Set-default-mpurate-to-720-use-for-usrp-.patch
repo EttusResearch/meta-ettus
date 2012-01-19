@@ -1,0 +1,30 @@
+From 747bc5d5846ab4be5d383b81a8581b6ede4488bb Mon Sep 17 00:00:00 2001
+From: Philip Balister <philip@balister.org>
+Date: Sat, 23 Apr 2011 11:52:37 -0400
+Subject: [PATCH 2/2] OMAP3: overo : Set default mpurate to 720 (use for
+ usrp-e1xx)
+
+Can't upstream this since it breaks older Overo's.
+
+Signed-off-by: Philip Balister <philip@opensdr.com>
+---
+ include/configs/omap3_overo.h |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/include/configs/omap3_overo.h b/include/configs/omap3_overo.h
+index afdefd9..ffec5ef 100644
+--- a/include/configs/omap3_overo.h
++++ b/include/configs/omap3_overo.h
+@@ -156,8 +156,8 @@
+ #define CONFIG_EXTRA_ENV_SETTINGS \
+ 	"loadaddr=0x82000000\0" \
+ 	"console=ttyO2,115200n8\0" \
+-	"mpurate=500\0" \
+ 	"optargs=\0" \
++	"mpurate=720\0" \
+ 	"vram=12M\0" \
+ 	"dvimode=1024x768MR-16@60\0" \
+ 	"defaultdisplay=dvi\0" \
+-- 
+1.7.6.4
+

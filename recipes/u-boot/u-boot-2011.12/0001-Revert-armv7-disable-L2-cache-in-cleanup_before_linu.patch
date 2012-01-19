@@ -1,0 +1,25 @@
+From 9ac047a112d8c6fe25e71a78946dbe9d707abd98 Mon Sep 17 00:00:00 2001
+From: Philip Balister <philip@opensdr.com>
+Date: Mon, 16 Jan 2012 09:45:11 -0500
+Subject: [PATCH] Revert "armv7: disable L2 cache in cleanup_before_linux()"
+
+This reverts commit dc7100f4080952798413fb63bb4134b22c57623a.
+---
+ arch/arm/cpu/armv7/cpu.c |    1 -
+ 1 files changed, 0 insertions(+), 1 deletions(-)
+
+diff --git a/arch/arm/cpu/armv7/cpu.c b/arch/arm/cpu/armv7/cpu.c
+index 662c496..091e3e0 100644
+--- a/arch/arm/cpu/armv7/cpu.c
++++ b/arch/arm/cpu/armv7/cpu.c
+@@ -65,7 +65,6 @@ int cleanup_before_linux(void)
+ 	 * dcache_disable() in turn flushes the d-cache and disables MMU
+ 	 */
+ 	dcache_disable();
+-	v7_outer_cache_disable();
+ 
+ 	/*
+ 	 * After D-cache is flushed and before it is disabled there may
+-- 
+1.7.6.5
+
