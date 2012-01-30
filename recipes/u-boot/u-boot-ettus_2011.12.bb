@@ -18,6 +18,8 @@ TARGET_LDFLAGS = ""
 
 inherit base
 
+S = "${WORKDIR}/u-boot-2011.12"
+
 do_compile () {
        oe_runmake ${UBOOT_MACHINE}
        oe_runmake all
