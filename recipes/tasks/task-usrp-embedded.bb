@@ -13,7 +13,7 @@ RDEPENDS_${PN} = "\
   htop \
   powertop \
   python-lxml \
-  python-subprocess \
+  python-modules \
   gdb \
   vim-vimrc \
 "
