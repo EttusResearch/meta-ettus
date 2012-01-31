@@ -45,7 +45,6 @@ RDEPENDS_${PN} += " \
 
 GNURADIO_PKGS = " \
     libusb1-dev \
-    guile-dev \
     fftwf-dev \
     alsa-dev \
     alsa-lib-dev \

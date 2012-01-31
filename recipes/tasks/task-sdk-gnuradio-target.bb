@@ -3,12 +3,12 @@ inherit task
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COREBASE}/LICENSE;md5=3f40d7994397109285ec7b81fdeb3b58"
 
-DEPENDS += "libusb1 guile fftw python alsa-lib jack boost cppunit swig \
+DEPENDS += "libusb1 fftw python alsa-lib jack boost cppunit swig \
             python python-numpy git util-linux gsl python-cheetah git \
             pkgconfig \
             "
 
-RDEPENDS_${PN} += "task-sdk-target libusb1-dev guile-dev fftwf-dev \
+RDEPENDS_${PN} += "task-sdk-target libusb1-dev fftwf-dev \
              alsa-dev alsa-lib-dev jack-dev \
              cppunit-dev swig python-dev python-numpy-dev python-textutils \
              python-distutils python-re python-stringold python-lang \
