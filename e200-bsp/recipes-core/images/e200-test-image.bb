@@ -10,6 +10,10 @@ IMAGE_INSTALL = "\
     kernel-modules \
     i2c-tools \
     vim \
+    boost-dev \
+    cmake \
+    python \
+    python-cheetah \
     "
 
 inherit core-image
