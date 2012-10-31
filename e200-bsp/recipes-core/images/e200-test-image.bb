@@ -4,16 +4,23 @@ functionality installed."
 IMAGE_FEATURES += "splash ssh-server-openssh tools-sdk \
                    tools-debug debug-tweaks"
 
+EXTRA_IMAGE_FEATURES += "package-management"
+
 IMAGE_INSTALL = "\
     packagegroup-core-boot \
     packagegroup-core-basic \
-    kernel-modules \
     i2c-tools \
     vim \
+    git \
     boost-dev \
     cmake \
     python \
     python-cheetah \
+    python-crypt \
+    python-netserver \
+    python-netclient \
+    python-mime \
+    python-datetime \
     "
 
 inherit core-image
