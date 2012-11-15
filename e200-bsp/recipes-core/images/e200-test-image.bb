@@ -11,6 +11,7 @@ IMAGE_INSTALL = "\
     packagegroup-core-basic \
     i2c-tools \
     vim \
+    vim-vimrc \
     git \
     boost-dev \
     cmake \
