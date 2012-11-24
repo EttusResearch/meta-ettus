@@ -10,6 +10,7 @@ IMAGE_INSTALL = "\
     packagegroup-core-boot \
     packagegroup-core-basic \
     i2c-tools \
+    screen \
     vim \
     vim-vimrc \
     git \
@@ -17,11 +18,7 @@ IMAGE_INSTALL = "\
     cmake \
     python \
     python-cheetah \
-    python-crypt \
-    python-netserver \
-    python-netclient \
-    python-mime \
-    python-datetime \
+    python-modules \
     "
 
 inherit core-image
