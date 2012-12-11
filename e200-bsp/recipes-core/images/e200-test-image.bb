@@ -9,6 +9,7 @@ EXTRA_IMAGE_FEATURES += "package-management"
 IMAGE_INSTALL = "\
     packagegroup-core-boot \
     packagegroup-core-basic \
+    tools-debug \
     i2c-tools \
     screen \
     vim \
@@ -19,6 +20,11 @@ IMAGE_INSTALL = "\
     python \
     python-cheetah \
     python-modules \
+    python-argparse \
+    htop \
+    sshfs-fuse \
+    glib-2.0-dev \
+    orc-dev \
     "
 
 inherit core-image
