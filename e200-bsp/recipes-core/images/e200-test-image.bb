@@ -6,10 +6,10 @@ IMAGE_FEATURES += "splash ssh-server-openssh tools-sdk \
 
 EXTRA_IMAGE_FEATURES += "package-management"
 
-IMAGE_INSTALL = "\
-    packagegroup-core-boot \
-    packagegroup-core-basic \
-    tools-debug \
+LICENSE = "MIT"
+
+CORE_IMAGE_EXTRA_INSTALL = "\
+    alsa-utils \
     i2c-tools \
     screen \
     vim \
