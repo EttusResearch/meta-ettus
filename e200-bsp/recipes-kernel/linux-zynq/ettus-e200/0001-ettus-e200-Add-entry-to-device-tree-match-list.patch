@@ -1,0 +1,25 @@
+From 7dbba6f18738575be26308ebe8d9794fa7411236 Mon Sep 17 00:00:00 2001
+From: Philip Balister <philip@opensdr.com>
+Date: Wed, 13 Feb 2013 18:16:39 -0800
+Subject: [PATCH] ettus-e200 : Add entry to device tree match list.
+
+Signed-off-by: Philip Balister <philip@opensdr.com>
+---
+ arch/arm/mach-zynq/common.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm/mach-zynq/common.c b/arch/arm/mach-zynq/common.c
+index 22a267d..e7971fa 100644
+--- a/arch/arm/mach-zynq/common.c
++++ b/arch/arm/mach-zynq/common.c
+@@ -207,6 +207,7 @@ static const char *xilinx_dt_match[] = {
+ 	"xlnx,zynq-zc702",
+ 	"xlnx,zynq-zc706",
+ 	"xlnx,zynq-zc770",
++	"xlnx,ettus-e200",
+ 	NULL
+ };
+ 
+-- 
+1.7.11.7
+

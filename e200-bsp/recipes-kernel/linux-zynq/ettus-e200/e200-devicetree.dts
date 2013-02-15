@@ -171,10 +171,11 @@
 				reg = <0>;
 			};
 		};
-		axi-fpga@78800000 {
+		axi_fpga0: axi-fpga@40000000 {
 			compatible = "xlnx,ps7-axi-fpga-1.00.a";
-			reg = <0x78800000 0x1000>;
-			interrupts = <0 9 0>;
+			reg = <0x40000000 0x100000
+			       0x00000000 0x8>;
+			interrupts = <0 28 1>;
 			interrupt-parent = <&gic>;
                 };
 
