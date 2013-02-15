@@ -25,6 +25,8 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     sshfs-fuse \
     glib-2.0-dev \
     orc-dev \
+    libudev-dev \
+    libudev \
     "
 
 inherit core-image
