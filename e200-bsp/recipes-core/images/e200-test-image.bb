@@ -2,11 +2,13 @@ DESCRIPTION = "A console-only image with more full-featured Linux system \
 functionality installed."
 
 IMAGE_FEATURES += "splash ssh-server-openssh tools-sdk \
-                   tools-debug debug-tweaks"
+                   tools-debug tools-profile debug-tweaks"
 
 EXTRA_IMAGE_FEATURES += "package-management"
 
 LICENSE = "MIT"
+
+TOOLCHAIN_HOST_TASK_append = " nativesdk-python-cheetah nativesdk-python-netserver nativesdk-python-pprint nativesdk-python-pickle nativesdk-orc"
 
 CORE_IMAGE_EXTRA_INSTALL = "\
     alsa-utils \
@@ -27,6 +29,7 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     orc-dev \
     libudev-dev \
     libudev \
+    ntpdate \
     "
 
 inherit core-image
