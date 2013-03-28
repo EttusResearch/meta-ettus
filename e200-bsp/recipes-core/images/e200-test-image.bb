@@ -2,7 +2,9 @@ DESCRIPTION = "A console-only image with more full-featured Linux system \
 functionality installed."
 
 IMAGE_FEATURES += "splash ssh-server-openssh tools-sdk \
-                   tools-debug tools-profile debug-tweaks"
+                   tools-debug tools-profile debug-tweaks \
+                   dev-pkgs dbg-pkgs \
+                  "
 
 EXTRA_IMAGE_FEATURES += "package-management"
 
@@ -17,7 +19,7 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     vim \
     vim-vimrc \
     git \
-    boost-dev \
+    boost \
     cmake \
     python \
     python-cheetah \
@@ -25,10 +27,10 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     python-argparse \
     htop \
     sshfs-fuse \
-    glib-2.0-dev \
-    orc-dev \
-    libudev-dev \
+    glib-2.0 \
+    orc \
     libudev \
+    libudev-dev \
     ntpdate \
     "
 
