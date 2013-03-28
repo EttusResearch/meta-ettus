@@ -29,7 +29,4 @@ IMAGE_INSTALL += " \
 "
 
 
-#  qmake2 \
-#  task-proper-tools \
-
 export IMAGE_BASENAME = "xfce-gnuradio-image"
