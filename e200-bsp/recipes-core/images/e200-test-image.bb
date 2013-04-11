@@ -30,7 +30,6 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     glib-2.0 \
     orc \
     libudev \
-    libudev-dev \
     ntpdate \
     "
 
