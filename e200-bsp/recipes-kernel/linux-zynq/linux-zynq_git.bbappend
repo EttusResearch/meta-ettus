@@ -3,7 +3,6 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:"
 SRC_URI_append = "\
                   file://e200.scc \
                   file://axi_fpga.scc \
-		  file://defconfig \
 		  file://e200-devicetree.dts \
 		"
 
