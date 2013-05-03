@@ -50,6 +50,8 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:"
 # tree if you do not want to build from Linus' tree.
 SRC_URI = "git://github.com/gumstix/linux.git;protocol=git;branch=omap-3.5;nocheckout=1 \
            file://defconfig \
+           file://e100.scc \
+           file://usrp_e.scc \
           "
 
 LINUX_VERSION ?= "3.5"
