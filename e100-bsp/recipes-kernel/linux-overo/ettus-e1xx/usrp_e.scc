@@ -1,0 +1,6 @@
+patch 0001-Add-defines-to-set-config-options-in-GPMC-per-CS-con.patch
+patch 0002-Add-functions-to-dma.c-to-set-address-and-length-for.patch
+patch 0003-usrp_e-Add-driver-for-USRP-E1XX-FPGA-interface.patch
+patch 0004-usrp_e-Modify-overo-board-file-to-setup-hardware-for.patch
+kconf hardware usrp_e.cfg
+
