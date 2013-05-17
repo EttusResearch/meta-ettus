@@ -1,0 +1,26 @@
+From f7397cbd1a81c4f06c89a7182f6b7cbcc77991f2 Mon Sep 17 00:00:00 2001
+From: Philip Balister <philip@balister.org>
+Date: Fri, 17 May 2013 10:55:57 -0400
+Subject: [PATCH] perf : Fix build for OE.
+
+Signed-off-by: Philip Balister <philip@balister.org>
+---
+ tools/perf/util/evsel.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tools/perf/util/evsel.c b/tools/perf/util/evsel.c
+index 9f6cebd..61a25ad 100644
+--- a/tools/perf/util/evsel.c
++++ b/tools/perf/util/evsel.c
+@@ -15,7 +15,7 @@
+ #include "cpumap.h"
+ #include "thread_map.h"
+ #include "target.h"
+-#include "../../include/linux/perf_event.h"
++#include <linux/perf_event.h>
+ 
+ #define FD(e, x, y) (*(int *)xyarray__entry(e->fd, x, y))
+ #define GROUP_FD(group_fd, cpu) (*(int *)xyarray__entry(group_fd, cpu, 0))
+-- 
+1.7.11.7
+
