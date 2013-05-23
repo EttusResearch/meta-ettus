@@ -71,3 +71,5 @@ PV = "${LINUX_VERSION}+git${SRCPV}"
 # Override COMPATIBLE_MACHINE to include your machine in a bbappend
 # file. Leaving it empty here ensures an early explicit build failure.
 COMPATIBLE_MACHINE = "ettus-e1xx"
+
+KERNEL_IMAGETYPE = "uImage"
