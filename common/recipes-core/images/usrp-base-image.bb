@@ -10,7 +10,7 @@ EXTRA_IMAGE_FEATURES += "package-management"
 
 LICENSE = "MIT"
 
-TOOLCHAIN_HOST_TASK_append = " nativesdk-python-cheetah nativesdk-python-netserver nativesdk-python-pprint nativesdk-python-pickle nativesdk-orc"
+TOOLCHAIN_HOST_TASK_append = " nativesdk-python-cheetah nativesdk-python-netserver nativesdk-python-pprint nativesdk-python-pickle nativesdk-orc nativesdk-swig"
 
 CORE_IMAGE_EXTRA_INSTALL = "\
     alsa-utils \
