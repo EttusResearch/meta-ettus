@@ -1,7 +1,7 @@
 /dts-v1/;
 
 / {
-	model = "Ettus Research E200";
+	model = "Ettus E200";
 	compatible = "xlnx,ettus-e200";
 	#address-cells = <0x1>;
 	#size-cells = <0x1>;
@@ -9,11 +9,17 @@
 
 	memory {
 		device_type = "memory";
-		reg = <0x00000000 0x40000000>; 
+		reg = <0x00000000 0x40000000>;
 	};
 	chosen {
-		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 rw rootwait earlyprintk"; 
+		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 rw rootwait earlyprintk";
 		linux,stdout-path = "/amba@0/uart@E0001000";
+	};
+
+	pmu {
+		compatible = "arm,cortex-a9-pmu";
+		interrupts = <0 5 4>, <0 6 4>;
+		interrupt-parent = <&gic>;
 	};
 
 	amba@0 {
@@ -26,8 +32,8 @@
 			interrupt-controller;
 			compatible = "arm,cortex-a9-gic";
 			#interrupt-cells = <3>;
-			reg = < 0xf8f01000 0x1000 >,
-			      < 0xf8f00100 0x0100 >;
+			reg = <0xf8f01000 0x1000>,
+			      <0xf8f00100 0x0100>;
 		};
 
 		pl310@f8f02000 {
@@ -37,35 +43,96 @@
 			reg = <0xf8f02000 0x1000>;
 			arm,data-latency = <3 2 2>;
 			arm,tag-latency = <2 2 2>;
-			interrupts = <0 34 4>;
+		};
+
+		ps7_ddrc_0: ps7-ddrc@f8006000 {
+			compatible = "xlnx,ps7-ddrc-1.00.a", "xlnx,ps7-ddrc";
+			reg = <0xf8006000 0x1000>;
+			xlnx,has-ecc = <0x0>;
+		} ;
+
+		ps7_ocm_0: ps7-ocm@0xfffc0000 {
+			compatible = "xlnx,ps7-ocm";
+			reg = <0xfffc0000 0x40000>; /* 256k */
 		};
 
 		uart@e0001000 {
 			compatible = "xlnx,ps7-uart-1.00.a";
 			reg = <0xe0001000 0x1000>;
-			interrupts = < 0 50 4 >;
+			interrupts = <0 50 4>;
 			interrupt-parent = <&gic>;
 			clock = <50000000>;
+		};
+
+		slcr: slcr@f8000000 {
+			compatible = "xlnx,zynq-slcr";
+			reg = <0xF8000000 0x1000>;
+			clocks {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				armpll: armpll {
+					#clock-cells = <0>;
+					clock-output-names = "armpll";
+					clocks = <&ps_clk>;
+					compatible = "xlnx,zynq-pll";
+					lockbit = <0>;
+					reg = < 0x100 0x110 0x10c >;
+				} ;
+				ddrpll: ddrpll {
+					#clock-cells = <0>;
+					clock-output-names = "ddrpll";
+					clocks = <&ps_clk>;
+					compatible = "xlnx,zynq-pll";
+					lockbit = <1>;
+					reg = < 0x104 0x114 0x10c >;
+				} ;
+				iopll: iopll {
+					#clock-cells = <0>;
+					clock-output-names = "iopll";
+					clocks = <&ps_clk>;
+					compatible = "xlnx,zynq-pll";
+					lockbit = <2>;
+					reg = < 0x108 0x118 0x10c >;
+				} ;
+				ps_clk: ps_clk {
+					#clock-cells = <0>;
+					clock-frequency = <33333333>;
+					clock-output-names = "ps_clk";
+					compatible = "fixed-clock";
+				} ;
+			} ;
 		};
 
 		timer@0xf8001000 {
 			compatible = "xlnx,ps7-ttc-1.00.a";
 			reg = <0xf8001000 0x1000>;
-			interrupts = <0 10 4>,<0 11 4>,<0 12 4>; 
+			interrupts = <0 10 4>,<0 11 4>,<0 12 4>;
 			interrupt-parent = <&gic>;
-			clock-frequency-timer0 = <111111111>;
-			clock-frequency-timer1 = <111111111>;
-			clock-frequency-timer2 = <111111111>;
+		};
+
+		timer@f8f00600 {
+			compatible = "arm,cortex-a9-twd-timer";
+			reg = <0xf8f00600 0x20>;
+			interrupts = <1 13 0x301>;
+			interrupt-parent = <&gic>;
 		};
 
 		swdt@f8005000 {
 			device_type = "watchdog";
 			compatible = "xlnx,ps7-wdt-1.00.a";
 			reg = <0xf8005000 0x100>;
-			clock-frequency = <111111111>;
 			interrupts = <0 9 4>;
 			interrupt-parent = <&gic>;
 			reset = <0>;
+			timeout = <10>;
+		};
+
+		scuwdt@f8f00620 {
+			device_type = "watchdog";
+			compatible = "arm,mpcore_wdt";
+			reg = <0xf8f00620 0x20>;
+			clock-frequency = <333333333>;
+			reset = <1>;
 		};
 
 		eth@e000b000 {
@@ -74,6 +141,7 @@
 			interrupts = <0 22 4>;
 			interrupt-parent = <&gic>;
 			phy-handle = <&phy0>;
+			phy-mode = "rgmii-id";
 			xlnx,ptp-enet-clock = <111111111>;
 			xlnx,slcr-div0-1000Mbps = <8>;
 			xlnx,slcr-div0-100Mbps = <8>;
@@ -83,17 +151,14 @@
 			xlnx,slcr-div1-10Mbps = <50>;
 			#address-cells = <0x1>;
 			#size-cells = <0x0>;
-
-			phy0: phy@0 {
-				compatible = "marvell,88e1512";
-				device_type = "ethernet-phy";
-				reg = <0x0>;
-				/* Interrupt on GPIO1, shared with phy1. */
-				/*interrupts = <1 0>;*/
-				/*interrupt-parent = <&gpio>;*/
-				/* Page 3, Register 16, LED[2:0] Function
-					Control Register */
-				leds = <0x1881>;
+			mdio {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				phy0: phy@7 {
+					compatible = "marvell,88e1510";
+					device_type = "ethernet-phy";
+					reg = <7>;
+				};
 			};
 		};
 
@@ -105,7 +170,7 @@
 			bus-id = <0>;
 			input-clk = <111111111>;
 			i2c-clk = <100000>;
-			
+
 			#address-cells = <1>;
 			#size-cells = <0>;
 
@@ -147,37 +212,29 @@
 			interrupts = <0 8 4>;
 			interrupt-parent = <&gic>;
 		};
+
 		xadc@f8007100 {
 			compatible = "xlnx,ps7-xadc-1.00.a";
 			reg = <0xf8007100 0x20>;
-			interrupts = <0 7 0>;
+			interrupts = <0 7 4>;
 			interrupt-parent = <&gic>;
 		};
-		spi0: spi@e0006000 {
-			compatible = "xlnx,ps7-spi-1.00.a";
-			reg = <0xE0006000 0x1000>;
-			interrupts = <0 26 4>;
+		ps7_dma_s: ps7-dma@f8003000 {
+			#dma-cells = <1>;
+			#dma-channels = <8>;
+			#dma-requests = <4>;
+			arm,primecell-periphid = <0x41330>;
+			compatible = "xlnx,ps7-dma-1.00.a", "arm,primecell", "arm,pl330";
 			interrupt-parent = <&gic>;
-			speed-hz = <50000000>;
-			bus-num = <0>;
-			num-chip-select = <4>;
-
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			spidev: spidev@0 {
-				compatible = "linux,spidev";
-				spi-max-frequency = <100000>;
-				reg = <0>;
-			};
-		};
+			interrupts = < 0 13 4 0 14 4 0 15 4 0 16 4 0 17 4 0 40 4 0 41 4 0 42 4 0 43 4 >;
+			reg = < 0xf8003000 0x1000 >;
+		} ;
 		axi_fpga0: axi-fpga@40000000 {
 			compatible = "xlnx,ps7-axi-fpga-1.00.a";
 			reg = <0x40000000 0x100000
-			       0x00000000 0x8>;
+				0x00000000 0x8>;
 			interrupts = <0 28 1>;
 			interrupt-parent = <&gic>;
                 };
-
 	};
 };
