@@ -41,6 +41,8 @@
 #            SRC_URI += "file://feature.scc"
 #
 
+PARALLEL_MAKE = ""
+
 inherit kernel
 require recipes-kernel/linux/linux-yocto.inc
 
@@ -52,6 +54,7 @@ SRC_URI = "git://github.com/gumstix/linux.git;protocol=git;branch=omap-3.5;noche
            file://defconfig \
            file://e100.scc \
            file://usrp_e.scc \
+           file://perf.scc \
           "
 
 LINUX_VERSION ?= "3.5"
@@ -68,3 +71,5 @@ PV = "${LINUX_VERSION}+git${SRCPV}"
 # Override COMPATIBLE_MACHINE to include your machine in a bbappend
 # file. Leaving it empty here ensures an early explicit build failure.
 COMPATIBLE_MACHINE = "ettus-e1xx"
+
+KERNEL_IMAGETYPE = "uImage"

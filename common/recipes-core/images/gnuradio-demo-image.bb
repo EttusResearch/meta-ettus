@@ -5,5 +5,7 @@ environment installed."
 
 CORE_IMAGE_EXTRA_INSTALL += " \
     uhd \
+    gnuradio \
+    gstreamer \
     "
 
