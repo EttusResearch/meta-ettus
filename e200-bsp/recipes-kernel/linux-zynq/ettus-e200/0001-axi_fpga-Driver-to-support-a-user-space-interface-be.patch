@@ -1,25 +1,26 @@
-From bf14d4dc2158f98b018c5d8e0482860c895cfd8c Mon Sep 17 00:00:00 2001
+From e897170bfd3153b2f2c033db9125b619d601d472 Mon Sep 17 00:00:00 2001
 From: Philip Balister <philip@opensdr.com>
 Date: Fri, 3 Aug 2012 15:30:44 -0400
 Subject: [PATCH] axi_fpga : Driver to support a user space interface between
  the PL and PS on a Zynq.
 
-Signed-off-by: Philip Balister <philip@balister.org>
+Signed-off-by: Philip Balister <philip@opensdr.com>
 ---
- drivers/misc/Kconfig    |   9 ++
- drivers/misc/Makefile   |   1 +
- drivers/misc/axi_fpga.c | 419 ++++++++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 429 insertions(+)
+ drivers/misc/Kconfig    |   9 +
+ drivers/misc/Makefile   |   2 +
+ drivers/misc/axi_fpga.c | 501 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 512 insertions(+)
  create mode 100644 drivers/misc/axi_fpga.c
 
 diff --git a/drivers/misc/Kconfig b/drivers/misc/Kconfig
-index e77d1d0..8d3c07a 100644
+index e77d1d0..f509010 100644
 --- a/drivers/misc/Kconfig
 +++ b/drivers/misc/Kconfig
-@@ -509,6 +509,13 @@ config SI570
- 	  To compile this driver as a module, choose M here: the module
- 	  will be called si570
- 
+@@ -517,4 +517,13 @@ source "drivers/misc/lis3lv02d/Kconfig"
+ source "drivers/misc/carma/Kconfig"
+ source "drivers/misc/altera-stapl/Kconfig"
+ source "drivers/misc/mei/Kconfig"
++
 +config AXI_FPGA_STREAM
 +	tristate "High speed data streaming interface to AXI connected FPGA"
 +	default n
@@ -27,31 +28,24 @@ index e77d1d0..8d3c07a 100644
 +	  This driver stream daat to/from an FPGA connected to the processor
 +	  VIA an AXI style interface.
 +
- source "drivers/misc/c2port/Kconfig"
- source "drivers/misc/eeprom/Kconfig"
- source "drivers/misc/cb710/Kconfig"
-@@ -517,4 +524,6 @@ source "drivers/misc/lis3lv02d/Kconfig"
- source "drivers/misc/carma/Kconfig"
- source "drivers/misc/altera-stapl/Kconfig"
- source "drivers/misc/mei/Kconfig"
-+
  endmenu
 +
 diff --git a/drivers/misc/Makefile b/drivers/misc/Makefile
-index 8ed0f8c..2909673 100644
+index 8ed0f8c..91e15e1 100644
 --- a/drivers/misc/Makefile
 +++ b/drivers/misc/Makefile
-@@ -50,3 +50,4 @@ obj-$(CONFIG_USB_SWITCH_FSA9480) += fsa9480.o
+@@ -50,3 +50,5 @@ obj-$(CONFIG_USB_SWITCH_FSA9480) += fsa9480.o
  obj-$(CONFIG_ALTERA_STAPL)	+=altera-stapl/
  obj-$(CONFIG_INTEL_MEI)		+= mei/
  obj-$(CONFIG_SI570)		+= si570.o
 +obj-$(CONFIG_AXI_FPGA_STREAM)   += axi_fpga.o
++
 diff --git a/drivers/misc/axi_fpga.c b/drivers/misc/axi_fpga.c
 new file mode 100644
-index 0000000..97b577e
+index 0000000..37d7af4
 --- /dev/null
 +++ b/drivers/misc/axi_fpga.c
-@@ -0,0 +1,419 @@
+@@ -0,0 +1,501 @@
 +/*
 + * Thin layer to provide access to FPGA fabric and allocate large buffers.
 + *
@@ -75,10 +69,24 @@ index 0000000..97b577e
 +#include <linux/string.h>
 +#include <linux/atomic.h>
 +#include <linux/uaccess.h>
++#include <linux/ioctl.h>
++#include <linux/dma-mapping.h>
 +
 +#include <asm/page.h>
 +
 +#define DRIVER_NAME "axi_fpga"
++
++struct buffer_addr {
++	void *virt_addr;
++	unsigned long phys_addr;
++	unsigned long size;
++	int direction;
++};
++
++#define AXI_FPGA_GET_PAGE		_IOWR('a', 0x30, struct buffer_addr)
++#define AXI_FPGA_GIVE_PAGE		_IOW('a', 0x31, struct buffer_addr)
++#define AXI_FPGA_TAKE_PAGE		_IOW('a', 0x32, struct buffer_addr)
++
 +
 +/**
 + * struct axi_fpga_drvdata - Device Configuration driver structure
@@ -173,6 +181,73 @@ index 0000000..97b577e
 +		return 0;
 +	}
 +	interruptible_sleep_on(&d->wait);
++	return 0;
++}
++
++static long axi_fpga_ioctl(struct file *file,
++				unsigned int cmd, unsigned long arg)
++{
++	struct axi_fpga_drvdata *d = container_of(file->private_data,
++				struct axi_fpga_drvdata, axi_fpga_device);
++	struct buffer_addr buf_addr;
++	struct buffer_addr __user *ubuf_addr;
++	struct page *page;
++	int res, retval;
++
++	ubuf_addr = (struct buffer_addr __user *) arg;
++	copy_from_user(&buf_addr, ubuf_addr, sizeof(struct buffer_addr));
++
++	retval = 0;
++
++	switch (cmd) {
++
++	case AXI_FPGA_GET_PAGE:
++		down_read(&current->mm->mmap_sem);
++		res = get_user_pages(current, current->mm,
++					(unsigned long) buf_addr.virt_addr,
++					1,
++					1,
++					0,
++					&page,
++					NULL);
++		up_read(&current->mm->mmap_sem);
++
++		dev_info(&d->pdev->dev, "npages = %d\n", res);
++
++		if (!res) 
++			retval = -EINVAL;
++
++		if (buf_addr.direction)
++			buf_addr.phys_addr = dma_map_page(&d->pdev->dev, page, 0,
++					buf_addr.size, DMA_TO_DEVICE);
++		else
++			buf_addr.phys_addr = dma_map_page(&d->pdev->dev, page, 0,
++					buf_addr.size, DMA_FROM_DEVICE);
++
++		copy_to_user(ubuf_addr, &buf_addr, sizeof(struct buffer_addr));
++		return retval;
++
++	case AXI_FPGA_GIVE_PAGE:
++		if (buf_addr.direction)
++			dma_sync_single_for_device(&d->pdev->dev, buf_addr.phys_addr,
++				buf_addr.size, DMA_TO_DEVICE);
++		else
++			dma_sync_single_for_device(&d->pdev->dev, buf_addr.phys_addr,
++				buf_addr.size, DMA_FROM_DEVICE);
++		break;
++
++	case AXI_FPGA_TAKE_PAGE:
++		if (buf_addr.direction)
++			dma_sync_single_for_cpu(&d->pdev->dev, buf_addr.phys_addr,
++				buf_addr.size, DMA_TO_DEVICE);
++		else
++			dma_sync_single_for_cpu(&d->pdev->dev, buf_addr.phys_addr,
++				buf_addr.size, DMA_FROM_DEVICE);
++		break;
++
++	default:
++		return -ENOTTY;
++	}
 +	return 0;
 +}
 +
@@ -303,6 +378,7 @@ index 0000000..97b577e
 +	.read		=	axi_fpga_read,
 +	.poll		=	axi_fpga_poll,
 +	.mmap		=	axi_fpga_mmap,
++	.unlocked_ioctl =	axi_fpga_ioctl,
 +	.release	=	axi_fpga_release,
 +};
 +
@@ -357,7 +433,7 @@ index 0000000..97b577e
 +	dev_info(&pdev->dev, "Dev name: %s\n", d->name);
 +
 +	/* Setup interrupt */
-+	d->irq_number = irq->start + 30;
++	d->irq_number = irq->start;
 +	init_waitqueue_head(&d->wait);
 +
 +	atomic_set(&d->irq_happened, 0);
@@ -472,5 +548,5 @@ index 0000000..97b577e
 +MODULE_LICENSE("GPL");
 +
 -- 
-1.7.11.7
+1.8.3.1
 
