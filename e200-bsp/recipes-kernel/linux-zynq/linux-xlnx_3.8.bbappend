@@ -6,7 +6,7 @@ SRC_URI_append_ettus-e200 = "\
 		  file://e200-devicetree.dts \
 		"
 
-KERNEL_DEVICETREE_ettus-e200 = "${WORKDIR}/e200-devicetree.dts"
+MACHINE_DEVICETREE_ettus-e200 = "e200-devicetree.dts"
 
 COMPATIBLE_MACHINE_ettus-e200 = "ettus-e200"
 
