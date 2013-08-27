@@ -1,0 +1,70 @@
+From b89afb4d76ad7d1faa13ca52a9f0f13091b91cef Mon Sep 17 00:00:00 2001
+From: Philip Balister <philip@balister.org>
+Date: Sat, 22 Jun 2013 08:42:21 -0400
+Subject: [PATCH 3/4] e200 : Reset USB phy.
+
+Signed-off-by: Philip Balister <philip@balister.org>
+---
+ board/xilinx/zynq/board.c | 39 +++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 39 insertions(+)
+
+diff --git a/board/xilinx/zynq/board.c b/board/xilinx/zynq/board.c
+index a52e458..3c1c1fe 100644
+--- a/board/xilinx/zynq/board.c
++++ b/board/xilinx/zynq/board.c
+@@ -48,6 +48,43 @@ Xilinx_desc fpga030 = XILINX_XC7Z030_DESC(0x30);
+ Xilinx_desc fpga045 = XILINX_XC7Z045_DESC(0x45);
+ #endif
+ 
++/* MIO GPIO registers */
++#define MIO_BASE	0xE000A000
++#define MASK_DATA_0_LSW	0x0
++#define DATA_0		0x40
++#define DIRM_0		0x204
++#define OEN_0		0x208
++
++#define USB_MIO 9
++
++static void reset_usb_phy()
++{
++	unsigned int mask, tmp;
++
++	/* Set USB_MIO to output and enable it */
++	tmp = readl(MIO_BASE + DIRM_0);
++	printf("Orig DIRM: %X\n", tmp);
++	tmp |= (1<<USB_MIO);
++	printf("Updated DIRM: %X\n", tmp);
++	writel(tmp, MIO_BASE + DIRM_0);
++
++	tmp = readl(MIO_BASE + OEN_0);
++	printf("Orig OEN: %X\n", tmp);
++	tmp |= (1<<USB_MIO);
++	printf("Updated OEN: %X\n", tmp);
++	writel(tmp, MIO_BASE + OEN_0);
++
++	/* Pulse USB_MIO low and leave it hi */
++	mask = (~(1<<USB_MIO)<<16);
++	printf("Mask set to: %X\n", mask);	
++	writel(mask | USB_MIO, MIO_BASE + MASK_DATA_0_LSW);
++	udelay(1);
++	writel(mask, MIO_BASE + MASK_DATA_0_LSW);
++	udelay(1);
++	writel(mask | USB_MIO, MIO_BASE + MASK_DATA_0_LSW);
++	udelay(2);
++}
++
+ static void ethaddr_init(void)
+ {
+ 	u8 mac[6];
+@@ -94,6 +131,8 @@ int board_init(void)
+ 	}
+ #endif
+ 
++	reset_usb_phy();
++
+ 	/* temporary hack to clear pending irqs before Linux as it
+ 	 * will hang Linux
+ 	 */
+-- 
+1.8.3.1
+
