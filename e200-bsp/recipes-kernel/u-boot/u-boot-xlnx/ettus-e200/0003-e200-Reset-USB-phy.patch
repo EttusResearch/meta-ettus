@@ -1,4 +1,4 @@
-From b89afb4d76ad7d1faa13ca52a9f0f13091b91cef Mon Sep 17 00:00:00 2001
+From 140d1ce0e2c89368bd1b6233c2e4da909665b2be Mon Sep 17 00:00:00 2001
 From: Philip Balister <philip@balister.org>
 Date: Sat, 22 Jun 2013 08:42:21 -0400
 Subject: [PATCH 3/4] e200 : Reset USB phy.
@@ -9,11 +9,11 @@ Signed-off-by: Philip Balister <philip@balister.org>
  1 file changed, 39 insertions(+)
 
 diff --git a/board/xilinx/zynq/board.c b/board/xilinx/zynq/board.c
-index a52e458..3c1c1fe 100644
+index f0c2b4e..5e1dfe6 100644
 --- a/board/xilinx/zynq/board.c
 +++ b/board/xilinx/zynq/board.c
-@@ -48,6 +48,43 @@ Xilinx_desc fpga030 = XILINX_XC7Z030_DESC(0x30);
- Xilinx_desc fpga045 = XILINX_XC7Z045_DESC(0x45);
+@@ -48,6 +48,43 @@ Xilinx_desc fpga045 = XILINX_XC7Z045_DESC(0x45);
+ Xilinx_desc fpga100 = XILINX_XC7Z100_DESC(0x100);
  #endif
  
 +/* MIO GPIO registers */
@@ -56,7 +56,7 @@ index a52e458..3c1c1fe 100644
  static void ethaddr_init(void)
  {
  	u8 mac[6];
-@@ -94,6 +131,8 @@ int board_init(void)
+@@ -97,6 +134,8 @@ int board_init(void)
  	}
  #endif
  

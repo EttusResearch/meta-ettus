@@ -1,4 +1,4 @@
-From e5571fe497af058420d3806e397ca00d922b6222 Mon Sep 17 00:00:00 2001
+From a98f7f8370727a2a63a1662903cd181c41dbfba7 Mon Sep 17 00:00:00 2001
 From: Philip Balister <philip@balister.org>
 Date: Wed, 19 Jun 2013 14:16:00 -0400
 Subject: [PATCH 2/4] zynq : Disable QSPI.
@@ -9,17 +9,17 @@ Signed-off-by: Philip Balister <philip@balister.org>
  1 file changed, 1 deletion(-)
 
 diff --git a/include/configs/zynq_zc70x.h b/include/configs/zynq_zc70x.h
-index 4e7df2e..b366a89 100644
+index c98e702..19997b1 100644
 --- a/include/configs/zynq_zc70x.h
 +++ b/include/configs/zynq_zc70x.h
 @@ -27,7 +27,6 @@
  #define CONFIG_SYS_NO_FLASH
  
- #define CONFIG_MMC
--#define CONFIG_ZYNQ_SPI
- #define CONFIG_ZYNQ_I2C
+ #define CONFIG_ZYNQ_SDHCI0
+-#define CONFIG_ZYNQ_QSPI
+ #define CONFIG_ZYNQ_I2C0
  #define CONFIG_ZYNQ_EEPROM
- 
+ #define CONFIG_ZYNQ_BOOT_FREEBSD
 -- 
 1.8.3.1
 

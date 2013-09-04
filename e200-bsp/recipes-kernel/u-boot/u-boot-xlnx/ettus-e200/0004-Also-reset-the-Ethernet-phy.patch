@@ -1,4 +1,4 @@
-From 350eb7a199a0cb41b4ec58b71b2c00463fc61225 Mon Sep 17 00:00:00 2001
+From 82ce4bc1cbd183e2432d374b4edbefdc93f08f6d Mon Sep 17 00:00:00 2001
 From: Philip Balister <philip@balister.org>
 Date: Mon, 24 Jun 2013 14:20:20 -0400
 Subject: [PATCH 4/4] Also reset the Ethernet phy.
@@ -9,10 +9,10 @@ Signed-off-by: Philip Balister <philip@balister.org>
  1 file changed, 6 insertions(+), 3 deletions(-)
 
 diff --git a/board/xilinx/zynq/board.c b/board/xilinx/zynq/board.c
-index 3c1c1fe..5da0029 100644
+index 5e1dfe6..5f6988b 100644
 --- a/board/xilinx/zynq/board.c
 +++ b/board/xilinx/zynq/board.c
-@@ -56,6 +56,7 @@ Xilinx_desc fpga045 = XILINX_XC7Z045_DESC(0x45);
+@@ -56,6 +56,7 @@ Xilinx_desc fpga100 = XILINX_XC7Z100_DESC(0x100);
  #define OEN_0		0x208
  
  #define USB_MIO 9

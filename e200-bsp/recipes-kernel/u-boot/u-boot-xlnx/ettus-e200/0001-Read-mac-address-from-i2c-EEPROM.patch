@@ -1,4 +1,4 @@
-From 9d9e48d1c0feb9780a7ce9b78e1276391c0c4c81 Mon Sep 17 00:00:00 2001
+From e615f860a5b595900ee1b649e19ed6580b28f196 Mon Sep 17 00:00:00 2001
 From: Philip Balister <philip@opensdr.com>
 Date: Fri, 14 Jun 2013 12:12:00 -0400
 Subject: [PATCH 1/4] Read mac address from i2c EEPROM.
@@ -10,11 +10,11 @@ Signed-off-by: Philip Balister <philip@opensdr.com>
  2 files changed, 25 insertions(+), 1 deletion(-)
 
 diff --git a/board/xilinx/zynq/board.c b/board/xilinx/zynq/board.c
-index 3bb90f5..a52e458 100644
+index 5be4851..f0c2b4e 100644
 --- a/board/xilinx/zynq/board.c
 +++ b/board/xilinx/zynq/board.c
-@@ -48,6 +48,29 @@ Xilinx_desc fpga030 = XILINX_XC7Z030_DESC(0x30);
- Xilinx_desc fpga045 = XILINX_XC7Z045_DESC(0x45);
+@@ -48,6 +48,29 @@ Xilinx_desc fpga045 = XILINX_XC7Z045_DESC(0x45);
+ Xilinx_desc fpga100 = XILINX_XC7Z100_DESC(0x100);
  #endif
  
 +static void ethaddr_init(void)
@@ -43,7 +43,7 @@ index 3bb90f5..a52e458 100644
  int board_init(void)
  {
  #ifdef CONFIG_FPGA
-@@ -118,6 +141,8 @@ int board_late_init(void)
+@@ -109,6 +132,8 @@ int board_late_init(void)
  		break;
  	}
  
@@ -53,10 +53,10 @@ index 3bb90f5..a52e458 100644
  }
  
 diff --git a/include/configs/zynq_common.h b/include/configs/zynq_common.h
-index 28948fb..7750638 100644
+index 762aaca..4674237 100644
 --- a/include/configs/zynq_common.h
 +++ b/include/configs/zynq_common.h
-@@ -208,7 +208,6 @@
+@@ -231,7 +231,6 @@
  
  /* Default environment */
  #define CONFIG_EXTRA_ENV_SETTINGS	\
