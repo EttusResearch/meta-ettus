@@ -1,2 +1,2 @@
 patch 0001-mach-zynq-Add-dt-entry-for-e200.patch
-kconf hardware ettus-e200-standard.cfg
+kconf hardware ettus-e200.cfg
