@@ -1,0 +1,35 @@
+From 03401b342acf25f8f666deb34bfd4b8eda6b4ba6 Mon Sep 17 00:00:00 2001
+From: Philip Balister <philip@balister.org>
+Date: Wed, 11 Sep 2013 13:03:32 -0400
+Subject: [PATCH] Revert "zynq: Remove USB PHY out of reset in board_init"
+
+This reverts commit d3f42d791ca06723f8ecf1c0b8db6f181f4c3b88.
+
+This breaks USB and ethernet with older fsbl.
+---
+ board/xilinx/zynq/board.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/board/xilinx/zynq/board.c b/board/xilinx/zynq/board.c
+index e1da270..07f350d 100644
+--- a/board/xilinx/zynq/board.c
++++ b/board/xilinx/zynq/board.c
+@@ -148,6 +148,15 @@ int board_init(void)
+ 	 */
+ 	writel(0x26d, 0xe0001014);
+ 
++	/* temporary hack to take USB out of reset til the is fixed
++	 * in Linux
++	 */
++	writel(0x80, 0xe000a204);
++	writel(0x80, 0xe000a208);
++	writel(0x80, 0xe000a040);
++	writel(0x00, 0xe000a040);
++	writel(0x80, 0xe000a040);
++
+ #ifdef CONFIG_FPGA
+ 	fpga_init();
+ 	fpga_add(fpga_xilinx, &fpga);
+-- 
+1.8.3.1
+
