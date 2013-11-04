@@ -1,2 +1,4 @@
+patch 0001-ARM-7668-1-fix-memset-related-crashes-caused-by-rece.patch
+patch 0001-ARM-7670-1-fix-the-memset-fix.patch
 kconf hardware e100.cfg
 
