@@ -1,0 +1,112 @@
+From 7c731ef7b2399808976bce38cd5b71e9396dfa9f Mon Sep 17 00:00:00 2001
+From: Philip Balister <philip@opensdr.com>
+Date: Wed, 6 Jun 2012 19:37:43 -0400
+Subject: [PATCH] usrp_e : Change bus timing for command interface.
+
+Change the bus timing to match the gpmc cycle used for the data interface.
+This requires changes in the fpga, so the driver compat number is now 4. Also
+bumped the driver version number.
+
+Signed-off-by: Philip Balister <philip@opensdr.com>
+---
+ arch/arm/mach-omap2/board-overo.c |   27 +++++++++++++--------------
+ drivers/misc/usrp_e.c             |    2 +-
+ include/linux/usrp_e.h            |    2 +-
+ 3 files changed, 15 insertions(+), 16 deletions(-)
+
+diff --git a/arch/arm/mach-omap2/board-overo.c b/arch/arm/mach-omap2/board-overo.c
+index c8de76d..0acf0e1 100644
+--- a/arch/arm/mach-omap2/board-overo.c
++++ b/arch/arm/mach-omap2/board-overo.c
+@@ -747,9 +747,9 @@ static void __init usrp1_e_init(void)
+ 	// Signal control parameters per chip select
+ 	tmp = gpmc_cs_read_reg(6, GPMC_CS_CONFIG1);
+ //	tmp |= (GPMC_CONFIG1_MUXADDDATA);
+-//	tmp |= (GPMC_CONFIG1_WRITETYPE_SYNC);
+-//	tmp |= (GPMC_CONFIG1_READTYPE_SYNC);
+-	tmp |= (GPMC_CONFIG1_FCLK_DIV(0));
++	tmp |= (GPMC_CONFIG1_WRITETYPE_SYNC);
++	tmp |= (GPMC_CONFIG1_READTYPE_SYNC);
++	tmp |= (GPMC_CONFIG1_FCLK_DIV(2));
+ 	gpmc_cs_write_reg(6, GPMC_CS_CONFIG1, tmp);
+ 	printk("GPMC_CONFIG1 reg: %x\n", tmp);
+ #endif
+@@ -758,8 +758,8 @@ static void __init usrp1_e_init(void)
+ 	// CS signal timing parameter configuration
+ 	tmp = 0;
+ 	tmp |= GPMC_CONFIG2_CSONTIME(0);
+-	tmp |= GPMC_CONFIG2_CSWROFFTIME(20);
+-	tmp |= GPMC_CONFIG2_CSRDOFFTIME(31);
++	tmp |= GPMC_CONFIG2_CSWROFFTIME(3);
++	tmp |= GPMC_CONFIG2_CSRDOFFTIME(6);
+ 	printk("GPMC_CONFIG2 reg: %x\n", tmp);
+ 	gpmc_cs_write_reg(6, GPMC_CS_CONFIG2, tmp);
+ #endif 
+@@ -778,9 +778,9 @@ static void __init usrp1_e_init(void)
+ 	// nWE and nOE signals timing parameter configuration
+ 	tmp = 0;
+ 	tmp |= GPMC_CONFIG4_WEONTIME(0);
+-	tmp |= GPMC_CONFIG4_WEOFFTIME(20);
+-	tmp |= GPMC_CONFIG4_OEONTIME(0);
+-	tmp |= GPMC_CONFIG4_OEOFFTIME(31);
++	tmp |= GPMC_CONFIG4_WEOFFTIME(3);
++	tmp |= GPMC_CONFIG4_OEONTIME(1);
++	tmp |= GPMC_CONFIG4_OEOFFTIME(5);
+ 	printk("GPMC_CONFIG4 reg: %x\n", tmp);
+ 	gpmc_cs_write_reg(6, GPMC_CS_CONFIG4, tmp);
+ #endif
+@@ -789,9 +789,9 @@ static void __init usrp1_e_init(void)
+ 	// RdAccess time and Cycle time timing paraters configuration
+ 	tmp = 0;
+ 	tmp |= GPMC_CONFIG5_PAGEBURSTACCESSTIME(1);
+-	tmp |= GPMC_CONFIG5_RDACCESSTIME(30);
+-	tmp |= GPMC_CONFIG5_WRCYCLETIME(21);
+-	tmp |= GPMC_CONFIG5_RDCYCLETIME(31);
++	tmp |= GPMC_CONFIG5_RDACCESSTIME(3);
++	tmp |= GPMC_CONFIG5_WRCYCLETIME(3);
++	tmp |= GPMC_CONFIG5_RDCYCLETIME(6);
+ 	printk("GPMC_CONFIG5 reg: %x\n", tmp);
+ 	gpmc_cs_write_reg(6, GPMC_CS_CONFIG5, tmp);
+ #endif
+@@ -799,10 +799,9 @@ static void __init usrp1_e_init(void)
+ #if 1
+ 	// WrAccessTime WrDataOnADmuxBus, Cycle2Cycle, and BusTurnAround params
+ 	tmp = 0;
+-	tmp |= GPMC_CONFIG6_WRACCESSTIME(15);
++	tmp |= GPMC_CONFIG6_WRACCESSTIME(3);
+ 	tmp |= GPMC_CONFIG6_WRDATAONADMUXBUS(3);
+-	tmp |= GPMC_CONFIG6_CYCLE2CYCLEDELAY(15);
+-	tmp |= GPMC_CONFIG6_CYCLE2CYCLESAMECSEN;
++	tmp |= GPMC_CONFIG6_CYCLE2CYCLEDELAY(0);
+ 	tmp |= GPMC_CONFIG6_BUSTURNAROUND(0);
+ 	printk("GPMC_CONFIG6 reg: %x\n", tmp);
+ 	gpmc_cs_write_reg(6, GPMC_CS_CONFIG6, tmp);
+diff --git a/drivers/misc/usrp_e.c b/drivers/misc/usrp_e.c
+index c5a8191..8804f3a 100644
+--- a/drivers/misc/usrp_e.c
++++ b/drivers/misc/usrp_e.c
+@@ -618,7 +618,7 @@ static const struct file_operations usrp_e_fops = {
+ 	.mmap           =       usrp_e_mmap,
+ };
+ 
+-MODULE_VERSION("0.2");
++MODULE_VERSION("0.3");
+ MODULE_ALIAS(DEVICE_NAME);
+ MODULE_DESCRIPTION(DEVICE_NAME);
+ MODULE_AUTHOR("Philip Balister <philip@opensdr.com>");
+diff --git a/include/linux/usrp_e.h b/include/linux/usrp_e.h
+index 93dfb55..5343832 100644
+--- a/include/linux/usrp_e.h
++++ b/include/linux/usrp_e.h
+@@ -36,7 +36,7 @@ struct usrp_e_ctl32 {
+ #define USRP_E_GET_RB_INFO      _IOR(USRP_E_IOC_MAGIC, 0x27, struct usrp_e_ring_buffer_size_t)
+ #define USRP_E_GET_COMPAT_NUMBER _IO(USRP_E_IOC_MAGIC, 0x28)
+ 
+-#define USRP_E_COMPAT_NUMBER 3
++#define USRP_E_COMPAT_NUMBER 4
+ 
+ /* Flag defines */
+ #define RB_USER (BIT(0))
+-- 
+1.7.6.5
+
