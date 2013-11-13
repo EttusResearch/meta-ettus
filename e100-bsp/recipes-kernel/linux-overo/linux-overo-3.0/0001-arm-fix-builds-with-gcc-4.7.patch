@@ -1,0 +1,26 @@
+From 0d12debe917269a013f8eddd42da8d3de5e3174e Mon Sep 17 00:00:00 2001
+From: Steve Sakoman <steve@sakoman.com>
+Date: Thu, 24 Jan 2013 15:42:01 -0800
+Subject: [PATCH] arm: fix builds with gcc 4.7
+
+new unaligned access support in GCC was triggering an alignment fault at boot
+---
+ arch/arm/kernel/head.S | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm/kernel/head.S b/arch/arm/kernel/head.S
+index 6bd82d2..56b02cd 100644
+--- a/arch/arm/kernel/head.S
++++ b/arch/arm/kernel/head.S
+@@ -336,7 +336,7 @@ __secondary_data:
+  *  r13 = *virtual* address to jump to upon completion
+  */
+ __enable_mmu:
+-#ifdef CONFIG_ALIGNMENT_TRAP
++#if defined(CONFIG_ALIGNMENT_TRAP) && __LINUX_ARM_ARCH__ < 6
+ 	orr	r0, r0, #CR_A
+ #else
+ 	bic	r0, r0, #CR_A
+-- 
+1.8.1.2
+

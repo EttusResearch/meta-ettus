@@ -1,0 +1,44 @@
+From 057c170c1bae5f036c9b37838405b9d1d773ab84 Mon Sep 17 00:00:00 2001
+From: Philip Balister <philip@opensdr.com>
+Date: Sun, 25 Mar 2012 22:23:05 -0400
+Subject: [PATCH] usrp_e : Make sure user space does not pass bad offsets to
+ the driver.
+
+This should prevent kernel oops during peek/poke operations.
+
+Signed-off-by: Philip Balister <philip@opensdr.com>
+---
+ drivers/misc/usrp_e.c |   10 ++++++++--
+ 1 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/misc/usrp_e.c b/drivers/misc/usrp_e.c
+index 9aab9b2..c5a8191 100644
+--- a/drivers/misc/usrp_e.c
++++ b/drivers/misc/usrp_e.c
+@@ -388,7 +388,10 @@ static int usrp_e_ctl16(unsigned long arg, int direction)
+ 	if (copy_from_user(&ctl, argp, sizeof(struct usrp_e_ctl16)))
+ 		return -EFAULT;
+ 
+-	if (ctl.count > 10)
++	if (ctl.count > 20)
++		return -EINVAL;
++
++	if ((ctl.offset >= SZ_2K) || ((ctl.offset + 2 * ctl.count) >= SZ_2K))
+ 		return -EINVAL;
+ 
+ 	if (direction == 0) {
+@@ -417,7 +420,10 @@ static int usrp_e_ctl32(unsigned long arg, int direction)
+ 	if (copy_from_user(&ctl, argp, sizeof(struct usrp_e_ctl32)))
+ 		return -EFAULT;
+ 
+-	if (ctl.count > 20)
++	if (ctl.count > 10)
++		return -EINVAL;
++
++	if ((ctl.offset >= SZ_2K) || ((ctl.offset + 4 * ctl.count) >= SZ_2K))
+ 		return -EINVAL;
+ 
+ 	if (direction == 0) {
+-- 
+1.7.6.5
+

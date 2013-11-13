@@ -1,0 +1,248 @@
+From 6768d4d1ef44317f14f275ad201ad500200b8d36 Mon Sep 17 00:00:00 2001
+From: Philip Balister <philip@opensdr.com>
+Date: Wed, 11 May 2011 12:06:20 -0400
+Subject: [PATCH 5/5] usrp_e : Modify overo board file to setup hardware for
+ usrp_e driver.
+
+Signed-off-by: Philip Balister <philip@opensdr.com>
+---
+ arch/arm/mach-omap2/board-overo.c |  166 ++++++++++++++++++++++++++++++++++++-
+ 1 files changed, 163 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm/mach-omap2/board-overo.c b/arch/arm/mach-omap2/board-overo.c
+index e6d2441..67a4daf 100644
+--- a/arch/arm/mach-omap2/board-overo.c
++++ b/arch/arm/mach-omap2/board-overo.c
+@@ -38,6 +38,8 @@
+ #include <linux/mtd/partitions.h>
+ #include <linux/mmc/host.h>
+ 
++#include <linux/spi/spi.h>
++
+ #include <asm/mach-types.h>
+ #include <asm/mach/arch.h>
+ #include <asm/mach/flash.h>
+@@ -202,8 +204,13 @@ static struct omap_smsc911x_platform_data smsc911x2_cfg = {
+ 
+ static void __init overo_init_smsc911x(void)
+ {
++	unsigned long cs_mem_base, cs_mem_base2;
++
+ 	gpmc_smsc911x_init(&smsc911x_cfg);
++#if 0
+ 	gpmc_smsc911x_init(&smsc911x2_cfg);
++#endif
++
+ }
+ 
+ #else
+@@ -372,8 +379,7 @@ static struct omap2_hsmmc_info mmc[] = {
+ 		.mmc		= 2,
+ 		.caps		= MMC_CAP_4_BIT_DATA,
+ 		.gpio_cd	= -EINVAL,
+-		.gpio_wp	= -EINVAL,
+-		.transceiver	= true,
++		.gpio_wp	= 150,
+ 		.ocr_mask	= 0x00100000,	/* 3.3V */
+ 	},
+ 	{}	/* Terminator */
+@@ -387,6 +393,7 @@ static struct regulator_consumer_supply overo_vmmc1_supply[] = {
+ #include <linux/leds.h>
+ 
+ static struct gpio_led gpio_leds[] = {
++#if 0 /* These are used by the e100 */
+ 	{
+ 		.name			= "overo:red:gpio21",
+ 		.default_trigger	= "heartbeat",
+@@ -399,6 +406,7 @@ static struct gpio_led gpio_leds[] = {
+ 		.gpio			= 22,
+ 		.active_low		= true,
+ 	},
++#endif
+ 	{
+ 		.name			= "overo:blue:COM",
+ 		.default_trigger	= "mmc0",
+@@ -477,7 +485,7 @@ static int overo_twl_gpio_setup(struct device *dev,
+ 
+ #if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
+ 	/* TWL4030_GPIO_MAX + 1 == ledB, PMU_STAT (out, active low LED) */
+-	gpio_leds[2].gpio = gpio + TWL4030_GPIO_MAX + 1;
++	gpio_leds[0].gpio = gpio + TWL4030_GPIO_MAX + 1;
+ #endif
+ 
+ 	return 0;
+@@ -654,6 +662,154 @@ static struct omap_musb_board_data musb_board_data = {
+ 	.power			= 100,
+ };
+ 
++static void __init usrp1_e_init(void)
++{
++	unsigned int tmp;
++
++	printk("Setup up gpmc timing.\n");
++
++// Set up CS4, data read/write
++
++	gpmc_cs_write_reg(4, GPMC_CS_CONFIG7, 0x0);
++	udelay(100);
++
++#if 1
++	// Signal control parameters per chip select
++	tmp = gpmc_cs_read_reg(4, GPMC_CS_CONFIG1);
++//	tmp |= (GPMC_CONFIG1_MUXADDDATA);
++	tmp |= (GPMC_CONFIG1_WRITETYPE_SYNC);
++	tmp |= (GPMC_CONFIG1_READTYPE_SYNC);
++	tmp |= (GPMC_CONFIG1_FCLK_DIV(2));
++	gpmc_cs_write_reg(4, GPMC_CS_CONFIG1, tmp);
++	printk("GPMC_CONFIG1 reg: %x\n", tmp);
++#endif
++
++#if 1 
++	// CS signal timing parameter configuration
++	tmp = 0;
++	tmp |= GPMC_CONFIG2_CSONTIME(0);         /*  1 */
++	tmp |= GPMC_CONFIG2_CSWROFFTIME(3);     /* 16 */
++	tmp |= GPMC_CONFIG2_CSRDOFFTIME(6);     /* 16 */
++	printk("GPMC_CONFIG2 reg: %x\n", tmp);
++	gpmc_cs_write_reg(4, GPMC_CS_CONFIG2, tmp);
++#endif
++
++#if 1
++	// nADV signal timing parameter configuration
++        tmp = 0;
++        tmp |= GPMC_CONFIG3_ADVONTIME(1);
++        tmp |= GPMC_CONFIG3_ADVRDOFFTIME(2);
++        tmp |= GPMC_CONFIG3_ADVWROFFTIME(2);
++        printk("GPMC_CONFIG3 reg: %x\n", tmp);
++        gpmc_cs_write_reg(4, GPMC_CS_CONFIG3, tmp);
++#endif
++
++#if 1
++	// nWE and nOE signals timing parameter configuration
++	tmp = 0;
++	tmp |= GPMC_CONFIG4_WEONTIME(0);      /*  3 */
++	tmp |= GPMC_CONFIG4_WEOFFTIME(3);     /* 16 */
++	tmp |= GPMC_CONFIG4_OEONTIME(1);      /*  3 */
++	tmp |= GPMC_CONFIG4_OEOFFTIME(5);     /* 16 */
++	printk("GPMC_CONFIG4 reg: %x\n", tmp);
++	gpmc_cs_write_reg(4, GPMC_CS_CONFIG4, tmp);
++#endif
++
++#if 1
++	// RdAccess time and Cycle time timing parameters configuration
++	tmp = 0;
++	tmp |= GPMC_CONFIG5_PAGEBURSTACCESSTIME(1);
++	tmp |= GPMC_CONFIG5_RDACCESSTIME(3);           /* 15 */
++	tmp |= GPMC_CONFIG5_WRCYCLETIME(3);           /* 17 */
++	tmp |= GPMC_CONFIG5_RDCYCLETIME(6);           /* 17 */
++	printk("GPMC_CONFIG5 reg: %x\n", tmp);
++
++	gpmc_cs_write_reg(4, GPMC_CS_CONFIG5, tmp);
++#endif
++
++#if 1
++	// WrAccessTime WrDataOnADmuxBus, Cycle2Cycle, and BusTurnAround params
++	tmp = (1<<31);
++	tmp |= GPMC_CONFIG6_WRACCESSTIME(3);          /* 15 */
++	tmp |= GPMC_CONFIG6_WRDATAONADMUXBUS(3);
++	tmp |= GPMC_CONFIG6_CYCLE2CYCLEDELAY(0);
++	tmp |= GPMC_CONFIG6_BUSTURNAROUND(0);
++	printk("GPMC_CONFIG6 reg: %x\n", tmp);
++	gpmc_cs_write_reg(4, GPMC_CS_CONFIG6, tmp);
++#endif
++
++// Configure timing for CS6, wishbone access
++
++	gpmc_cs_write_reg(6, GPMC_CS_CONFIG7, 0x0);
++	udelay(100);
++
++#if 1
++	// Signal control parameters per chip select
++	tmp = gpmc_cs_read_reg(6, GPMC_CS_CONFIG1);
++//	tmp |= (GPMC_CONFIG1_MUXADDDATA);
++//	tmp |= (GPMC_CONFIG1_WRITETYPE_SYNC);
++//	tmp |= (GPMC_CONFIG1_READTYPE_SYNC);
++	tmp |= (GPMC_CONFIG1_FCLK_DIV(0));
++	gpmc_cs_write_reg(6, GPMC_CS_CONFIG1, tmp);
++	printk("GPMC_CONFIG1 reg: %x\n", tmp);
++#endif
++
++#if 1 
++	// CS signal timing parameter configuration
++	tmp = 0;
++	tmp |= GPMC_CONFIG2_CSONTIME(0);
++	tmp |= GPMC_CONFIG2_CSWROFFTIME(20);
++	tmp |= GPMC_CONFIG2_CSRDOFFTIME(31);
++	printk("GPMC_CONFIG2 reg: %x\n", tmp);
++	gpmc_cs_write_reg(6, GPMC_CS_CONFIG2, tmp);
++#endif 
++
++#if 1
++	// nADV signal timing parameter configuration
++        tmp = 0;
++        tmp |= GPMC_CONFIG3_ADVONTIME(1);
++        tmp |= GPMC_CONFIG3_ADVRDOFFTIME(2);
++        tmp |= GPMC_CONFIG3_ADVWROFFTIME(2);
++        printk("GPMC_CONFIG3 reg: %x\n", tmp);
++        gpmc_cs_write_reg(6, GPMC_CS_CONFIG3, tmp);
++#endif
++
++#if 1
++	// nWE and nOE signals timing parameter configuration
++	tmp = 0;
++	tmp |= GPMC_CONFIG4_WEONTIME(0);
++	tmp |= GPMC_CONFIG4_WEOFFTIME(20);
++	tmp |= GPMC_CONFIG4_OEONTIME(0);
++	tmp |= GPMC_CONFIG4_OEOFFTIME(31);
++	printk("GPMC_CONFIG4 reg: %x\n", tmp);
++	gpmc_cs_write_reg(6, GPMC_CS_CONFIG4, tmp);
++#endif
++
++#if 1
++	// RdAccess time and Cycle time timing paraters configuration
++	tmp = 0;
++	tmp |= GPMC_CONFIG5_PAGEBURSTACCESSTIME(1);
++	tmp |= GPMC_CONFIG5_RDACCESSTIME(30);
++	tmp |= GPMC_CONFIG5_WRCYCLETIME(21);
++	tmp |= GPMC_CONFIG5_RDCYCLETIME(31);
++	printk("GPMC_CONFIG5 reg: %x\n", tmp);
++	gpmc_cs_write_reg(6, GPMC_CS_CONFIG5, tmp);
++#endif
++
++#if 1
++	// WrAccessTime WrDataOnADmuxBus, Cycle2Cycle, and BusTurnAround params
++	tmp = 0;
++	tmp |= GPMC_CONFIG6_WRACCESSTIME(15);
++	tmp |= GPMC_CONFIG6_WRDATAONADMUXBUS(3);
++	tmp |= GPMC_CONFIG6_CYCLE2CYCLEDELAY(15);
++	tmp |= GPMC_CONFIG6_CYCLE2CYCLESAMECSEN;
++	tmp |= GPMC_CONFIG6_BUSTURNAROUND(0);
++	printk("GPMC_CONFIG6 reg: %x\n", tmp);
++	gpmc_cs_write_reg(6, GPMC_CS_CONFIG6, tmp);
++#endif
++
++}
++
+ static void __init overo_init(void)
+ {
+ 	int ret;
+@@ -668,12 +824,16 @@ static void __init overo_init(void)
+ 	usbhs_init(&usbhs_bdata);
+ 	overo_spi_init();
+ 	overo_init_smsc911x();
++#if 0 /* No LCD for E100 */
+ 	overo_display_init();
++#endif
+ 	overo_init_led();
+ 	overo_init_keys();
+ 	overo_opp_init();
+ 	overo_camera_init();
+ 
++	usrp1_e_init();
++
+ 	/* Ensure SDRC pins are mux'd for self-refresh */
+ 	omap_mux_init_signal("sdrc_cke0", OMAP_PIN_OUTPUT);
+ 	omap_mux_init_signal("sdrc_cke1", OMAP_PIN_OUTPUT);
+-- 
+1.7.4.4
+

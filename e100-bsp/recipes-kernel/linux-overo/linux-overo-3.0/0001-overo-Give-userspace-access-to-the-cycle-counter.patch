@@ -1,0 +1,31 @@
+From d103b9381bb489057be9220dbb9162d9a566d55e Mon Sep 17 00:00:00 2001
+From: Philip Balister <philip@opensdr.com>
+Date: Sun, 25 Mar 2012 22:32:13 -0400
+Subject: [PATCH] overo : Give userspace access to the cycle counter.
+
+Signed-off-by: Philip Balister <philip@opensdr.com>
+---
+ arch/arm/mach-omap2/board-overo.c |    7 +++++++
+ 1 files changed, 7 insertions(+), 0 deletions(-)
+
+diff --git a/arch/arm/mach-omap2/board-overo.c b/arch/arm/mach-omap2/board-overo.c
+index 67a4daf..c8de76d 100644
+--- a/arch/arm/mach-omap2/board-overo.c
++++ b/arch/arm/mach-omap2/board-overo.c
+@@ -868,6 +868,13 @@ static void __init overo_init(void)
+ 	else
+ 		printk(KERN_ERR "could not obtain gpio for "
+ 					"OVERO_GPIO_USBH_CPEN\n");
++
++	/* enable user-mode access to the performance counter*/
++	asm ("MCR p15, 0, %0, C9, C14, 0\n\t" :: "r"(1));
++
++	/* disable counter overflow interrupts (just in case)*/
++	asm ("MCR p15, 0, %0, C9, C14, 2\n\t" :: "r"(0x8000000f));
++
+ }
+ 
+ MACHINE_START(OVERO, "Gumstix Overo")
+-- 
+1.7.6.5
+
