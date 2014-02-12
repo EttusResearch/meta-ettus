@@ -3,7 +3,7 @@
  */
 
 /dts-v1/;
-/include/ "ettus-e200.dtsi"
+/include/ "ettus-e300.dtsi"
 / {
 	chosen {
 		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 ro rootwait earlyprintk";

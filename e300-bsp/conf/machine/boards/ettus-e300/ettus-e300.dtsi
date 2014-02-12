@@ -5,7 +5,6 @@
 		bootargs = "console=ttyPS0,115200 earlyprintk";
 		linux,stdout-path = "/amba@0/serial@e0001000";
 	} ;
-	/include/ "ps7_sclr-3.10.dtsi"
 	ps7_ddr_0: memory@0 {
 		device_type = "memory";
 		reg = < 0x0 0x40000000 >;
