@@ -1,7 +1,6 @@
 FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}-3.10:"
 
 SRC_URI_append_ettus-e200 = "\
-                  file://axi_fpga.scc \
                   file://ettus-e200.scc \
 		  file://e200-devicetree.dts \
 		"

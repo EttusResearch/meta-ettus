@@ -1,2 +1,0 @@
-patch 0001-axi_fpga-Driver-to-support-a-user-space-interface-be.patch
-kconf hardware axi_fpga.cfg
