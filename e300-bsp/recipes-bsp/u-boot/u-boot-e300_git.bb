@@ -14,6 +14,8 @@ SRC_URI_append_ettus-e300 = " file://ps7_init.h \
                               file://0001-E300-Uses-UART0-for-console.patch \
                               file://0002-E300-Disable-QSPI.patch \
                               file://0003-Read-mac-address-from-i2c-EEPROM.patch \
+                              file://uEnv.txt \
+                              file://fpga.bin \
                              "
 SPL_BINARY = "boot.bin"
 UBOOT_SUFFIX = "img"
@@ -23,4 +25,9 @@ LIC_FILES_CHKSUM = "file://Licenses/gpl-2.0.txt;md5=b234ee4d69f5fce4486a80fdaf4a
 do_configure_prepend () {
 	cp ${WORKDIR}/ps7_init.h ${S}/board/xilinx/zynq/
 	cp ${WORKDIR}/ps7_init.c ${S}/board/xilinx/zynq/
+}
+
+do_deploy_append() {
+	cp ${WORKDIR}/uEnv.txt ${DEPLOYDIR}
+	cp ${WORKDIR}/fpga.bin ${DEPLOYDIR}
 }
