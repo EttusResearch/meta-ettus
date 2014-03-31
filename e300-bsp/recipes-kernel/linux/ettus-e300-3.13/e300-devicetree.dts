@@ -312,7 +312,7 @@
 			compatible = "xlnx,ps7-axi-fpga-1.00.a";
 			reg = <0x40000000 0x100000
 				0x00000000 0xa>;
-			interrupts = <0 28 1>;
+			interrupts = <0 29 1>;
 			interrupt-parent = <&ps7_scugic_0>;
 		};
 	} ;
