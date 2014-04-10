@@ -5,5 +5,6 @@ environment installed."
 
 CORE_IMAGE_EXTRA_INSTALL += " \
     uhd \
+    uhd-examples \
     "
 
