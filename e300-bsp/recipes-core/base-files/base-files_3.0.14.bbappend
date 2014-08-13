@@ -1,4 +1,4 @@
-FILESEXTRAPATHS_prepend := "${THISDIR}/base-files"
+FILESEXTRAPATHS_prepend := "${THISDIR}/base-files:"
 
 dirs755 += " /media/FAT"
 
