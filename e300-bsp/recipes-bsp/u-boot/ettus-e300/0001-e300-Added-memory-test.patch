@@ -1,0 +1,158 @@
+From 5ff4b1ce4684d2b12af1d68c6a45edae02959bbe Mon Sep 17 00:00:00 2001
+From: Jonathon Pendlum <jonathon.pendlum@ettus.com>
+Date: Wed, 13 Aug 2014 14:53:44 -0700
+Subject: [PATCH 1/2] e300: Added memory test
+
+---
+ board/xilinx/zynq/board.c    | 98 +++++++++++++++++++++++++++++++++++++-------
+ include/configs/zynq_zc70x.h |  8 ++++
+ 2 files changed, 92 insertions(+), 14 deletions(-)
+
+diff --git a/board/xilinx/zynq/board.c b/board/xilinx/zynq/board.c
+index aefa3f6..3e674b8 100644
+--- a/board/xilinx/zynq/board.c
++++ b/board/xilinx/zynq/board.c
+@@ -26,29 +26,81 @@ Xilinx_desc fpga045 = XILINX_XC7Z045_DESC(0x45);
+ Xilinx_desc fpga100 = XILINX_XC7Z100_DESC(0x100);
+ #endif
+ 
++static int setup_i2c(void) {
++    i2c_init(0, 0);
++
++    i2c_set_bus_num(0);
++
++    if (i2c_probe(CONFIG_E3XX_MB_EEPROM_ADDR) != 0) {
++        printf("Couldn't find MB i2c eeprom.\n");
++        return -1;
++    }
++
++    return 0;
++}
++
++static int serial_exists(void) {
++    char serial[6];
++    u8 i;
++    if (i2c_read(CONFIG_E3XX_MB_EEPROM_ADDR, 14, 1, serial, 6) == 0) {
++        // Detect if serial # is set
++        for (i = 0; i < 6; i++) {
++            // Uninitialized EEPROM cell is 0xFF. Also accept 'X' and 'x' incase
++            // we want to easily run a mem test.
++            if (serial[i] != 0xFF && serial[i] != 'X' && serial[i] != 'x') {
++                return 0;
++            }
++        }
++    }
++    return -1;
++}
++
+ static void ethaddr_init(void)
+ {
+-#define EEPROM_ADDR 0x51
+ 	u8 mac[6];
+ 	char mstr[20];
+ 
+-	i2c_init(0, 0);
++	if (i2c_read(CONFIG_E3XX_MB_EEPROM_ADDR, 4, 1, mac, 6))
++		printf("i2c_read of MB failed\n");
++
++	sprintf(mstr, "%0X:%0X:%0X:%0X:%0X:%0X",mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
++	printf("ethaddr set to: %s\n", mstr);
++	setenv("ethaddr", mstr);
++}
+ 
+-	i2c_set_bus_num(0);
++// Memory test with two parts:
++// 1) Check data bits are valid
++// 2) Write a test pattern to RAM and check the read back values. This should catch
++//    bad / stuck address lines.
++u32 test_patterns[7] = {0x5555AAAA, 0xAAAA5555, 0x5A5AA5A5, 0xA5A55A5A,
++                        0xF0F00F0F, 0x0F0FF0F0, 0x0000FFFF};
++int simple_mem_test(u32 start, u32 size) {
++    u32* address;
++    u32 i;
+ 
+-	if (i2c_probe(EEPROM_ADDR) != 0) {
+-		printf("Couldn't find i2c eeprom.\n");
+-		return;
+-	}       
++    // Walking 1s pattern on a single address
++    address = (u32*)start;
++    for (i = 0; i < 8*sizeof(u32); i++) {
++        *address = 1 << i;
++        if (*address != 1 << i) {
++            return -1;
++        }
++    }
+ 
+-	if (i2c_read(EEPROM_ADDR, 4, 1, mac, 6))
+-		printf("i2c_read failed\n");
++    // Write test pattern
++    for (i = start; i < size/sizeof(u32); i++) {
++        address[i] = test_patterns[i & 0x7];
++    }
+ 
+-	sprintf(mstr, "%0X:%0X:%0X:%0X:%0X:%0X",mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]); 
+-	printf("ethaddr set to: %s\n", mstr);
+-	setenv("ethaddr", mstr);                
+-}
++    // Check test pattern
++    for (i = start; i < size/sizeof(u32); i++) {
++        if (address[i] != test_patterns[i & 0x7]) {
++            return -1;
++        }
++    }
+ 
++    return 0;
++}
+ 
+ int board_init(void)
+ {
+@@ -123,7 +175,25 @@ int board_late_init(void)
+ 		break;
+ 	}
+ 
+-	ethaddr_init();
++    if (setup_i2c() == 0) {
++
++        ethaddr_init();
++
++#ifdef CONFIG_E3XX_MEM_TEST
++        //if(serial_exists() != 0) { // Uncomment to run memory test only when the serial number is not set (or set to XXXXXX)
++            printf("RAM test... ");
++            if(simple_mem_test(CONFIG_E3XX_MEM_TEST_START,CONFIG_E3XX_MEM_TEST_SIZE) == 0) {
++                printf("PASS!\n");
++            } else {
++                printf("FAIL!\n");
++                // Do not autoboot on failure
++                setenv("bootdelay","-1");
++            }
++        //}
++#endif
++    } else {
++        printf("I2C failed to init!\n");
++    }
+ 
+ 	return 0;
+ }
+diff --git a/include/configs/zynq_zc70x.h b/include/configs/zynq_zc70x.h
+index a79d060..0ab0add 100644
+--- a/include/configs/zynq_zc70x.h
++++ b/include/configs/zynq_zc70x.h
+@@ -25,6 +25,14 @@
+ #define CONFIG_ZYNQ_BOOT_FREEBSD
+ #define CONFIG_DEFAULT_DEVICE_TREE	zynq-zc702
+ 
++#define CONFIG_E3XX_DB_EEPROM_ADDR 0x50
++#define CONFIG_E3XX_MB_EEPROM_ADDR 0x51
++
++#define CONFIG_E3XX_MEM_TEST
++#define CONFIG_E3XX_MEM_TEST_START CONFIG_SYS_SDRAM_BASE
++/* U-boot resides in 0x3fb2a000 - 0x40000000 (use #DEBUG to show this information) */
++#define CONFIG_E3XX_MEM_TEST_SIZE 0x30000000
++
+ #include <configs/zynq-common.h>
+ 
+ #endif /* __CONFIG_ZYNQ_ZC70X_H */
+-- 
+1.8.3.1
+

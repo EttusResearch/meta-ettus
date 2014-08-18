@@ -14,6 +14,7 @@ SRC_URI_append_ettus-e300 = " file://ps7_init.h \
                               file://0001-E300-Uses-UART0-for-console.patch \
                               file://0002-E300-Disable-QSPI.patch \
                               file://0003-Read-mac-address-from-i2c-EEPROM.patch \
+                              file://0001-e300-Added-memory-test.patch \
                               file://uEnv.txt \
                               file://fpga.bin \
                              "
