@@ -1,7 +1,7 @@
 SRC_URI = "git://github.com/EttusResearch/uhd-e300-dev.git;branch=e300-devel;protocol=https"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=8255adf1069294c928e0e18b01a16282"
 
-SRCREV = "87032a53c415a6d4accde528ff45aeb318e009ad"
+SRCREV = "bcd0f26e5d280c4d91da1a69298f2d391f007be4"
 
 PV = "3.7.1+git${SRCPV}"
 
