@@ -1,4 +1,4 @@
-From 5ff4b1ce4684d2b12af1d68c6a45edae02959bbe Mon Sep 17 00:00:00 2001
+From 7282b3358f41445b6b8123a1adacb08ee302a3e3 Mon Sep 17 00:00:00 2001
 From: Jonathon Pendlum <jonathon.pendlum@ettus.com>
 Date: Wed, 13 Aug 2014 14:53:44 -0700
 Subject: [PATCH 1/2] e300: Added memory test
@@ -9,7 +9,7 @@ Subject: [PATCH 1/2] e300: Added memory test
  2 files changed, 92 insertions(+), 14 deletions(-)
 
 diff --git a/board/xilinx/zynq/board.c b/board/xilinx/zynq/board.c
-index aefa3f6..3e674b8 100644
+index aefa3f6..f63185a 100644
 --- a/board/xilinx/zynq/board.c
 +++ b/board/xilinx/zynq/board.c
 @@ -26,29 +26,81 @@ Xilinx_desc fpga045 = XILINX_XC7Z045_DESC(0x45);
@@ -120,9 +120,9 @@ index aefa3f6..3e674b8 100644
 +        //if(serial_exists() != 0) { // Uncomment to run memory test only when the serial number is not set (or set to XXXXXX)
 +            printf("RAM test... ");
 +            if(simple_mem_test(CONFIG_E3XX_MEM_TEST_START,CONFIG_E3XX_MEM_TEST_SIZE) == 0) {
-+                printf("PASS!\n");
++                printf("PASSED RAM TEST!\n");
 +            } else {
-+                printf("FAIL!\n");
++                printf("FAILED RAM TEST!\n");
 +                // Do not autoboot on failure
 +                setenv("bootdelay","-1");
 +            }
