@@ -7,6 +7,7 @@ SRC_URI_append_ettus-e300 = "\
                   file://ettus-e300.scc \
                   file://ettus-e300.cfg \
                   file://usb-audio.cfg \
+                  file://usb-wifi.cfg \
 		  file://e300-devicetree.dts \
 		"
 
