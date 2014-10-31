@@ -1,0 +1,1 @@
+uenvcmd=echo Copying Linux from SD to RAM and booting ... && fatload mmc 0 0x3000000 ${kernel_image} && fatload mmc 0 0x2A00000 uImage-e300-devicetree.dtb && bootm 0x3000000 - 0x2A00000
