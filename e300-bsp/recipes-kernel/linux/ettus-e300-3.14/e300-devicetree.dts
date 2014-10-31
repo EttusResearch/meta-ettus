@@ -27,7 +27,7 @@
 		spi1 = &ps7_spi_1;
 	} ;
 	chosen {
-		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 rootwait rw earlyprintk";
+		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 rootwait ro earlyprintk";
 		linux,stdout-path = "/amba@0/serial@e0000000";
 	} ;
 	cpus {
