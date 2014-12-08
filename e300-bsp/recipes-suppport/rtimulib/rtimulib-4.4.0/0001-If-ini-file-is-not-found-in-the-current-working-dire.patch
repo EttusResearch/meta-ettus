@@ -1,0 +1,39 @@
+From 68983028cdb418a2de5bf29245520b689b827add Mon Sep 17 00:00:00 2001
+From: Philip Balister <philip@balister.org>
+Date: Mon, 8 Dec 2014 09:48:32 -0500
+Subject: [PATCH] If ini file is not found in the current working directory
+ check in /etc.
+
+Signed-off-by: Philip Balister <philip@balister.org>
+---
+ RTIMULib/RTIMUSettings.cpp | 14 +++++++++++---
+ 1 file changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/RTIMULib/RTIMUSettings.cpp b/RTIMULib/RTIMUSettings.cpp
+index 9055163..0d46391 100644
+--- a/RTIMULib/RTIMUSettings.cpp
++++ b/RTIMULib/RTIMUSettings.cpp
+@@ -263,9 +263,17 @@ bool RTIMUSettings::loadSettings()
+     RTFLOAT ftemp;
+     //  check to see if settings file exists
+ 
+-    if (!(m_fd = fopen(m_filename, "r"))) {
+-        HAL_INFO("Settings file not found. Using defaults and creating settings file\n");
+-        return saveSettings();
++    if (!(m_fd = fopen(m_filename, "r"))) { // Check for settings file in cwd
++        // Check for settings file in /etc
++        char tmp[256];
++
++        strcpy(tmp, "/etc/");
++        strncat(tmp, m_filename, 250);
++        strncpy(m_filename, tmp, 255);
++        if (!(m_fd = fopen(m_filename, "r"))) {
++            HAL_INFO("Settings file not found. Using defaults and creating settings file\n");
++            return saveSettings();
++        }
+     }
+ 
+     while (fgets(buf, 200, m_fd)) {
+-- 
+1.8.3.1
+
