@@ -67,7 +67,7 @@
 		compatible = "ettus,e3x0-button";
 		interrupt-parent = <&ps7_scugic_0>;
 		interrupts = <0 30 1>, <0 31 1>;
-		interrupt-names = "key-press", "key-release";
+		interrupt-names = "press", "release";
 	} ;
 	ps7_axi_interconnect_0: amba@0 {
 		#address-cells = <1>;
