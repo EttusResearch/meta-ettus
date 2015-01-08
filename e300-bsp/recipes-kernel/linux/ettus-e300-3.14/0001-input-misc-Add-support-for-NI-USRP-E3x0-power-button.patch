@@ -1,14 +1,14 @@
-From 1ebbc45c7a0659471dcc6da30c91091f0fac2bf6 Mon Sep 17 00:00:00 2001
-From: Moritz Fischer <moritz@ettus.com>
+From 468cfb0e85255d42f69dcf3ae6e026b267398d07 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 5 Jan 2015 19:06:55 +0100
-Subject: [PATCH] input: misc: Add support for NI USRP E3x0 power button.
+Subject: [PATCH 1/3] input: misc: Add support for NI USRP E3x0 power button.
 
-Signed-off-by: Moritz Fischer <moritz@ettus.com>
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
  drivers/input/misc/Kconfig       |  10 +++
  drivers/input/misc/Makefile      |   1 +
- drivers/input/misc/e3x0-button.c | 156 +++++++++++++++++++++++++++++++++++++++
- 3 files changed, 167 insertions(+)
+ drivers/input/misc/e3x0-button.c | 153 +++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 164 insertions(+)
  create mode 100644 drivers/input/misc/e3x0-button.c
 
 diff --git a/drivers/input/misc/Kconfig b/drivers/input/misc/Kconfig
@@ -46,14 +46,14 @@ index cda71fc..cf1575e 100644
  obj-$(CONFIG_INPUT_GPIO_TILT_POLLED)	+= gpio_tilt_polled.o
 diff --git a/drivers/input/misc/e3x0-button.c b/drivers/input/misc/e3x0-button.c
 new file mode 100644
-index 0000000..06d4141
+index 0000000..0022f6a
 --- /dev/null
 +++ b/drivers/input/misc/e3x0-button.c
-@@ -0,0 +1,156 @@
+@@ -0,0 +1,153 @@
 +/*
 + * Copyright (c) 2014, National Instruments Corp. All rights reserved.
 + *
-+ * Driver for NI Ettus Research USRP E3x0 Power Button
++ * Driver for NI Ettus Research USRP E3x0 Button Driver
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License as published by
@@ -73,8 +73,6 @@ index 0000000..06d4141
 +#include <linux/interrupt.h>
 +#include <linux/of.h>
 +#include <linux/slab.h>
-+
-+static const char DRIVER_NAME[] = "e3x0-button";
 +
 +/**
 + * struct e3x0_button - e3x0 button information
@@ -109,16 +107,16 @@ index 0000000..06d4141
 +	int irq_press, irq_release;
 +	int error;
 +
-+	irq_press = platform_get_irq_byname(pdev, "key-press");
++	irq_press = platform_get_irq_byname(pdev, "press");
 +	if (irq_press < 0) {
-+		dev_err(&pdev->dev, "No IRQ for 'key-press', error=%d\n",
++		dev_err(&pdev->dev, "No IRQ for 'press', error=%d\n",
 +			irq_press);
 +		return irq_press;
 +	}
 +
-+	irq_release = platform_get_irq_byname(pdev, "key-release");
++	irq_release = platform_get_irq_byname(pdev, "release");
 +	if (irq_release < 0) {
-+		dev_err(&pdev->dev, "No IRQ for 'key-release', error=%d\n",
++		dev_err(&pdev->dev, "No IRQ for 'release', error=%d\n",
 +			irq_release);
 +		return irq_release;
 +	}
@@ -136,7 +134,7 @@ index 0000000..06d4141
 +	button->irq_press = irq_press;
 +	button->irq_release = irq_release;
 +
-+	input->name = "NI Ettus Research E3x0 Button Driver";
++	input->name = "NI Ettus Research USRP E3x0 Button Driver";
 +	input->phys = "e3x0_button/input0";
 +	input->dev.parent = &pdev->dev;
 +
@@ -175,6 +173,7 @@ index 0000000..06d4141
 +	{ .compatible = "ettus,e3x0-button", },
 +	{}
 +};
++MODULE_DEVICE_TABLE(of, e3x0_button_match);
 +#endif
 +
 +static struct platform_driver e3x0_button_driver = {
@@ -188,9 +187,7 @@ index 0000000..06d4141
 +
 +static int __init e3x0_button_init(void)
 +{
-+	pr_info(
-+		"%s: Copyright (c) 2014 National Instruments Corp",
-+		DRIVER_NAME);
++	pr_info("e3x0-button: Copyright (c) 2014 National Instruments Corp");
 +	return platform_driver_register(&e3x0_button_driver);
 +}
 +
@@ -204,7 +201,7 @@ index 0000000..06d4141
 +
 +MODULE_LICENSE("GPL v2");
 +MODULE_AUTHOR("Moritz Fischer <moritz.fischer@ettus.com>");
-+MODULE_DESCRIPTION("NI Ettus Research USRP E3x0 Power Button driver");
++MODULE_DESCRIPTION("NI Ettus Research USRP E3x0 Button driver");
 +MODULE_ALIAS("platform:e3x0-button");
 -- 
 1.9.3
