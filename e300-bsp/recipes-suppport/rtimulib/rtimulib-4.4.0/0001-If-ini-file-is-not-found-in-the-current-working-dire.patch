@@ -1,4 +1,4 @@
-From 68983028cdb418a2de5bf29245520b689b827add Mon Sep 17 00:00:00 2001
+From 6febf3340ce7e6383359b9de3d1b8683363a181d Mon Sep 17 00:00:00 2001
 From: Philip Balister <philip@balister.org>
 Date: Mon, 8 Dec 2014 09:48:32 -0500
 Subject: [PATCH] If ini file is not found in the current working directory
@@ -6,14 +6,18 @@ Subject: [PATCH] If ini file is not found in the current working directory
 
 Signed-off-by: Philip Balister <philip@balister.org>
 ---
- RTIMULib/RTIMUSettings.cpp | 14 +++++++++++---
- 1 file changed, 11 insertions(+), 3 deletions(-)
+ RTIMULib/RTIMUSettings.cpp | 17 ++++++++++++++---
+ 1 file changed, 14 insertions(+), 3 deletions(-)
 
 diff --git a/RTIMULib/RTIMUSettings.cpp b/RTIMULib/RTIMUSettings.cpp
-index 9055163..0d46391 100644
+index 9055163..5a89c77 100644
 --- a/RTIMULib/RTIMUSettings.cpp
 +++ b/RTIMULib/RTIMUSettings.cpp
-@@ -263,9 +263,17 @@ bool RTIMUSettings::loadSettings()
+@@ -260,12 +260,23 @@ bool RTIMUSettings::loadSettings()
+     char buf[200];
+     char key[200];
+     char val[200];
++    char tmp_filename[256];
      RTFLOAT ftemp;
      //  check to see if settings file exists
  
@@ -24,10 +28,12 @@ index 9055163..0d46391 100644
 +        // Check for settings file in /etc
 +        char tmp[256];
 +
++        strcpy(tmp_filename, m_filename);
 +        strcpy(tmp, "/etc/");
 +        strncat(tmp, m_filename, 250);
 +        strncpy(m_filename, tmp, 255);
 +        if (!(m_fd = fopen(m_filename, "r"))) {
++            strcpy(m_filename, tmp_filename);  // No file in /etc, use default name
 +            HAL_INFO("Settings file not found. Using defaults and creating settings file\n");
 +            return saveSettings();
 +        }

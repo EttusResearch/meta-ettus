@@ -25,12 +25,13 @@ EXTRA_OECMAKE = " \
 inherit cmake 
 
 do_install_append() {
+	install -d ${D}/${sysconfdir}
 	install -m 0644 ${WORKDIR}/RTIMULib.ini ${D}/${sysconfdir}
 }
 
 SOLIBS = ".so"
 SOLIBSDEV = "xxx"
 
-PACKAGES += "${PN}-conf"
+PACKAGES =+ "${PN}-conf"
 
 FILES_${PN}-conf = "${sysconfdir}/RTIMULib.ini"
