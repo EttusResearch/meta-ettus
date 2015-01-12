@@ -6,7 +6,7 @@ SRC_URI_append_ettus-e300 = "\
                   file://0001-axi_fpga-Add-a-driver-to-test-AXI-interface-to-the-f.patch \
                   file://ettus-e300.scc \
                   file://ettus-e300.cfg \
-                  file://0001-input-misc-Add-support-for-NI-USRP-E3x0-power-button.patch \
+                  file://0001-Input-add-support-for-NI-Ettus-Research-USRP-E3x0-bu.patch \
                   file://usb-audio.cfg \
                   file://usb-wifi.cfg \
 		"
