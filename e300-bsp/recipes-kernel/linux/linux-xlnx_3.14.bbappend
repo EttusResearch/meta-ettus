@@ -9,6 +9,7 @@ SRC_URI_append_ettus-e300 = "\
                   file://0001-Input-add-support-for-NI-Ettus-Research-USRP-E3x0-bu.patch \
                   file://usb-audio.cfg \
                   file://usb-wifi.cfg \
+                  file://usb-serial.cfg \
 		"
 
 COMPATIBLE_MACHINE_ettus-e300 = "ettus-e300"
