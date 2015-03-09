@@ -10,6 +10,7 @@ SRC_URI_append_ettus-e300 = "\
                   file://usb-audio.cfg \
                   file://usb-wifi.cfg \
                   file://usb-serial.cfg \
+                  file://usb-cam.cfg \
 		"
 
 COMPATIBLE_MACHINE_ettus-e300 = "ettus-e300"
