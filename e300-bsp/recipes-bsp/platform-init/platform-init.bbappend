@@ -1,0 +1,3 @@
+FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:"
+
+COMPATIBLE_MACHINE_ettus-e300 = "ettus-e300"
