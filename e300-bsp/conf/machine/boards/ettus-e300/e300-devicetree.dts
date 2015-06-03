@@ -363,5 +363,9 @@
 			interrupts = <0 29 1>;
 			interrupt-parent = <&ps7_scugic_0>;
 		};
+		pps {
+			compatible = "pps-gpio";
+			gpios = <&ps7_gpio_0 62 0>;
+		};
 	} ;
 } ;
