@@ -12,7 +12,7 @@
 # variable as required.
 
 DISTRO_FEATURES_append = " opengl x11"
-PACKAGECONFIG_pn-gr-osmosdr = "uhd
+PACKAGECONFIG_pn-gr-osmosdr = "uhd"
 
 #
 # Parallelism Options
