@@ -52,6 +52,42 @@
 			reg = <0x1>;
 		} ;
 	} ;
+	pps {
+		compatible = "pps-gpio";
+		gpios = <&ps7_gpio_0 62 0>;
+	};
+
+	button {
+		compatible = "ettus,e3x0-button";
+		interrupt-parent = <&ps7_scugic_0>;
+		interrupts = <0 30 1>, <0 31 1>;
+		interrupt-names = "press", "release";
+	};
+
+	poweroff {
+		compatible = "ettus,e3x0-poweroff", "syscon-poweroff";
+		regmap = <&devctrl>;
+		offset = <0x0>;
+		mask = <0x7a>;
+	};
+
+	axi_pmu {
+		compatible = "ettus,e3xx-pmu";
+		syscon = <&devctrl>;
+		ettus,resistor-sense = <10>;
+		ettus,capacity-full = <3200>;
+		interrupt-parent = <&ps7_scugic_0>;
+		interrupts = <0 32 1>;
+		interrupt-names = "fw";
+	};
+
+	db_reg: db_reg {
+		compatible = "ettus,e3xx-db-regulator";
+		regulator-name = "db-supply";
+		regulator-boot-on;
+		syscon = <&devctrl>;
+	};
+
 	pmu {
 		compatible = "arm,cortex-a9-pmu";
 		interrupt-parent = <&ps7_scugic_0>;
@@ -62,12 +98,6 @@
 	ps7_ddr_0: memory@0 {
 		device_type = "memory";
 		reg = <0x0 0x40000000>;
-	} ;
-	button {
-		compatible = "ettus,e3x0-button";
-		interrupt-parent = <&ps7_scugic_0>;
-		interrupts = <0 30 1>, <0 31 1>;
-		interrupt-names = "press", "release";
 	} ;
 	ps7_axi_interconnect_0: amba@0 {
 		#address-cells = <1>;
@@ -356,16 +386,20 @@
 			interrupts = <0 7 4>;
 			reg = <0xf8007100 0x20>;
 		} ;
+
 		axi_fpga0: axi-fpga@40000000 {
 			compatible = "xlnx,ps7-axi-fpga-1.00.a";
 			reg = <0x40000000 0x100000
 				0x00000000 0xa>;
 			interrupts = <0 29 1>;
 			interrupt-parent = <&ps7_scugic_0>;
+			db-supply = <&db_reg>;
 		};
-		pps {
-			compatible = "pps-gpio";
-			gpios = <&ps7_gpio_0 62 0>;
+
+		devctrl: devctrl@40300000 {
+			compatible = "ettus,e3xx-syscon", "syscon";
+			reg = <0x40300000 0x24>;
 		};
+
 	} ;
 } ;
