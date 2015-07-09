@@ -1,4 +1,4 @@
-From a8d62276d23d3519c1f18be36b823a779d4c2f2b Mon Sep 17 00:00:00 2001
+From e776a9f19044f03391f7f4cf3fcc3e71e9a87f1d Mon Sep 17 00:00:00 2001
 From: Philip Balister <philip@opensdr.com>
 Date: Fri, 3 Aug 2012 15:30:44 -0400
 Subject: [PATCH] axi_fpga : Add a driver to test AXI interface to the fpga.
@@ -6,24 +6,32 @@ Subject: [PATCH] axi_fpga : Add a driver to test AXI interface to the fpga.
 The driver also allocates a large contiguous block of memory so
 the ARM and the FPGA can share data.
 
+Changes from v1:
+- implement pm_runtime hooks.
+- remove ioctl call.
+- be less verbose.
+- use module_platform_driver macro.
+
 Signed-off-by: Philip Balister <philip@opensdr.com>
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
- drivers/misc/Kconfig    |   9 +
+ drivers/misc/Kconfig    |  10 ++
  drivers/misc/Makefile   |   1 +
- drivers/misc/axi_fpga.c | 501 ++++++++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 511 insertions(+)
+ drivers/misc/axi_fpga.c | 458 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 469 insertions(+)
  create mode 100644 drivers/misc/axi_fpga.c
 
 diff --git a/drivers/misc/Kconfig b/drivers/misc/Kconfig
-index 5f7659f..96fbf88 100644
+index 5f7659f..5bb8b61 100644
 --- a/drivers/misc/Kconfig
 +++ b/drivers/misc/Kconfig
-@@ -528,6 +528,13 @@ config XILINX_TRAFGEN
+@@ -528,6 +528,14 @@ config XILINX_TRAFGEN
  
  	  If unsure, say N
  
 +config AXI_FPGA_STREAM
 +	tristate "High speed data streaming interface to AXI connected FPGA"
++	depends on OF
 +	default n
 +	help
 +	  This driver stream daat to/from an FPGA connected to the processor
@@ -32,7 +40,7 @@ index 5f7659f..96fbf88 100644
  source "drivers/misc/c2port/Kconfig"
  source "drivers/misc/eeprom/Kconfig"
  source "drivers/misc/cb710/Kconfig"
-@@ -539,4 +546,6 @@ source "drivers/misc/mei/Kconfig"
+@@ -539,4 +547,6 @@ source "drivers/misc/mei/Kconfig"
  source "drivers/misc/vmw_vmci/Kconfig"
  source "drivers/misc/mic/Kconfig"
  source "drivers/misc/genwqe/Kconfig"
@@ -50,10 +58,10 @@ index 73d2239..ba98326 100644
 +obj-$(CONFIG_AXI_FPGA_STREAM)   += axi_fpga.o
 diff --git a/drivers/misc/axi_fpga.c b/drivers/misc/axi_fpga.c
 new file mode 100644
-index 0000000..37d7af4
+index 0000000..ec85c55
 --- /dev/null
 +++ b/drivers/misc/axi_fpga.c
-@@ -0,0 +1,501 @@
+@@ -0,0 +1,458 @@
 +/*
 + * Thin layer to provide access to FPGA fabric and allocate large buffers.
 + *
@@ -79,6 +87,8 @@ index 0000000..37d7af4
 +#include <linux/uaccess.h>
 +#include <linux/ioctl.h>
 +#include <linux/dma-mapping.h>
++#include <linux/regulator/consumer.h>
++#include <linux/pm_runtime.h>
 +
 +#include <asm/page.h>
 +
@@ -90,11 +100,6 @@ index 0000000..37d7af4
 +	unsigned long size;
 +	int direction;
 +};
-+
-+#define AXI_FPGA_GET_PAGE		_IOWR('a', 0x30, struct buffer_addr)
-+#define AXI_FPGA_GIVE_PAGE		_IOW('a', 0x31, struct buffer_addr)
-+#define AXI_FPGA_TAKE_PAGE		_IOW('a', 0x32, struct buffer_addr)
-+
 +
 +/**
 + * struct axi_fpga_drvdata - Device Configuration driver structure
@@ -117,6 +122,9 @@ index 0000000..37d7af4
 +	unsigned long slave_phys_addr;
 +	struct page *fpga_buffer_pages;
 +	unsigned int fpga_buffer_npages;
++
++	/* regulator for db power */
++	struct regulator *reg;
 +
 +	/* Interrupt configuration */
 +	int irq_number;
@@ -144,7 +152,7 @@ index 0000000..37d7af4
 +{
 +	struct axi_fpga_drvdata *d = container_of(filp->private_data,
 +				struct axi_fpga_drvdata, axi_fpga_device);
-+	dev_info(&d->pdev->dev, "in axi_fpga_open, d->dev_open = %d\n",
++	dev_dbg(&d->pdev->dev, "in axi_fpga_open, d->dev_open = %d\n",
 +			d->dev_open);
 +
 +	if (d->dev_open)
@@ -154,6 +162,8 @@ index 0000000..37d7af4
 +
 +	if (request_irq(d->irq_number, axi_fpga_irq_handler, 0, d->name, d))
 +		return -EBUSY;
++
++	pm_runtime_get_sync(&d->pdev->dev);
 +
 +	return 0;
 +}
@@ -192,72 +202,6 @@ index 0000000..37d7af4
 +	return 0;
 +}
 +
-+static long axi_fpga_ioctl(struct file *file,
-+				unsigned int cmd, unsigned long arg)
-+{
-+	struct axi_fpga_drvdata *d = container_of(file->private_data,
-+				struct axi_fpga_drvdata, axi_fpga_device);
-+	struct buffer_addr buf_addr;
-+	struct buffer_addr __user *ubuf_addr;
-+	struct page *page;
-+	int res, retval;
-+
-+	ubuf_addr = (struct buffer_addr __user *) arg;
-+	copy_from_user(&buf_addr, ubuf_addr, sizeof(struct buffer_addr));
-+
-+	retval = 0;
-+
-+	switch (cmd) {
-+
-+	case AXI_FPGA_GET_PAGE:
-+		down_read(&current->mm->mmap_sem);
-+		res = get_user_pages(current, current->mm,
-+					(unsigned long) buf_addr.virt_addr,
-+					1,
-+					1,
-+					0,
-+					&page,
-+					NULL);
-+		up_read(&current->mm->mmap_sem);
-+
-+		dev_info(&d->pdev->dev, "npages = %d\n", res);
-+
-+		if (!res) 
-+			retval = -EINVAL;
-+
-+		if (buf_addr.direction)
-+			buf_addr.phys_addr = dma_map_page(&d->pdev->dev, page, 0,
-+					buf_addr.size, DMA_TO_DEVICE);
-+		else
-+			buf_addr.phys_addr = dma_map_page(&d->pdev->dev, page, 0,
-+					buf_addr.size, DMA_FROM_DEVICE);
-+
-+		copy_to_user(ubuf_addr, &buf_addr, sizeof(struct buffer_addr));
-+		return retval;
-+
-+	case AXI_FPGA_GIVE_PAGE:
-+		if (buf_addr.direction)
-+			dma_sync_single_for_device(&d->pdev->dev, buf_addr.phys_addr,
-+				buf_addr.size, DMA_TO_DEVICE);
-+		else
-+			dma_sync_single_for_device(&d->pdev->dev, buf_addr.phys_addr,
-+				buf_addr.size, DMA_FROM_DEVICE);
-+		break;
-+
-+	case AXI_FPGA_TAKE_PAGE:
-+		if (buf_addr.direction)
-+			dma_sync_single_for_cpu(&d->pdev->dev, buf_addr.phys_addr,
-+				buf_addr.size, DMA_TO_DEVICE);
-+		else
-+			dma_sync_single_for_cpu(&d->pdev->dev, buf_addr.phys_addr,
-+				buf_addr.size, DMA_FROM_DEVICE);
-+		break;
-+
-+	default:
-+		return -ENOTTY;
-+	}
-+	return 0;
-+}
 +
 +static const struct vm_operations_struct axi_fpga_mmap_ops = {
 +	.open	= NULL,
@@ -273,7 +217,7 @@ index 0000000..37d7af4
 +	unsigned long size, expected_size, addr;
 +	struct axi_fpga_drvdata *d = container_of(filp->private_data,
 +				struct axi_fpga_drvdata, axi_fpga_device);
-+	dev_info(&d->pdev->dev, "in axi_fpga_mmap\n");
++	dev_dbg(&d->pdev->dev, "in axi_fpga_mmap\n");
 +
 +	if (!d->dev_open)
 +		return -EIO;
@@ -283,7 +227,7 @@ index 0000000..37d7af4
 +
 +	expected_size = d->dev_size + (1<<(d->fpga_buffer_npages)) * PAGE_SIZE;
 +	size = vma->vm_end - vma->vm_start;
-+	dev_info(&d->pdev->dev, "Size = %ld, expected size = %ld\n", size,
++	dev_dbg(&d->pdev->dev, "Size = %ld, expected size = %ld\n", size,
 +			expected_size);
 +	if (size != expected_size)
 +		return -EINVAL;
@@ -318,7 +262,7 @@ index 0000000..37d7af4
 +	struct axi_fpga_drvdata *d = container_of(filp->private_data,
 +				struct axi_fpga_drvdata, axi_fpga_device);
 +
-+	dev_info(&d->pdev->dev, "in axi_fpga_release\n");
++	dev_dbg(&d->pdev->dev, "in axi_fpga_release\n");
 +
 +	if (!d->dev_open)
 +		return -EIO;
@@ -326,6 +270,8 @@ index 0000000..37d7af4
 +	free_irq(d->irq_number, d);
 +
 +	d->dev_open = 0;
++
++	pm_runtime_put_sync(&d->pdev->dev);
 +
 +	return 0;
 +}
@@ -386,7 +332,6 @@ index 0000000..37d7af4
 +	.read		=	axi_fpga_read,
 +	.poll		=	axi_fpga_poll,
 +	.mmap		=	axi_fpga_mmap,
-+	.unlocked_ioctl =	axi_fpga_ioctl,
 +	.release	=	axi_fpga_release,
 +};
 +
@@ -399,7 +344,9 @@ index 0000000..37d7af4
 +	struct axi_fpga_drvdata *d;
 +	int err, ret = 0;
 +
-+	dev_info(&pdev->dev, "in axi_fpga_dev_probe\n");
++	dev_dbg(&pdev->dev, "in axi_fpga_dev_probe\n");
++
++	pm_runtime_enable(&pdev->dev);
 +
 +	control = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 +	if (!control) {
@@ -419,12 +366,12 @@ index 0000000..37d7af4
 +		return -ENODEV;
 +	}
 +
-+	dev_info(&pdev->dev, "Reg 1 start: %08X, reg 1 end: %08X, reg 1 name: %s\n",
++	dev_dbg(&pdev->dev, "Reg 1 start: %08X, reg 1 end: %08X, reg 1 name: %s\n",
 +		control->start, control->end, control->name);
-+	dev_info(&pdev->dev, "Reg 2 start: %08X, reg 2 end: %08X, reg 2 name: %s\n",
++	dev_dbg(&pdev->dev, "Reg 2 start: %08X, reg 2 end: %08X, reg 2 name: %s\n",
 +		buffer->start, buffer->end, buffer->name);
 +
-+	dev_info(&pdev->dev, "IRQ start: %d, IRQ stop %d, IRQ name, %s\n",
++	dev_dbg(&pdev->dev, "IRQ start: %d, IRQ stop %d, IRQ name, %s\n",
 +		irq->start, irq->end, irq->name);
 +
 +
@@ -433,12 +380,17 @@ index 0000000..37d7af4
 +	if (!d)
 +		return -ENOMEM;
 +	dev_set_drvdata(&pdev->dev, (void *)d);
-+
 +	d->pdev = pdev;
++
++	d->reg = regulator_get(&pdev->dev, "db");
++	if (IS_ERR(d->reg)) {
++		dev_err(&pdev->dev, "Failed to get regulator reference\n");
++		return PTR_ERR(d->reg);
++	}
 +
 +	/* Get driver name from device tree */
 +	d->name = kstrdup(pdev->name, GFP_KERNEL);
-+	dev_info(&pdev->dev, "Dev name: %s\n", d->name);
++	dev_dbg(&pdev->dev, "Dev name: %s\n", d->name);
 +
 +	/* Setup interrupt */
 +	d->irq_number = irq->start;
@@ -472,7 +424,7 @@ index 0000000..37d7af4
 +	/* Initialize driver flags */
 +	d->dev_open = 0;
 +
-+/* Turn on userspace access to cycle counter DELETE */
++	/* Turn on userspace access to cycle counter DELETE */
 +	/* enable user-mode access to the performance counter*/
 +	asm ("MCR p15, 0, %0, C9, C14, 0\n\t" : : "r"(1));
 +
@@ -500,24 +452,57 @@ index 0000000..37d7af4
 +{
 +	struct axi_fpga_drvdata *d;
 +
-+	dev_info(&pdev->dev, "in axi_fpga_drv_remove\n");
++	dev_dbg(&pdev->dev, "in axi_fpga_drv_remove\n");
 +
 +	d = dev_get_drvdata(&pdev->dev);
 +
 +	misc_deregister(&(d->axi_fpga_device));
 +
++	regulator_put(d->reg);
++
++	pm_runtime_disable(&pdev->dev);
++
 +	return 0;
 +}
 +
-+#ifdef CONFIG_OF
++static int __maybe_unused axi_fpga_suspend(struct device *dev)
++{
++	int ret;
++	struct axi_fpga_drvdata *d = dev_get_drvdata(dev);
++
++	ret = regulator_disable(d->reg);
++	if (ret) {
++		dev_err(&d->pdev->dev, "Failed to enable db regulator\n");
++		return ret;
++	}
++
++	return 0;
++}
++
++static int __maybe_unused axi_fpga_resume(struct device *dev)
++{
++	int ret;
++	struct axi_fpga_drvdata *d = dev_get_drvdata(dev);
++
++	ret = regulator_enable(d->reg);
++	if (ret) {
++		dev_err(&d->pdev->dev, "Failed to disable db regulator\n");
++		return ret;
++	}
++
++	return 0;
++}
++
++static const struct dev_pm_ops axi_fpga_pm_ops = {
++	.runtime_suspend = axi_fpga_suspend,
++	.runtime_resume = axi_fpga_resume,
++};
++
 +static struct of_device_id axi_fpga_of_match[] = {
 +	{ .compatible = "xlnx,ps7-axi-fpga-1.00.a", },
 +	{ /* end of table */}
 +};
 +MODULE_DEVICE_TABLE(of, axi_fpga_of_match);
-+#else
-+#define axi_fpga_of_match NULL
-+#endif /* CONFIG_OF */
 +
 +/* Driver Structure */
 +static struct platform_driver axi_fpga_platform_driver = {
@@ -527,34 +512,14 @@ index 0000000..37d7af4
 +		.owner = THIS_MODULE,
 +		.name = DRIVER_NAME,
 +		.of_match_table = axi_fpga_of_match,
++		.pm = &axi_fpga_pm_ops,
 +	},
 +};
-+
-+/**
-+ * axi_fpga_module_init() - register the Device Configuration.
-+*/
-+static int __init axi_fpga_module_init(void)
-+{
-+	pr_info("in axi_fpga_module_init\n");
-+	return platform_driver_register(&axi_fpga_platform_driver);
-+}
-+
-+/**
-+ * axi_fpga_module_exit - Unregister the Device Configuration.
-+*/
-+static void axi_fpga_module_exit(void)
-+{
-+	pr_info("in axi_fpga_module_exit\n");
-+	platform_driver_unregister(&axi_fpga_platform_driver);
-+}
-+
-+module_init(axi_fpga_module_init);
-+module_exit(axi_fpga_module_exit);
++module_platform_driver(axi_fpga_platform_driver);
 +
 +MODULE_AUTHOR("philip@opensdr.com <Philip Balister>");
 +MODULE_DESCRIPTION("Streaming data to/from FPGA via AXI");
 +MODULE_LICENSE("GPL");
-+
 -- 
-1.9.0
+1.9.3
 
