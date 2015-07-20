@@ -2,7 +2,7 @@ SUMMARY = "Simple program to connect a 9-dof IMU to an embedded Linux system."
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=37115da1c12308918756b9c3b42627c8"
 
-SRC_URI = "git://github.com/richards-tech/RTIMULib.git;protocol=http \
+SRC_URI = "git://github.com/balister/RTIMULib.git;protocol=http \
            file://0001-If-ini-file-is-not-found-in-the-current-working-dire.patch \
            "
 
