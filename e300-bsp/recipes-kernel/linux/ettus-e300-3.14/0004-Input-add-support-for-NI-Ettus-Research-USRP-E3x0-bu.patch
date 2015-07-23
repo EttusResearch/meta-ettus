@@ -1,7 +1,8 @@
-From 8e2352f1e83d4ac7eecfb31e35668e34067dee54 Mon Sep 17 00:00:00 2001
+From 71c6f34abbb8eecc26427d22345e5eb38701b49a Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Sat, 10 Jan 2015 14:04:14 -0800
-Subject: [PATCH] Input: add support for NI Ettus Research USRP E3x0 button
+Subject: [PATCH 04/12] Input: add support for NI Ettus Research USRP E3x0
+ button
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 Signed-off-by: Dmitry Torokhov <dmitry.torokhov@gmail.com>

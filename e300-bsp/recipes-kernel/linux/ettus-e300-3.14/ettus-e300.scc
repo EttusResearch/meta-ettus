@@ -1,3 +1,7 @@
-patch 0001-Input-add-support-for-NI-Ettus-Research-USRP-E3x0-bu.patch
+patch 0001-power-reset-Backport-syscon-poweroff.patch
+patch 0004-Input-add-support-for-NI-Ettus-Research-USRP-E3x0-bu.patch
+patch 0006-char-xilinx_xdevcfg-Added-a-notifier-interface.patch
+patch 0007-power-Add-support-for-NI-Ettus-Research-E3XX-PMU.patch
+patch 0010-regulator-e3xx-db-Adding-support-for-NI-USRP-E3XX-DB.patch
 kconf hardware ettus-e300.cfg
 

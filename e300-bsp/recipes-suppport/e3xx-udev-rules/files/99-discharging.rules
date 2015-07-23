@@ -1,0 +1,5 @@
+SUBSYSTEM=="power_supply", ATTR{status}=="Discharging", ATTR{capacity}=="5", RUN+="/sbin/shutdown -h now"
+SUBSYSTEM=="power_supply", ATTR{status}=="Discharging", ATTR{capacity}=="4", RUN+="/sbin/shutdown -h now"
+SUBSYSTEM=="power_supply", ATTR{status}=="Discharging", ATTR{capacity}=="3", RUN+="/sbin/shutdown -h now"
+SUBSYSTEM=="power_supply", ATTR{status}=="Discharging", ATTR{capacity}=="2", RUN+="/sbin/shutdown -h now"
+SUBSYSTEM=="power_supply", ATTR{status}=="Discharging", ATTR{capacity}=="1", RUN+="/sbin/shutdown -h now"

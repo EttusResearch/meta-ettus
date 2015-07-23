@@ -1,0 +1,82 @@
+From 3b563ee56bc9bdaa94ea99fec330725b60bb9e5f Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Wed, 17 Jun 2015 15:21:44 -0700
+Subject: [PATCH 06/12] char: xilinx_xdevcfg: Added a notifier interface.
+
+This commit allows FPGA client drivers to register for notifications,
+of impending doom, i.e. a reload of the FPGA fabric.
+
+This is necessary for peripherals that need to backup their state,
+or keep from reading while the FPGA logic is in an undefined state.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ drivers/char/xilinx_devcfg.c | 14 ++++++++++++++
+ include/linux/xdevcfg.h      |  9 +++++++++
+ 2 files changed, 23 insertions(+)
+ create mode 100644 include/linux/xdevcfg.h
+
+diff --git a/drivers/char/xilinx_devcfg.c b/drivers/char/xilinx_devcfg.c
+index dcf4987..99e8022 100644
+--- a/drivers/char/xilinx_devcfg.c
++++ b/drivers/char/xilinx_devcfg.c
+@@ -20,6 +20,7 @@
+ #include <linux/kernel.h>
+ #include <linux/module.h>
+ #include <linux/mutex.h>
++#include <linux/notifier.h>
+ #include <linux/of.h>
+ #include <linux/platform_device.h>
+ #include <linux/slab.h>
+@@ -27,6 +28,15 @@
+ #include <linux/sysctl.h>
+ #include <linux/types.h>
+ #include <linux/uaccess.h>
++#include <linux/xdevcfg.h>
++
++static BLOCKING_NOTIFIER_HEAD(xdevcfg_notifier_list);
++
++void xdevcfg_register_notify(struct notifier_block *nb)
++{
++	blocking_notifier_chain_register(&xdevcfg_notifier_list, nb);
++}
++EXPORT_SYMBOL_GPL(xdevcfg_register_notify);
+ 
+ extern void zynq_slcr_init_preload_fpga(void);
+ extern void zynq_slcr_init_postload_fpga(void);
+@@ -508,6 +518,9 @@ static int xdevcfg_open(struct inode *inode, struct file *file)
+ 	drvdata->endian_swap = 0;
+ 	drvdata->residue_len= 0;
+ 
++	/* notify other drivers that registered about impending doom */
++	blocking_notifier_call_chain(&xdevcfg_notifier_list, XDEVCFG_START_RELOAD, NULL);
++
+ 	/*
+ 	 * If is_partial_bitstream is set, then PROG_B is not asserted
+ 	 * (xdevcfg_reset_pl function) and also zynq_slcr_init_preload_fpga and
+@@ -553,6 +566,7 @@ static int xdevcfg_release(struct inode *inode, struct file *file)
+ 		printk("Did not transfer last %d bytes\n",
+ 			drvdata->residue_len);
+ 
++	blocking_notifier_call_chain(&xdevcfg_notifier_list, XDEVCFG_END_RELOAD, NULL);
+ 	drvdata->is_open = 0;
+ 
+ 	return 0;
+diff --git a/include/linux/xdevcfg.h b/include/linux/xdevcfg.h
+new file mode 100644
+index 0000000..310ea55
+--- /dev/null
++++ b/include/linux/xdevcfg.h
+@@ -0,0 +1,9 @@
++#ifndef _LINUX_XDEVCFG_H
++#define _LINUX_XDEVCFG_H
++
++#define XDEVCFG_START_RELOAD 0x1
++#define XDEVCFG_END_RELOAD 0x2
++
++void xdevcfg_register_notify(struct notifier_block *nb);
++
++#endif /* _LINUX_XDEVCFG_H */
+-- 
+1.9.3
+
