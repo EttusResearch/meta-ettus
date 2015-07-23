@@ -1,0 +1,13 @@
+SUBSYSTEM=="power_supply", ATTR{online}=="1", ATTR{temp}=="660", RUN+="/sbin/shutdown -h now"
+
+SUBSYSTEM=="power_supply", ATTR{online}=="1", ATTR{temp}=="670", RUN+="/sbin/shutdown -h now"
+
+SUBSYSTEM=="power_supply", ATTR{online}=="1", ATTR{temp}=="700", RUN+="/sbin/shutdown -h now"
+
+SUBSYSTEM=="power_supply", ATTR{online}=="1", ATTR{temp}=="710", RUN+="/sbin/shutdown -h now"
+
+SUBSYSTEM=="power_supply", ATTR{online}=="1", ATTR{temp}=="720", RUN+="/sbin/shutdown -h now"
+
+SUBSYSTEM=="power_supply", ATTR{online}=="1", ATTR{temp}=="730", RUN+="/sbin/shutdown -h now"
+
+
