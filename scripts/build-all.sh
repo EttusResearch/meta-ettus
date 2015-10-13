@@ -7,14 +7,14 @@ if ! bitbake gnuradio-dev-image; then
 	exit 1
 fi
 
-rm -rf images/$MACHINE/build
-if ! wic create ../meta-sdr/contrib/wks/sdimage-8G.wks  -e gnuradio-dev-image -o images/$MACHINE; then 
-	echo dev image sd card build failed
+if ! bitbake parted-native mtools-native dosfstools-native; then
+	echo Failed to build toolds needed to run wic.
 	exit 1
 fi
 
-if ! bitbake parted-native mtools-native dosfstools-native; then
-	echo Failed to build toolds needed to run wic.
+rm -rf images/$MACHINE/build
+if ! wic create ../meta-sdr/contrib/wks/sdimage-8G.wks  -e gnuradio-dev-image -o images/$MACHINE; then 
+	echo dev image sd card build failed
 	exit 1
 fi
 
