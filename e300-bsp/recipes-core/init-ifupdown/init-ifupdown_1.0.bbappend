@@ -1,2 +1,3 @@
 FILESEXTRAPATHS_prepend_ettus-e300 := "${THISDIR}/${BPN}:"
 
+PACKAGE_ARCH_ettus-e300 = "${MACHINE_ARCH}"

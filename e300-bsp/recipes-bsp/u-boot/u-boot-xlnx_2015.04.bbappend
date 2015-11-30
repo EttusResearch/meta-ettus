@@ -1,8 +1,7 @@
-FILESEXTRAPATHS_prepend := "${THISDIR}/u-boot-xlnx/${MACHINE}:"
+FILESEXTRAPATHS_prepend_ettus-e300 := "${THISDIR}/u-boot-xlnx/ettus-e300:"
 
 
-SRC_URI_append_ettus-e300 = " file://ps7_init.h \
-                              file://ps7_init.c \
+SRC_URI_append_ettus-e300 = "  \
                               file://0001-E300-Uses-UART0-for-console.patch \
                               file://0002-E300-Disable-QSPI.patch \
                               file://0003-Read-mac-address-from-i2c-EEPROM.patch \

@@ -1,4 +1,4 @@
-FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}-3.14:"
+FILESEXTRAPATHS_prepend := "${THISDIR}/ettus-e300-3.14:"
 
 SRC_URI_append_ettus-e300 = "\
                   file://axi-fpga.scc \

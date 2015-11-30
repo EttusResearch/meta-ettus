@@ -1,6 +1,6 @@
-FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:"
+FILESEXTRAPATHS_prepend_ettus-e300 := "${THISDIR}/ettus-e300:"
 
-PACKAGE_ARCH = "${MACHINE_ARCH}"
+PACKAGE_ARCH_ettus-e300 = "${MACHINE_ARCH}"
 
 SRC_URI_append_ettus-e300 = "file://powerbutton.sh file://powerbutton"
 

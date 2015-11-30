@@ -2,6 +2,8 @@
 #@Name: Ettus Research E3XX.
 #@DESCRIPTION: Machine configuration for the Ettus Research E3XX Software Radio.
 
+MACHINEOVERRIDES = "ettus-e300:${MACHINE}"
+
 PREFERRED_PROVIDER_virtual/kernel ?= "linux-xlnx"
 PREFERRED_VERSION_linux-xlnx ?= "3.14%"
 
