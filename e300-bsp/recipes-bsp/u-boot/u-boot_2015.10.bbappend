@@ -1,6 +1,6 @@
 FILESEXTRAPATHS_prepend := "${THISDIR}/u-boot_2015.10:"
 
-SRC_URI_append = " \
+SRC_URI_append_ettus-e300 = " \
 		 file://0001-ARM-zynq-Fix-location-of-stack-and-malloc-areas.patch \
 		 file://0001-zynq-e3xx-Support-for-NI-Ettus-Research-E3xx-SDR.patch \ 
 		 file://0002-zynq-e3xx-split-up-in-speedgrades.patch \
@@ -12,10 +12,25 @@ SRC_URI_append = " \
 		 file://0001-zynq-e3xx-Set-db-mux-pins-depending-on-configuration.patch \
 		 "
 
+SRC_URI_append_ettus-e3xx-sg1 = " \
+		 file://fpga-1.bin \
+		 "
+SRC_URI_append_ettus-e3xx-sg3 = " \
+		 file://fpga-3.bin \
+		 "
+
 SPL_BINARY = "boot.bin"
 UBOOT_SUFFIX = "img"
 UBOOT_BINARY = "u-boot.${UBOOT_SUFFIX}"
 
 do_compile_append() {
 	ln -sf ${S}/spl/${SPL_BINARY} ${S}/${SPL_BINARY}
+}
+
+do_deploy_append_ettus-e3xx-sg1() {
+	cp ${WORKDIR}/fpga-1.bin ${DEPLOYDIR}/fpga.bin
+}
+
+do_deploy_append_ettus-e3xx-sg3() {
+	cp ${WORKDIR}/fpga-3.bin ${DEPLOYDIR}/fpga.bin
 }
