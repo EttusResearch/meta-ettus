@@ -1,4 +1,4 @@
-FILESEXTRAPATHS_prepend := "${THISDIR}/u-boot_2015.10:"
+FILESEXTRAPATHS_prepend := "${THISDIR}/u-boot-2015.10:"
 
 SRC_URI_append_ettus-e300 = " \
 		 file://0001-ARM-zynq-Fix-location-of-stack-and-malloc-areas.patch \
@@ -10,6 +10,7 @@ SRC_URI_append_ettus-e300 = " \
 		 file://0002-ARM-zynq-Add-target-for-building-bootable-SPL-image-.patch \
 		 file://0001-zynq-e3xx-Move-back-to-stoneage.patch \
 		 file://0001-zynq-e3xx-Set-db-mux-pins-depending-on-configuration.patch \
+                 file://0001-zynq-e3xx-Set-factory-dtb-otherwise-it-doesn-t-boot.patch \
 		 "
 
 SRC_URI_append_ettus-e3xx-sg1 = " \
