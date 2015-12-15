@@ -9,6 +9,7 @@ SRC_URI_append_ettus-e300 = "\
                   file://usb-wifi.cfg \
                   file://usb-serial.cfg \
                   file://usb-cam.cfg \
+                  file://bluetooth.cfg \
                   file://0001-axi_fpga-Add-a-driver-to-test-AXI-interface-to-the-f.patch \
                   file://0001-power-reset-Backport-syscon-poweroff.patch \
                   file://0004-Input-add-support-for-NI-Ettus-Research-USRP-E3x0-bu.patch \
