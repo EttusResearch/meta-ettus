@@ -19,7 +19,7 @@ PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot"
 
 UBOOT_BINARY_ettus-e300 = "u-boot.${UBOOT_SUFFIX}"
 
-MACHINE_DEVICETREE := "e300-devicetree.dts"
+MACHINE_ESSENTIAL_EXTRA_RDEPENDS_append_ettus-e300 += "device-tree"
 
 MACHINE_EXTRA_RRECOMMENDS = "kernel-modules acpid rtimulib rtimulib-conf \
                              e3xx-udev-rules \
