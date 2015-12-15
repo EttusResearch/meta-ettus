@@ -46,9 +46,10 @@ PACKAGECONFIG_pn-gr-osmosdr = "uhd"
 #MACHINE ?= "qemux86-64"
 #
 # This sets the default machine to be ettus-e300 if no other machine is selected:
-MACHINE ??= "ettus-e300"
+MACHINE ??= "ettus-e3xx-sg1"
 
-DEFAULTTUNE_ettus-e300 = "armv7ahf-neon"
+DEFAULTTUNE_ettus-e3xx-sg1 = "armv7ahf-neon"
+DEFAULTTUNE_ettus-e3xx-sg3 = "armv7ahf-neon"
 DEFAULTTUNE_ettus-e1xx = "armv7ahf-neon"
 DEFAULTTUNE_zedboard-zynq7 = "armv7ahf-neon"
 DEFAULTTUNE_zc702-zynq7 = "armv7ahf-neon"
