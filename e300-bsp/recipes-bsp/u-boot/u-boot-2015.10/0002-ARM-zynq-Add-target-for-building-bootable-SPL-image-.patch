@@ -1,0 +1,80 @@
+From 0edd99d0c78ee501bc5ec7ba4ece5aa678aeff52 Mon Sep 17 00:00:00 2001
+From: Nathan Rossi <nathan@nathanrossi.com>
+Date: Tue, 17 Nov 2015 22:56:57 +1000
+Subject: [PATCH 2/2] ARM: zynq: Add target for building bootable SPL image for
+ Zynq
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Add a build target to generate 'boot.bin' which includes SPL. This is
+used by the platforms BootROM to load SPL directly.
+
+This change also conditionally changes what the 'boot.bin' target
+generates depending on the SoC. Leaving the behaviour unchanged for the
+AT91 targets.
+
+Signed-off-by: Nathan Rossi <nathan@nathanrossi.com>
+Signed-off-by: Michal Simek <michal.simek@xilinx.com>
+Cc: Tom Rini <trini@konsulko.com>
+Cc: Andreas Bießmann <andreas.devel@googlemail.com>
+Cc: Heiko Schocher <hs@denx.de>
+Reviewed-by: Tom Rini <trini@konsulko.com>
+---
+ Makefile             |  3 +++
+ scripts/Makefile.spl | 11 +++++++++++
+ 2 files changed, 14 insertions(+)
+
+diff --git a/Makefile b/Makefile
+index d4c35ba..f75e4e8 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1325,6 +1325,9 @@ spl/sunxi-spl.bin: spl/u-boot-spl
+ spl/u-boot-spl-dtb.sfp: spl/u-boot-spl
+ 	@:
+ 
++spl/boot.bin: spl/u-boot-spl
++	@:
++
+ tpl/u-boot-tpl.bin: tools prepare
+ 	$(Q)$(MAKE) obj=tpl -f $(srctree)/scripts/Makefile.spl all
+ 
+diff --git a/scripts/Makefile.spl b/scripts/Makefile.spl
+index 2df93c8..cda93d6 100644
+--- a/scripts/Makefile.spl
++++ b/scripts/Makefile.spl
+@@ -116,6 +116,7 @@ MKIMAGEFLAGS_MLO.byteswap = -T omapimage -n byteswap -a $(CONFIG_SPL_TEXT_BASE)
+ MLO MLO.byteswap: $(obj)/u-boot-spl.bin
+ 	$(call if_changed,mkimage)
+ 
++ifeq ($(CONFIG_SYS_SOC),"at91")
+ MKIMAGEFLAGS_boot.bin = -T atmelimage
+ 
+ ifeq ($(CONFIG_SPL_GENERATE_ATMEL_PMECC_HEADER),y)
+@@ -126,6 +127,12 @@ endif
+ 
+ boot.bin: $(obj)/u-boot-spl.bin
+ 	$(call if_changed,mkimage)
++else
++MKIMAGEFLAGS_boot.bin = -T zynqimage
++
++spl/boot.bin: $(obj)/u-boot-spl-dtb.bin
++	$(call if_changed,mkimage)
++endif
+ 
+ ALL-y	+= $(obj)/$(SPL_BIN).bin $(obj)/$(SPL_BIN).cfg
+ 
+@@ -147,6 +154,10 @@ ifeq ($(CONFIG_SYS_SOC),"at91")
+ ALL-y	+= boot.bin
+ endif
+ 
++ifdef CONFIG_ARCH_ZYNQ
++ALL-y	+= $(obj)/boot.bin
++endif
++
+ all:	$(ALL-y)
+ 
+ quiet_cmd_cat = CAT     $@
+-- 
+2.4.3
+

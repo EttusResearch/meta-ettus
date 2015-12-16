@@ -46,9 +46,10 @@ PACKAGECONFIG_pn-gr-osmosdr = "uhd"
 #MACHINE ?= "qemux86-64"
 #
 # This sets the default machine to be ettus-e300 if no other machine is selected:
-MACHINE ??= "ettus-e300"
+MACHINE ??= "ettus-e3xx-sg1"
 
-DEFAULTTUNE_ettus-e300 = "armv7ahf-neon"
+DEFAULTTUNE_ettus-e3xx-sg1 = "armv7ahf-neon"
+DEFAULTTUNE_ettus-e3xx-sg3 = "armv7ahf-neon"
 DEFAULTTUNE_ettus-e1xx = "armv7ahf-neon"
 DEFAULTTUNE_zedboard-zynq7 = "armv7ahf-neon"
 DEFAULTTUNE_zc702-zynq7 = "armv7ahf-neon"
@@ -160,7 +161,7 @@ IMAGE_FSTYPES = "tar.gz"
 #   - 'image-swab' to perform host system intrusion detection
 # NOTE: if listing mklibs & prelink both, then make sure mklibs is before prelink
 # NOTE: mklibs also needs to be explicitly enabled for a given image, see local.conf.extended
-USER_CLASSES ?= "buildstats image-mklibs image-prelink rm_work"
+USER_CLASSES ?= "buildstats image-mklibs rm_work"
 
 RM_WORK_EXCLUDE = "base-dev-image uhd-dev-image gnuradio-dev-image \
                    gnuradio-demo-image gnuradio-video-demo-image"

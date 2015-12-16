@@ -12,3 +12,5 @@ do_install() {
 }
 
 FILES_${PN} = "/etc/udev"
+
+PACKAGE_ARCH = "${MACHINE_ARCH}"

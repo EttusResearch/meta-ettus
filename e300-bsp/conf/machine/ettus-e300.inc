@@ -2,6 +2,8 @@
 #@Name: Ettus Research E3XX.
 #@DESCRIPTION: Machine configuration for the Ettus Research E3XX Software Radio.
 
+MACHINEOVERRIDES = "ettus-e300:${MACHINE}"
+
 PREFERRED_PROVIDER_virtual/kernel ?= "linux-xlnx"
 PREFERRED_VERSION_linux-xlnx ?= "3.14%"
 
@@ -13,21 +15,15 @@ include conf/machine/include/tune-zynq.inc
 require conf/machine/include/machine-xilinx-default.inc
 require conf/machine/include/machine-xilinx-board.inc
 
-PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot-xlnx"
-PREFERRED_PROVIDER_virtual/boot-bin ?= "u-boot-spl-xlnx"
+PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot"
 
-UBOOT_BINARY_ettus-e300 = "u-boot-dtb.${UBOOT_SUFFIX}"
+UBOOT_BINARY_ettus-e300 = "u-boot.${UBOOT_SUFFIX}"
 
-UBOOT_MACHINE = "zynq_zc70x_config"
-
-MACHINE_DEVICETREE := "e300-devicetree.dts"
+MACHINE_ESSENTIAL_EXTRA_RDEPENDS_append_ettus-e300 += "device-tree"
 
 MACHINE_EXTRA_RRECOMMENDS = "kernel-modules acpid rtimulib rtimulib-conf \
                              e3xx-udev-rules \
                              gpsd gps-config gpsd-gpsctl gps-utils \
                             "
  
-UBOOT_ENV = "uEnv"
-IMAGE_BOOT_FILES += "boot.bin fpga.bin uEnv.txt e300-devicetree.dtb"
-
-EXTRA_IMAGEDEPENDS += "virtual/boot-bin"
+IMAGE_BOOT_FILES += "boot.bin fpga.bin"
