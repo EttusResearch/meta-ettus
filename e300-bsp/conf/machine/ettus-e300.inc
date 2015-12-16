@@ -26,4 +26,4 @@ MACHINE_EXTRA_RRECOMMENDS = "kernel-modules acpid rtimulib rtimulib-conf \
                              gpsd gps-config gpsd-gpsctl gps-utils \
                             "
  
-IMAGE_BOOT_FILES += "boot.bin"
+IMAGE_BOOT_FILES += "boot.bin fpga.bin"
