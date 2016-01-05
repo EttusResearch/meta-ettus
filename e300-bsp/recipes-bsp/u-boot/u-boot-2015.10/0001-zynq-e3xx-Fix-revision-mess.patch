@@ -1,0 +1,166 @@
+From a2dc7d276b7fac1fcb3e80ae1c0afcb2a12e0f9f Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Mon, 4 Jan 2016 10:44:52 -0800
+Subject: [PATCH] zynq: e3xx: Fix revision mess
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ board/ettus/e3xx/board.c | 92 +++++++++++++++++++-----------------------------
+ 1 file changed, 36 insertions(+), 56 deletions(-)
+
+diff --git a/board/ettus/e3xx/board.c b/board/ettus/e3xx/board.c
+index b8739c9..f55a2ef 100644
+--- a/board/ettus/e3xx/board.c
++++ b/board/ettus/e3xx/board.c
+@@ -58,29 +58,15 @@ struct e3xx_mb_eeprom_map {
+ 	u8 user_name[E3XX_MB_NAME_LEN];
+ };
+ 
+-#define DB_ID_E310_REVB 0x0110
+-#define DB_ID_E310_REVC 0x0111
+-#define DB_ID_E300_REVB 0x0100
+-#define DB_ID_E330_REVC 0x1110
+-
+-static const char *e3xx_db_names[] = {
+-	[DB_ID_E310_REVB] = "E310 MIMO XCVR RevB",
+-	[DB_ID_E310_REVC] = "E310 MIMO XCVR RevC",
+-	[DB_ID_E300_REVB] = "E300 SISO XCVR RevB",
+-	[DB_ID_E330_REVC] = "E330 MIMO RCVR RevA",
+-};
+-
+-#define MB_ID_E3XX_REVC 0x77d2
+-#define MB_ID_E3XX_REVD 0x77d3
++#define DB_ID_E310	0x0110
++#define DB_ID_E330	0x1110
+ 
+-static const char *e3xx_mb_names[] = {
+-	[MB_ID_E3XX_REVC] = "E3XX RevC",
+-	[MB_ID_E3XX_REVD] = "E3XX RevD",
+-};
++#define MB_ID_E3XX_OLD 0x77d2
++#define MB_ID_E3XX_NEW 0x77d3
+ 
+ static const u8 e3xx_mb_speedgrades[] = {
+-	[MB_ID_E3XX_REVC] = 1,
+-	[MB_ID_E3XX_REVD] = 3,
++	[MB_ID_E3XX_OLD] = 1,
++	[MB_ID_E3XX_NEW] = 3,
+ };
+ 
+ static void setup_i2c(void)
+@@ -156,11 +142,16 @@ static int board_set_db_mux_gpio(int is_safe, int is_e33x)
+ 	return 0;
+ }
+ 
++static inline char num_to_letter_rev(char x)
++{
++	return (((char) ('A' + x)));
++}
++
+ static void identify_products(void)
+ {
+ 	u8 db_buf[sizeof(struct e3xx_db_eeprom_map)];
+ 	u8 mb_buf[sizeof(struct e3xx_mb_eeprom_map)];
+-	u16 mb, db;
++	u16 mb, mb_rev, db, db_rev;
+ 	u8 speedgrade;
+ 	char mstr[20];
+ 
+@@ -182,7 +173,7 @@ static void identify_products(void)
+ 		printf("i2c mb eeprom read failed\n");
+ 	};
+ 	mb = ntohs(mb_map->hw_product);
+-
++	mb_rev = ntohs(mb_map->hw_revision);
+ 
+ 	if (i2c_probe(E3XX_I2C_DB_EEPROM_ADDR) != 0) {
+ 		printf("Couldn't find i2c db eeprom\n");
+@@ -194,18 +185,19 @@ static void identify_products(void)
+ 		printf("i2c db eeprom read failed\n");
+ 	};
+ 	db = ntohs(db_map->hw_product);
++	db_rev = ntohs(db_map->hw_revision);
+ 
+ 	/* print out motherboard info */
+-	if (mb == MB_ID_E3XX_REVC) {
+-		printf("Found %s - Speedgrade %u\n",
+-		       e3xx_mb_names[MB_ID_E3XX_REVC],
+-		       e3xx_mb_speedgrades[MB_ID_E3XX_REVC]);
+-		speedgrade = e3xx_mb_speedgrades[MB_ID_E3XX_REVC];
+-	} else if (mb == MB_ID_E3XX_REVD) {
+-		printf("Found %s - Speedgrade %u\n",
+-		       e3xx_mb_names[MB_ID_E3XX_REVD],
+-		       e3xx_mb_speedgrades[MB_ID_E3XX_REVD]);
+-		speedgrade = e3xx_mb_speedgrades[MB_ID_E3XX_REVD];
++	if (mb == MB_ID_E3XX_OLD) {
++		printf("MB: Found E3XX Rev%c - Speedgrade %u\n",
++		       num_to_letter_rev(mb_rev),
++		       e3xx_mb_speedgrades[MB_ID_E3XX_OLD]);
++		speedgrade = e3xx_mb_speedgrades[MB_ID_E3XX_OLD];
++	} else if (mb == MB_ID_E3XX_NEW) {
++		printf("MB: Found E3XX Rev%c - Speedgrade %u\n",
++		       num_to_letter_rev(mb_rev),
++		       e3xx_mb_speedgrades[MB_ID_E3XX_NEW]);
++		speedgrade = e3xx_mb_speedgrades[MB_ID_E3XX_NEW];
+ 	} else {
+ 		speedgrade = 0;
+ 		printf("*** Found unknown motherboard, please update sd card ***\n");
+@@ -214,21 +206,15 @@ static void identify_products(void)
+ 
+ 	/* print out daughterboard info and select correct image */
+ 	if (speedgrade == 1) {
+-		if (db == DB_ID_E310_REVB) {
+-			printf("Found %s\n", e3xx_db_names[DB_ID_E310_REVB]);
++		if (db == DB_ID_E310) {
+ 			setenv("devicetree_image", "uImage-zynq-e31x-1.dtb");
++			printf("DB: Found E310 MIMO XCVR Rev%c\n",
++			       num_to_letter_rev(db_rev));
+ 			board_set_db_mux_gpio(1,0);
+-		} else if (db == DB_ID_E310_REVC) {
+-			setenv("devicetree_image", "uImage-zynq-e31x-1.dtb");
+-			printf("Found %s\n", e3xx_db_names[DB_ID_E310_REVC]);
+-			board_set_db_mux_gpio(1,0);
+-		} else if (db == DB_ID_E300_REVB) {
+-			setenv("devicetree_image", "uImage-zynq-e31x-1.dtb");
+-			printf("Found %s\n", e3xx_db_names[DB_ID_E300_REVB]);
+-			board_set_db_mux_gpio(1,0);
+-		} else if (db == DB_ID_E330_REVC) {
++		} else if (db == DB_ID_E330) {
+ 			setenv("devicetree_image", "uImage-zynq-e33x-1.dtb");
+-			printf("Found %s\n", e3xx_db_names[DB_ID_E330_REVC]);
++			printf("DB: Found E330 MIMO RCVR Rev%c\n",
++			       num_to_letter_rev(db_rev));
+ 			board_set_db_mux_gpio(1,1);
+ 		} else {
+ 			setenv("devicetree_image", "uImage-zynq-e3xx-factory.dtb");
+@@ -236,21 +222,15 @@ static void identify_products(void)
+ 			board_set_db_mux_gpio(0,0);
+ 		}
+ 	} else if (speedgrade == 3) {
+-		if (db == DB_ID_E310_REVB) {
+-			setenv("devicetree_image", "uImage-zynq-e31x-3.dtb");
+-			printf("Found %s\n", e3xx_db_names[DB_ID_E310_REVB]);
+-			board_set_db_mux_gpio(1,0);
+-		} else if (db == DB_ID_E310_REVC) {
+-			setenv("devicetree_image", "uImage-zynq-e31x-3.dtb");
+-			printf("Found %s\n", e3xx_db_names[DB_ID_E310_REVC]);
+-			board_set_db_mux_gpio(1,0);
+-		} else if (db == DB_ID_E300_REVB) {
++		if (db == DB_ID_E310) {
+ 			setenv("devicetree_image", "uImage-zynq-e31x-3.dtb");
+-			printf("Found %s\n", e3xx_db_names[DB_ID_E300_REVB]);
++			printf("DB: Found E310 MIMO XCVR Rev%c\n",
++			       num_to_letter_rev(db_rev));
+ 			board_set_db_mux_gpio(1,0);
+-		} else if (db == DB_ID_E330_REVC) {
++		} else if (db == DB_ID_E330) {
+ 			setenv("devicetree_image", "uImage-zynq-e33x-3.dtb");
+-			printf("Found %s\n", e3xx_db_names[DB_ID_E330_REVC]);
++			printf("DB: Found E330 MIMO RCVR Rev%c\n",
++			       num_to_letter_rev(db_rev));
+ 			board_set_db_mux_gpio(1,1);
+ 		} else {
+ 			setenv("devicetree_image", "uImage-zynq-e3xx-factory.dtb");
+-- 
+2.4.3
+
