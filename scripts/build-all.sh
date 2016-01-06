@@ -1,14 +1,16 @@
 #!/bin/bash
 
-export MACHINE=ettus-e300
-
-if ! bitbake gnuradio-dev-image; then
-	echo dev image build failed
+if ! bitbake parted-native mtools-native dosfstools-native; then
+	echo Failed to build toolds needed to run wic.
 	exit 1
 fi
 
-if ! bitbake parted-native mtools-native dosfstools-native; then
-	echo Failed to build toolds needed to run wic.
+for MACHINE in ettus-e3xx-sg1 ettus-e3xx-sg3; do
+
+echo $MACHINE
+
+if ! bitbake gnuradio-dev-image; then
+	echo dev image build failed
 	exit 1
 fi
 
@@ -38,6 +40,8 @@ export IMAGE_NAME=`ls images/$MACHINE/build/sdimage*mmcblk.direct`
 xz -T 4 $IMAGE_NAME
 mv $IMAGE_NAME.xz images/$MACHINE/sdimage-gnuradio-demo.direct.xz
 md5sum images/$MACHINE/sdimage-gnuradio-demo.direct.xz > images/$MACHINE/sdimage-gnuradio-demo.direct.xz.md5
+
+done
 
 bitbake -c populate_sdk gnuradio-dev-image
 
