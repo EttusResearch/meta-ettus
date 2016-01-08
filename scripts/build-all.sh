@@ -7,6 +7,7 @@ fi
 
 for MACHINE in ettus-e3xx-sg1 ettus-e3xx-sg3; do
 
+export MACHINE
 echo $MACHINE
 
 if ! bitbake gnuradio-dev-image; then
