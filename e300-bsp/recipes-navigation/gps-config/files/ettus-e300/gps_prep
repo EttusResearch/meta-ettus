@@ -1,0 +1,45 @@
+#! /bin/sh
+#
+# Copyright National Instruments Corp <moritz.fischer@ni.com> (c) 2015
+# License: GPL (see http://www.gnu.org/licenses/gpl.txt for a copy of the license)
+#
+# Filename: gps_prep
+# Date: 20150421 (YMD)
+
+# source function library
+. /etc/init.d/functions
+
+gps_supply_on(){
+	echo "GPS: Activating GPS antenna supply voltage..."
+	gpsctl /dev/ttyPS1 -t 'u-blox' -x '\x06\x13\x1b\x00\x51\x82'
+}
+
+gps_supply_off(){
+	echo "GPS: Deactivating GPS antenna supply voltage..."
+	gpsctl /dev/ttyPS1 -t 'u-blox' -x '\x06\x13\x1a\x00\x51\x82'
+}
+
+gps_pps_on(){
+	echo "GPS: Activating GPS PPS ..."
+	gpsctl /dev/ttyPS1 -t 'u-blox' -x '\x06\x07\x40\x42\x0f\x00\x90\xd0\x03\x00\x01\x00\x01\xbe\x00\x00\x00\x00\x00\x00\x00\x00'
+}
+
+gps_pps_off(){
+	echo "GPS: Deactivating GPS PPS ..."
+	gpsctl /dev/ttyPS1 -t 'u-blox' -x '\x06\x07\x40\x42\x0f\x00\x90\xd0\x03\x00\x00\x00\x01\xbe\x00\x00\x00\x00\x00\x00\x00\x00'
+}
+
+case "$1" in
+start)
+	gps_supply_on
+        gps_pps_on
+	;;
+stop)
+	gps_supply_off
+	gps_pps_off
+	;;
+  *)
+    echo "Usage: /etc/init.d/gps-prep {start|stop}"
+    exit 1
+  ;;
+esac

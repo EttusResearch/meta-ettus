@@ -13,6 +13,7 @@ BBLAYERS ?= " \
   ##COREBASE##/../meta-xilinx \
   ##COREBASE##/../meta-oe/meta-oe \
   ##COREBASE##/../meta-oe/meta-networking \
+  ##COREBASE##/../meta-oe/meta-python \
   ##COREBASE##/../meta-oe/meta-filesystems \
   ##COREBASE##/../meta-sdr \
   "

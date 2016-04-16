@@ -1,0 +1,95 @@
+From f8e729e67bb3fbcfcf00bce13060955138c77da4 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Tue, 1 Dec 2015 12:11:01 -0800
+Subject: [PATCH] zynq: e3xx: Move back to stoneage.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ board/ettus/e3xx/board.c           | 20 ++++++++++----------
+ include/configs/zynq_e3xx_common.h | 12 +++++++-----
+ 2 files changed, 17 insertions(+), 15 deletions(-)
+
+diff --git a/board/ettus/e3xx/board.c b/board/ettus/e3xx/board.c
+index 689c542..a7b4443 100644
+--- a/board/ettus/e3xx/board.c
++++ b/board/ettus/e3xx/board.c
+@@ -187,35 +187,35 @@ static void identify_products(void)
+ 	if (speedgrade == 1) {
+ 		if (db == DB_ID_E310_REVB) {
+ 			printf("Found %s\n", e3xx_db_names[DB_ID_E310_REVB]);
+-			setenv("e3xx_type", "e31x_1");
++			setenv("devicetree_image", "uImage-zynq-e31x-1.dtb");
+ 		} else if (db == DB_ID_E310_REVC) {
+-			setenv("e3xx_type", "e31x_1");
++			setenv("devicetree_image", "uImage-zynq-e31x-1.dtb");
+ 			printf("Found %s\n", e3xx_db_names[DB_ID_E310_REVC]);
+ 		} else if (db == DB_ID_E300_REVB) {
+-			setenv("e3xx_type", "e31x_1");
++			setenv("devicetree_image", "uImage-zynq-e31x-1.dtb");
+ 			printf("Found %s\n", e3xx_db_names[DB_ID_E300_REVB]);
+ 		} else if (db == DB_ID_E330_REVC) {
+-			setenv("e3xx_type", "e33x_1");
++			setenv("devicetree_image", "uImage-zynq-e33x-1.dtb");
+ 			printf("Found %s\n", e3xx_db_names[DB_ID_E330_REVC]);
+ 		} else {
+-			setenv("e3xx_type", "e33x_1");
++			setenv("devicetree_image", "uImage-zynq-e3xx-factory.dtb");
+ 			printf("*** Found unknown daughterboard, 0x%04x please update sd card ***\n", db);
+ 		}
+ 	} else if (speedgrade == 3) {
+ 		if (db == DB_ID_E310_REVB) {
+-			setenv("e3xx_type", "e31x_3");
++			setenv("devicetree_image", "uImage-zynq-e31x-3.dtb");
+ 			printf("Found %s\n", e3xx_db_names[DB_ID_E310_REVB]);
+ 		} else if (db == DB_ID_E310_REVC) {
+-			setenv("e3xx_type", "e31x_3");
++			setenv("devicetree_image", "uImage-zynq-e31x-3.dtb");
+ 			printf("Found %s\n", e3xx_db_names[DB_ID_E310_REVC]);
+ 		} else if (db == DB_ID_E300_REVB) {
+-			setenv("e3xx_type", "e31x_3");
++			setenv("devicetree_image", "uImage-zynq-e31x-3.dtb");
+ 			printf("Found %s\n", e3xx_db_names[DB_ID_E300_REVB]);
+ 		} else if (db == DB_ID_E330_REVC) {
+-			setenv("e3xx_type", "e33x_3");
++			setenv("devicetree_image", "uImage-zynq-e33x-3.dtb");
+ 			printf("Found %s\n", e3xx_db_names[DB_ID_E330_REVC]);
+ 		} else {
+-			setenv("e3xx_type", "e31x_3");
++			setenv("devicetree_image", "uImage-zynq-e3xx-factory.dtb");
+ 			printf("*** Found unknown daughterboard, 0x%04x please update sd card ***\n", db);
+ 		}
+ 	}
+diff --git a/include/configs/zynq_e3xx_common.h b/include/configs/zynq_e3xx_common.h
+index 91da37c..9309179 100644
+--- a/include/configs/zynq_e3xx_common.h
++++ b/include/configs/zynq_e3xx_common.h
+@@ -19,9 +19,10 @@
+ #endif
+ 
+ #define CONFIG_EXTRA_ENV_SETTINGS	\
+-	"fit_image=fitImage\0"		\
++	"kernel_image=uImage\0"	\
++	"kernel_load_address=0x2080000\0" \
+ 	"load_addr=0x2000000\0"		\
+-	"fit_size=0x800000\0"		\
++	"devicetree_load_address=0x2000000\0"\
+ 	"fdt_high=0x20000000\0"		\
+ 	"initrd_high=0x20000000\0"	\
+ 	"loadbit_addr=0x100000\0"	\
+@@ -30,9 +31,10 @@
+ 	"sdboot=echo Loading fpga image from SD to HW... && " \
+ 		"load mmc 0 ${loadbit_addr} ${bitstream_image} && " \
+ 		"fpga load 0 ${loadbit_addr} ${filesize} && " \
+-		"echo Copying FIT from SD to RAM... && " \
+-		"load mmc 0 ${load_addr} ${fit_image} && " \
+-		"bootm ${load_addr}#${e3xx_type}\0" \
++		"echo Copying kernel from SD to RAM... && " \
++		"load mmc 0 ${kernel_load_address} ${kernel_image} && " \
++		"load mmc 0 ${devicetree_load_address} ${devicetree_image} && " \
++		"bootm ${kernel_load_address} - ${devicetree_load_address}\0" \
+ 	"jtagboot=echo TFTPing FIT to RAM... && " \
+ 		"tftpboot ${load_addr} ${fit_image} && " \
+ 		"bootm ${load_addr}\0" \
+-- 
+2.4.3
+

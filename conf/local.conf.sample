@@ -12,19 +12,23 @@
 # variable as required.
 
 DISTRO_FEATURES_append = " opengl x11"
+PACKAGECONFIG_pn-gr-osmosdr = "uhd"
 
 #
 # Parallelism Options
 #
+# Bitbake will guess suitable numbers for your machine, you can use these
+# setting to over ride the estimated values.
+#
 # These two options control how much parallelism BitBake should use. The first 
 # option determines how many tasks bitbake should run in parallel:
 #
-BB_NUMBER_THREADS ?= "4"
+#BB_NUMBER_THREADS ?= "4"
 # 
 # The second option controls how many processes make should run in parallel when
 # running compile tasks:
 #
-PARALLEL_MAKE ?= "-j 4"
+#PARALLEL_MAKE ?= "-j 4"
 #
 # For a quad-core machine, BB_NUMBER_THREADS = "4", PARALLEL_MAKE = "-j 4" would
 # be appropriate for example.
@@ -42,11 +46,13 @@ PARALLEL_MAKE ?= "-j 4"
 #MACHINE ?= "qemux86-64"
 #
 # This sets the default machine to be ettus-e300 if no other machine is selected:
-MACHINE ??= "ettus-e300"
+MACHINE ??= "ettus-e3xx-sg1"
 
-DEFAULTTUNE_ettus-e300 = "armv7ahf-neon"
-DEFAULTTUNE_ettus-e100 = "armv7ahf-neon"
+DEFAULTTUNE_ettus-e3xx-sg1 = "armv7ahf-neon"
+DEFAULTTUNE_ettus-e3xx-sg3 = "armv7ahf-neon"
+DEFAULTTUNE_ettus-e1xx = "armv7ahf-neon"
 DEFAULTTUNE_zedboard-zynq7 = "armv7ahf-neon"
+DEFAULTTUNE_zc702-zynq7 = "armv7ahf-neon"
 DEFAULTTUNE_odroid-xu = "armv7ahf-neon"
 DEFAULTTUNE_nitrogen6x = "armv7ahf-neon"
 DEFAULTTUNE_keystone-evm = "armv7ahf-neon"
@@ -138,7 +144,10 @@ PACKAGE_CLASSES ?= "package_ipk"
 # There are other application targets that can be used here too, see
 # meta/classes/image.bbclass and meta/classes/core-image.bbclass for more details.
 # We default to enabling the debugging tweaks.
-EXTRA_IMAGE_FEATURES = "debug-tweaks tools-profile"
+EXTRA_IMAGE_FEATURES = "debug-tweaks tools-profile dev-pkgs dbg-pkgs"
+EXTRA_IMAGE_FEATURES_remove_ettus-e1xx = "tools-profile"
+
+IMAGE_FSTYPES = "tar.gz"
 
 #
 # Additional image features
@@ -152,8 +161,10 @@ EXTRA_IMAGE_FEATURES = "debug-tweaks tools-profile"
 #   - 'image-swab' to perform host system intrusion detection
 # NOTE: if listing mklibs & prelink both, then make sure mklibs is before prelink
 # NOTE: mklibs also needs to be explicitly enabled for a given image, see local.conf.extended
-USER_CLASSES ?= "buildstats image-mklibs image-prelink rm_work"
+USER_CLASSES ?= "buildstats image-mklibs rm_work"
 
+RM_WORK_EXCLUDE = "base-dev-image uhd-dev-image gnuradio-dev-image \
+                   gnuradio-demo-image gnuradio-video-demo-image"
 
 #
 # Runtime testing of images

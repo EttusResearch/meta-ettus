@@ -1,0 +1,1162 @@
+From 37b60940aaa43cda0548d66ae710ba06d6281bbe Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Fri, 15 May 2015 14:18:22 -0700
+Subject: [PATCH 07/12] power: Add support for NI Ettus Research E3XX PMU.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ drivers/power/Kconfig    |   10 +
+ drivers/power/Makefile   |    1 +
+ drivers/power/e3xx-pmu.c | 1107 ++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 1118 insertions(+)
+ create mode 100644 drivers/power/e3xx-pmu.c
+
+diff --git a/drivers/power/Kconfig b/drivers/power/Kconfig
+index ba69751..ccdc749 100644
+--- a/drivers/power/Kconfig
++++ b/drivers/power/Kconfig
+@@ -360,6 +360,16 @@ config CHARGER_BQ24735
+ 	help
+ 	  Say Y to enable support for the TI BQ24735 battery charger.
+ 
++config E3XX_PMU
++	tristate "NI Ettus Research USRP E3x0 PMU support."
++	default n
++	help
++	  Say Y here to enable support for the NI Ettus Research
++	  USRP E3xx Power Management Unit (PMU)
++
++	  To compile this driver as a module, chose M here: the
++	  module will be called e3xx-pmu.
++
+ config CHARGER_SMB347
+ 	tristate "Summit Microelectronics SMB347 Battery Charger"
+ 	depends on I2C
+diff --git a/drivers/power/Makefile b/drivers/power/Makefile
+index ee54a3e..14f870d 100644
+--- a/drivers/power/Makefile
++++ b/drivers/power/Makefile
+@@ -55,6 +55,7 @@ obj-$(CONFIG_CHARGER_BQ2415X)	+= bq2415x_charger.o
+ obj-$(CONFIG_CHARGER_BQ24190)	+= bq24190_charger.o
+ obj-$(CONFIG_CHARGER_BQ24735)	+= bq24735-charger.o
+ obj-$(CONFIG_POWER_AVS)		+= avs/
++obj-$(CONFIG_E3XX_PMU)		+= e3xx-pmu.o
+ obj-$(CONFIG_CHARGER_SMB347)	+= smb347-charger.o
+ obj-$(CONFIG_CHARGER_TPS65090)	+= tps65090-charger.o
+ obj-$(CONFIG_POWER_RESET)	+= reset/
+diff --git a/drivers/power/e3xx-pmu.c b/drivers/power/e3xx-pmu.c
+new file mode 100644
+index 0000000..b851201
+--- /dev/null
++++ b/drivers/power/e3xx-pmu.c
+@@ -0,0 +1,1107 @@
++/*
++ * Copyright (c) 2015, National Instruments Corp. All rights reserved.
++ *
++ * Driver for NI Ettus Research USRP E3xx Power Management Unit (PMU)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; version 2 of the License.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU General Public License for more details.
++ */
++
++#include <linux/device.h>
++#include <linux/delay.h>
++#include <linux/module.h>
++#include <linux/platform_device.h>
++#include <linux/power_supply.h>
++#include <linux/io.h>
++#include <linux/interrupt.h>
++#include <linux/kernel.h>
++#include <linux/notifier.h>
++#include <linux/mfd/syscon.h>
++#include <linux/of.h>
++#include <linux/pm_runtime.h>
++#include <linux/regmap.h>
++#include <linux/slab.h>
++#include <linux/xdevcfg.h>
++
++static int ignore_temp;
++module_param(ignore_temp, int, 0644);
++MODULE_PARM_DESC(ignore_temp, "Ignore temperature warnings from firmware");
++
++static int ignore_charge;
++module_param(ignore_charge, int, 0644);
++MODULE_PARM_DESC(ignore_charge, "Ignore low charge warnings from firmware");
++
++enum e3xx_pmu_regs {
++	E3XX_PMU_REG_MISC = 4,
++	E3XX_PMU_REG_BATTERY = 8,
++	E3XX_PMU_REG_CHARGER = 12,
++	E3XX_PMU_REG_GAUGE = 16,
++	E3XX_PMU_REG_GAUGE_STATUS = 20,
++	E3XX_PMU_REG_GAUGE_LAST = 24,
++	E3XX_PMU_REG_EEPROM = 28
++};
++
++static const uint8_t E3XX_PMU_WORK_DELAY = 5;
++
++/* the misc register */
++static const size_t E3XX_PMU_IRQ_MASK_SHIFT  = 8;
++static const u32 E3XX_PMU_MISC_VERSION_MIN_MASK = BIT(3) | BIT(2) | BIT(1) | BIT(0);
++static const size_t E3XX_PMU_MISC_VERSION_MIN_SHIFT;
++static const u32 E3XX_PMU_MISC_VERSION_MAJ_MASK = BIT(7) | BIT(6) | BIT(5) | BIT(4);
++static const size_t E3XX_PMU_MISC_VERSION_MAJ_SHIFT = 4;
++
++/* the battery register */
++static const u32 E3XX_PMU_BATTERY_STATUS_MASK = BIT(1) | BIT(0);
++static const size_t E3XX_PMU_BATTERY_STATUS_SHIFT = 0;
++static const u32 E3XX_PMU_BATTERY_HEALTH_MASK = BIT(4) | BIT(3) | BIT(2);
++static const size_t E3XX_PMU_BATTERY_HEALTH_SHIFT = 2;
++static const u32 E3XX_PMU_BATTERY_ONLINE_MASK = BIT(5);
++static const size_t E3XX_PMU_BATTERY_ONLINE_SHIFT = 5;
++static const u32 E3XX_PMU_BATTERY_TEMP_ALERT_MASK = BIT(7) | BIT(6);
++static const size_t E3XX_PMU_BATTERY_TEMP_ALERT_SHIFT = 6;
++
++/* the charger register */
++static const u32 E3XX_PMU_CHARGER_HEALTH_MASK = BIT(1) | BIT(0);
++static const size_t E3XX_PMU_CHARGER_HEALTH_SHIFT = 0;
++static const u32 E3XX_PMU_CHARGER_ONLINE_MASK = BIT(2);
++static const size_t E3XX_PMU_CHARGER_ONLINE_SHIFT = 2;
++static const u32 E3XX_PMU_CHARGER_CHARGE_TYPE_MASK = BIT(4) | BIT(3);
++static const size_t E3XX_PMU_CHARGER_CHARGE_TYPE_SHIFT = 3;
++
++/* the gauge register */
++static const u32 E3XX_PMU_GAUGE_TEMP_MASK = 0xffff0000;
++static const size_t E3XX_PMU_GAUGE_TEMP_SHIFT = 16;
++static const u32 E3XX_PMU_GAUGE_CHARGE_MASK = 0x0000ffff;
++static const size_t E3XX_PMU_GAUGE_CHARGE_SHIFT = 0;
++
++/* the gauge status register */
++static const u32 E3XX_PMU_GAUGE_VOLTAGE_MASK = 0x0000ffff;
++static const size_t E3XX_PMU_GAUGE_VOLTAGE_SHIFT = 0;
++
++/* the gauge last full register */
++static const u32 E3XX_PMU_GAUGE_CHARGE_LAST_FULL_MASK = 0x0000ffff;
++static const size_t E3XX_PMU_GAUGE_CHARGE_LAST_FULL_SHIFT = 0;
++
++/* the eeprom register */
++static const u32 E3XX_PMU_EEPROM_AUTOBOOT_MASK = BIT(0);
++static const u32 E3XX_PMU_EEPROM_AUTOBOOT_SHIFT = 0;
++static const u32 E3XX_PMU_EEPROM_DB_POWER_MASK = BIT(1);
++static const u32 E3XX_PMU_EEPROM_DB_POWER_SHIFT = 1;
++
++
++
++struct e3xx_pmu_dev_info {
++	struct device *dev;
++	struct regmap *regmap;
++	struct power_supply battery;
++	struct power_supply charger;
++	u32 c_full;
++
++	/* cache regs */
++	u32 bat_status;
++	bool bat_status_valid;
++
++	u32 charger_status;
++	bool charger_status_valid;
++
++	u32 gauge_charge;
++	bool gauge_charge_valid;
++
++	u32 gauge_status;
++	bool gauge_status_valid;
++
++	u16 gauge_last_full;
++	bool gauge_last_full_valid;
++
++	struct notifier_block fpga_nb;
++
++        struct delayed_work work;
++
++	struct spinlock lock;
++
++	atomic_t reconfiguring;
++};
++
++static int e3xx_pmu_read(struct e3xx_pmu_dev_info *edi, u32 offset, u32 *value)
++{
++	int ret;
++
++	if (atomic_read(&edi->reconfiguring))
++		return -EBUSY;
++
++	ret = regmap_read(edi->regmap, offset, value);
++
++	return ret;
++}
++
++static int e3xx_pmu_write(struct e3xx_pmu_dev_info *edi, u32 offset, u32 value)
++{
++	int ret;
++
++	if (atomic_read(&edi->reconfiguring))
++		return -EBUSY;
++
++	ret = regmap_write(edi->regmap, offset, value);
++
++	return ret;
++}
++
++static int e3xx_pmu_fpga_notify(struct notifier_block *nb,
++	unsigned long cmd, void *data)
++{
++	struct e3xx_pmu_dev_info *info = container_of(nb,
++		struct e3xx_pmu_dev_info, fpga_nb);
++
++	switch (cmd) {
++	case XDEVCFG_START_RELOAD:
++		atomic_set(&info->reconfiguring, 1);
++		break;
++	case XDEVCFG_END_RELOAD:
++		atomic_set(&info->reconfiguring, 0);
++		break;
++	};
++
++	return 0;
++}
++
++static int e3xx_pmu_update(struct e3xx_pmu_dev_info *edi)
++{
++	int ret;
++	u32 value;
++	bool update_bat = false;
++	bool update_ch = false;
++
++	ret = e3xx_pmu_read(edi, E3XX_PMU_REG_BATTERY, &value);
++	if (ret)
++		return ret;
++	if (value != edi->bat_status) {
++		edi->bat_status = value;
++		update_bat = true;
++	}
++
++	ret = e3xx_pmu_read(edi, E3XX_PMU_REG_CHARGER, &value);
++	if (ret)
++		return ret;
++	if (value != edi->charger_status) {
++		edi->charger_status = value;
++		update_ch = true;
++	}
++
++	ret = e3xx_pmu_read(edi, E3XX_PMU_REG_GAUGE, &value);
++	if (ret)
++		return ret;
++	if (value != edi->gauge_charge) {
++		edi->gauge_charge = value;
++		update_bat = true;
++	}
++
++	ret = e3xx_pmu_read(edi, E3XX_PMU_REG_GAUGE_STATUS, &value);
++	if (ret)
++		return ret;
++	if (value != edi->gauge_status) {
++		edi->gauge_status = value;
++		update_bat = true;
++	}
++
++	ret = e3xx_pmu_read(edi, E3XX_PMU_REG_GAUGE_LAST, &value);
++	if (ret)
++		return ret;
++	if (value != edi->gauge_last_full) {
++		edi->gauge_last_full = value;
++		update_bat = true;
++	}
++
++	/* update looserspace */
++	if (update_ch)
++		power_supply_changed(&edi->charger);
++	if (update_bat)
++		power_supply_changed(&edi->battery);
++
++	return 0;
++}
++
++static void e3xx_pmu_work(struct work_struct *work)
++{
++	struct e3xx_pmu_dev_info *edi;
++
++	edi = container_of(work, struct e3xx_pmu_dev_info, work.work);
++	e3xx_pmu_update(edi);
++	schedule_delayed_work(&edi->work, E3XX_PMU_WORK_DELAY * HZ);
++}
++
++static const int e3xx_pmu_temp_range_values[] = {
++	600, 800, 1000, 1200
++};
++
++static size_t e3xx_pmu_temp_index(const int tbl[], int tbl_size, int value)
++{
++	size_t i;
++
++	for (i = 0; i < tbl_size; i++)
++		if (value < tbl[i])
++			break;
++
++	return i - 1;
++}
++
++static int e3xx_pmu_charger_get_charge_type(struct e3xx_pmu_dev_info *edi,
++					    union power_supply_propval *val)
++{
++	u32 value;
++
++	value = edi->charger_status;
++	value &= E3XX_PMU_CHARGER_CHARGE_TYPE_MASK;
++	value >>= E3XX_PMU_CHARGER_CHARGE_TYPE_SHIFT;
++
++	switch (value) {
++	case 0x00:
++		val->intval = POWER_SUPPLY_CHARGE_TYPE_NONE;
++		break;
++	case 0x01:
++		val->intval = POWER_SUPPLY_CHARGE_TYPE_TRICKLE;
++		break;
++	case 0x02:
++		val->intval = POWER_SUPPLY_CHARGE_TYPE_FAST;
++		break;
++	default:
++		val->intval = POWER_SUPPLY_CHARGE_TYPE_NONE;
++		break;
++	};
++
++	return 0;
++}
++
++static int e3xx_pmu_charger_set_charge_type(struct e3xx_pmu_dev_info *edi,
++					const union power_supply_propval *val)
++{
++	int ret;
++	u32 value;
++
++	value = edi->charger_status;
++
++	value &= ~E3XX_PMU_CHARGER_CHARGE_TYPE_MASK;
++	switch (val->intval) {
++	case POWER_SUPPLY_CHARGE_TYPE_NONE:
++		value |= 0x00 << E3XX_PMU_CHARGER_CHARGE_TYPE_SHIFT;
++		break;
++	case POWER_SUPPLY_CHARGE_TYPE_TRICKLE:
++		value |= 0x01 << E3XX_PMU_CHARGER_CHARGE_TYPE_SHIFT;
++		break;
++	case POWER_SUPPLY_CHARGE_TYPE_FAST:
++		value |= 0x02 << E3XX_PMU_CHARGER_CHARGE_TYPE_SHIFT;
++		break;
++	default:
++		return -EINVAL;
++	}
++
++	ret = e3xx_pmu_write(edi, E3XX_PMU_REG_CHARGER, value);
++	if (ret)
++		return ret;
++
++	return 0;
++}
++
++static int e3xx_pmu_charger_get_health(struct e3xx_pmu_dev_info *edi,
++		union power_supply_propval *val)
++{
++	u32 value;
++
++	value = edi->charger_status;
++	value &= E3XX_PMU_CHARGER_HEALTH_MASK;
++	value >>= E3XX_PMU_CHARGER_HEALTH_SHIFT;
++
++	switch (value) {
++	case 0x0:
++		val->intval = POWER_SUPPLY_HEALTH_GOOD;
++		break;
++	case 0x1:
++		val->intval = POWER_SUPPLY_HEALTH_UNSPEC_FAILURE;
++		break;
++	case 0x2:
++		val->intval = POWER_SUPPLY_HEALTH_OVERVOLTAGE;
++		break;
++	case 0x3:
++		val->intval = POWER_SUPPLY_HEALTH_OVERHEAT;
++		break;
++	default:
++		val->intval = POWER_SUPPLY_HEALTH_UNKNOWN;
++	};
++
++	return 0;
++}
++
++static int e3xx_pmu_charger_get_online(struct e3xx_pmu_dev_info *edi,
++		union power_supply_propval *val)
++{
++	u32 value;
++
++	value = edi->charger_status;
++	value &= E3XX_PMU_CHARGER_ONLINE_MASK;
++	value >>= E3XX_PMU_CHARGER_ONLINE_SHIFT;
++
++	val->intval = !!value;
++	return 0;
++}
++
++static int e3xx_pmu_battery_get_temp(struct e3xx_pmu_dev_info *edi,
++		union power_supply_propval *val)
++{
++	u32 value;
++
++	value = edi->gauge_charge;
++	value &= E3XX_PMU_GAUGE_TEMP_MASK;
++	value >>= E3XX_PMU_GAUGE_TEMP_SHIFT;
++
++	/* this is taken from the datasheet */
++	/* it's calculated as: 600K * (value / 0xffff) */
++	val->intval = 10 * (((600 * value) / 0xffff) - 273);
++
++	return 0;
++}
++
++static inline int bin_to_uAh(u32 value)
++{
++	return value * 53;
++}
++
++static inline int uAh_to_bin(u32 value)
++{
++	return value / 53;
++}
++
++static int e3xx_pmu_battery_get_charge_now(struct e3xx_pmu_dev_info *edi,
++		union power_supply_propval *val)
++{
++	u32 value;
++
++	value = edi->gauge_charge;
++	value &= E3XX_PMU_GAUGE_CHARGE_MASK;
++	value >>= E3XX_PMU_GAUGE_CHARGE_SHIFT;
++
++	/* power supply class want's uAh */
++	val->intval = bin_to_uAh(value);
++
++	return 0;
++}
++
++static int e3xx_pmu_battery_set_charge_now(struct e3xx_pmu_dev_info *edi,
++		const union power_supply_propval *val)
++{
++	int ret;
++
++	ret = e3xx_pmu_write(edi,
++		E3XX_PMU_REG_GAUGE, uAh_to_bin(val->intval));
++
++	return ret;
++}
++
++
++static int e3xx_pmu_battery_get_charge_full(struct e3xx_pmu_dev_info *edi,
++		union power_supply_propval *val)
++{
++	u32 value;
++
++
++	value = edi->gauge_last_full;
++	value &= E3XX_PMU_GAUGE_CHARGE_LAST_FULL_MASK;
++	value >>= E3XX_PMU_GAUGE_CHARGE_LAST_FULL_SHIFT;
++
++	/* power supply class want's uAh */
++	val->intval = bin_to_uAh(value);
++
++	return 0;
++}
++
++static int e3xx_pmu_battery_get_capacity(struct e3xx_pmu_dev_info *edi,
++		union power_supply_propval *val)
++{
++	u32 charge_now;
++	u32 charge_full;
++
++	charge_now = edi->gauge_charge;
++	charge_now &= E3XX_PMU_GAUGE_CHARGE_MASK;
++	charge_now >>= E3XX_PMU_GAUGE_CHARGE_SHIFT;
++	charge_now = bin_to_uAh(charge_now);
++
++	charge_full = edi->c_full * 1000;
++
++	val->intval = 100 * charge_now / charge_full;
++
++	return 0;
++}
++
++static int e3xx_pmu_battery_get_voltage_now(struct e3xx_pmu_dev_info *edi,
++		union power_supply_propval *val)
++{
++	u32 value;
++
++	value = edi->gauge_status;
++	value &= E3XX_PMU_GAUGE_VOLTAGE_MASK;
++	value >>= E3XX_PMU_GAUGE_VOLTAGE_SHIFT;
++
++	/* Vsense = 6V * value / 0xffff */
++	val->intval = (value * 1000 * 6) / 0xffff;
++
++	return 0;
++}
++
++static int e3xx_pmu_charger_get_property(struct power_supply *psy,
++	enum power_supply_property psp, union power_supply_propval *val)
++{
++	struct e3xx_pmu_dev_info *edi =
++			container_of(psy, struct e3xx_pmu_dev_info, charger);
++	int ret;
++
++
++	pm_runtime_get_sync(edi->dev);
++
++	switch (psp) {
++	case POWER_SUPPLY_PROP_CHARGE_TYPE:
++		ret = e3xx_pmu_charger_get_charge_type(edi, val);
++		break;
++	case POWER_SUPPLY_PROP_HEALTH:
++		ret = e3xx_pmu_charger_get_health(edi, val);
++		break;
++	case POWER_SUPPLY_PROP_ONLINE:
++		ret = e3xx_pmu_charger_get_online(edi, val);
++		break;
++	case POWER_SUPPLY_PROP_SCOPE:
++		val->intval = POWER_SUPPLY_SCOPE_SYSTEM;
++		ret = 0;
++		break;
++	case POWER_SUPPLY_PROP_MODEL_NAME:
++		val->strval = "NI Ettus Research USRP E3XX Battery";
++		ret = 0;
++		break;
++	case POWER_SUPPLY_PROP_MANUFACTURER:
++		val->strval = "NI Ettus Research";
++		ret = 0;
++		break;
++	default:
++		ret = -ENODATA;
++	}
++
++	pm_runtime_put_sync(edi->dev);
++
++
++	return 0;
++}
++
++static int e3xx_pmu_charger_set_property(struct power_supply *psy,
++	enum power_supply_property psp,
++	const union power_supply_propval *val)
++{
++	int ret;
++	struct e3xx_pmu_dev_info *edi =
++			container_of(psy, struct e3xx_pmu_dev_info, charger);
++
++	pm_runtime_get_sync(edi->dev);
++
++	switch (psp) {
++	case POWER_SUPPLY_PROP_CHARGE_TYPE:
++		ret = e3xx_pmu_charger_set_charge_type(edi, val);
++		break;
++	default:
++		ret = -EINVAL;
++	}
++
++	pm_runtime_put_sync(edi->dev);
++
++	return 0;
++}
++
++static int e3xx_pmu_charger_property_is_writeable(struct power_supply *psy,
++		enum power_supply_property psp)
++{
++	int ret;
++
++	switch (psp) {
++	case POWER_SUPPLY_PROP_CHARGE_TYPE:
++		ret = 1;
++		break;
++	default:
++		ret = 0;
++	}
++
++	return ret;
++}
++
++static enum power_supply_property e3xx_pmu_charger_properties[] = {
++	POWER_SUPPLY_PROP_CHARGE_TYPE,
++	POWER_SUPPLY_PROP_TYPE,
++	POWER_SUPPLY_PROP_HEALTH,
++	POWER_SUPPLY_PROP_ONLINE,
++	POWER_SUPPLY_PROP_SCOPE,
++	POWER_SUPPLY_PROP_MODEL_NAME,
++	POWER_SUPPLY_PROP_MANUFACTURER,
++};
++
++static char *e3xx_pmu_charger_supplied_to[] = {
++	"main-battery",
++};
++
++static void e3xx_pmu_charger_init(struct power_supply *charger)
++{
++	charger->name = "AC";
++	charger->type = POWER_SUPPLY_TYPE_MAINS;
++	charger->properties = e3xx_pmu_charger_properties;
++	charger->num_properties = ARRAY_SIZE(e3xx_pmu_charger_properties);
++	charger->supplied_to = e3xx_pmu_charger_supplied_to;
++	charger->num_supplies = ARRAY_SIZE(e3xx_pmu_charger_supplied_to);
++	charger->get_property = e3xx_pmu_charger_get_property;
++	charger->set_property = e3xx_pmu_charger_set_property;
++	charger->property_is_writeable = e3xx_pmu_charger_property_is_writeable;
++}
++
++static int e3xx_pmu_battery_get_status(struct e3xx_pmu_dev_info *edi,
++		union power_supply_propval *val)
++{
++	u32 value;
++	int ret;
++
++	value = edi->charger_status;
++	/* if the charger online bit is not set, we're discharging */
++	if (!(value & E3XX_PMU_CHARGER_ONLINE_MASK)) {
++		val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
++		return 0;
++	}
++
++	value = edi->bat_status;
++	/* else look at the charge type, i.e. mask out the rest */
++	value &= 0x3;
++
++	switch (value) {
++	case 0x0:
++		val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
++		ret = 0;
++		break;
++	case 0x1:
++		val->intval = POWER_SUPPLY_STATUS_CHARGING;
++		ret = 0;
++		break;
++	case 0x2:
++		val->intval = POWER_SUPPLY_STATUS_FULL;
++		ret = 0;
++		break;
++	case 0x3:
++		val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
++		ret = 0;
++		break;
++	default:
++		ret = -EIO;
++	};
++
++	return ret;
++}
++
++static int e3xx_pmu_battery_get_health(struct e3xx_pmu_dev_info *edi,
++		union power_supply_propval *val)
++{
++	u32 value;
++	int ret;
++
++	value = edi->bat_status;
++	value &= E3XX_PMU_BATTERY_HEALTH_MASK;
++	value >>= E3XX_PMU_BATTERY_HEALTH_SHIFT;
++
++	switch (value) {
++	case 0x00:
++		val->intval = POWER_SUPPLY_HEALTH_GOOD;
++		ret = 0;
++		break;
++	case 0x01:
++		val->intval = POWER_SUPPLY_HEALTH_UNSPEC_FAILURE;
++		ret = 0;
++		break;
++	case 0x02:
++		val->intval = POWER_SUPPLY_HEALTH_OVERVOLTAGE;
++		ret = 0;
++		break;
++	case 0x03:
++		val->intval = POWER_SUPPLY_HEALTH_OVERHEAT;
++		ret = 0;
++		break;
++	case 0x04:
++		val->intval = POWER_SUPPLY_HEALTH_COLD;
++		ret = 0;
++		break;
++	default:
++		val->intval = POWER_SUPPLY_HEALTH_UNKNOWN;
++		ret = 0;
++		break;
++	}
++
++	return ret;
++}
++
++static int e3xx_pmu_battery_get_temp_alert_max(struct e3xx_pmu_dev_info *edi,
++		union power_supply_propval *val)
++{
++	u8 v;
++	u32 value;
++	size_t tbl_size;
++
++	value = edi->bat_status;
++	value &= E3XX_PMU_BATTERY_TEMP_ALERT_MASK;
++	value >>= E3XX_PMU_BATTERY_TEMP_ALERT_SHIFT;
++
++	tbl_size = ARRAY_SIZE(e3xx_pmu_temp_range_values);
++	v = (value >= tbl_size) ? (tbl_size - 1) : value;
++
++	val->intval = e3xx_pmu_temp_range_values[v];
++
++	return 0;
++}
++
++static int e3xx_pmu_battery_set_temp_alert_max(struct e3xx_pmu_dev_info *edi,
++		const union power_supply_propval *val)
++{
++	size_t idx;
++	u32 value;
++	int ret;
++	size_t tbl_size;
++
++	value = edi->bat_status;
++	value &= ~E3XX_PMU_BATTERY_TEMP_ALERT_MASK;
++
++	tbl_size = ARRAY_SIZE(e3xx_pmu_temp_range_values);
++	idx = e3xx_pmu_temp_index(
++		e3xx_pmu_temp_range_values,
++		tbl_size,
++		val->intval);
++	value |= idx << E3XX_PMU_BATTERY_TEMP_ALERT_SHIFT;
++
++	ret = e3xx_pmu_write(edi, E3XX_PMU_REG_BATTERY, value);
++	if (ret)
++		return ret;
++
++	return 0;
++}
++
++static int e3xx_pmu_battery_get_online(struct e3xx_pmu_dev_info *edi,
++		union power_supply_propval *val)
++{
++	u32 value;
++
++	value = edi->bat_status;
++	value &= E3XX_PMU_BATTERY_ONLINE_MASK;
++
++	val->intval = !!value;
++	return 0;
++}
++
++static int e3xx_pmu_battery_set_online(struct e3xx_pmu_dev_info *edi,
++		const union power_supply_propval *val)
++{
++	u32 value;
++	int ret;
++
++	value = edi->bat_status;
++	value &= ~E3XX_PMU_BATTERY_ONLINE_MASK;
++
++	if (val->intval)
++		value |= E3XX_PMU_BATTERY_ONLINE_MASK;
++
++	ret = e3xx_pmu_write(edi, E3XX_PMU_REG_BATTERY, value);
++	if (ret)
++		return ret;
++
++	return 0;
++}
++
++static int e3xx_pmu_battery_get_property(struct power_supply *psy,
++		enum power_supply_property psp, union power_supply_propval *val)
++{
++	int ret;
++	struct e3xx_pmu_dev_info *edi =
++			container_of(psy, struct e3xx_pmu_dev_info, battery);
++
++	pm_runtime_get_sync(edi->dev);
++
++	switch (psp) {
++	case POWER_SUPPLY_PROP_STATUS:
++		ret = e3xx_pmu_battery_get_status(edi, val);
++		break;
++	case POWER_SUPPLY_PROP_HEALTH:
++		ret = e3xx_pmu_battery_get_health(edi, val);
++		break;
++	case POWER_SUPPLY_PROP_ONLINE:
++		ret = e3xx_pmu_battery_get_online(edi, val);
++		break;
++	case POWER_SUPPLY_PROP_CAPACITY:
++		ret = e3xx_pmu_battery_get_capacity(edi, val);
++		break;
++	case POWER_SUPPLY_PROP_TECHNOLOGY:
++		/* I ain't gonna lie to y'all */
++		val->intval = POWER_SUPPLY_TECHNOLOGY_UNKNOWN;
++		ret = 0;
++		break;
++	case POWER_SUPPLY_PROP_TEMP:
++		ret = e3xx_pmu_battery_get_temp(edi, val);
++		break;
++	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
++		ret = e3xx_pmu_battery_get_voltage_now(edi, val);
++		break;
++	case POWER_SUPPLY_PROP_CHARGE_NOW:
++		ret = e3xx_pmu_battery_get_charge_now(edi, val);
++		break;
++	case POWER_SUPPLY_PROP_CHARGE_FULL:
++		ret = e3xx_pmu_battery_get_charge_full(edi, val);
++		break;
++	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
++		val->intval = edi->c_full * 1000;
++		ret = 0;
++		break;
++	case POWER_SUPPLY_PROP_TEMP_ALERT_MAX:
++		ret = e3xx_pmu_battery_get_temp_alert_max(edi, val);
++		break;
++	case POWER_SUPPLY_PROP_SCOPE:
++		val->intval = POWER_SUPPLY_SCOPE_SYSTEM;
++		ret = 0;
++		break;
++	default:
++		ret = -ENODATA;
++	}
++
++	pm_runtime_put_sync(edi->dev);
++
++	return ret;
++}
++
++static int e3xx_pmu_battery_set_property(struct power_supply *psy,
++		enum power_supply_property psp,
++		const union power_supply_propval *val)
++{
++	int ret;
++	struct e3xx_pmu_dev_info *edi =
++			container_of(psy, struct e3xx_pmu_dev_info, battery);
++
++	ret = 0;
++	pm_runtime_get_sync(edi->dev);
++
++	switch (psp) {
++	case POWER_SUPPLY_PROP_ONLINE:
++		ret = e3xx_pmu_battery_set_online(edi, val);
++		break;
++	case POWER_SUPPLY_PROP_TEMP_ALERT_MAX:
++		ret = e3xx_pmu_battery_set_temp_alert_max(edi, val);
++		break;
++	case POWER_SUPPLY_PROP_CHARGE_NOW:
++		ret = e3xx_pmu_battery_set_charge_now(edi, val);
++		break;
++	default:
++		ret = -EINVAL;
++	}
++
++	pm_runtime_put_sync(edi->dev);
++	return ret;
++}
++
++static int e3xx_pmu_battery_property_is_writeable(struct power_supply *psy,
++		enum power_supply_property psp)
++{
++	int ret;
++
++	switch (psp) {
++	case POWER_SUPPLY_PROP_CHARGE_NOW:
++		ret = 1;
++		break;
++	default:
++		ret = 0;
++	}
++
++	return ret;
++}
++
++static enum power_supply_property e3xx_pmu_battery_properties[] = {
++	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
++	POWER_SUPPLY_PROP_CHARGE_FULL,
++	POWER_SUPPLY_PROP_CHARGE_NOW,
++	POWER_SUPPLY_PROP_CAPACITY,
++	POWER_SUPPLY_PROP_STATUS,
++	POWER_SUPPLY_PROP_HEALTH,
++	POWER_SUPPLY_PROP_ONLINE,
++	POWER_SUPPLY_PROP_TECHNOLOGY,
++	POWER_SUPPLY_PROP_TEMP,
++	POWER_SUPPLY_PROP_TEMP_ALERT_MAX,
++	POWER_SUPPLY_PROP_VOLTAGE_NOW,
++	POWER_SUPPLY_PROP_SCOPE,
++};
++
++static void e3xx_pmu_battery_init(struct power_supply *battery)
++{
++	battery->name = "BAT";
++	battery->type = POWER_SUPPLY_TYPE_BATTERY;
++	battery->properties = e3xx_pmu_battery_properties;
++	battery->num_properties = ARRAY_SIZE(e3xx_pmu_battery_properties);
++	battery->get_property = e3xx_pmu_battery_get_property;
++	battery->set_property = e3xx_pmu_battery_set_property;
++	battery->property_is_writeable = e3xx_pmu_battery_property_is_writeable;
++}
++
++#define E3XX_PMU_GAUGE_STATUS_MASK 0xff0000
++#define E3XX_PMU_GAUGE_STATUS_SHIFT 16
++#define E3XX_PMU_GAUGE_BATLOW_ALARM BIT(7)
++#define E3XX_PMU_GAUGE_TEMP_ALARM BIT(6)
++
++static irqreturn_t e3xx_pmu_irq_handler(int irq, void *data)
++{
++	u32 status;
++	struct e3xx_pmu_dev_info *edi = data;
++
++	e3xx_pmu_read(edi, E3XX_PMU_REG_GAUGE_STATUS, &status);
++	status &= E3XX_PMU_GAUGE_STATUS_MASK;
++	status >>= E3XX_PMU_GAUGE_STATUS_SHIFT;
++
++	if ((status & E3XX_PMU_GAUGE_TEMP_ALARM) && !ignore_temp) {
++		dev_warn(edi->dev,
++			 "Critical temperature reached. Shutdown advised.");
++	}
++
++	if ((status & E3XX_PMU_GAUGE_BATLOW_ALARM) && !ignore_charge) {
++		dev_warn(edi->dev,
++			 "Critical battery state reached. Shutdown advised.");
++	}
++
++	/* ack all the IRQs */
++	e3xx_pmu_write(edi, E3XX_PMU_REG_GAUGE_STATUS, 0x00);
++
++	/* update looserspace */
++	power_supply_changed(&edi->battery);
++	power_supply_changed(&edi->charger);
++
++	return IRQ_HANDLED;
++}
++
++static inline void e3xx_pmu_set_irq_mask(struct e3xx_pmu_dev_info *edi, u8 mask)
++{
++	e3xx_pmu_write(edi, E3XX_PMU_REG_MISC, mask << E3XX_PMU_IRQ_MASK_SHIFT);
++}
++
++static int __maybe_unused e3xx_pmu_suspend(struct device *dev)
++{
++	return 0;
++}
++
++static int __maybe_unused e3xx_pmu_resume(struct device *dev)
++{
++	return 0;
++}
++
++static SIMPLE_DEV_PM_OPS(e3xx_pmu_pm_ops, e3xx_pmu_suspend, e3xx_pmu_resume);
++
++static ssize_t e3xx_pmu_set_autoboot(struct device *dev,
++		struct device_attribute *attr, const char *buf, size_t size)
++{
++	struct e3xx_pmu_dev_info *edi = dev_get_drvdata(dev);
++	u32 status;
++	unsigned long autoboot_bit;
++	int ret;
++
++	ret = strict_strtoul(buf, 10, &autoboot_bit);
++	if (ret)
++		return -EINVAL;
++
++	/* either on or off ... */
++	autoboot_bit &= 0x1;
++
++	ret = e3xx_pmu_read(edi, E3XX_PMU_REG_EEPROM, &status);
++	if (ret)
++		return ret;
++
++	status &= ~E3XX_PMU_EEPROM_AUTOBOOT_MASK;
++	status |= autoboot_bit << E3XX_PMU_EEPROM_AUTOBOOT_SHIFT;
++
++	e3xx_pmu_write(edi, E3XX_PMU_REG_EEPROM, status);
++
++	return size;
++}
++
++static ssize_t e3xx_pmu_show_autoboot(struct device *dev,
++		struct device_attribute *attr, char *buf)
++{
++	struct e3xx_pmu_dev_info *edi = dev_get_drvdata(dev);
++	u32 status;
++	int ret;
++
++	ret = e3xx_pmu_read(edi, E3XX_PMU_REG_EEPROM, &status);
++	if (ret)
++		return ret;
++	status &= E3XX_PMU_EEPROM_AUTOBOOT_MASK;
++	status >>= E3XX_PMU_EEPROM_AUTOBOOT_SHIFT;
++
++	ret = sprintf(buf, "%d\n", status);
++
++	return ret;
++}
++
++static DEVICE_ATTR(autoboot, 0644, e3xx_pmu_show_autoboot,
++				e3xx_pmu_set_autoboot);
++
++static struct attribute *e3xx_pmu_attrs[] = {
++	&dev_attr_autoboot.attr,
++	NULL
++};
++
++static const struct attribute_group e3xx_pmu_attr_group = {
++	.attrs = e3xx_pmu_attrs,
++};
++
++static int e3xx_pmu_probe(struct platform_device *pdev)
++{
++	struct e3xx_pmu_dev_info *edi;
++	struct device_node *np;
++	int ret, irq_fw;
++	u32 value;
++	u8 maj, min;
++
++	struct device *dev = &pdev->dev;
++
++	edi = devm_kzalloc(dev, sizeof(*edi), GFP_KERNEL);
++	if (!edi)
++		return -ENOMEM;
++
++	edi->dev = dev;
++
++	atomic_set(&edi->reconfiguring, 0);
++	spin_lock_init(&edi->lock);
++
++	platform_set_drvdata(pdev, edi);
++	dev_set_drvdata(&pdev->dev, edi);
++
++
++	np = of_node_get(pdev->dev.of_node);
++	ret = of_property_read_u32(np, "ettus,capacity-full", &value);
++	if (ret < 0) {
++		dev_err(dev,
++			"Could not find ettus,capacity-full in devicetree\n");
++		return -EINVAL;
++	}
++	edi->c_full = value;
++
++	of_node_put(np);
++
++	edi->regmap = syscon_regmap_lookup_by_phandle(pdev->dev.of_node, "syscon");
++	if (IS_ERR(edi->regmap)) {
++		dev_err(&pdev->dev, "unable to get syscon");
++		return PTR_ERR(edi->regmap);
++	}
++
++	/* check firmware version */
++	ret = e3xx_pmu_read(edi, E3XX_PMU_REG_MISC, &value);
++	if (ret)
++		return ret;
++
++	maj = (value & E3XX_PMU_MISC_VERSION_MAJ_MASK) >> E3XX_PMU_MISC_VERSION_MAJ_SHIFT;
++	min = (value & E3XX_PMU_MISC_VERSION_MIN_MASK) >> E3XX_PMU_MISC_VERSION_MIN_SHIFT;
++        if (maj < 2) {
++		dev_info(dev, "Unsupported firmware version %u.%u\n", maj, min);
++		return -EINVAL;
++	} else
++		dev_info(dev, "Found firmware version %u.%u\n", maj, min);
++
++	/* grab the IRQ to allow PMU notify us */
++	irq_fw = platform_get_irq_byname(pdev, "fw");
++	if (irq_fw < 0) {
++		dev_err(&pdev->dev, "No IRQ for 'fw', error=%d\n",
++			irq_fw);
++		return irq_fw;
++	}
++
++	ret = devm_request_irq(dev, irq_fw, e3xx_pmu_irq_handler, 0,
++				 "e3xx-pmu", edi);
++
++	/* get news on reloading the fpga fabric */
++	edi->fpga_nb.notifier_call = e3xx_pmu_fpga_notify;
++	xdevcfg_register_notify(&edi->fpga_nb);
++
++	/* TODO: Do some init stuff here */
++
++	/* TODO: Do we need this ? */
++	pm_runtime_enable(dev);
++	pm_runtime_get_sync(dev);
++
++	INIT_DELAYED_WORK(&edi->work, e3xx_pmu_work);
++
++	e3xx_pmu_charger_init(&edi->charger);
++
++
++	ret = power_supply_register(dev, &edi->charger);
++	if (ret)
++		goto fail_reg_charger;
++
++	e3xx_pmu_battery_init(&edi->battery);
++
++	ret = power_supply_register(dev, &edi->battery);
++	if (ret) {
++		goto fail_reg_bat;
++	}
++
++	schedule_delayed_work(&edi->work, E3XX_PMU_WORK_DELAY * HZ);
++
++	ret = sysfs_create_group(&(pdev->dev.kobj), &e3xx_pmu_attr_group);
++	if (ret)
++		goto fail_sysfs;
++
++	/* now finally turn on interrupts */
++	e3xx_pmu_set_irq_mask(edi, 0xff);
++
++	return 0;
++
++fail_sysfs:
++	power_supply_unregister(&edi->battery);
++
++fail_reg_bat:
++	power_supply_unregister(&edi->charger);
++
++fail_reg_charger:
++	pm_runtime_put_sync(dev);
++	pm_runtime_disable(dev);
++	return ret;
++}
++
++static int e3xx_pmu_remove(struct platform_device *pdev)
++{
++	struct e3xx_pmu_dev_info *edi = platform_get_drvdata(pdev);
++
++	sysfs_remove_group(&pdev->dev.kobj, &e3xx_pmu_attr_group);
++
++	e3xx_pmu_set_irq_mask(edi, 0x00);
++
++	power_supply_unregister(&edi->battery);
++	power_supply_unregister(&edi->charger);
++
++	pm_runtime_put_sync(edi->dev);
++	pm_runtime_disable(edi->dev);
++
++	return 0;
++}
++
++#ifdef CONFIG_OF
++static const struct of_device_id e3xx_pmu_match[] = {
++	{ .compatible = "ettus,e3xx-pmu", },
++	{ },
++};
++MODULE_DEVICE_TABLE(of, e3xx_pmu_match);
++#endif
++
++static struct platform_driver e3xx_pmu_driver = {
++	.driver	=	{
++		.name	=	"e3xx-pmu",
++		.of_match_table	=	of_match_ptr(e3xx_pmu_match),
++		.pm	=	&e3xx_pmu_pm_ops,
++	},
++	.probe	=	e3xx_pmu_probe,
++	.remove	=	e3xx_pmu_remove,
++};
++module_platform_driver(e3xx_pmu_driver);
++
++MODULE_LICENSE("GPL v2");
++MODULE_AUTHOR("Moritz Fischer <moritz.fischer@ettus.com>");
++MODULE_DESCRIPTION("NI Ettus Research USRP E3xx Power Management Unit driver");
+-- 
+1.9.3
+
