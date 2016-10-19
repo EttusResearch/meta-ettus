@@ -150,7 +150,8 @@ IMAGE_FSTYPES = "tar.gz"
 # NOTE: mklibs also needs to be explicitly enabled for a given image, see local.conf.extended
 
 RM_WORK_EXCLUDE = "base-dev-image uhd-dev-image gnuradio-dev-image \
-                   gnuradio-demo-image gnuradio-video-demo-image"
+                   gnuradio-demo-image gnuradio-video-demo-image \
+                   gnuradio-image "
 
 #
 # Runtime testing of images
