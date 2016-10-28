@@ -1,0 +1,184 @@
+From a51d0a4d7e2c2dc5eaa79d4ce696f821e991b561 Mon Sep 17 00:00:00 2001
+From: Philip Balister <philip@opensdr.com>
+Date: Fri, 28 Oct 2016 15:08:34 -0400
+Subject: [PATCH 2/3] e3xx: Add device tree files for Ettus E3xx series.
+
+Signed-off-by: Philip Balister <philip@opensdr.com>
+---
+ arch/arm/dts/Makefile        |  6 +++-
+ arch/arm/dts/zynq-e3xx-1.dts | 69 ++++++++++++++++++++++++++++++++++++++++++++
+ arch/arm/dts/zynq-e3xx-3.dts | 69 ++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 143 insertions(+), 1 deletion(-)
+ create mode 100644 arch/arm/dts/zynq-e3xx-1.dts
+ create mode 100644 arch/arm/dts/zynq-e3xx-3.dts
+
+diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
+index 578038b..374e829 100644
+--- a/arch/arm/dts/Makefile
++++ b/arch/arm/dts/Makefile
+@@ -67,7 +67,11 @@ dtb-$(CONFIG_ARCH_UNIPHIER) += \
+ 	uniphier-ph1-sld8-ref.dtb \
+ 	uniphier-proxstream2-gentil.dtb \
+ 	uniphier-proxstream2-vodka.dtb
+-dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb \
++
++dtb-$(CONFIG_ARCH_ZYNQ) += \
++	zynq-e3xx-1.dtb \
++	zynq-e3xx-3.dtb \
++	zynq-zc702.dtb \
+ 	zynq-zc706.dtb \
+ 	zynq-zed.dtb \
+ 	zynq-zybo.dtb \
+diff --git a/arch/arm/dts/zynq-e3xx-1.dts b/arch/arm/dts/zynq-e3xx-1.dts
+new file mode 100644
+index 0000000..ad03659
+--- /dev/null
++++ b/arch/arm/dts/zynq-e3xx-1.dts
+@@ -0,0 +1,69 @@
++/*
++ *  Copyright (C) 2015 National Instruments Corp. All rights reserved.
++ *
++ * This software is licensed under the terms of the GNU General Public
++ * License version 2, as published by the Free Software Foundation, and
++ * may be copied, distributed, and modified under those terms.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++/dts-v1/;
++#include "zynq-7000.dtsi"
++
++/ {
++	model = "NI Ettus Research USRP E3xx SDR";
++	compatible = "ettus,zynq-e3xx", "xlnx,zynq-7000";
++
++	aliases {
++		ethernet0 = &gem0;
++		serial0 = &uart0;
++	};
++
++	memory {
++		device_type = "memory";
++		reg = <0x0 0x40000000>;
++	};
++
++	chosen {
++		bootargs = "earlyprintk";
++		stdout-path = "serial0:115200n8";
++	};
++
++	usb_phy0: phy0 {
++		compatible = "usb-nop-xceiv";
++		#phy-cells = <0>;
++	};
++};
++
++&sdhci0 {
++	status = "okay";
++};
++
++&uart0 {
++	status = "okay";
++};
++
++&uart1 {
++	status = "okay";
++};
++
++&gem0 {
++	status = "okay";
++	phy-mode = "rgmii-id";
++	phy-handle = <&ethernet_phy>;
++
++	ethernet_phy: ethernet-phy@0 {
++		compatible = "marvell,88e1512";
++		reg = <0>;
++	};
++};
++
++&usb0 {
++	status = "okay";
++	dr_mode = "host";
++	usb-phy = <&usb_phy0>;
++};
+diff --git a/arch/arm/dts/zynq-e3xx-3.dts b/arch/arm/dts/zynq-e3xx-3.dts
+new file mode 100644
+index 0000000..ad03659
+--- /dev/null
++++ b/arch/arm/dts/zynq-e3xx-3.dts
+@@ -0,0 +1,69 @@
++/*
++ *  Copyright (C) 2015 National Instruments Corp. All rights reserved.
++ *
++ * This software is licensed under the terms of the GNU General Public
++ * License version 2, as published by the Free Software Foundation, and
++ * may be copied, distributed, and modified under those terms.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++/dts-v1/;
++#include "zynq-7000.dtsi"
++
++/ {
++	model = "NI Ettus Research USRP E3xx SDR";
++	compatible = "ettus,zynq-e3xx", "xlnx,zynq-7000";
++
++	aliases {
++		ethernet0 = &gem0;
++		serial0 = &uart0;
++	};
++
++	memory {
++		device_type = "memory";
++		reg = <0x0 0x40000000>;
++	};
++
++	chosen {
++		bootargs = "earlyprintk";
++		stdout-path = "serial0:115200n8";
++	};
++
++	usb_phy0: phy0 {
++		compatible = "usb-nop-xceiv";
++		#phy-cells = <0>;
++	};
++};
++
++&sdhci0 {
++	status = "okay";
++};
++
++&uart0 {
++	status = "okay";
++};
++
++&uart1 {
++	status = "okay";
++};
++
++&gem0 {
++	status = "okay";
++	phy-mode = "rgmii-id";
++	phy-handle = <&ethernet_phy>;
++
++	ethernet_phy: ethernet-phy@0 {
++		compatible = "marvell,88e1512";
++		reg = <0>;
++	};
++};
++
++&usb0 {
++	status = "okay";
++	dr_mode = "host";
++	usb-phy = <&usb_phy0>;
++};
+-- 
+2.7.4
+
