@@ -1,0 +1,4 @@
+patch 0002-regulator-e3xx-db-Adding-support-for-NI-USRP-E3XX-DB.patch
+patch 0003-Add-device-tree-files-for-Ettus-Research-E300-family.patch
+kconf hardware ettus-e300.cfg
+
