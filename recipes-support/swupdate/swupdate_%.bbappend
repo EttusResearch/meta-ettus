@@ -1,0 +1,4 @@
+FILESEXTRAPATHS_prepend := "${THISDIR}/${BPN}/${MACHINE}:"
+
+PACKAGE_ARCH_ettus-e3xx-sg1 = "${MACHINE_ARCH}"
+
