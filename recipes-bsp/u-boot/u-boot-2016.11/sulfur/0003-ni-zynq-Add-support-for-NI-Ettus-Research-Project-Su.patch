@@ -1,0 +1,1302 @@
+From ce1fb5dbc25abe65a92279f742df0f936cd1cf17 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Mon, 12 Dec 2016 17:28:16 -0800
+Subject: [PATCH 3/3] ni: zynq: Add support for NI Ettus Research Project
+ Sulfur Rev2 SDR
+
+Add support for second revision of NI Ettus Research Project Sulfur
+Revision 2 SDR board.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ arch/arm/dts/Makefile                            |   1 +
+ arch/arm/dts/zynq-ni-sulfur-rev2.dts             | 269 +++++++++++++++++++
+ arch/arm/dts/zynq-sulfur-uboot.dtsi              |  16 ++
+ board/ni/zynq/MAINTAINERS                        |   6 +
+ board/ni/zynq/Makefile                           |  10 +
+ board/ni/zynq/board.c                            | 302 ++++++++++++++++++++++
+ board/ni/zynq/ps7_init_common.c                  | 119 +++++++++
+ board/ni/zynq/ps7_init_gpl.h                     |  34 +++
+ board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c | 313 +++++++++++++++++++++++
+ configs/ni_sulfur_rev2_defconfig                 |  66 +++++
+ include/configs/ni_sulfur_rev2.h                 |  58 +++++
+ 11 files changed, 1194 insertions(+)
+ create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev2.dts
+ create mode 100644 arch/arm/dts/zynq-sulfur-uboot.dtsi
+ create mode 100644 board/ni/zynq/MAINTAINERS
+ create mode 100644 board/ni/zynq/Makefile
+ create mode 100644 board/ni/zynq/board.c
+ create mode 100644 board/ni/zynq/ps7_init_common.c
+ create mode 100644 board/ni/zynq/ps7_init_gpl.h
+ create mode 100644 board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c
+ create mode 100644 configs/ni_sulfur_rev2_defconfig
+ create mode 100644 include/configs/ni_sulfur_rev2.h
+
+diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
+index f437469..433cb62 100644
+--- a/arch/arm/dts/Makefile
++++ b/arch/arm/dts/Makefile
+@@ -99,6 +99,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb \
+ 	zynq-zed.dtb \
+ 	zynq-zybo.dtb \
+ 	zynq-microzed.dtb \
++	zynq-ni-sulfur-rev2.dtb \
+ 	zynq-picozed.dtb \
+ 	zynq-topic-miami.dtb \
+ 	zynq-topic-miamiplus.dtb \
+diff --git a/arch/arm/dts/zynq-ni-sulfur-rev2.dts b/arch/arm/dts/zynq-ni-sulfur-rev2.dts
+new file mode 100644
+index 0000000..894c556
+--- /dev/null
++++ b/arch/arm/dts/zynq-ni-sulfur-rev2.dts
+@@ -0,0 +1,269 @@
++/*
++ * National Instruments Ettus Research Project Sulfur SDR Revision 2
++ * devicetree source.
++ *
++ * Copyright (c) 2016 National Instruments Corp.
++ *
++ * This file is dual-licensed: you can use it either under the terms
++ * of the GPL or the X11 license, at your option. Note that this dual
++ * licensing only applies to this file, and not this project as a
++ * whole.
++ *
++ *  a) This file is free software; you can redistribute it and/or
++ *     modify it under the terms of the GNU General Public License as
++ *     published by the Free Software Foundation; either version 2 of the
++ *     License, or (at your option) any later version.
++ *
++ *     This file is distributed in the hope that it will be useful,
++ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *     GNU General Public License for more details.
++ *
++ *  Or, alternatively,
++ *
++ *  b) Permission is hereby granted, free of charge, to any person
++ *     obtaining a copy of this software and associated documentation
++ *     files (the "Software"), to deal in the Software without
++ *     restriction, including without limitation the rights to use,
++ *     copy, modify, merge, publish, distribute, sublicense, and/or
++ *     sell copies of the Software, and to permit persons to whom the
++ *     Software is furnished to do so, subject to the following
++ *     conditions:
++ *
++ *     The above copyright notice and this permission notice shall be
++ *     included in all copies or substantial portions of the Software.
++ *
++ *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
++ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
++ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
++ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++ *     OTHER DEALINGS IN THE SOFTWARE.
++ */
++
++/dts-v1/;
++
++#include <dt-bindings/input/input.h>
++#include <dt-bindings/interrupt-controller/irq.h>
++#include <dt-bindings/gpio/gpio.h>
++#include "zynq-7000.dtsi"
++
++/ {
++	model = "NI Ettus Research Project Sulfur SDR Rev2";
++	compatible = "ettus,zynq-sulfur-rev2", "xlnx,zynq-7000";
++
++	aliases {
++		ethernet0 = &gem0;
++		serial0 = &uart0;
++		serial1 = &uart1;
++		spi0 = &spi1;
++		i2c20 = &tun;
++		i2c0 = &i2c0;
++		i2c2 = &sfp0_i2c;
++		i2c3 = &sfp1_i2c;
++	};
++
++	memory {
++		device_type = "memory";
++		reg = <0x0 0x40000000>;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	usb_phy0: phy0 {
++		compatible = "usb-nop-xceiv";
++		#phy-cells = <0>;
++	};
++
++	gpio-poweroff {
++		compatible = "gpio-poweroff";
++		gpios = <&gpio0 4 GPIO_ACTIVE_LOW>;
++	};
++};
++
++&cpu0 {
++	operating-points = <800000 1000000>;
++};
++
++&sdhci0 {
++	u-boot,dm-pre-reloc;
++	status = "okay";
++};
++
++&uart0 {
++	u-boot,dm-pre-reloc;
++	status = "okay";
++};
++
++&uart1 {
++	status = "okay";
++};
++
++/* we use the ARM global timer */
++&ttc0 {
++	status = "disabled";
++};
++
++/* we use the ARM global timer */
++&ttc1 {
++	status = "disabled";
++};
++
++&i2c0 {
++	u-boot,dm-pre-reloc;
++	status = "okay";
++	clock-frequency = <400000>;
++
++	i2cswitch@70 {
++		compatible = "ti,pca9548", "nxp,pca9548";
++		#address-cells = <1>;
++		#size-cells = <0>;
++		reg = <0x70>;
++		status = "okay";
++
++		sfp1_i2c: i2c@0 {
++			reg = <0x0>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			status = "okay";
++		};
++
++		i2c@1 {
++			reg = <0x1>;
++			status = "disabled";
++		};
++
++		sfp0_i2c: i2c@2 {
++			reg = <0x2>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++			status = "okay";
++		};
++
++		i2c@3 {
++			reg = <0x3>;
++			status = "disabled";
++		};
++
++		i2c@4 {
++			reg = <0x4>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++			status = "okay";
++
++			tpm: tpm@20 {
++				compatible = "infineon,slb9645tt";
++				reg = <0x20>;
++				powered-while-suspended;
++			};
++		};
++
++		i2c@5 {
++			reg = <0x5>;
++			status = "disabled";
++		};
++
++		i2c@6 {
++			reg = <0x6>;
++			status = "disabled";
++		};
++
++		i2c@7 {
++			reg = <0x7>;
++			status = "disabled";
++		};
++	};
++};
++
++&spi1 {
++	u-boot,dm-pre-reloc;
++	status = "okay";
++        spi-activate-delay = <60>;
++	spi-deactivate-delay = <200>;
++
++	cros_ec: ec@0 {
++		compatible = "ni,cros-ec-spi", "google,cros-ec-spi";
++		reg = <0>;
++		google,cros-ec-spi-pre-delay = <60>;
++		google,has-vbc-nvram;
++		spi-max-frequency = <3000000>;
++
++		interrupts = <5 IRQ_TYPE_EDGE_FALLING>;
++		interrupt-parent = <&gpio0>;
++
++		tun: i2c-tunnel {
++			compatible = "google,cros-ec-i2c-tunnel";
++			#address-cells = <1>;
++			#size-cells = <0>;
++			google,remote-bus = <1>;
++
++			hwmon0: hwmon@48 {
++				compatible = "tmp112";
++				reg = <0x48>;
++			};
++
++			nvmem0: eeprom@50 {
++				compatible = "at,24c256";
++				reg = <0x50>;
++			};
++
++			rtc0: rtc@68 {
++				compatible = "dallas,ds1374";
++				reg = <0x68>;
++			};
++		};
++	};
++};
++
++
++&clkc {
++	ps-clk-frequency = <33333333>;
++};
++
++&gem0 {
++	status = "okay";
++	phy-mode = "rgmii-id";
++	phy-handle = <&ethernet_phy0>;
++
++	ethernet_phy0: ethernet-phy@0 {
++		reg = <0>;
++		/* TODO: Check if level or edge */
++		interrupt-parent = <&gpio0>;
++		interrupts = <0 IRQ_TYPE_LEVEL_HIGH>;
++		reset-gpios = <&gpio0 6 GPIO_ACTIVE_LOW>;
++	};
++};
++
++&usb0 {
++	status = "okay";
++	dr_mode = "otg";
++	usb-phy = <&usb_phy0>;
++};
++
++&gpio0 {
++	u-boot,dm-pre-reloc;
++	status = "okay";
++};
++
++&amba {
++	fpga_region0: fpga-region@40000000 {
++		reg = <0x40000000>;
++		compatible = "fpga-region";
++		fpga-mgr = <&devcfg>;
++		#address-cells = <0x1>;
++		#size-cells = <0x1>;
++		ranges;
++	};
++
++	ocm: sram@fffc0000 {
++		compatible = "mmio-sram";
++		reg = <0xfffc0000 0x10000>;
++	};
++};
++
++#include "zynq-sulfur-uboot.dtsi"
+diff --git a/arch/arm/dts/zynq-sulfur-uboot.dtsi b/arch/arm/dts/zynq-sulfur-uboot.dtsi
+new file mode 100644
+index 0000000..891a012
+--- /dev/null
++++ b/arch/arm/dts/zynq-sulfur-uboot.dtsi
+@@ -0,0 +1,16 @@
++/*
++ * U-Boot addition to handle Dragonboard 410c pins
++ *
++ * (C) Copyright 2016 National Instruments Corp
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#include <dt-bindings/gpio/gpio.h>
++
++&gpio0 {
++	sys_pwron_33 {
++		u-boot,dm-pre-reloc;
++		gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
++	};
++};
+diff --git a/board/ni/zynq/MAINTAINERS b/board/ni/zynq/MAINTAINERS
+new file mode 100644
+index 0000000..ff7595e
+--- /dev/null
++++ b/board/ni/zynq/MAINTAINERS
+@@ -0,0 +1,6 @@
++NI BOARD
++M:	Moritz Fischer <moritz.fischer@ettus.com>
++S:	Maintained
++F:	board/ni/zynq/
++F:	include/configs/ni*.h
++F:	configs/ni_*_defconfig
+diff --git a/board/ni/zynq/Makefile b/board/ni/zynq/Makefile
+new file mode 100644
+index 0000000..eaf59cd
+--- /dev/null
++++ b/board/ni/zynq/Makefile
+@@ -0,0 +1,10 @@
++#
++# SPDX-License-Identifier:	GPL-2.0+
++#
++
++obj-y	:= board.o
++
++# Remove quotes
++hw-platform-y :=$(shell echo $(CONFIG_DEFAULT_DEVICE_TREE))
++
++obj-$(CONFIG_SPL_BUILD) += $(hw-platform-y)/ps7_init_gpl.o ps7_init_common.o
+diff --git a/board/ni/zynq/board.c b/board/ni/zynq/board.c
+new file mode 100644
+index 0000000..3f1e843
+--- /dev/null
++++ b/board/ni/zynq/board.c
+@@ -0,0 +1,302 @@
++/*
++ * (C) Copyright 2012 Michal Simek <monstr@monstr.eu>
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#include <common.h>
++#include <fdtdec.h>
++#include <fpga.h>
++#include <mmc.h>
++#include <dm.h>
++#include <asm/gpio.h>
++#include <zynqpl.h>
++#include <asm/arch/hardware.h>
++#include <asm/arch/sys_proto.h>
++
++DECLARE_GLOBAL_DATA_PTR;
++
++#if (defined(CONFIG_FPGA) && !defined(CONFIG_SPL_BUILD)) || \
++    (defined(CONFIG_SPL_FPGA_SUPPORT) && defined(CONFIG_SPL_BUILD))
++static xilinx_desc fpga;
++
++/* It can be done differently */
++static xilinx_desc fpga007s = XILINX_XC7Z007S_DESC(0x7);
++static xilinx_desc fpga010 = XILINX_XC7Z010_DESC(0x10);
++static xilinx_desc fpga012s = XILINX_XC7Z012S_DESC(0x12);
++static xilinx_desc fpga014s = XILINX_XC7Z014S_DESC(0x14);
++static xilinx_desc fpga015 = XILINX_XC7Z015_DESC(0x15);
++static xilinx_desc fpga020 = XILINX_XC7Z020_DESC(0x20);
++static xilinx_desc fpga030 = XILINX_XC7Z030_DESC(0x30);
++static xilinx_desc fpga035 = XILINX_XC7Z035_DESC(0x35);
++static xilinx_desc fpga045 = XILINX_XC7Z045_DESC(0x45);
++static xilinx_desc fpga100 = XILINX_XC7Z100_DESC(0x100);
++#endif
++
++enum board_power_type {
++	BOARD_POWER_TYPE_ON,
++	BOARD_POWER_TYPE_OFF, };
++
++#if (!defined(CONFIG_SPL_BUILD))
++int board_power(enum board_power_type type)
++{
++	struct gpio_desc sys_pwron_33;
++	struct udevice *zynq_gpio;
++	const void *blob = gd->fdt_blob;
++	int node, ret;
++
++	ret = uclass_get_device_by_seq(UCLASS_GPIO, 0, &zynq_gpio);
++	if (ret < 0) {
++		printf("Failed to find GPIO controller node. Check device tree\n");
++		return 0;
++	}
++
++	node = fdt_subnode_offset(blob, zynq_gpio->of_offset,
++				  "sys_pwron_33");
++
++	ret = gpio_request_by_name_nodev(blob, node, "gpios", 0,
++					 &sys_pwron_33, 0);
++	if (ret < 0) {
++		printf("Failed to request 'sys_pwron_33' gpio.\n");
++		return ret;
++	}
++
++	if (type == BOARD_POWER_TYPE_OFF) {
++		dm_gpio_set_value(&sys_pwron_33, 0);
++	} else {
++		dm_gpio_set_value(&sys_pwron_33, 1);
++	}
++
++	printf("%s: Done ...\n", __func__);
++
++	return 0;
++}
++#endif
++
++int board_init(void)
++{
++#if (defined(CONFIG_FPGA) && !defined(CONFIG_SPL_BUILD)) || \
++    (defined(CONFIG_SPL_FPGA_SUPPORT) && defined(CONFIG_SPL_BUILD))
++	u32 idcode;
++
++	idcode = zynq_slcr_get_idcode();
++
++	switch (idcode) {
++	case XILINX_ZYNQ_7007S:
++		fpga = fpga007s;
++		break;
++	case XILINX_ZYNQ_7010:
++		fpga = fpga010;
++		break;
++	case XILINX_ZYNQ_7012S:
++		fpga = fpga012s;
++		break;
++	case XILINX_ZYNQ_7014S:
++		fpga = fpga014s;
++		break;
++	case XILINX_ZYNQ_7015:
++		fpga = fpga015;
++		break;
++	case XILINX_ZYNQ_7020:
++		fpga = fpga020;
++		break;
++	case XILINX_ZYNQ_7030:
++		fpga = fpga030;
++		break;
++	case XILINX_ZYNQ_7035:
++		fpga = fpga035;
++		break;
++	case XILINX_ZYNQ_7045:
++		fpga = fpga045;
++		break;
++	case XILINX_ZYNQ_7100:
++		fpga = fpga100;
++		break;
++	}
++#endif
++
++#if (defined(CONFIG_FPGA) && !defined(CONFIG_SPL_BUILD)) || \
++    (defined(CONFIG_SPL_FPGA_SUPPORT) && defined(CONFIG_SPL_BUILD))
++	fpga_init();
++	fpga_add(fpga_xilinx, &fpga);
++#endif
++
++	return 0;
++}
++
++int board_late_init(void)
++{
++	switch ((zynq_slcr_get_boot_mode()) & ZYNQ_BM_MASK) {
++	case ZYNQ_BM_NOR:
++		setenv("modeboot", "norboot");
++		break;
++	case ZYNQ_BM_SD:
++		setenv("modeboot", "sdboot");
++		break;
++	case ZYNQ_BM_JTAG:
++		setenv("modeboot", "jtagboot");
++		break;
++	default:
++		setenv("modeboot", "");
++		break;
++	}
++
++#if (!defined(CONFIG_SPL_BUILD))
++	board_power(BOARD_POWER_TYPE_ON);
++#endif
++
++	return 0;
++}
++
++#ifdef CONFIG_DISPLAY_BOARDINFO
++int checkboard(void)
++{
++	puts("Board: Xilinx Zynq\n");
++	return 0;
++}
++#endif
++
++int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
++{
++#if defined(CONFIG_ZYNQ_GEM_EEPROM_ADDR) && \
++    defined(CONFIG_ZYNQ_GEM_I2C_MAC_OFFSET)
++	if (eeprom_read(CONFIG_ZYNQ_GEM_EEPROM_ADDR,
++			CONFIG_ZYNQ_GEM_I2C_MAC_OFFSET,
++			ethaddr, 6))
++		printf("I2C EEPROM MAC address read failed\n");
++#endif
++
++	return 0;
++}
++
++#if !defined(CONFIG_SYS_SDRAM_BASE) && !defined(CONFIG_SYS_SDRAM_SIZE)
++/*
++ * fdt_get_reg - Fill buffer by information from DT
++ */
++static phys_size_t fdt_get_reg(const void *fdt, int nodeoffset, void *buf,
++			       const u32 *cell, int n)
++{
++	int i = 0, b, banks;
++	int parent_offset = fdt_parent_offset(fdt, nodeoffset);
++	int address_cells = fdt_address_cells(fdt, parent_offset);
++	int size_cells = fdt_size_cells(fdt, parent_offset);
++	char *p = buf;
++	u64 val;
++	u64 vals;
++
++	debug("%s: addr_cells=%x, size_cell=%x, buf=%p, cell=%p\n",
++	      __func__, address_cells, size_cells, buf, cell);
++
++	/* Check memory bank setup */
++	banks = n % (address_cells + size_cells);
++	if (banks)
++		panic("Incorrect memory setup cells=%d, ac=%d, sc=%d\n",
++		      n, address_cells, size_cells);
++
++	banks = n / (address_cells + size_cells);
++
++	for (b = 0; b < banks; b++) {
++		debug("%s: Bank #%d:\n", __func__, b);
++		if (address_cells == 2) {
++			val = cell[i + 1];
++			val <<= 32;
++			val |= cell[i];
++			val = fdt64_to_cpu(val);
++			debug("%s: addr64=%llx, ptr=%p, cell=%p\n",
++			      __func__, val, p, &cell[i]);
++			*(phys_addr_t *)p = val;
++		} else {
++			debug("%s: addr32=%x, ptr=%p\n",
++			      __func__, fdt32_to_cpu(cell[i]), p);
++			*(phys_addr_t *)p = fdt32_to_cpu(cell[i]);
++		}
++		p += sizeof(phys_addr_t);
++		i += address_cells;
++
++		debug("%s: pa=%p, i=%x, size=%zu\n", __func__, p, i,
++		      sizeof(phys_addr_t));
++
++		if (size_cells == 2) {
++			vals = cell[i + 1];
++			vals <<= 32;
++			vals |= cell[i];
++			vals = fdt64_to_cpu(vals);
++
++			debug("%s: size64=%llx, ptr=%p, cell=%p\n",
++			      __func__, vals, p, &cell[i]);
++			*(phys_size_t *)p = vals;
++		} else {
++			debug("%s: size32=%x, ptr=%p\n",
++			      __func__, fdt32_to_cpu(cell[i]), p);
++			*(phys_size_t *)p = fdt32_to_cpu(cell[i]);
++		}
++		p += sizeof(phys_size_t);
++		i += size_cells;
++
++		debug("%s: ps=%p, i=%x, size=%zu\n",
++		      __func__, p, i, sizeof(phys_size_t));
++	}
++
++	/* Return the first address size */
++	return *(phys_size_t *)((char *)buf + sizeof(phys_addr_t));
++}
++
++#define FDT_REG_SIZE  sizeof(u32)
++/* Temp location for sharing data for storing */
++/* Up to 64-bit address + 64-bit size */
++static u8 tmp[CONFIG_NR_DRAM_BANKS * 16];
++
++void dram_init_banksize(void)
++{
++	int bank;
++
++	memcpy(&gd->bd->bi_dram[0], &tmp, sizeof(tmp));
++
++	for (bank = 0; bank < CONFIG_NR_DRAM_BANKS; bank++) {
++		debug("Bank #%d: start %llx\n", bank,
++		      (unsigned long long)gd->bd->bi_dram[bank].start);
++		debug("Bank #%d: size %llx\n", bank,
++		      (unsigned long long)gd->bd->bi_dram[bank].size);
++	}
++}
++
++int dram_init(void)
++{
++	int node, len;
++	const void *blob = gd->fdt_blob;
++	const u32 *cell;
++
++	memset(&tmp, 0, sizeof(tmp));
++
++	/* find or create "/memory" node. */
++	node = fdt_subnode_offset(blob, 0, "memory");
++	if (node < 0) {
++		printf("%s: Can't get memory node\n", __func__);
++		return node;
++	}
++
++	/* Get pointer to cells and lenght of it */
++	cell = fdt_getprop(blob, node, "reg", &len);
++	if (!cell) {
++		printf("%s: Can't get reg property\n", __func__);
++		return -1;
++	}
++
++	gd->ram_size = fdt_get_reg(blob, node, &tmp, cell, len / FDT_REG_SIZE);
++
++	debug("%s: Initial DRAM size %llx\n", __func__, (u64)gd->ram_size);
++
++	zynq_ddrc_init();
++
++	return 0;
++}
++#else
++int dram_init(void)
++{
++	gd->ram_size = CONFIG_SYS_SDRAM_SIZE;
++
++	zynq_ddrc_init();
++
++	return 0;
++}
++#endif
+diff --git a/board/ni/zynq/ps7_init_common.c b/board/ni/zynq/ps7_init_common.c
+new file mode 100644
+index 0000000..b182436
+--- /dev/null
++++ b/board/ni/zynq/ps7_init_common.c
+@@ -0,0 +1,119 @@
++/*
++ * (c) Copyright 2010-2014 Xilinx, Inc. All rights reserved.
++ * (c) Copyright 2016 Topic Embedded Products.
++ * (c) Copyright 2016 National Instruments Corp.
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#include "ps7_init_gpl.h"
++#include <asm/io.h>
++
++/* For delay calculation using global registers*/
++#define SCU_GLOBAL_TIMER_COUNT_L32	0xF8F00200
++#define SCU_GLOBAL_TIMER_COUNT_U32	0xF8F00204
++#define SCU_GLOBAL_TIMER_CONTROL	0xF8F00208
++#define SCU_GLOBAL_TIMER_AUTO_INC	0xF8F00218
++#define APU_FREQ  800000000
++
++#define PS7_MASK_POLL_TIME 100000000
++
++/* IO accessors. No memory barriers desired. */
++static inline void iowrite(unsigned long val, unsigned long addr)
++{
++	__raw_writel(val, addr);
++}
++
++static inline unsigned long ioread(unsigned long addr)
++{
++	return __raw_readl(addr);
++}
++
++/* start timer */
++static void perf_start_clock(void)
++{
++	iowrite((1 << 0) | /* Timer Enable */
++		(1 << 3) | /* Auto-increment */
++		(0 << 8), /* Pre-scale */
++		SCU_GLOBAL_TIMER_CONTROL);
++}
++
++/* Compute mask for given delay in miliseconds*/
++static int get_number_of_cycles_for_delay(unsigned int delay)
++{
++	return (APU_FREQ / (2 * 1000)) * delay;
++}
++
++/* stop timer */
++static void perf_disable_clock(void)
++{
++	iowrite(0, SCU_GLOBAL_TIMER_CONTROL);
++}
++
++/* stop timer and reset timer count regs */
++static void perf_reset_clock(void)
++{
++	perf_disable_clock();
++	iowrite(0, SCU_GLOBAL_TIMER_COUNT_L32);
++	iowrite(0, SCU_GLOBAL_TIMER_COUNT_U32);
++}
++
++static void perf_reset_and_start_timer(void)
++{
++	perf_reset_clock();
++	perf_start_clock();
++}
++
++
++int ps7_config(unsigned long *ps7_config_init)
++{
++	unsigned long *ptr = ps7_config_init;
++	unsigned long opcode;
++	unsigned long addr;
++	unsigned long val;
++	unsigned long mask;
++	unsigned int numargs;
++	int i;
++	int delay;
++
++	for (;;) {
++		opcode = ptr[0];
++		if (opcode == OPCODE_EXIT)
++			return PS7_INIT_SUCCESS;
++		addr = (opcode & OPCODE_ADDRESS_MASK);
++
++		switch (opcode & ~OPCODE_ADDRESS_MASK) {
++		case OPCODE_MASKWRITE:
++			numargs = 3;
++			mask = ptr[1];
++			val = ptr[2];
++			iowrite((ioread(addr) & ~mask) | (val & mask), addr);
++			break;
++
++		case OPCODE_MASKPOLL:
++			numargs = 2;
++			mask = ptr[1];
++			i = 0;
++			while (!(ioread(addr) & mask)) {
++				if (i == PS7_MASK_POLL_TIME)
++					return PS7_INIT_TIMEOUT;
++				i++;
++			}
++			break;
++
++		case OPCODE_MASKDELAY:
++			numargs = 2;
++			mask = ptr[1];
++			delay = get_number_of_cycles_for_delay(mask);
++			perf_reset_and_start_timer();
++			while (ioread(addr) < delay)
++				;
++			break;
++
++		default:
++			return PS7_INIT_CORRUPT;
++		}
++
++		ptr += numargs;
++	}
++}
+diff --git a/board/ni/zynq/ps7_init_gpl.h b/board/ni/zynq/ps7_init_gpl.h
+new file mode 100644
+index 0000000..ef719ac
+--- /dev/null
++++ b/board/ni/zynq/ps7_init_gpl.h
+@@ -0,0 +1,34 @@
++/*
++ * (c) Copyright 2010-2014 Xilinx, Inc. All rights reserved.
++ * (c) Copyright 2016 Topic Embedded Products.
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#define OPCODE_EXIT       0U
++#define OPCODE_MASKWRITE  0U
++#define OPCODE_MASKPOLL   1U
++#define OPCODE_MASKDELAY  2U
++#define OPCODE_ADDRESS_MASK (~3U)
++
++/* Sentinel */
++#define EMIT_EXIT()                     OPCODE_EXIT
++/* Opcode is in lower 2 bits of address, address is always 4-byte aligned */
++#define EMIT_MASKWRITE(addr, mask, val) OPCODE_MASKWRITE | addr, mask, val
++#define EMIT_MASKPOLL(addr, mask)       OPCODE_MASKPOLL | addr, mask
++#define EMIT_MASKDELAY(addr, mask)      OPCODE_MASKDELAY | addr, mask
++
++/* Returns codes of ps7_init* */
++#define PS7_INIT_SUCCESS   (0)
++#define PS7_INIT_CORRUPT   (1)
++#define PS7_INIT_TIMEOUT   (2)
++#define PS7_POLL_FAILED_DDR_INIT (3)
++#define PS7_POLL_FAILED_DMA      (4)
++#define PS7_POLL_FAILED_PLL      (5)
++
++/* Called by spl.c */
++int ps7_init(void);
++int ps7_post_config(void);
++
++/* Defined in ps7_init_common.c */
++int ps7_config(unsigned long *ps7_config_init);
+diff --git a/board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c b/board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c
+new file mode 100644
+index 0000000..0a80818
+--- /dev/null
++++ b/board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c
+@@ -0,0 +1,313 @@
++/*
++ * (c) Copyright 2010-2014 Xilinx, Inc. All rights reserved.
++ * (c) Copyright 2016 National Instruments Corp.
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#include "../ps7_init_gpl.h"
++
++unsigned long ps7_pll_init_data_3_0[] = {
++	EMIT_MASKWRITE(0XF8000008, 0x0000FFFFU, 0x0000DF0DU),
++	EMIT_MASKWRITE(0XF8000110, 0x003FFFF0U, 0x000FA240U),
++	EMIT_MASKWRITE(0XF8000100, 0x0007F000U, 0x00030000U),
++	EMIT_MASKWRITE(0XF8000100, 0x00000010U, 0x00000010U),
++	EMIT_MASKWRITE(0XF8000100, 0x00000001U, 0x00000001U),
++	EMIT_MASKWRITE(0XF8000100, 0x00000001U, 0x00000000U),
++	EMIT_MASKPOLL(0XF800010C, 0x00000001U),
++	EMIT_MASKWRITE(0XF8000100, 0x00000010U, 0x00000000U),
++	EMIT_MASKWRITE(0XF8000120, 0x1F003F30U, 0x1F000200U),
++	EMIT_MASKWRITE(0XF8000114, 0x003FFFF0U, 0x0012C220U),
++	EMIT_MASKWRITE(0XF8000104, 0x0007F000U, 0x00020000U),
++	EMIT_MASKWRITE(0XF8000104, 0x00000010U, 0x00000010U),
++	EMIT_MASKWRITE(0XF8000104, 0x00000001U, 0x00000001U),
++	EMIT_MASKWRITE(0XF8000104, 0x00000001U, 0x00000000U),
++	EMIT_MASKPOLL(0XF800010C, 0x00000002U),
++	EMIT_MASKWRITE(0XF8000104, 0x00000010U, 0x00000000U),
++	EMIT_MASKWRITE(0XF8000124, 0xFFF00003U, 0x0C200003U),
++	EMIT_MASKWRITE(0XF8000118, 0x003FFFF0U, 0x001452C0U),
++	EMIT_MASKWRITE(0XF8000108, 0x0007F000U, 0x0001E000U),
++	EMIT_MASKWRITE(0XF8000108, 0x00000010U, 0x00000010U),
++	EMIT_MASKWRITE(0XF8000108, 0x00000001U, 0x00000001U),
++	EMIT_MASKWRITE(0XF8000108, 0x00000001U, 0x00000000U),
++	EMIT_MASKPOLL(0XF800010C, 0x00000004U),
++	EMIT_MASKWRITE(0XF8000108, 0x00000010U, 0x00000000U),
++	EMIT_MASKWRITE(0XF8000004, 0x0000FFFFU, 0x0000767BU),
++	EMIT_EXIT(),
++};
++
++unsigned long ps7_clock_init_data_3_0[] = {
++	EMIT_MASKWRITE(0XF8000008, 0x0000FFFFU, 0x0000DF0DU),
++	EMIT_MASKWRITE(0XF8000128, 0x03F03F01U, 0x00700F01U),
++	EMIT_MASKWRITE(0XF8000138, 0x00000011U, 0x00000001U),
++	EMIT_MASKWRITE(0XF8000140, 0x03F03F71U, 0x00100801U),
++	EMIT_MASKWRITE(0XF8000150, 0x00003F33U, 0x00000A01U),
++	EMIT_MASKWRITE(0XF8000154, 0x00003F33U, 0x00000A03U),
++	EMIT_MASKWRITE(0XF8000158, 0x00003F33U, 0x00000602U),
++	EMIT_MASKWRITE(0XF8000168, 0x00003F31U, 0x00000501U),
++	EMIT_MASKWRITE(0XF8000170, 0x03F03F30U, 0x00100100U),
++	EMIT_MASKWRITE(0XF8000180, 0x03F03F30U, 0x00100100U),
++	EMIT_MASKWRITE(0XF8000190, 0x03F03F30U, 0x00100100U),
++	EMIT_MASKWRITE(0XF80001A0, 0x03F03F30U, 0x00100100U),
++	EMIT_MASKWRITE(0XF80001C4, 0x00000001U, 0x00000001U),
++	EMIT_MASKWRITE(0XF800012C, 0x01FFCCCDU, 0x017C844DU),
++	EMIT_MASKWRITE(0XF8000004, 0x0000FFFFU, 0x0000767BU),
++	EMIT_EXIT(),
++};
++
++unsigned long ps7_ddr_init_data_3_0[] = {
++	EMIT_MASKWRITE(0XF8006000, 0x0001FFFFU, 0x00000080U),
++	EMIT_MASKWRITE(0XF8006004, 0x0007FFFFU, 0x00001081U),
++	EMIT_MASKWRITE(0XF8006008, 0x03FFFFFFU, 0x03C0780FU),
++	EMIT_MASKWRITE(0XF800600C, 0x03FFFFFFU, 0x02001001U),
++	EMIT_MASKWRITE(0XF8006010, 0x03FFFFFFU, 0x00014001U),
++	EMIT_MASKWRITE(0XF8006014, 0x001FFFFFU, 0x0004281CU),
++	EMIT_MASKWRITE(0XF8006018, 0xF7FFFFFFU, 0x45246CD2U),
++	EMIT_MASKWRITE(0XF800601C, 0xFFFFFFFFU, 0x720238E5U),
++	EMIT_MASKWRITE(0XF8006020, 0x7FDFFFFCU, 0x270872D0U),
++	EMIT_MASKWRITE(0XF8006024, 0x0FFFFFC3U, 0x00000000U),
++	EMIT_MASKWRITE(0XF8006028, 0x00003FFFU, 0x00002007U),
++	EMIT_MASKWRITE(0XF800602C, 0xFFFFFFFFU, 0x00000008U),
++	EMIT_MASKWRITE(0XF8006030, 0xFFFFFFFFU, 0x00040930U),
++	EMIT_MASKWRITE(0XF8006034, 0x13FF3FFFU, 0x000116D4U),
++	EMIT_MASKWRITE(0XF8006038, 0x00000003U, 0x00000000U),
++	EMIT_MASKWRITE(0XF800603C, 0x000FFFFFU, 0x00000777U),
++	EMIT_MASKWRITE(0XF8006040, 0xFFFFFFFFU, 0xFFF00000U),
++	EMIT_MASKWRITE(0XF8006044, 0x0FFFFFFFU, 0x0F666666U),
++	EMIT_MASKWRITE(0XF8006048, 0x0003F03FU, 0x0003C008U),
++	EMIT_MASKWRITE(0XF8006050, 0xFF0F8FFFU, 0x77010800U),
++	EMIT_MASKWRITE(0XF8006058, 0x00010000U, 0x00000000U),
++	EMIT_MASKWRITE(0XF800605C, 0x0000FFFFU, 0x00005003U),
++	EMIT_MASKWRITE(0XF8006060, 0x000017FFU, 0x0000003EU),
++	EMIT_MASKWRITE(0XF8006064, 0x00021FE0U, 0x00020000U),
++	EMIT_MASKWRITE(0XF8006068, 0x03FFFFFFU, 0x00284141U),
++	EMIT_MASKWRITE(0XF800606C, 0x0000FFFFU, 0x00001610U),
++	EMIT_MASKWRITE(0XF8006078, 0x03FFFFFFU, 0x00466111U),
++	EMIT_MASKWRITE(0XF800607C, 0x000FFFFFU, 0x00032222U),
++	EMIT_MASKWRITE(0XF80060A4, 0xFFFFFFFFU, 0x10200802U),
++	EMIT_MASKWRITE(0XF80060A8, 0x0FFFFFFFU, 0x0690CB52U),
++	EMIT_MASKWRITE(0XF80060AC, 0x000001FFU, 0x000001FEU),
++	EMIT_MASKWRITE(0XF80060B0, 0x1FFFFFFFU, 0x1CFFFFFFU),
++	EMIT_MASKWRITE(0XF80060B4, 0x00000200U, 0x00000200U),
++	EMIT_MASKWRITE(0XF80060B8, 0x01FFFFFFU, 0x00200066U),
++	EMIT_MASKWRITE(0XF80060C4, 0x00000003U, 0x00000003U),
++	EMIT_MASKWRITE(0XF80060C4, 0x00000003U, 0x00000000U),
++	EMIT_MASKWRITE(0XF80060C8, 0x000000FFU, 0x00000000U),
++	EMIT_MASKWRITE(0XF80060DC, 0x00000001U, 0x00000000U),
++	EMIT_MASKWRITE(0XF80060F0, 0x0000FFFFU, 0x00000000U),
++	EMIT_MASKWRITE(0XF80060F4, 0x0000000FU, 0x00000008U),
++	EMIT_MASKWRITE(0XF8006114, 0x000000FFU, 0x00000000U),
++	EMIT_MASKWRITE(0XF8006118, 0x7FFFFFCFU, 0x40000001U),
++	EMIT_MASKWRITE(0XF800611C, 0x7FFFFFCFU, 0x40000001U),
++	EMIT_MASKWRITE(0XF8006120, 0x7FFFFFCFU, 0x40000001U),
++	EMIT_MASKWRITE(0XF8006124, 0x7FFFFFCFU, 0x40000001U),
++	EMIT_MASKWRITE(0XF800612C, 0x000FFFFFU, 0x00018028U),
++	EMIT_MASKWRITE(0XF8006130, 0x000FFFFFU, 0x0001802FU),
++	EMIT_MASKWRITE(0XF8006134, 0x000FFFFFU, 0x0001802AU),
++	EMIT_MASKWRITE(0XF8006138, 0x000FFFFFU, 0x0001802EU),
++	EMIT_MASKWRITE(0XF8006140, 0x000FFFFFU, 0x00000035U),
++	EMIT_MASKWRITE(0XF8006144, 0x000FFFFFU, 0x00000035U),
++	EMIT_MASKWRITE(0XF8006148, 0x000FFFFFU, 0x00000035U),
++	EMIT_MASKWRITE(0XF800614C, 0x000FFFFFU, 0x00000035U),
++	EMIT_MASKWRITE(0XF8006154, 0x000FFFFFU, 0x000000A8U),
++	EMIT_MASKWRITE(0XF8006158, 0x000FFFFFU, 0x000000AFU),
++	EMIT_MASKWRITE(0XF800615C, 0x000FFFFFU, 0x000000AAU),
++	EMIT_MASKWRITE(0XF8006160, 0x000FFFFFU, 0x000000AEU),
++	EMIT_MASKWRITE(0XF8006168, 0x001FFFFFU, 0x000000B5U),
++	EMIT_MASKWRITE(0XF800616C, 0x001FFFFFU, 0x000000B5U),
++	EMIT_MASKWRITE(0XF8006170, 0x001FFFFFU, 0x000000B5U),
++	EMIT_MASKWRITE(0XF8006174, 0x001FFFFFU, 0x000000B5U),
++	EMIT_MASKWRITE(0XF800617C, 0x000FFFFFU, 0x000000E8U),
++	EMIT_MASKWRITE(0XF8006180, 0x000FFFFFU, 0x000000EFU),
++	EMIT_MASKWRITE(0XF8006184, 0x000FFFFFU, 0x000000EAU),
++	EMIT_MASKWRITE(0XF8006188, 0x000FFFFFU, 0x000000EEU),
++	EMIT_MASKWRITE(0XF8006190, 0x6FFFFEFEU, 0x00040080U),
++	EMIT_MASKWRITE(0XF8006194, 0x000FFFFFU, 0x0001FC82U),
++	EMIT_MASKWRITE(0XF8006204, 0xFFFFFFFFU, 0x00000000U),
++	EMIT_MASKWRITE(0XF8006208, 0x000703FFU, 0x000003FFU),
++	EMIT_MASKWRITE(0XF800620C, 0x000703FFU, 0x000003FFU),
++	EMIT_MASKWRITE(0XF8006210, 0x000703FFU, 0x000003FFU),
++	EMIT_MASKWRITE(0XF8006214, 0x000703FFU, 0x000003FFU),
++	EMIT_MASKWRITE(0XF8006218, 0x000F03FFU, 0x000003FFU),
++	EMIT_MASKWRITE(0XF800621C, 0x000F03FFU, 0x000003FFU),
++	EMIT_MASKWRITE(0XF8006220, 0x000F03FFU, 0x000003FFU),
++	EMIT_MASKWRITE(0XF8006224, 0x000F03FFU, 0x000003FFU),
++	EMIT_MASKWRITE(0XF80062A8, 0x00000FF5U, 0x00000000U),
++	EMIT_MASKWRITE(0XF80062AC, 0xFFFFFFFFU, 0x00000000U),
++	EMIT_MASKWRITE(0XF80062B0, 0x003FFFFFU, 0x00005125U),
++	EMIT_MASKWRITE(0XF80062B4, 0x0003FFFFU, 0x000012A8U),
++	EMIT_MASKPOLL(0XF8000B74, 0x00002000U),
++	EMIT_MASKWRITE(0XF8006000, 0x0001FFFFU, 0x00000081U),
++	EMIT_MASKPOLL(0XF8006054, 0x00000007U),
++	EMIT_EXIT(),
++};
++
++unsigned long ps7_mio_init_data_3_0[] = {
++	EMIT_MASKWRITE(0XF8000008, 0x0000FFFFU, 0x0000DF0DU),
++	EMIT_MASKWRITE(0XF8000B40, 0x00000FFFU, 0x00000600U),
++	EMIT_MASKWRITE(0XF8000B44, 0x00000FFFU, 0x00000600U),
++	EMIT_MASKWRITE(0XF8000B48, 0x00000FFFU, 0x00000672U),
++	EMIT_MASKWRITE(0XF8000B4C, 0x00000FFFU, 0x00000672U),
++	EMIT_MASKWRITE(0XF8000B50, 0x00000FFFU, 0x00000674U),
++	EMIT_MASKWRITE(0XF8000B54, 0x00000FFFU, 0x00000674U),
++	EMIT_MASKWRITE(0XF8000B58, 0x00000FFFU, 0x00000600U),
++	EMIT_MASKWRITE(0XF8000B5C, 0xFFFFFFFFU, 0x0018C61CU),
++	EMIT_MASKWRITE(0XF8000B60, 0xFFFFFFFFU, 0x00F9861CU),
++	EMIT_MASKWRITE(0XF8000B64, 0xFFFFFFFFU, 0x00F9861CU),
++	EMIT_MASKWRITE(0XF8000B68, 0xFFFFFFFFU, 0x00F9861CU),
++	EMIT_MASKWRITE(0XF8000B6C, 0x00007FFFU, 0x00000260U),
++	EMIT_MASKWRITE(0XF8000B70, 0x00000001U, 0x00000001U),
++	EMIT_MASKWRITE(0XF8000B70, 0x00000021U, 0x00000020U),
++	EMIT_MASKWRITE(0XF8000B70, 0x07FEFFFFU, 0x00000823U),
++	EMIT_MASKWRITE(0XF8000700, 0x00003FFFU, 0x00001200U),
++	EMIT_MASKWRITE(0XF8000704, 0x00003FFFU, 0x00001200U),
++	EMIT_MASKWRITE(0XF8000708, 0x00003FFFU, 0x00000200U),
++	EMIT_MASKWRITE(0XF800070C, 0x00003FFFU, 0x00000200U),
++	EMIT_MASKWRITE(0XF8000710, 0x00003FFFU, 0x00000200U),
++	EMIT_MASKWRITE(0XF8000714, 0x00003FFFU, 0x00000200U),
++	EMIT_MASKWRITE(0XF8000718, 0x00003FFFU, 0x00000200U),
++	EMIT_MASKWRITE(0XF800071C, 0x00003FFFU, 0x00000200U),
++	EMIT_MASKWRITE(0XF8000720, 0x00003FFFU, 0x000002E0U),
++	EMIT_MASKWRITE(0XF8000724, 0x00003FFFU, 0x000012E1U),
++	EMIT_MASKWRITE(0XF8000728, 0x00003FFFU, 0x00001261U),
++	EMIT_MASKWRITE(0XF800072C, 0x00003FFFU, 0x00001260U),
++	EMIT_MASKWRITE(0XF8000730, 0x00003FFFU, 0x00001261U),
++	EMIT_MASKWRITE(0XF8000734, 0x00003FFFU, 0x00001261U),
++	EMIT_MASKWRITE(0XF8000738, 0x00003FFFU, 0x000002E1U),
++	EMIT_MASKWRITE(0XF800073C, 0x00003FFFU, 0x000002E0U),
++	EMIT_MASKWRITE(0XF8000740, 0x00003FFFU, 0x00001302U),
++	EMIT_MASKWRITE(0XF8000744, 0x00003FFFU, 0x00001302U),
++	EMIT_MASKWRITE(0XF8000748, 0x00003FFFU, 0x00001302U),
++	EMIT_MASKWRITE(0XF800074C, 0x00003FFFU, 0x00001302U),
++	EMIT_MASKWRITE(0XF8000750, 0x00003FFFU, 0x00001302U),
++	EMIT_MASKWRITE(0XF8000754, 0x00003FFFU, 0x00001302U),
++	EMIT_MASKWRITE(0XF8000758, 0x00003FFFU, 0x00001303U),
++	EMIT_MASKWRITE(0XF800075C, 0x00003FFFU, 0x00001303U),
++	EMIT_MASKWRITE(0XF8000760, 0x00003FFFU, 0x00001303U),
++	EMIT_MASKWRITE(0XF8000764, 0x00003FFFU, 0x00001303U),
++	EMIT_MASKWRITE(0XF8000768, 0x00003FFFU, 0x00001303U),
++	EMIT_MASKWRITE(0XF800076C, 0x00003FFFU, 0x00001303U),
++	EMIT_MASKWRITE(0XF8000770, 0x00003FFFU, 0x00001304U),
++	EMIT_MASKWRITE(0XF8000774, 0x00003FFFU, 0x00001305U),
++	EMIT_MASKWRITE(0XF8000778, 0x00003FFFU, 0x00001304U),
++	EMIT_MASKWRITE(0XF800077C, 0x00003FFFU, 0x00001305U),
++	EMIT_MASKWRITE(0XF8000780, 0x00003FFFU, 0x00001304U),
++	EMIT_MASKWRITE(0XF8000784, 0x00003FFFU, 0x00001304U),
++	EMIT_MASKWRITE(0XF8000788, 0x00003FFFU, 0x00001304U),
++	EMIT_MASKWRITE(0XF800078C, 0x00003FFFU, 0x00001304U),
++	EMIT_MASKWRITE(0XF8000790, 0x00003FFFU, 0x00001305U),
++	EMIT_MASKWRITE(0XF8000794, 0x00003FFFU, 0x00001304U),
++	EMIT_MASKWRITE(0XF8000798, 0x00003FFFU, 0x00001304U),
++	EMIT_MASKWRITE(0XF800079C, 0x00003FFFU, 0x00001304U),
++	EMIT_MASKWRITE(0XF80007A0, 0x00003FFFU, 0x00000380U),
++	EMIT_MASKWRITE(0XF80007A4, 0x00003FFFU, 0x00000380U),
++	EMIT_MASKWRITE(0XF80007A8, 0x00003FFFU, 0x00000380U),
++	EMIT_MASKWRITE(0XF80007AC, 0x00003FFFU, 0x00000380U),
++	EMIT_MASKWRITE(0XF80007B0, 0x00003FFFU, 0x00000380U),
++	EMIT_MASKWRITE(0XF80007B4, 0x00003FFFU, 0x00000380U),
++	EMIT_MASKWRITE(0XF80007B8, 0x00003FFFU, 0x000012A0U),
++	EMIT_MASKWRITE(0XF80007BC, 0x00003FFFU, 0x000012A0U),
++	EMIT_MASKWRITE(0XF80007C0, 0x00003FFFU, 0x000012A0U),
++	EMIT_MASKWRITE(0XF80007C4, 0x00003FFFU, 0x000012A0U),
++	EMIT_MASKWRITE(0XF80007C8, 0x00003FFFU, 0x00001240U),
++	EMIT_MASKWRITE(0XF80007CC, 0x00003FFFU, 0x00001240U),
++	EMIT_MASKWRITE(0XF80007D0, 0x00003FFFU, 0x00001280U),
++	EMIT_MASKWRITE(0XF80007D4, 0x00003FFFU, 0x00001280U),
++	EMIT_MASKWRITE(0XF8000830, 0x003F003FU, 0x00380037U),
++	EMIT_MASKWRITE(0XF8000004, 0x0000FFFFU, 0x0000767BU),
++	EMIT_EXIT(),
++};
++
++unsigned long ps7_peripherals_init_data_3_0[] = {
++	EMIT_MASKWRITE(0XF8000008, 0x0000FFFFU, 0x0000DF0DU),
++	EMIT_MASKWRITE(0XF8000B48, 0x00000180U, 0x00000180U),
++	EMIT_MASKWRITE(0XF8000B4C, 0x00000180U, 0x00000180U),
++	EMIT_MASKWRITE(0XF8000B50, 0x00000180U, 0x00000180U),
++	EMIT_MASKWRITE(0XF8000B54, 0x00000180U, 0x00000180U),
++	EMIT_MASKWRITE(0XF8000004, 0x0000FFFFU, 0x0000767BU),
++	EMIT_MASKWRITE(0XE0001034, 0x000000FFU, 0x00000006U),
++	EMIT_MASKWRITE(0XE0001018, 0x0000FFFFU, 0x0000007CU),
++	EMIT_MASKWRITE(0XE0001000, 0x000001FFU, 0x00000017U),
++	EMIT_MASKWRITE(0XE0001004, 0x000003FFU, 0x00000020U),
++	EMIT_MASKWRITE(0XE0000034, 0x000000FFU, 0x00000006U),
++	EMIT_MASKWRITE(0XE0000018, 0x0000FFFFU, 0x0000007CU),
++	EMIT_MASKWRITE(0XE0000000, 0x000001FFU, 0x00000017U),
++	EMIT_MASKWRITE(0XE0000004, 0x000003FFU, 0x00000020U),
++	EMIT_MASKWRITE(0XE000D000, 0x00080000U, 0x00080000U),
++	EMIT_MASKWRITE(0XF8007000, 0x20000000U, 0x00000000U),
++	EMIT_MASKWRITE(0XE000A204, 0xFFFFFFFFU, 0x000000C8U),
++	EMIT_MASKWRITE(0XE000A000, 0xFFFFFFFFU, 0xFF7F0080U),
++	EMIT_MASKWRITE(0XE000A208, 0xFFFFFFFFU, 0x000000C8U),
++	EMIT_MASKWRITE(0XE000A000, 0xFFFFFFFFU, 0xFF7F0000U),
++	EMIT_MASKDELAY(0XF8F00200, 1),
++	EMIT_MASKWRITE(0XE000A000, 0xFFFFFFFFU, 0xFF7F0080U),
++	EMIT_MASKDELAY(0XF8F00200, 1),
++	EMIT_MASKWRITE(0XE000A204, 0xFFFFFFFFU, 0x000000C8U),
++	EMIT_MASKWRITE(0XE000A000, 0xFFFFFFFFU, 0xFFBF0040U),
++	EMIT_MASKWRITE(0XE000A208, 0xFFFFFFFFU, 0x000000C8U),
++	EMIT_MASKWRITE(0XE000A000, 0xFFFFFFFFU, 0xFFBF0000U),
++	EMIT_MASKDELAY(0XF8F00200, 1),
++	EMIT_MASKWRITE(0XE000A000, 0xFFFFFFFFU, 0xFFBF0040U),
++	EMIT_MASKDELAY(0XF8F00200, 1),
++	EMIT_MASKWRITE(0XE000A204, 0xFFFFFFFFU, 0x000000C8U),
++	EMIT_MASKWRITE(0XE000A000, 0xFFFFFFFFU, 0xFFF70008U),
++	EMIT_MASKWRITE(0XE000A208, 0xFFFFFFFFU, 0x000000C8U),
++	EMIT_MASKWRITE(0XE000A000, 0xFFFFFFFFU, 0xFFF70000U),
++	EMIT_MASKDELAY(0XF8F00200, 1),
++	EMIT_MASKWRITE(0XE000A000, 0xFFFFFFFFU, 0xFFF70008U),
++	EMIT_MASKDELAY(0XF8F00200, 1),
++	EMIT_EXIT(),
++};
++
++unsigned long ps7_post_config_3_0[] = {
++	EMIT_MASKWRITE(0XF8000008, 0x0000FFFFU, 0x0000DF0DU),
++	EMIT_MASKWRITE(0XF8000900, 0x0000000FU, 0x0000000FU),
++	EMIT_MASKWRITE(0XF8000240, 0xFFFFFFFFU, 0x00000000U),
++	EMIT_MASKWRITE(0XF8000004, 0x0000FFFFU, 0x0000767BU),
++	EMIT_EXIT(),
++};
++
++unsigned long ps7_debug_3_0[] = {
++	EMIT_MASKWRITE(0XF8898FB0, 0xFFFFFFFFU, 0xC5ACCE55U),
++	EMIT_MASKWRITE(0XF8899FB0, 0xFFFFFFFFU, 0xC5ACCE55U),
++	EMIT_MASKWRITE(0XF8809FB0, 0xFFFFFFFFU, 0xC5ACCE55U),
++	EMIT_EXIT(),
++};
++
++int ps7_post_config(void)
++{
++	return ps7_config(ps7_post_config_3_0);
++}
++
++
++int ps7_init(void)
++{
++	int ret;
++
++	/* MIO init */
++	ret = ps7_config(ps7_mio_init_data_3_0);
++	if (ret != PS7_INIT_SUCCESS)
++		return ret;
++
++	/* PLL init */
++	ret = ps7_config(ps7_pll_init_data_3_0);
++	if (ret != PS7_INIT_SUCCESS)
++		return ret;
++
++	/* Clock init */
++	ret = ps7_config(ps7_clock_init_data_3_0);
++	if (ret != PS7_INIT_SUCCESS)
++		return ret;
++
++	/* DDR init */
++	ret = ps7_config(ps7_ddr_init_data_3_0);
++	if (ret != PS7_INIT_SUCCESS)
++		return ret;
++
++	/* Peripherals init */
++	ret = ps7_config(ps7_peripherals_init_data_3_0);
++	if (ret != PS7_INIT_SUCCESS)
++		return ret;
++
++	return PS7_INIT_SUCCESS;
++}
+diff --git a/configs/ni_sulfur_rev2_defconfig b/configs/ni_sulfur_rev2_defconfig
+new file mode 100644
+index 0000000..e4c94d2
+--- /dev/null
++++ b/configs/ni_sulfur_rev2_defconfig
+@@ -0,0 +1,66 @@
++CONFIG_ARM=y
++CONFIG_SYS_VENDOR="ni"
++CONFIG_SYS_CONFIG_NAME="ni_sulfur_rev2"
++CONFIG_ARCH_ZYNQ=y
++CONFIG_DEFAULT_DEVICE_TREE="zynq-ni-sulfur-rev2"
++CONFIG_FIT=y
++CONFIG_SYS_NO_FLASH=y
++# CONFIG_DISPLAY_CPUINFO is not set
++CONFIG_SPL=y
++CONFIG_HUSH_PARSER=y
++CONFIG_SYS_PROMPT="ni-sulfur-rev2> "
++# CONFIG_CMD_IMLS is not set
++CONFIG_CMD_MEMTEST=y
++CONFIG_CMD_MEMINFO=y
++# CONFIG_CMD_FLASH is not set
++CONFIG_CMD_MMC=y
++CONFIG_CMD_SPI=y
++CONFIG_CMD_I2C=y
++CONFIG_CMD_USB=y
++CONFIG_CMD_DFU=y
++CONFIG_CMD_GPIO=y
++# CONFIG_CMD_SETEXPR is not set
++CONFIG_CMD_TFTPPUT=y
++CONFIG_CMD_DHCP=y
++CONFIG_CMD_MII=y
++CONFIG_CMD_PING=y
++CONFIG_CMD_DNS=y
++CONFIG_CMD_CACHE=y
++CONFIG_CMD_TPM=y
++CONFIG_CMD_TPM_TEST=y
++CONFIG_CMD_EXT2=y
++CONFIG_CMD_EXT4=y
++CONFIG_CMD_EXT4_WRITE=y
++CONFIG_CMD_FAT=y
++CONFIG_CMD_FS_GENERIC=y
++CONFIG_NET_RANDOM_ETHADDR=y
++CONFIG_SPL_DM_SEQ_ALIAS=y
++CONFIG_DFU_MMC=y
++CONFIG_DFU_RAM=y
++CONFIG_DM_I2C=y
++CONFIG_I2C_CROS_EC_TUNNEL=y
++CONFIG_DM_I2C_GPIO=y
++CONFIG_SYS_I2C_CADENCE=y
++CONFIG_I2C_MUX=y
++CONFIG_I2C_MUX_PCA954x=y
++CONFIG_MISC=y
++CONFIG_CROS_EC=y
++CONFIG_CROS_EC_SPI=y
++CONFIG_I2C_EEPROM=y
++CONFIG_ZYNQ_SDHCI=y
++CONFIG_ZYNQ_GEM=y
++CONFIG_ZYNQ_SPI=y
++CONFIG_TPM_TIS_INFINEON=y
++CONFIG_TPM_AUTH_SESSIONS=y
++CONFIG_USB=y
++CONFIG_USB_EHCI_HCD=y
++CONFIG_USB_ULPI_VIEWPORT=y
++CONFIG_USB_ULPI=y
++CONFIG_USB_STORAGE=y
++CONFIG_USB_GADGET=y
++CONFIG_CI_UDC=y
++CONFIG_USB_GADGET_DOWNLOAD=y
++CONFIG_G_DNL_MANUFACTURER="National Instruments Inc"
++CONFIG_G_DNL_VENDOR_NUM=0x3923
++CONFIG_G_DNL_PRODUCT_NUM=0x0300
++CONFIG_TPM=y
+diff --git a/include/configs/ni_sulfur_rev2.h b/include/configs/ni_sulfur_rev2.h
+new file mode 100644
+index 0000000..2aa2f90
+--- /dev/null
++++ b/include/configs/ni_sulfur_rev2.h
+@@ -0,0 +1,58 @@
++/*
++ * (C) Copyright 2016 National Instruments
++ *
++ * Configuration for NI Ettus Research Project Sulfur Rev2
++ * See zynq-common.h for Zynq common configs
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#ifndef __CONFIG_NI_SULFUR_REV2
++#define __CONFIG_NI_SULFUR_REV2
++
++#include "zynq-common.h"
++
++#undef CONFIG_EXTRA_ENV_SETTINGS
++#define CONFIG_EXTRA_ENV_SETTINGS	\
++	"fit_image=fit.itb\0"		\
++	"load_addr=0x2000000\0"		\
++	"fit_size=0x800000\0"		\
++	"fdt_high=0x20000000\0"		\
++	"initrd_high=0x20000000\0"	\
++	"loadbootenv_addr=0x2000000\0" \
++	"bootenv=uEnv.txt\0" \
++	"bootenv_dev=mmc\0" \
++	"loadbootenv=load ${bootenv_dev} 0 ${loadbootenv_addr} ${bootenv}\0" \
++	"importbootenv=echo Importing environment from ${bootenv_dev} ...; " \
++		"env import -t ${loadbootenv_addr} $filesize\0" \
++	"bootenv_existence_test=test -e ${bootenv_dev} 0 /${bootenv}\0" \
++	"setbootenv=if env run bootenv_existence_test; then " \
++			"if env run loadbootenv; then " \
++				"env run importbootenv; " \
++			"fi; " \
++		"fi; \0" \
++	"sd_loadbootenv=set bootenv_dev mmc && " \
++	                "mmcinfo && "\
++			"run setbootenv \0" \
++	"usb_loadbootenv=set bootenv_dev usb && usb start && run setbootenv \0" \
++	"preboot=if test $modeboot = sdboot; then " \
++			"run sd_loadbootenv; " \
++			"echo Checking if uenvcmd is set ...; " \
++			"if test -n $uenvcmd; then " \
++				"echo Running uenvcmd ...; " \
++				"run uenvcmd; " \
++			"fi; " \
++		"fi; \0" \
++	"sdboot=echo Copying FIT from SD to RAM... && " \
++		"load mmc 0 ${load_addr} ${fit_image} && " \
++		"bootm ${load_addr}\0" \
++	"jtagboot=echo TFTPing FIT to RAM... && " \
++		"tftpboot ${load_addr} ${fit_image} && " \
++		"bootm ${load_addr}\0" \
++	"usbboot=if usb start; then " \
++			"echo Copying FIT from USB to RAM... && " \
++			"load usb 0 ${load_addr} ${fit_image} && " \
++			"bootm ${load_addr}; fi\0" \
++		DFU_ALT_INFO
++
++#endif /* __CONFIG_NI_SULFUR_REV2 */
+-- 
+2.7.4
+
