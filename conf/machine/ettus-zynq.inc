@@ -9,4 +9,4 @@ require conf/machine/include/machine-xilinx-board.inc
 
 PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot"
 
-IMAGE_BOOT_FILES += "boot.bin fpga.bin"
+IMAGE_BOOT_FILES += "boot.bin"
