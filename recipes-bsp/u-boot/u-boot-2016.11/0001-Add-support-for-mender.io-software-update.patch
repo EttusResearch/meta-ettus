@@ -1,0 +1,57 @@
+From 49f1dcd5b101919075b3a1f60d59acfd08f0d70e Mon Sep 17 00:00:00 2001
+From: Philip Balister <philip@opensdr.com>
+Date: Fri, 9 Dec 2016 14:15:38 -0500
+Subject: [PATCH] Add support for mender.io software update.
+
+Signed-off-by: Philip Balister <philip@opensdr.com>
+---
+ include/configs/zynq-common.h      | 16 ----------------
+ include/configs/zynq_e3xx_common.h |  5 +++++
+ 2 files changed, 5 insertions(+), 16 deletions(-)
+
+diff --git a/include/configs/zynq-common.h b/include/configs/zynq-common.h
+index 3f0c543..96e972c 100644
+--- a/include/configs/zynq-common.h
++++ b/include/configs/zynq-common.h
+@@ -190,22 +190,6 @@
+ /* Allow to overwrite serial and ethaddr */
+ #define CONFIG_ENV_OVERWRITE
+ 
+-/* Environment */
+-#ifndef CONFIG_ENV_IS_NOWHERE
+-# ifndef CONFIG_SYS_NO_FLASH
+-/* Environment in NOR flash */
+-#  define CONFIG_ENV_IS_IN_FLASH
+-# elif defined(CONFIG_ZYNQ_QSPI)
+-/* Environment in Serial Flash */
+-#  define CONFIG_ENV_IS_IN_SPI_FLASH
+-# elif defined(CONFIG_SYS_NO_FLASH)
+-#  define CONFIG_ENV_IS_NOWHERE
+-# endif
+-
+-# define CONFIG_ENV_SECT_SIZE		CONFIG_ENV_SIZE
+-# define CONFIG_ENV_OFFSET		0xE0000
+-#endif
+-
+ /* enable preboot to be loaded before CONFIG_BOOTDELAY */
+ #define CONFIG_PREBOOT
+ 
+diff --git a/include/configs/zynq_e3xx_common.h b/include/configs/zynq_e3xx_common.h
+index 299dbc2..471dcdf 100644
+--- a/include/configs/zynq_e3xx_common.h
++++ b/include/configs/zynq_e3xx_common.h
+@@ -9,6 +9,11 @@
+ #ifndef __CONFIG_ZYNQ_E3XX_COMMON_H
+ #define __CONFIG_ZYNQ_E3XX_COMMON_H
+ 
++/* For mender.io support */
++#define CONFIG_BOOTCOUNT_LIMIT
++#define CONFIG_BOOTCOUNT_ENV
++#define CONFIG_ENV_IS_IN_FAT
++
+ #define CONFIG_ZYNQ_E3XX_MEM_TEST
+ #define CONFIG_ZYNQ_E3XX_MEM_TEST_START CONFIG_SYS_SDRAM_BASE
+ #define CONFIG_ZYNQ_E3XX_MEM_TEST_SIZE 0x00001000
+-- 
+2.7.4
+
