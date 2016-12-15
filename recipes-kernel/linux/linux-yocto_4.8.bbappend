@@ -10,3 +10,4 @@ SRC_URI_append_ettus-e300 += " \
 		"
 
 COMPATIBLE_MACHINE_ettus-e300 = "ettus-e3xx-sg1|ettus-e3xx-sg3"
+COMPATIBLE_MACHINE_sulfur = "sulfur"
