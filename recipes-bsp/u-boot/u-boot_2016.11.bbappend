@@ -14,6 +14,7 @@ SRC_URI_append_sulfur = " \
                  file://0002-zynq-spi-Honour-the-activation-deactivation-delay.patch \
                  file://0003-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
                  file://0001-Updates-to-Ettus-Sulfur-for-use-with-mender.patch \
+                 file://0001-sulfur-Use-fit-image-from-root-file-system-for-booti.patch \
                  "
 
 SPL_BINARY = "spl/boot.bin"
