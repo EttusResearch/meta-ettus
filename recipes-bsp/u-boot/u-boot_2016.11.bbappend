@@ -21,6 +21,7 @@ SPL_BINARY = "spl/boot.bin"
 
 HAS_PS7INIT = " ettus-e3xx-sg1 \
                 ettus-e3xx-sg3 \
+                ni_sulfur_rev2_defconfig \
               "
 
 SRC_URI_append_ettus-e3xx-sg1 = " \
