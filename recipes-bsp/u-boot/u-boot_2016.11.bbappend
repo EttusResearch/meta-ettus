@@ -9,7 +9,8 @@ SRC_URI_append_ettus-e300 = " \
 
 SPL_BINARY = "spl/boot.bin"
 
-HAS_PS7INIT = " zynq_e3xx_1_defconfig \
+HAS_PS7INIT = " \
+                zynq_e3xx_1_defconfig \
                 zynq_e3xx_3_defconfig \
               "
 
