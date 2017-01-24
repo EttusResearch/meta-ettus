@@ -1,7 +1,7 @@
-From ba4ccf934818f367748ce136bfe16cc18ea5906b Mon Sep 17 00:00:00 2001
+From 7080c192dee45e9fd01f4e56758e24aadc023085 Mon Sep 17 00:00:00 2001
 From: Mike Looijmans <mike.looijmans@topic.nl>
 Date: Wed, 28 Sep 2016 07:46:30 +0200
-Subject: [PATCH] ARM: zynq: Make SYS_VENDOR configurable
+Subject: [PATCH 1/4] ARM: zynq: Make SYS_VENDOR configurable
 
 Add a string description for SYS_VENDOR to allow configuring boards from
 other vendors than just "xilinx".
@@ -13,7 +13,7 @@ Signed-off-by: Michal Simek <michal.simek@xilinx.com>
  1 file changed, 1 insertion(+)
 
 diff --git a/arch/arm/mach-zynq/Kconfig b/arch/arm/mach-zynq/Kconfig
-index 44e16af..c465918 100644
+index a1175ee..4934fc8 100644
 --- a/arch/arm/mach-zynq/Kconfig
 +++ b/arch/arm/mach-zynq/Kconfig
 @@ -28,6 +28,7 @@ config SYS_BOARD

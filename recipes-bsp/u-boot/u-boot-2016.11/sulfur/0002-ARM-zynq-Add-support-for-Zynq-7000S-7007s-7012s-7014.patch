@@ -1,7 +1,7 @@
-From 05c59d0bc83f28888e5f2cc11b679a721605a46b Mon Sep 17 00:00:00 2001
+From b36fe5c6136eaf521e1c979cc27ca3c92c4447c8 Mon Sep 17 00:00:00 2001
 From: Michal Simek <michal.simek@xilinx.com>
 Date: Tue, 18 Oct 2016 16:10:25 +0200
-Subject: [PATCH] ARM: zynq: Add support for Zynq 7000S 7007s/7012s/7014s
+Subject: [PATCH 2/4] ARM: zynq: Add support for Zynq 7000S 7007s/7012s/7014s
  devices
 
 Zynq 7000S (Single A9 core) devices is using different ID code.

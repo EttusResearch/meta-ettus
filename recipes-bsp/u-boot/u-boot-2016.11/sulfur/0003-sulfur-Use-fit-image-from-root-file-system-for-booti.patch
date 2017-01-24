@@ -1,7 +1,7 @@
-From 35b1150eaf9097bad5b614f4c16bf43eceaa02cf Mon Sep 17 00:00:00 2001
+From 949adc62a74b9ece89a7809b507ed1003ffc04fd Mon Sep 17 00:00:00 2001
 From: Philip Balister <philip@opensdr.com>
 Date: Fri, 16 Dec 2016 13:50:38 -0800
-Subject: [PATCH] sulfur: Use fit image from root file system for booting.
+Subject: [PATCH 3/3] sulfur: Use fit image from root file system for booting.
 
 Signed-off-by: Philip Balister <philip@opensdr.com>
 ---

@@ -9,12 +9,12 @@ SRC_URI_append_ettus-e300 = " \
 
 SRC_URI_append_sulfur = " \
                  file://0001-ARM-zynq-Make-SYS_VENDOR-configurable.patch \
-                 file://0001-ARM-zynq-Add-support-for-Zynq-7000S-7007s-7012s-7014.patch \
-                 file://0001-ARM-dt-zynq-Add-labels-to-cpu-nodes-to-allow-overrid.patch \
-                 file://0002-zynq-spi-Honour-the-activation-deactivation-delay.patch \
-                 file://0003-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
-                 file://0001-Updates-to-Ettus-Sulfur-for-use-with-mender.patch \
-                 file://0001-sulfur-Use-fit-image-from-root-file-system-for-booti.patch \
+                 file://0001-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
+                 file://0002-ARM-zynq-Add-support-for-Zynq-7000S-7007s-7012s-7014.patch \
+                 file://0002-Updates-to-Ettus-Sulfur-for-use-with-mender.patch \
+                 file://0003-ARM-dt-zynq-Add-labels-to-cpu-nodes-to-allow-overrid.patch \
+                 file://0003-sulfur-Use-fit-image-from-root-file-system-for-booti.patch \
+                 file://0004-zynq-spi-Honour-the-activation-deactivation-delay.patch \
                  "
 
 SPL_BINARY = "spl/boot.bin"
