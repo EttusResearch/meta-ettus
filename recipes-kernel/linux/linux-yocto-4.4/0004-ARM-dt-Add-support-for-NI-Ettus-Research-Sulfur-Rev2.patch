@@ -27,7 +27,7 @@ new file mode 100644
 index 0000000..d551936
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts
-@@ -0,0 +1,262 @@
+@@ -0,0 +1,263 @@
 +/*
 + * National Instruments Ettus Research Project Sulfur SDR Revision 2
 + * devicetree source.
@@ -258,6 +258,7 @@ index 0000000..d551936
 +&gem0 {
 +	status = "okay";
 +	phy-mode = "rgmii-id";
++	local-mac-address = [b6 c1 60 f3 cf ab];
 +	phy-handle = <&ethernet_phy0>;
 +
 +	ethernet_phy0: ethernet-phy@0 {
