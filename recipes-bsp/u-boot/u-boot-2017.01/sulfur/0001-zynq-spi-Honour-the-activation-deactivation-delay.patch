@@ -1,7 +1,7 @@
-From 7b3c3e624092ce8d424ebcb0aadd7607ba822802 Mon Sep 17 00:00:00 2001
+From 4fc426f30ec008cece762c7ddce5800b2ae5bd7a Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Thu, 8 Dec 2016 11:49:35 -0800
-Subject: [PATCH 4/4] zynq: spi: Honour the activation / deactivation delay
+Subject: [PATCH] zynq: spi: Honour the activation / deactivation delay
 
 This is not currently implemented. Add support for this so that the
 Chrome OS EC can be used reliably.
