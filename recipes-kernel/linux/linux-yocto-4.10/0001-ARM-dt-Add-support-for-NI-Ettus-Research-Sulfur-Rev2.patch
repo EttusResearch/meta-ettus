@@ -1,20 +1,20 @@
-From f5002d1ddedd6195c88faa5447d56c657cbe18c8 Mon Sep 17 00:00:00 2001
+From 9b2d7cf7b1fc2e91764bc555354ae8b75a922b3b Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 12 Dec 2016 09:10:21 -0800
-Subject: [PATCH 4/8] ARM: dt: Add support for NI Ettus Research Sulfur Rev2
+Subject: [PATCH] ARM: dt: Add support for NI Ettus Research Sulfur Rev2
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
  arch/arm/boot/dts/Makefile                |   1 +
- arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts | 262 ++++++++++++++++++++++++++++++
- 2 files changed, 263 insertions(+)
+ arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts | 263 ++++++++++++++++++++++++++++++
+ 2 files changed, 264 insertions(+)
  create mode 100644 arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts
 
 diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-index e648e23..9c91394 100644
+index 01d178a..9b095a2 100644
 --- a/arch/arm/boot/dts/Makefile
 +++ b/arch/arm/boot/dts/Makefile
-@@ -931,6 +931,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
+@@ -930,6 +930,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
  	zynq-zc702.dtb \
  	zynq-zc706.dtb \
  	zynq-zed.dtb \
@@ -24,7 +24,7 @@ index e648e23..9c91394 100644
  	armada-370-db.dtb \
 diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts
 new file mode 100644
-index 0000000..d551936
+index 0000000..24504a5
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts
 @@ -0,0 +1,263 @@

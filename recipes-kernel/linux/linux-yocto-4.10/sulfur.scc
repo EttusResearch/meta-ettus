@@ -1,0 +1,2 @@
+patch 0001-ARM-dt-Add-support-for-NI-Ettus-Research-Sulfur-Rev2.patch
+kconf hardware sulfur.cfg

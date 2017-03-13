@@ -1,3 +1,0 @@
-patch 0001-ARM-dt-zynq-Add-labels-to-cpu-nodes-to-allow-overrid.patch
-patch 0004-ARM-dt-Add-support-for-NI-Ettus-Research-Sulfur-Rev2.patch
-kconf hardware sulfur.cfg
