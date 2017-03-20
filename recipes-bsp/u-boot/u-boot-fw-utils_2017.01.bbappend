@@ -16,9 +16,10 @@ SRC_URI_append_ettus-e3xx-sg3 = " \
 		 "
 
 SRC_URI_append_sulfur = " \
-                 file://0001-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
-                 file://0002-Updates-to-Ettus-Sulfur-for-use-with-mender.patch \
-                 file://0003-sulfur-Use-fit-image-from-root-file-system-for-booti.patch \
+                 file://0001-zynq-Move-ENV-location-selection-from-zynq-common.h-.patch \
+                 file://0002-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
+                 file://0003-Updates-to-Ettus-Sulfur-for-use-with-mender.patch \
+                 file://0004-sulfur-Use-fit-image-from-root-file-system-for-booti.patch \
                  file://0001-zynq-spi-Honour-the-activation-deactivation-delay.patch \
                  "
 

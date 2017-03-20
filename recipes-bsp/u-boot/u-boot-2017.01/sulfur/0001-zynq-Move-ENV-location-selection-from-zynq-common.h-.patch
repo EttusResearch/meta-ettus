@@ -1,0 +1,50 @@
+From 9f189b73a97c41a62a0ca55afbe6a97d43199fad Mon Sep 17 00:00:00 2001
+From: Philip Balister <philip@opensdr.com>
+Date: Fri, 17 Mar 2017 13:42:39 -0400
+Subject: [PATCH 1/4] zynq: Move ENV location selection from zynq-common.h to
+ config files.
+
+The ifdef's in zynq-common.h do a partial selection of the u-boot environment
+storage location. As u-boot added more, the ifdefs no longe cope with all
+possible cases. Rather than correct the logic there, move the selection
+options into the board specific config files.
+
+Signed-off-by: Philip Balister <philip@opensdr.com>
+---
+ configs/zynq_zybo_defconfig   |  1 +
+ include/configs/zynq-common.h | 10 ----------
+ 2 files changed, 1 insertion(+), 10 deletions(-)
+
+diff --git a/configs/zynq_zybo_defconfig b/configs/zynq_zybo_defconfig
+index 6706324..5498468 100644
+--- a/configs/zynq_zybo_defconfig
++++ b/configs/zynq_zybo_defconfig
+@@ -56,3 +56,4 @@ CONFIG_USB_GADGET_DOWNLOAD=y
+ CONFIG_G_DNL_MANUFACTURER="Xilinx"
+ CONFIG_G_DNL_VENDOR_NUM=0x03fd
+ CONFIG_G_DNL_PRODUCT_NUM=0x0300
++CONFIG_SYS_EXTRA_OPTIONS="ENV_IS_IN_SPI_FLASH"
+diff --git a/include/configs/zynq-common.h b/include/configs/zynq-common.h
+index 2fe6897..997ce72 100644
+--- a/include/configs/zynq-common.h
++++ b/include/configs/zynq-common.h
+@@ -165,16 +165,6 @@
+ 
+ /* Environment */
+ #ifndef CONFIG_ENV_IS_NOWHERE
+-# ifndef CONFIG_SYS_NO_FLASH
+-/* Environment in NOR flash */
+-#  define CONFIG_ENV_IS_IN_FLASH
+-# elif defined(CONFIG_ZYNQ_QSPI)
+-/* Environment in Serial Flash */
+-#  define CONFIG_ENV_IS_IN_SPI_FLASH
+-# elif defined(CONFIG_SYS_NO_FLASH)
+-#  define CONFIG_ENV_IS_NOWHERE
+-# endif
+-
+ # define CONFIG_ENV_SECT_SIZE		CONFIG_ENV_SIZE
+ # define CONFIG_ENV_OFFSET		0xE0000
+ #endif
+-- 
+2.7.4
+

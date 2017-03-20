@@ -1,7 +1,7 @@
-From b79bbc5f1210d227a3ee88d11b0cfdedc0736d89 Mon Sep 17 00:00:00 2001
+From 737525139b3075258eeb71737ad93af808ba9233 Mon Sep 17 00:00:00 2001
 From: Philip Balister <philip@opensdr.com>
 Date: Fri, 16 Dec 2016 13:50:38 -0800
-Subject: [PATCH 3/3] sulfur: Use fit image from root file system for booting.
+Subject: [PATCH 4/4] sulfur: Use fit image from root file system for booting.
 
 Signed-off-by: Philip Balister <philip@opensdr.com>
 ---
@@ -9,10 +9,10 @@ Signed-off-by: Philip Balister <philip@opensdr.com>
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/include/configs/ni_sulfur_rev2.h b/include/configs/ni_sulfur_rev2.h
-index 30d2ec5..5297545 100644
+index 1e06e97..e8eca79 100644
 --- a/include/configs/ni_sulfur_rev2.h
 +++ b/include/configs/ni_sulfur_rev2.h
-@@ -19,7 +19,7 @@
+@@ -14,7 +14,7 @@
  
  #undef CONFIG_EXTRA_ENV_SETTINGS
  #define CONFIG_EXTRA_ENV_SETTINGS	\
@@ -21,7 +21,7 @@ index 30d2ec5..5297545 100644
  	"bootargs=root=${mender_kernel_root} rw rootwait\0" \
  	"load_addr=0x2000000\0"		\
  	"fit_size=0x800000\0"		\
-@@ -50,7 +50,7 @@
+@@ -45,7 +45,7 @@
  			"fi; " \
  		"fi; \0" \
  	"sdboot=run mender_setup; echo Copying FIT from SD to RAM... && " \
