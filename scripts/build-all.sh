@@ -10,19 +10,8 @@ for MACHINE in ettus-e3xx-sg1 ettus-e3xx-sg3; do
 export MACHINE
 echo $MACHINE
 
-if [ -d tmp-glibc ]; then
-	mv tmp-glibc/ tmp-glibc.del
-	rm -rf tmp-glibc.del &
-fi
-rm -rf sstate-cache
-
 if ! bitbake gnuradio-dev-image; then
 	echo dev image build failed
-	exit 1
-fi
-
-if ! bitbake parted-native mtools-native dosfstools-native; then
-	echo Failed to build toolds needed to run wic.
 	exit 1
 fi
 
@@ -39,11 +28,6 @@ md5sum images/$MACHINE/sdimage-gnuradio-dev.direct.xz > images/$MACHINE/sdimage-
 
 if ! bitbake gnuradio-demo-image; then
 	echo demo image build failed
-	exit 1
-fi
-
-if ! bitbake parted-native mtools-native dosfstools-native; then
-	echo Failed to build toolds needed to run wic.
 	exit 1
 fi
 
