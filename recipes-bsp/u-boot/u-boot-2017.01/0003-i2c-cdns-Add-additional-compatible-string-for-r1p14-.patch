@@ -1,0 +1,31 @@
+From 40e7cd8db9ec927c9d3963982248fa855ad923d7 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Thu, 22 Dec 2016 09:36:10 -0800
+Subject: [PATCH 03/11] i2c: cdns: Add additional compatible string for r1p14
+ of the IP.
+
+Adding additional compatible string for version 1.4 of the IP block.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+Cc: Michal Simek <michal.simek@xilinx.com>
+Cc: Heiko Schocher <hs@denx.de>
+Signed-off-by: Michal Simek <michal.simek@xilinx.com>
+---
+ drivers/i2c/i2c-cdns.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/i2c/i2c-cdns.c b/drivers/i2c/i2c-cdns.c
+index f49f60b..ef85a70 100644
+--- a/drivers/i2c/i2c-cdns.c
++++ b/drivers/i2c/i2c-cdns.c
+@@ -366,6 +366,7 @@ static const struct dm_i2c_ops cdns_i2c_ops = {
+ 
+ static const struct udevice_id cdns_i2c_of_match[] = {
+ 	{ .compatible = "cdns,i2c-r1p10" },
++	{ .compatible = "cdns,i2c-r1p14" },
+ 	{ /* end of table */ }
+ };
+ 
+-- 
+2.7.4
+

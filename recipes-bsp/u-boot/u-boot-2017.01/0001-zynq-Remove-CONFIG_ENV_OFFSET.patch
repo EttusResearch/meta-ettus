@@ -1,0 +1,25 @@
+From faa8e2011f4e67a2b88c461fce6f5b3ccde5bb96 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Tue, 4 Apr 2017 14:00:45 -0700
+Subject: [PATCH] zynq: Remove CONFIG_ENV_OFFSET
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ include/configs/zynq-common.h | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/include/configs/zynq-common.h b/include/configs/zynq-common.h
+index 2fe6897..eaadeb7 100644
+--- a/include/configs/zynq-common.h
++++ b/include/configs/zynq-common.h
+@@ -176,7 +176,6 @@
+ # endif
+ 
+ # define CONFIG_ENV_SECT_SIZE		CONFIG_ENV_SIZE
+-# define CONFIG_ENV_OFFSET		0xE0000
+ #endif
+ 
+ /* enable preboot to be loaded before CONFIG_BOOTDELAY */
+-- 
+2.7.4
+

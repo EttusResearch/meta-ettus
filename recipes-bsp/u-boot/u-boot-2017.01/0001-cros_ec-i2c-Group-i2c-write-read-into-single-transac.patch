@@ -1,0 +1,81 @@
+From 752f97e97aa1473ca51ee40f2723199bd725888f Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Thu, 12 Jan 2017 09:47:30 -0800
+Subject: [PATCH 01/11] cros_ec: i2c: Group i2c write / read into single
+ transaction
+
+Replace dm_i2c_write() / dm_i2c_read() with transaction using
+struct i2c_msg[2] in order to allow for i2c controller to detect
+write/read cycle to emit a repeated start condition.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+Cc: Simon Glass <sjg@chromium.org>
+Cc: u-boot@lists.denx.de
+Acked-by: Simon Glass <sjg@chromium.org>
+Tested on snow:
+Tested-by: Simon Glass <sjg@chromium.org>
+---
+ drivers/misc/cros_ec_i2c.c | 26 +++++++++++++++-----------
+ 1 file changed, 15 insertions(+), 11 deletions(-)
+
+diff --git a/drivers/misc/cros_ec_i2c.c b/drivers/misc/cros_ec_i2c.c
+index 3de18b2..f2f6961 100644
+--- a/drivers/misc/cros_ec_i2c.c
++++ b/drivers/misc/cros_ec_i2c.c
+@@ -29,6 +29,8 @@ static int cros_ec_i2c_command(struct udevice *udev, uint8_t cmd,
+ 			       int dout_len, uint8_t **dinp, int din_len)
+ {
+ 	struct cros_ec_dev *dev = dev_get_uclass_priv(udev);
++	struct dm_i2c_chip *chip = dev_get_parent_platdata(udev);
++	struct i2c_msg i2c_msg[2];
+ 	/* version8, cmd8, arglen8, out8[dout_len], csum8 */
+ 	int out_bytes = dout_len + 4;
+ 	/* response8, arglen8, in8[din_len], checksum8 */
+@@ -53,6 +55,11 @@ static int cros_ec_i2c_command(struct udevice *udev, uint8_t cmd,
+ 	assert(dout_len >= 0);
+ 	assert(dinp);
+ 
++	i2c_msg[0].addr = chip->chip_addr;
++	i2c_msg[0].len = out_bytes;
++	i2c_msg[0].buf = dev->dout;
++	i2c_msg[0].flags = 0;
++
+ 	/*
+ 	 * Copy command and data into output buffer so we can do a single I2C
+ 	 * burst transaction.
+@@ -85,24 +92,21 @@ static int cros_ec_i2c_command(struct udevice *udev, uint8_t cmd,
+ 	*ptr++ = (uint8_t)
+ 		cros_ec_calc_checksum(dev->dout, dout_len + 3);
+ 
++	i2c_msg[1].addr = chip->chip_addr;
++	i2c_msg[1].len = in_bytes;
++	i2c_msg[1].buf = in_ptr;
++	i2c_msg[1].flags = I2C_M_RD;
++
+ 	/* Send output data */
+ 	cros_ec_dump_data("out", -1, dev->dout, out_bytes);
+-	ret = dm_i2c_write(udev, 0, dev->dout, out_bytes);
++
++	ret = dm_i2c_xfer(udev, &i2c_msg[0], 2);
+ 	if (ret) {
+-		debug("%s: Cannot complete I2C write to %s\n", __func__,
++		debug("%s: Could not execute transfer to %s\n", __func__,
+ 		      udev->name);
+ 		ret = -1;
+ 	}
+ 
+-	if (!ret) {
+-		ret = dm_i2c_read(udev, 0, in_ptr, in_bytes);
+-		if (ret) {
+-			debug("%s: Cannot complete I2C read from %s\n",
+-			      __func__, udev->name);
+-			ret = -1;
+-		}
+-	}
+-
+ 	if (*in_ptr != EC_RES_SUCCESS) {
+ 		debug("%s: Received bad result code %d\n", __func__, *in_ptr);
+ 		return -(int)*in_ptr;
+-- 
+2.7.4
+

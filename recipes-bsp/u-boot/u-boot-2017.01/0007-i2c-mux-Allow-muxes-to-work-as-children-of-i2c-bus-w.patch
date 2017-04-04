@@ -1,0 +1,45 @@
+From 4e9fea89af8782b46413465fe76781b1f2a7f331 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Mon, 16 Jan 2017 09:46:06 -0800
+Subject: [PATCH 07/11] i2c: mux: Allow muxes to work as children of i2c bus
+ without i2c-parent
+
+For mux check if the parent is already a device of UCLASS_I2C and if yes
+just use that. Otherwise see if someone specified an i2c-parent phandle.
+This mimics the behavior found in the Kernel, as it removes the
+requirement to explicitly specify a i2c-parent phandle.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+Cc: Heiko Schocher <hs@denx.de>
+Cc: Bin Meng <bmeng.cn@gmail.com>
+Cc: Simon Glass <sjg@chromium.org>
+Cc: Michal Simek <michal.simek@xilinx.com>
+Cc: u-boot@lists.denx.de
+---
+ drivers/i2c/muxes/i2c-mux-uclass.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/drivers/i2c/muxes/i2c-mux-uclass.c b/drivers/i2c/muxes/i2c-mux-uclass.c
+index 7a698b6..db086ef 100644
+--- a/drivers/i2c/muxes/i2c-mux-uclass.c
++++ b/drivers/i2c/muxes/i2c-mux-uclass.c
+@@ -86,6 +86,16 @@ static int i2c_mux_post_probe(struct udevice *mux)
+ 	debug("%s: %s\n", __func__, mux->name);
+ 	priv->selected = -1;
+ 
++	/* if parent is of i2c uclass already, we'll take that, otherwise
++	 * look if we find an i2c-parent phandle
++	 */
++	if (UCLASS_I2C == device_get_uclass_id(mux->parent)) {
++		priv->i2c_bus = dev_get_parent(mux);
++		debug("%s: bus=%p/%s\n", __func__, priv->i2c_bus,
++		      priv->i2c_bus->name);
++		return 0;
++	}
++
+ 	ret = uclass_get_device_by_phandle(UCLASS_I2C, mux, "i2c-parent",
+ 					   &priv->i2c_bus);
+ 	if (ret)
+-- 
+2.7.4
+

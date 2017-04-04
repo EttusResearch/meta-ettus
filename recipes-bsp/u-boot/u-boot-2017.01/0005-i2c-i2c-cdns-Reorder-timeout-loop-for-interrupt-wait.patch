@@ -1,0 +1,38 @@
+From c380037b9bcf7179ba08734eaa4176cee7eacf0f Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Mon, 16 Jan 2017 09:50:45 -0800
+Subject: [PATCH 05/11] i2c: i2c-cdns: Reorder timeout loop for interrupt
+ waiting
+
+Reorder the timeout loop such that we first check if the
+condition is already true, and then call udelay() so if
+the condition is already true, break early.
+
+Reviewed-by: Michal Simek <michal.simek@xilinx.com>
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+Cc: Heiko Schocher <hs@denx.de>
+Cc: Michal Simek <michal.simek@xilinx.com>
+Cc: u-boot@lists.denx.de
+---
+ drivers/i2c/i2c-cdns.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/i2c/i2c-cdns.c b/drivers/i2c/i2c-cdns.c
+index c1d6427..1c9fda8 100644
+--- a/drivers/i2c/i2c-cdns.c
++++ b/drivers/i2c/i2c-cdns.c
+@@ -130,10 +130,10 @@ static u32 cdns_i2c_wait(struct cdns_i2c_regs *cdns_i2c, u32 mask)
+ 	int timeout, int_status;
+ 
+ 	for (timeout = 0; timeout < 100; timeout++) {
+-		udelay(100);
+ 		int_status = readl(&cdns_i2c->interrupt_status);
+ 		if (int_status & mask)
+ 			break;
++		udelay(100);
+ 	}
+ 
+ 	/* Clear interrupt status flags */
+-- 
+2.7.4
+
