@@ -1,0 +1,47 @@
+From 77f18af3573ea698f701499a2b835c7c0a75f802 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Fri, 31 Mar 2017 15:22:49 -0700
+Subject: [PATCH 16/24] ARM: dt: zynq-ni-sulfur-rev3: Export EEPROM as NVMEM
+ provider
+
+This exports the motherboard EEPROM as NVMEM provider.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts | 19 +++++++++++++++++--
+ 1 file changed, 17 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
+index d258620..217e273 100644
+--- a/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
+@@ -229,9 +229,24 @@
+ 			google,remote-bus = <0>;
+ 			clock-frequency = <50000>;
+ 
+-			nvmem0: eeprom@50 {
+-				compatible = "at,24c02";
++			eeprom@50 {
++				compatible = "at24,24c02";
+ 				reg = <0x50>;
++				#address-cells = <1>;
++				#size-cells = <0>;
++				read-only;
++
++				eth0_addr: eth-addr@10 {
++					reg = <0x10 0x6>;
++				};
++
++				eth1_addr: eth-addr@40 {
++					reg = <0x20 0x6>;
++				};
++
++				eth2_addr: eth-addr@30 {
++					reg = <0x30 0x6>;
++				};
+ 			};
+ 		};
+ 	};
+-- 
+2.7.4
+

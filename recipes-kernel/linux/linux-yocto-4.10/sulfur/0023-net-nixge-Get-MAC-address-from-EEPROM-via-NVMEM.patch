@@ -1,0 +1,64 @@
+From f8218b6f89eb905f303dcc7605f5735053322bd2 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Mon, 3 Apr 2017 21:01:05 -0700
+Subject: [PATCH 23/24] net: nixge: Get MAC address from EEPROM via NVMEM
+
+The EEPROM is an NVMEM provider with multiple NVMEM cells,
+use it.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ drivers/net/ethernet/ni/nixge_net_dma.c | 23 ++++++++++++++++++++++-
+ 1 file changed, 22 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/ethernet/ni/nixge_net_dma.c b/drivers/net/ethernet/ni/nixge_net_dma.c
+index 2fcaed1..7a9d1e8 100644
+--- a/drivers/net/ethernet/ni/nixge_net_dma.c
++++ b/drivers/net/ethernet/ni/nixge_net_dma.c
+@@ -26,6 +26,7 @@
+ #include <linux/spinlock.h>
+ #include <linux/phy.h>
+ #include <linux/mii.h>
++#include <linux/nvmem-consumer.h>
+ #include <linux/ethtool.h>
+ #include <linux/if_vlan.h>
+ #include <linux/iopoll.h>
+@@ -1100,6 +1101,26 @@ int nixge_mdio_setup(struct nixge_priv *priv, struct device_node *np)
+ 	return err;
+ }
+ 
++static void *nixge_get_nvmem_address(struct device *dev)
++{
++	struct nvmem_cell *cell;
++	size_t cell_size;
++	int err = 0;
++	char *mac;
++
++	cell = nvmem_cell_get(dev, "address");
++	if (IS_ERR(cell))
++		return cell;
++
++	mac = nvmem_cell_read(cell, &cell_size);
++	nvmem_cell_put(cell);
++
++	if (IS_ERR(mac))
++		return mac;
++
++	return mac;
++}
++
+ static int nixge_probe(struct platform_device *pdev)
+ {
+ 	int err;
+@@ -1124,7 +1145,7 @@ static int nixge_probe(struct platform_device *pdev)
+ 	ndev->min_mtu = 64;
+ 	ndev->max_mtu = XAE_JUMBO_MTU;
+ 
+-	mac_addr = of_get_mac_address(pdev->dev.of_node);
++	mac_addr = nixge_get_nvmem_address(&pdev->dev);
+ 	if (mac_addr)
+ 		ether_addr_copy(ndev->dev_addr, mac_addr);
+ 	else
+-- 
+2.7.4
+

@@ -1,0 +1,37 @@
+From f84f23002a611e958011e5016894a8da19fb68e9 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Fri, 31 Mar 2017 15:24:45 -0700
+Subject: [PATCH 17/24] fixup! ARM: dt: Add devicetree file for NI Sulfur Rev3
+ SDR board
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
+index 217e273..b0469ad 100644
+--- a/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
+@@ -60,6 +60,9 @@
+ 		serial1 = &uart1;
+ 		spi0 = &spi0;
+ 		spi1 = &spi1;
++		i2c0 = &i2c0;
++		i2c1 = &i2c1;
++		i2c2 = &tun;
+ 	};
+ 
+ 	memory {
+@@ -227,7 +230,7 @@
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+ 			google,remote-bus = <0>;
+-			clock-frequency = <50000>;
++			clock-frequency = <100000>;
+ 
+ 			eeprom@50 {
+ 				compatible = "at24,24c02";
+-- 
+2.7.4
+

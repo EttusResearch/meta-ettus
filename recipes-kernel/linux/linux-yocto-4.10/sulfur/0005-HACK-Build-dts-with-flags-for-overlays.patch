@@ -1,0 +1,27 @@
+From 6ee0811f30e2ac56a295a04c706419c1a169165e Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Mon, 12 Dec 2016 08:52:03 -0800
+Subject: [PATCH 05/24] [HACK] Build dts with -@ flags for overlays
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ arch/arm/boot/dts/Makefile | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
+index ac5bf59..cdb3449 100644
+--- a/arch/arm/boot/dts/Makefile
++++ b/arch/arm/boot/dts/Makefile
+@@ -1,5 +1,9 @@
+ ifeq ($(CONFIG_OF),y)
+ 
++ifeq ($(CONFIG_OF_OVERLAY),y)
++DTC_FLAGS += -@
++endif
++
+ dtb-$(CONFIG_ARCH_ALPINE) += \
+ 	alpine-db.dtb
+ dtb-$(CONFIG_MACH_ARTPEC6) += \
+-- 
+2.7.4
+

@@ -1,0 +1,26 @@
+From e1303b2616a04d82ae843f9923bff022f305fae8 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Fri, 31 Mar 2017 15:25:41 -0700
+Subject: [PATCH 18/24] fixup! rfnoc: Initial shot add adding RFNoC support
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ drivers/rfnoc/rfnoc-crossbar.c | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/drivers/rfnoc/rfnoc-crossbar.c b/drivers/rfnoc/rfnoc-crossbar.c
+index b2c0b6d..c05b798 100644
+--- a/drivers/rfnoc/rfnoc-crossbar.c
++++ b/drivers/rfnoc/rfnoc-crossbar.c
+@@ -32,8 +32,6 @@ struct rfnoc_crossbar_route {
+ 	u8 port;
+ };
+ 
+-#define CONFIG_DEBUG_FS
+-
+ #ifdef CONFIG_DEBUG_FS
+ struct dentry *debug_root;
+ struct mutex debugfs_mutex;
+-- 
+2.7.4
+
