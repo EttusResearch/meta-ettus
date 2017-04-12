@@ -5,5 +5,6 @@ CORE_IMAGE_EXTRA_INSTALL_append = " \
     python-six \
     python-systemd-dev \
     python-mprpc \
+    python-netaddr \
     chromium-utils \
 "
