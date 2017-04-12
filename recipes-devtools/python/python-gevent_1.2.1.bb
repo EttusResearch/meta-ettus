@@ -3,7 +3,7 @@ DESCRIPTION = "gevent is a coroutine-based Python networking library that uses g
 a high-level synchronous API on top of the libevent event loop."
 HOMEPAGE = "http://www.gevent.org"
 LICENSE = "MIT & Python-2.0 & BSD"
-LIC_FILES_CHKSUM = "file://LICENSE;md5=4de99aac27b470c29c6c309e0c279b65 \
+LIC_FILES_CHKSUM = "file://LICENSE;md5=2dbb33d00e1fd31c7041460a81ac0bd2 \
                     file://NOTICE;md5=5966cd2c6582656d28ab3c33da3860f8 \
                     file://deps/libev/LICENSE;md5=d6ad416afd040c90698edcdf1cbee347"
 DEPENDS += "python-greenlet libevent"
