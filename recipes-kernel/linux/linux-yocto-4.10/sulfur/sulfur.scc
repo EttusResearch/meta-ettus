@@ -29,4 +29,7 @@ patch 0001-scripts-dtc-automate-getting-dtc-version-and-log-in-.patch
 patch 0001-scripts-dtc-Update-to-upstream-version-v1.4.4-8-g756.patch
 patch 0001-dtc-update-warning-settings-for-new-bus-and-node-pro.patch
 
+patch 0001-rtc-ds1374-Add-trickle-charger-device-tree-binding.patch
+patch 0002-fixup-ARM-dt-Add-devicetree-file-for-NI-Sulfur-Rev3-.patch
+
 kconf hardware sulfur.cfg
