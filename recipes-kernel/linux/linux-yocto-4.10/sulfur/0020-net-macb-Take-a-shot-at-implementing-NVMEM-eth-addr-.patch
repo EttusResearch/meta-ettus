@@ -1,18 +1,18 @@
-From 8bdf0084fb1b0802c6f4071349088d1b73124cc1 Mon Sep 17 00:00:00 2001
+From 6a57ee8ca03b5e5937ce543d4b16def4118d44ec Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Fri, 31 Mar 2017 15:32:42 -0700
-Subject: [PATCH 20/24] net: macb: Take a shot at implementing NVMEM eth addr
+Subject: [PATCH 20/31] net: macb: Take a shot at implementing NVMEM eth addr
  retrieval
 
 This is still a work in progress.
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
- drivers/net/ethernet/cadence/macb.c | 35 +++++++++++++++++++++++++++++++++--
- 1 file changed, 33 insertions(+), 2 deletions(-)
+ drivers/net/ethernet/cadence/macb.c | 31 +++++++++++++++++++++++++++++++
+ 1 file changed, 31 insertions(+)
 
 diff --git a/drivers/net/ethernet/cadence/macb.c b/drivers/net/ethernet/cadence/macb.c
-index af443a8..2ea877e 100644
+index baba2db..46ce51a 100644
 --- a/drivers/net/ethernet/cadence/macb.c
 +++ b/drivers/net/ethernet/cadence/macb.c
 @@ -27,6 +27,7 @@
@@ -23,7 +23,7 @@ index af443a8..2ea877e 100644
  #include <linux/of.h>
  #include <linux/of_device.h>
  #include <linux/of_gpio.h>
-@@ -3253,6 +3254,26 @@ static const struct macb_config default_gem_config = {
+@@ -3197,6 +3198,26 @@ static const struct macb_config default_gem_config = {
  	.jumbo_max_len = 10240,
  };
  
@@ -50,10 +50,11 @@ index af443a8..2ea877e 100644
  static int macb_probe(struct platform_device *pdev)
  {
  	const struct macb_config *macb_config = &default_gem_config;
-@@ -3364,11 +3385,21 @@ static int macb_probe(struct platform_device *pdev)
+@@ -3307,11 +3328,21 @@ static int macb_probe(struct platform_device *pdev)
  	else
  		dev->max_mtu = ETH_DATA_LEN;
  
++
 +	mac = macb_get_nvmem_address(&pdev->dev);
 +	if (IS_ERR(mac)) {
 +		dev_err(&pdev->dev, "Deferring probe ...\n");
@@ -65,15 +66,12 @@ index af443a8..2ea877e 100644
  	mac = of_get_mac_address(np);
  	if (mac)
  		ether_addr_copy(bp->dev->dev_addr, mac);
--	else
--		macb_get_hwaddr(bp);
-+	else {
-+	}
-+	*/
-+
+ 	else
+ 		macb_get_hwaddr(bp);
++		*/
  
  	/* Power up the PHY if there is a GPIO reset */
- 	phy_node = of_parse_phandle(np, "phy-handle", 0);
+ 	phy_node =  of_get_next_available_child(np, NULL);
 -- 
 2.7.4
 

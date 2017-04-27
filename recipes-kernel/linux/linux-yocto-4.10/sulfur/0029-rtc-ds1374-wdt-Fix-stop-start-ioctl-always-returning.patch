@@ -1,0 +1,41 @@
+From 50cbf10e819eb71866fb579227d57a718ce510e2 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <mdf@kernel.org>
+Date: Thu, 20 Apr 2017 17:07:15 -0700
+Subject: [PATCH 29/31] rtc: ds1374: wdt: Fix stop/start ioctl always returning
+ -EINVAL
+
+Fix commit 920f91e50c5b ("drivers/rtc/rtc-ds1374.c: add watchdog support")
+
+The WDIOC_SETOPTIONS case in the watchdog ioctl would alwayss falls
+through to the -EINVAL case. This is wrong since thew watchdog does
+actually get stopped or started correctly.
+
+Signed-off-by: Moritz Fischer <mdf@kernel.org>
+---
+ drivers/rtc/rtc-ds1374.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/rtc/rtc-ds1374.c b/drivers/rtc/rtc-ds1374.c
+index 76968d8..01d8f48 100644
+--- a/drivers/rtc/rtc-ds1374.c
++++ b/drivers/rtc/rtc-ds1374.c
+@@ -553,14 +553,15 @@ static long ds1374_wdt_ioctl(struct file *file, unsigned int cmd,
+ 		if (options & WDIOS_DISABLECARD) {
+ 			pr_info("disable watchdog\n");
+ 			ds1374_wdt_disable();
++			return 0;
+ 		}
+ 
+ 		if (options & WDIOS_ENABLECARD) {
+ 			pr_info("enable watchdog\n");
+ 			ds1374_wdt_settimeout(wdt_margin);
+ 			ds1374_wdt_ping();
++			return 0;
+ 		}
+-
+ 		return -EINVAL;
+ 	}
+ 	return -ENOTTY;
+-- 
+2.7.4
+

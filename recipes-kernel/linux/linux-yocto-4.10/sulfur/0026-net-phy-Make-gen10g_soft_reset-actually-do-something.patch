@@ -1,0 +1,33 @@
+From bf70b7d8b47d7d70b6ab31c9a044b6898078b972 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Mon, 10 Apr 2017 15:17:24 -0700
+Subject: [PATCH 26/31] net: phy: Make gen10g_soft_reset actually do something.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ drivers/net/phy/phy_device.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/drivers/net/phy/phy_device.c b/drivers/net/phy/phy_device.c
+index aefb1ef..5798e89 100644
+--- a/drivers/net/phy/phy_device.c
++++ b/drivers/net/phy/phy_device.c
+@@ -1575,6 +1575,15 @@ int genphy_config_init(struct phy_device *phydev)
+ 
+ static int gen10g_soft_reset(struct phy_device *phydev)
+ {
++	int val;
++
++	val = phy_read_mmd(phydev, MDIO_MMD_PCS, MDIO_CTRL1);
++	if (val < 0)
++		return val;
++
++	val |= MDIO_CTRL1_RESET;
++	phy_write_mmd(phydev, MDIO_MMD_PMAPMD, MDIO_CTRL1, val);
++
+ 	/* Do nothing for now */
+ 	return 0;
+ }
+-- 
+2.7.4
+

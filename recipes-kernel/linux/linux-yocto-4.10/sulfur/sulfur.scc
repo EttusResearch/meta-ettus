@@ -1,35 +1,33 @@
-patch 0001-OF-DT-Overlay-configfs-interface-v7.patch
-patch 0002-gitignore-Ignore-DTB-files.patch
-patch 0003-of-Custom-printk-format-specifier-for-device-node.patch
-patch 0004-of-overlay-kobjectify-overlay-objects.patch
-patch 0005-HACK-Build-dts-with-flags-for-overlays.patch
-patch 0006-HACK-Keep-zynq_gpio-running-all-the-time.patch
-patch 0007-ARM-dt-Add-support-for-NI-Ettus-Research-Sulfur-Rev2.patch
-patch 0008-net-ethernet-cadence-Add-fixed-link-functionality.patch
-patch 0009-net-ethernet-nixge-Start-working.patch
-patch 0001-rfnoc-Initial-shot-add-adding-RFNoC-support.patch
-patch 0013-ARM-dt-iio_hwmon-to-zynq-dt.patch
-patch 0014-net-nixge-Add-a-bunch-of-fixes-status-quo.patch
-patch 0015-ARM-dt-Add-devicetree-file-for-NI-Sulfur-Rev3-SDR-bo.patch
-patch 0016-ARM-dt-zynq-ni-sulfur-rev3-Export-EEPROM-as-NVMEM-pr.patch
-patch 0017-fixup-ARM-dt-Add-devicetree-file-for-NI-Sulfur-Rev3-.patch
-patch 0019-ARM-dt-zynq-ni-sulfur-rev3-Use-eth_addrs-in-NVMEM-pr.patch
+patch 0001-fpga-zynq-Check-for-errors-after-completing-DMA.patch
+patch 0002-fpga-Add-scatterlist-based-programming.patch
+patch 0003-fpga-zynq-Check-the-bitstream-for-validity.patch
+patch 0004-fpga-zynq-Use-the-scatterlist-interface.patch
+patch 0005-OF-DT-Overlay-configfs-interface-v7.patch
+patch 0006-gitignore-Ignore-DTB-files.patch
+patch 0007-of-Custom-printk-format-specifier-for-device-node.patch
+patch 0008-of-overlay-kobjectify-overlay-objects.patch
+patch 0009-scripts-dtc-Update-to-upstream-version-0931cea3ba20.patch
+patch 0010-scripts-dtc-automate-getting-dtc-version-and-log-in-.patch
+patch 0011-scripts-dtc-Update-to-upstream-version-v1.4.4-8-g756.patch
+patch 0012-dtc-update-warning-settings-for-new-bus-and-node-pro.patch
+patch 0013-Build-dts-with-flags-for-overlays.patch
+patch 0014-Keep-zynq_gpio-running-all-the-time.patch
+patch 0015-ARM-dt-Add-support-for-NI-Ettus-Research-Sulfur-Rev2.patch
+patch 0016-net-ethernet-nixge-Add-support-for-National-Instrume.patch
+patch 0017-rfnoc-Initial-shot-add-adding-RFNoC-support.patch
+patch 0018-ARM-dt-iio_hwmon-to-zynq-dt.patch
+patch 0019-ARM-dt-Add-devicetree-file-for-NI-Sulfur-Rev3-SDR-bo.patch
 patch 0020-net-macb-Take-a-shot-at-implementing-NVMEM-eth-addr-.patch
-patch 0021-HACK-misc-eeprom-Hardcode-the-io_length-constraint-t.patch
-patch 0023-net-nixge-Get-MAC-address-from-EEPROM-via-NVMEM.patch
-patch 0024-fixup-ARM-dt-Add-devicetree-file-for-NI-Sulfur-Rev3-.patch
-
-patch 0007-fpga-zynq-Check-for-errors-after-completing-DMA.patch
-patch 0008-fpga-Add-scatterlist-based-programming.patch
-patch 0009-fpga-zynq-Check-the-bitstream-for-validity.patch
-patch 0010-fpga-zynq-Use-the-scatterlist-interface.patch
-
-patch 0001-scripts-dtc-Update-to-upstream-version-0931cea3ba20.patch
-patch 0001-scripts-dtc-automate-getting-dtc-version-and-log-in-.patch
-patch 0001-scripts-dtc-Update-to-upstream-version-v1.4.4-8-g756.patch
-patch 0001-dtc-update-warning-settings-for-new-bus-and-node-pro.patch
-
-patch 0001-rtc-ds1374-Add-trickle-charger-device-tree-binding.patch
-patch 0002-fixup-ARM-dt-Add-devicetree-file-for-NI-Sulfur-Rev3-.patch
+patch 0021-misc-eeprom-Hardcode-the-io_length-constraint-to-16.patch
+patch 0022-mfd-cros-ec-Add-functions-to-read-mapped-memory.patch
+patch 0023-dt-bindings-hwmon-Add-bindings-for-Google-Chromium-E.patch
+patch 0024-hwmon-cros-ec-hwmon-Add-Chromium-EC-HWMON-driver.patch
+patch 0025-net-phy-Fix-the-case-where-state-machine-gets-stuck-.patch
+patch 0026-net-phy-Make-gen10g_soft_reset-actually-do-something.patch
+patch 0027-rtc-ds1374-Add-trickle-charger-device-tree-binding.patch
+patch 0028-rtc-ds1374-wdt-Fix-issue-with-timeout-scaling-from-s.patch
+patch 0029-rtc-ds1374-wdt-Fix-stop-start-ioctl-always-returning.patch
+patch 0030-This-is-a-ghetto-hack-to-remap-the-reset-pin-to-INT.patch
+patch 0031-spi-cadence-Allow-for-GPIO-pins-to-be-used-as-chipse.patch
 
 kconf hardware sulfur.cfg
