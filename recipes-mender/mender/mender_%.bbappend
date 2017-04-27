@@ -1,2 +1,5 @@
-SRC_URI_append_sulfur = " file://server.crt \
-                        "
+FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+
+SRC_URI_append = " \
+    file://server.crt \
+"
