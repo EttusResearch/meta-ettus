@@ -1,0 +1,24 @@
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Wed, 26 Apr 2017 05:18:49 +0000 (-0700)
+Subject: tcl/cpld: add config file for Altera 5M570Z CPLD (MAXV family)
+X-Git-Url: http://openocd.zylin.com/gitweb?p=openocd.git;a=commitdiff_plain;h=2beb85f3cd2a0ceafdd75c7d3eca105ed830c88c
+
+tcl/cpld: add config file for Altera 5M570Z CPLD (MAXV family)
+
+Change-Id: I229c746be27b7c4fa01f48a6ed54ab2679b50ab1
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+
+diff --git a/tcl/cpld/altera-5m570z-cpld.cfg b/tcl/cpld/altera-5m570z-cpld.cfg
+new file mode 100644
+index 0000000..22a422c
+--- /dev/null
++++ b/tcl/cpld/altera-5m570z-cpld.cfg
+@@ -0,0 +1,6 @@
++# Altera MAXV 5M24OZ/5M570Z CPLD
++# see MAX V Device Handbook
++# Table 6-3: 32-Bit MAX V Device IDCODE
++# Version     Part Number             Manuf. ID        LSB
++# 0000        0010 0000 1010 0111     000 0110 1110    1
++jtag newtap 5m570z tap -expected-id 0x020a60dd -irlen 10
+
