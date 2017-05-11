@@ -29,5 +29,6 @@ patch 0028-rtc-ds1374-wdt-Fix-issue-with-timeout-scaling-from-s.patch
 patch 0029-rtc-ds1374-wdt-Fix-stop-start-ioctl-always-returning.patch
 patch 0030-This-is-a-ghetto-hack-to-remap-the-reset-pin-to-INT.patch
 patch 0031-spi-cadence-Allow-for-GPIO-pins-to-be-used-as-chipse.patch
+patch 0032-ARM-dt-zynq-ni-sulfur-rev3-Add-cros-ec-hwmon.patch
 
 kconf hardware sulfur.cfg

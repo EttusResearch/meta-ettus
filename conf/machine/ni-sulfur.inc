@@ -1,10 +1,6 @@
-#@TYPE: Machine
-#@Name: Ettus Research Sulfur.
-#@DESCRIPTION: Machine configuration for the Ettus Research Sulfur Software Radio.
-
 require ettus-zynq.inc
 
-MACHINEOVERRIDES = "${MACHINE}"
+MACHINEOVERRIDES = "ni-sulfur:${MACHINE}"
 
 MACHINE_FEATURES = "vfat ethernet alsa usbhost bluetooth ext2 wifi"
 
@@ -18,11 +14,8 @@ MACHINE_EXTRA_RRECOMMENDS = "kernel-modules \
 
 KERNEL_CLASSES += "kernel-fitimage"
 KERNEL_IMAGETYPE = "fitImage"
-KERNEL_DEVICETREE = "zynq-ni-sulfur-rev3.dtb"
 
 PREFERRED_VERSION_linux-yocto = "4.10.%"
-
-UBOOT_MACHINE_sulfur = "ni_sulfur_rev3_defconfig"
 
 MACHINE_EXTRA_RRECOMMENDS = " \
 			kernel-modules \

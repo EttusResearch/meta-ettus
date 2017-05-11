@@ -15,7 +15,7 @@ SRC_URI_append_ettus-e3xx-sg3 = " \
 		 file://fpga-3.bin \
 		 "
 
-SRC_URI_append_sulfur = " \
+SRC_URI_append_ni-sulfur = " \
                  file://sulfur/0001-cros_ec-i2c-Group-i2c-write-read-into-single-transac.patch \
                  file://sulfur/0002-cros_ec-i2c-Add-support-for-version-3-of-the-EC-prot.patch \
                  file://sulfur/0003-i2c-cdns-Add-additional-compatible-string-for-r1p14-.patch \

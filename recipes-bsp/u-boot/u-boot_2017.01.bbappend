@@ -7,7 +7,7 @@ SRC_URI_append_ettus-e300 = " \
                  file://0001-Add-support-for-mender.io-software-update.patch \
 		 "
 
-SRC_URI_append_sulfur = " \
+SRC_URI_append_ni-sulfur = " \
                  file://sulfur/0001-cros_ec-i2c-Group-i2c-write-read-into-single-transac.patch \
                  file://sulfur/0002-cros_ec-i2c-Add-support-for-version-3-of-the-EC-prot.patch \
                  file://sulfur/0003-i2c-cdns-Add-additional-compatible-string-for-r1p14-.patch \
@@ -25,6 +25,7 @@ SPL_BINARY = "spl/boot.bin"
 HAS_PS7INIT = " \
                 zynq_e3xx_1_defconfig \
                 zynq_e3xx_3_defconfig \
+                ni_sulfur_rev2_defconfig \
                 ni_sulfur_rev3_defconfig \
               "
 

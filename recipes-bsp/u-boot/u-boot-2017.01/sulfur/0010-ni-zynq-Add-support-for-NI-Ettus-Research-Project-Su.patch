@@ -1,7 +1,7 @@
-From eb003bfce43a654b44b662ce8958e19187f41c8d Mon Sep 17 00:00:00 2001
+From 682d0f3dc864b0ba16a5bb028cfeb06946f8558f Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Wed, 10 May 2017 16:42:35 -0700
-Subject: [PATCH 10/11] ni: zynq: Add support for NI Ettus Research Project
+Subject: [PATCH 10/12] ni: zynq: Add support for NI Ettus Research Project
  Sulfur Rev3 SDR
 
 Add support for second revision of NI Ettus Research Project Sulfur

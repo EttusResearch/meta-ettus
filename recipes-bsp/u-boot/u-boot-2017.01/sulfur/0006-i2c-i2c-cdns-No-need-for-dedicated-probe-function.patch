@@ -1,7 +1,7 @@
 From 7a7fa20021f97524a9fae9342164ba2f53dc1ade Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 16 Jan 2017 09:50:47 -0800
-Subject: [PATCH 06/11] i2c: i2c-cdns: No need for dedicated probe function
+Subject: [PATCH 06/12] i2c: i2c-cdns: No need for dedicated probe function
 
 The generic probe code in dm works, so get rid of the leftover cruft.
 

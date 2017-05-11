@@ -1,7 +1,7 @@
 From 1517840b24477b048015b7fcc671e5b225426789 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Fri, 20 Jan 2017 12:35:03 -0800
-Subject: [PATCH 02/11] cros_ec: i2c: Add support for version 3 of the EC
+Subject: [PATCH 02/12] cros_ec: i2c: Add support for version 3 of the EC
  protocol
 
 Add support for version 3 of the ec protocol. It basically works by

@@ -1,7 +1,7 @@
 From b621810511a02bfa8cc82c5624a799986cf9a92d Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 16 Jan 2017 09:50:44 -0800
-Subject: [PATCH 04/11] i2c: i2c-cdns: Detect unsupported sequences for rev 1.0
+Subject: [PATCH 04/12] i2c: i2c-cdns: Detect unsupported sequences for rev 1.0
 
 Revision 1.0 of this IP has a couple of issues, such as not supporting
 repeated start conditions for read transfers.

@@ -1,7 +1,7 @@
 From d8fff0f27fed83438ad9d7168b37e59cdbd826ea Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 16 Jan 2017 09:50:46 -0800
-Subject: [PATCH 08/11] i2c: i2c-cdns: Implement workaround for hold quirk of
+Subject: [PATCH 08/12] i2c: i2c-cdns: Implement workaround for hold quirk of
  the rev 1.0
 
 Revision 1.0 of this IP has a quirk where if during a long read transfer

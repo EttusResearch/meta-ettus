@@ -1,7 +1,7 @@
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
-SRC_URI_append_sulfur = " file://system.conf \
-                        "
+SRC_URI_append_ni-sulfur = " file://system.conf \
+                           "
 
 def get_systemd_req_features(d):
     pkg = d.getVar('PACKAGECONFIG', False)
