@@ -8,20 +8,16 @@ SRC_URI_append_ettus-e300 = " \
 		 "
 
 SRC_URI_append_sulfur = " \
-                 file://0001-zynq-Move-ENV-location-selection-from-zynq-common.h-.patch \
-		 file://0001-cros_ec-i2c-Group-i2c-write-read-into-single-transac.patch \
-		 file://0002-cros_ec-i2c-Add-support-for-version-3-of-the-EC-prot.patch \
-		 file://0003-i2c-cdns-Add-additional-compatible-string-for-r1p14-.patch \
-		 file://0004-i2c-i2c-cdns-Detect-unsupported-sequences-for-rev-1..patch \
-		 file://0005-i2c-i2c-cdns-Reorder-timeout-loop-for-interrupt-wait.patch \
-		 file://0006-i2c-i2c-cdns-No-need-for-dedicated-probe-function.patch \
-		 file://0001-i2c-i2c-cdns-Implement-workaround-for-hold-quirk-of-.patch \
-		 file://0007-i2c-mux-Allow-muxes-to-work-as-children-of-i2c-bus-w.patch \
-		 file://0008-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
-		 file://0009-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
-		 file://0001-zynq-Remove-CONFIG_ENV_OFFSET.patch \
-		 file://0010-fixup-ni-zynq-Add-support-for-NI-Ettus-Research-Proj.patch \
-		 file://0011-fixup-ni-zynq-Add-support-for-NI-Ettus-Research-Proj.patch \
+                 file://sulfur/0001-cros_ec-i2c-Group-i2c-write-read-into-single-transac.patch \
+                 file://sulfur/0002-cros_ec-i2c-Add-support-for-version-3-of-the-EC-prot.patch \
+                 file://sulfur/0003-i2c-cdns-Add-additional-compatible-string-for-r1p14-.patch \
+                 file://sulfur/0004-i2c-i2c-cdns-Detect-unsupported-sequences-for-rev-1..patch \
+                 file://sulfur/0005-i2c-i2c-cdns-Reorder-timeout-loop-for-interrupt-wait.patch \
+                 file://sulfur/0006-i2c-i2c-cdns-No-need-for-dedicated-probe-function.patch \
+                 file://sulfur/0007-i2c-mux-Allow-muxes-to-work-as-children-of-i2c-bus-w.patch \
+                 file://sulfur/0008-i2c-i2c-cdns-Implement-workaround-for-hold-quirk-of-.patch \
+                 file://sulfur/0009-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
+                 file://sulfur/0010-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
                  "
 
 SPL_BINARY = "spl/boot.bin"

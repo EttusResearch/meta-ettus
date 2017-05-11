@@ -1,7 +1,7 @@
-From 3ec5d896b668f134ee856d18db6097777c9dd96c Mon Sep 17 00:00:00 2001
+From 40ca603aa5b408e9dd97e3ed5dae57dbc045140a Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
-Date: Mon, 12 Dec 2016 17:28:16 -0800
-Subject: [PATCH 2/4] ni: zynq: Add support for NI Ettus Research Project
+Date: Wed, 10 May 2017 16:41:31 -0700
+Subject: [PATCH 09/11] ni: zynq: Add support for NI Ettus Research Project
  Sulfur Rev2 SDR
 
 Add support for second revision of NI Ettus Research Project Sulfur
@@ -10,19 +10,19 @@ Revision 2 SDR board.
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
  arch/arm/dts/Makefile                            |   1 +
- arch/arm/dts/zynq-ni-sulfur-rev2.dts             | 269 +++++++++++++++++++
- arch/arm/dts/zynq-sulfur-uboot.dtsi              |  16 ++
+ arch/arm/dts/zynq-ni-sulfur-rev2-uboot.dtsi      |  16 ++
+ arch/arm/dts/zynq-ni-sulfur-rev2.dts             | 276 ++++++++++++++++++++
  board/ni/zynq/MAINTAINERS                        |   6 +
  board/ni/zynq/Makefile                           |  10 +
- board/ni/zynq/board.c                            | 302 ++++++++++++++++++++++
+ board/ni/zynq/board.c                            | 202 +++++++++++++++
  board/ni/zynq/ps7_init_common.c                  | 119 +++++++++
  board/ni/zynq/ps7_init_gpl.h                     |  34 +++
  board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c | 313 +++++++++++++++++++++++
- configs/ni_sulfur_rev2_defconfig                 |  67 +++++
+ configs/ni_sulfur_rev2_defconfig                 |  69 +++++
  include/configs/ni_sulfur_rev2.h                 |  58 +++++
- 11 files changed, 1195 insertions(+)
+ 11 files changed, 1104 insertions(+)
+ create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev2-uboot.dtsi
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev2.dts
- create mode 100644 arch/arm/dts/zynq-sulfur-uboot.dtsi
  create mode 100644 board/ni/zynq/MAINTAINERS
  create mode 100644 board/ni/zynq/Makefile
  create mode 100644 board/ni/zynq/board.c
@@ -44,12 +44,34 @@ index 3ee608b..33d3b13 100644
  	zynq-picozed.dtb \
  	zynq-topic-miami.dtb \
  	zynq-topic-miamiplus.dtb \
+diff --git a/arch/arm/dts/zynq-ni-sulfur-rev2-uboot.dtsi b/arch/arm/dts/zynq-ni-sulfur-rev2-uboot.dtsi
+new file mode 100644
+index 0000000..28344c5
+--- /dev/null
++++ b/arch/arm/dts/zynq-ni-sulfur-rev2-uboot.dtsi
+@@ -0,0 +1,16 @@
++/*
++ * U-Boot addition to handle Sulfur Rev2 pins
++ *
++ * (C) Copyright 2016 National Instruments Corp
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#include <dt-bindings/gpio/gpio.h>
++
++&gpio0 {
++	sys_pwron_33 {
++		u-boot,dm-pre-reloc;
++		gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
++	};
++};
 diff --git a/arch/arm/dts/zynq-ni-sulfur-rev2.dts b/arch/arm/dts/zynq-ni-sulfur-rev2.dts
 new file mode 100644
-index 0000000..894c556
+index 0000000..f844f1a
 --- /dev/null
 +++ b/arch/arm/dts/zynq-ni-sulfur-rev2.dts
-@@ -0,0 +1,269 @@
+@@ -0,0 +1,276 @@
 +/*
 + * National Instruments Ettus Research Project Sulfur SDR Revision 2
 + * devicetree source.
@@ -113,8 +135,15 @@ index 0000000..894c556
 +		spi0 = &spi1;
 +		i2c20 = &tun;
 +		i2c0 = &i2c0;
-+		i2c2 = &sfp0_i2c;
-+		i2c3 = &sfp1_i2c;
++		i2c0700 = &i2c0_70_0;
++		i2c0701 = &i2c0_70_1;
++		i2c0702 = &i2c0_70_2;
++		i2c0703 = &i2c0_70_3;
++		i2c0704 = &i2c0_70_4;
++		i2c0705 = &i2c0_70_5;
++		i2c0706 = &i2c0_70_6;
++		i2c0707 = &i2c0_70_7;
++		mmc0 = &sdhci0;
 +	};
 +
 +	memory {
@@ -177,7 +206,7 @@ index 0000000..894c556
 +		reg = <0x70>;
 +		status = "okay";
 +
-+		sfp1_i2c: i2c@0 {
++		i2c0_70_0: i2c@0 {
 +			reg = <0x0>;
 +			#address-cells = <1>;
 +			#size-cells = <0>;
@@ -185,24 +214,24 @@ index 0000000..894c556
 +			status = "okay";
 +		};
 +
-+		i2c@1 {
++		i2c0_70_1: i2c@1 {
 +			reg = <0x1>;
 +			status = "disabled";
 +		};
 +
-+		sfp0_i2c: i2c@2 {
++		i2c0_70_2: i2c@2 {
 +			reg = <0x2>;
 +			#address-cells = <1>;
 +			#size-cells = <0>;
 +			status = "okay";
 +		};
 +
-+		i2c@3 {
++		i2c0_70_3: i2c@3 {
 +			reg = <0x3>;
 +			status = "disabled";
 +		};
 +
-+		i2c@4 {
++		i2c0_70_4: i2c@4 {
 +			reg = <0x4>;
 +			#address-cells = <1>;
 +			#size-cells = <0>;
@@ -215,17 +244,17 @@ index 0000000..894c556
 +			};
 +		};
 +
-+		i2c@5 {
++		i2c0_70_5: i2c@5 {
 +			reg = <0x5>;
 +			status = "disabled";
 +		};
 +
-+		i2c@6 {
++		i2c0_70_6: i2c@6 {
 +			reg = <0x6>;
 +			status = "disabled";
 +		};
 +
-+		i2c@7 {
++		i2c0_70_7: i2c@7 {
 +			reg = <0x7>;
 +			status = "disabled";
 +		};
@@ -318,29 +347,7 @@ index 0000000..894c556
 +	};
 +};
 +
-+#include "zynq-sulfur-uboot.dtsi"
-diff --git a/arch/arm/dts/zynq-sulfur-uboot.dtsi b/arch/arm/dts/zynq-sulfur-uboot.dtsi
-new file mode 100644
-index 0000000..891a012
---- /dev/null
-+++ b/arch/arm/dts/zynq-sulfur-uboot.dtsi
-@@ -0,0 +1,16 @@
-+/*
-+ * U-Boot addition to handle Dragonboard 410c pins
-+ *
-+ * (C) Copyright 2016 National Instruments Corp
-+ *
-+ * SPDX-License-Identifier:	GPL-2.0+
-+ */
-+
-+#include <dt-bindings/gpio/gpio.h>
-+
-+&gpio0 {
-+	sys_pwron_33 {
-+		u-boot,dm-pre-reloc;
-+		gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
-+	};
-+};
++#include "zynq-ni-sulfur-rev2-uboot.dtsi"
 diff --git a/board/ni/zynq/MAINTAINERS b/board/ni/zynq/MAINTAINERS
 new file mode 100644
 index 0000000..ff7595e
@@ -371,10 +378,10 @@ index 0000000..eaf59cd
 +obj-$(CONFIG_SPL_BUILD) += $(hw-platform-y)/ps7_init_gpl.o ps7_init_common.o
 diff --git a/board/ni/zynq/board.c b/board/ni/zynq/board.c
 new file mode 100644
-index 0000000..3f1e843
+index 0000000..a8596e1
 --- /dev/null
 +++ b/board/ni/zynq/board.c
-@@ -0,0 +1,302 @@
+@@ -0,0 +1,202 @@
 +/*
 + * (C) Copyright 2012 Michal Simek <monstr@monstr.eu>
 + *
@@ -438,13 +445,13 @@ index 0000000..3f1e843
 +		return ret;
 +	}
 +
-+	if (type == BOARD_POWER_TYPE_OFF) {
-+		dm_gpio_set_value(&sys_pwron_33, 0);
-+	} else {
-+		dm_gpio_set_value(&sys_pwron_33, 1);
-+	}
 +
-+	printf("%s: Done ...\n", __func__);
++	if (type == BOARD_POWER_TYPE_OFF) {
++		dm_gpio_set_dir_flags(&sys_pwron_33, GPIOD_IS_OUT);
++	} else {
++		dm_gpio_set_dir_flags(&sys_pwron_33,
++				      GPIOD_IS_OUT | GPIOD_IS_OUT_ACTIVE);
++	}
 +
 +	return 0;
 +}
@@ -504,6 +511,12 @@ index 0000000..3f1e843
 +int board_late_init(void)
 +{
 +	switch ((zynq_slcr_get_boot_mode()) & ZYNQ_BM_MASK) {
++	case ZYNQ_BM_QSPI:
++		setenv("modeboot", "qspiboot");
++		break;
++	case ZYNQ_BM_NAND:
++		setenv("modeboot", "nandboot");
++		break;
 +	case ZYNQ_BM_NOR:
 +		setenv("modeboot", "norboot");
 +		break;
@@ -547,121 +560,15 @@ index 0000000..3f1e843
 +}
 +
 +#if !defined(CONFIG_SYS_SDRAM_BASE) && !defined(CONFIG_SYS_SDRAM_SIZE)
-+/*
-+ * fdt_get_reg - Fill buffer by information from DT
-+ */
-+static phys_size_t fdt_get_reg(const void *fdt, int nodeoffset, void *buf,
-+			       const u32 *cell, int n)
-+{
-+	int i = 0, b, banks;
-+	int parent_offset = fdt_parent_offset(fdt, nodeoffset);
-+	int address_cells = fdt_address_cells(fdt, parent_offset);
-+	int size_cells = fdt_size_cells(fdt, parent_offset);
-+	char *p = buf;
-+	u64 val;
-+	u64 vals;
-+
-+	debug("%s: addr_cells=%x, size_cell=%x, buf=%p, cell=%p\n",
-+	      __func__, address_cells, size_cells, buf, cell);
-+
-+	/* Check memory bank setup */
-+	banks = n % (address_cells + size_cells);
-+	if (banks)
-+		panic("Incorrect memory setup cells=%d, ac=%d, sc=%d\n",
-+		      n, address_cells, size_cells);
-+
-+	banks = n / (address_cells + size_cells);
-+
-+	for (b = 0; b < banks; b++) {
-+		debug("%s: Bank #%d:\n", __func__, b);
-+		if (address_cells == 2) {
-+			val = cell[i + 1];
-+			val <<= 32;
-+			val |= cell[i];
-+			val = fdt64_to_cpu(val);
-+			debug("%s: addr64=%llx, ptr=%p, cell=%p\n",
-+			      __func__, val, p, &cell[i]);
-+			*(phys_addr_t *)p = val;
-+		} else {
-+			debug("%s: addr32=%x, ptr=%p\n",
-+			      __func__, fdt32_to_cpu(cell[i]), p);
-+			*(phys_addr_t *)p = fdt32_to_cpu(cell[i]);
-+		}
-+		p += sizeof(phys_addr_t);
-+		i += address_cells;
-+
-+		debug("%s: pa=%p, i=%x, size=%zu\n", __func__, p, i,
-+		      sizeof(phys_addr_t));
-+
-+		if (size_cells == 2) {
-+			vals = cell[i + 1];
-+			vals <<= 32;
-+			vals |= cell[i];
-+			vals = fdt64_to_cpu(vals);
-+
-+			debug("%s: size64=%llx, ptr=%p, cell=%p\n",
-+			      __func__, vals, p, &cell[i]);
-+			*(phys_size_t *)p = vals;
-+		} else {
-+			debug("%s: size32=%x, ptr=%p\n",
-+			      __func__, fdt32_to_cpu(cell[i]), p);
-+			*(phys_size_t *)p = fdt32_to_cpu(cell[i]);
-+		}
-+		p += sizeof(phys_size_t);
-+		i += size_cells;
-+
-+		debug("%s: ps=%p, i=%x, size=%zu\n",
-+		      __func__, p, i, sizeof(phys_size_t));
-+	}
-+
-+	/* Return the first address size */
-+	return *(phys_size_t *)((char *)buf + sizeof(phys_addr_t));
-+}
-+
-+#define FDT_REG_SIZE  sizeof(u32)
-+/* Temp location for sharing data for storing */
-+/* Up to 64-bit address + 64-bit size */
-+static u8 tmp[CONFIG_NR_DRAM_BANKS * 16];
-+
 +void dram_init_banksize(void)
 +{
-+	int bank;
-+
-+	memcpy(&gd->bd->bi_dram[0], &tmp, sizeof(tmp));
-+
-+	for (bank = 0; bank < CONFIG_NR_DRAM_BANKS; bank++) {
-+		debug("Bank #%d: start %llx\n", bank,
-+		      (unsigned long long)gd->bd->bi_dram[bank].start);
-+		debug("Bank #%d: size %llx\n", bank,
-+		      (unsigned long long)gd->bd->bi_dram[bank].size);
-+	}
++	fdtdec_setup_memory_banksize();
 +}
 +
 +int dram_init(void)
 +{
-+	int node, len;
-+	const void *blob = gd->fdt_blob;
-+	const u32 *cell;
-+
-+	memset(&tmp, 0, sizeof(tmp));
-+
-+	/* find or create "/memory" node. */
-+	node = fdt_subnode_offset(blob, 0, "memory");
-+	if (node < 0) {
-+		printf("%s: Can't get memory node\n", __func__);
-+		return node;
-+	}
-+
-+	/* Get pointer to cells and lenght of it */
-+	cell = fdt_getprop(blob, node, "reg", &len);
-+	if (!cell) {
-+		printf("%s: Can't get reg property\n", __func__);
-+		return -1;
-+	}
-+
-+	gd->ram_size = fdt_get_reg(blob, node, &tmp, cell, len / FDT_REG_SIZE);
-+
-+	debug("%s: Initial DRAM size %llx\n", __func__, (u64)gd->ram_size);
++	if (fdtdec_setup_memory_size() != 0)
++		return -EINVAL;
 +
 +	zynq_ddrc_init();
 +
@@ -844,7 +751,7 @@ index 0000000..ef719ac
 +int ps7_config(unsigned long *ps7_config_init);
 diff --git a/board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c b/board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c
 new file mode 100644
-index 0000000..0a80818
+index 0000000..43a9655
 --- /dev/null
 +++ b/board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c
 @@ -0,0 +1,313 @@
@@ -888,19 +795,19 @@ index 0000000..0a80818
 +
 +unsigned long ps7_clock_init_data_3_0[] = {
 +	EMIT_MASKWRITE(0XF8000008, 0x0000FFFFU, 0x0000DF0DU),
-+	EMIT_MASKWRITE(0XF8000128, 0x03F03F01U, 0x00700F01U),
++	EMIT_MASKWRITE(0XF8000128, 0x03F03F01U, 0x00302301U),
 +	EMIT_MASKWRITE(0XF8000138, 0x00000011U, 0x00000001U),
 +	EMIT_MASKWRITE(0XF8000140, 0x03F03F71U, 0x00100801U),
 +	EMIT_MASKWRITE(0XF8000150, 0x00003F33U, 0x00000A01U),
 +	EMIT_MASKWRITE(0XF8000154, 0x00003F33U, 0x00000A03U),
-+	EMIT_MASKWRITE(0XF8000158, 0x00003F33U, 0x00000602U),
++	EMIT_MASKWRITE(0XF8000158, 0x00003F33U, 0x00000603U),
 +	EMIT_MASKWRITE(0XF8000168, 0x00003F31U, 0x00000501U),
-+	EMIT_MASKWRITE(0XF8000170, 0x03F03F30U, 0x00100100U),
-+	EMIT_MASKWRITE(0XF8000180, 0x03F03F30U, 0x00100100U),
-+	EMIT_MASKWRITE(0XF8000190, 0x03F03F30U, 0x00100100U),
-+	EMIT_MASKWRITE(0XF80001A0, 0x03F03F30U, 0x00100100U),
++	EMIT_MASKWRITE(0XF8000170, 0x03F03F30U, 0x00100A00U),
++	EMIT_MASKWRITE(0XF8000180, 0x03F03F30U, 0x00101400U),
++	EMIT_MASKWRITE(0XF8000190, 0x03F03F30U, 0x00101400U),
++	EMIT_MASKWRITE(0XF80001A0, 0x03F03F30U, 0x00101400U),
 +	EMIT_MASKWRITE(0XF80001C4, 0x00000001U, 0x00000001U),
-+	EMIT_MASKWRITE(0XF800012C, 0x01FFCCCDU, 0x017C844DU),
++	EMIT_MASKWRITE(0XF800012C, 0x01FFCCCDU, 0x017CC44DU),
 +	EMIT_MASKWRITE(0XF8000004, 0x0000FFFFU, 0x0000767BU),
 +	EMIT_EXIT(),
 +};
@@ -911,8 +818,8 @@ index 0000000..0a80818
 +	EMIT_MASKWRITE(0XF8006008, 0x03FFFFFFU, 0x03C0780FU),
 +	EMIT_MASKWRITE(0XF800600C, 0x03FFFFFFU, 0x02001001U),
 +	EMIT_MASKWRITE(0XF8006010, 0x03FFFFFFU, 0x00014001U),
-+	EMIT_MASKWRITE(0XF8006014, 0x001FFFFFU, 0x0004281CU),
-+	EMIT_MASKWRITE(0XF8006018, 0xF7FFFFFFU, 0x45246CD2U),
++	EMIT_MASKWRITE(0XF8006014, 0x001FFFFFU, 0x0004281AU),
++	EMIT_MASKWRITE(0XF8006018, 0xF7FFFFFFU, 0x44E458D2U),
 +	EMIT_MASKWRITE(0XF800601C, 0xFFFFFFFFU, 0x720238E5U),
 +	EMIT_MASKWRITE(0XF8006020, 0x7FDFFFFCU, 0x270872D0U),
 +	EMIT_MASKWRITE(0XF8006024, 0x0FFFFFC3U, 0x00000000U),
@@ -935,7 +842,7 @@ index 0000000..0a80818
 +	EMIT_MASKWRITE(0XF8006078, 0x03FFFFFFU, 0x00466111U),
 +	EMIT_MASKWRITE(0XF800607C, 0x000FFFFFU, 0x00032222U),
 +	EMIT_MASKWRITE(0XF80060A4, 0xFFFFFFFFU, 0x10200802U),
-+	EMIT_MASKWRITE(0XF80060A8, 0x0FFFFFFFU, 0x0690CB52U),
++	EMIT_MASKWRITE(0XF80060A8, 0x0FFFFFFFU, 0x0690CB73U),
 +	EMIT_MASKWRITE(0XF80060AC, 0x000001FFU, 0x000001FEU),
 +	EMIT_MASKWRITE(0XF80060B0, 0x1FFFFFFFU, 0x1CFFFFFFU),
 +	EMIT_MASKWRITE(0XF80060B4, 0x00000200U, 0x00000200U),
@@ -951,26 +858,26 @@ index 0000000..0a80818
 +	EMIT_MASKWRITE(0XF800611C, 0x7FFFFFCFU, 0x40000001U),
 +	EMIT_MASKWRITE(0XF8006120, 0x7FFFFFCFU, 0x40000001U),
 +	EMIT_MASKWRITE(0XF8006124, 0x7FFFFFCFU, 0x40000001U),
-+	EMIT_MASKWRITE(0XF800612C, 0x000FFFFFU, 0x00018028U),
-+	EMIT_MASKWRITE(0XF8006130, 0x000FFFFFU, 0x0001802FU),
-+	EMIT_MASKWRITE(0XF8006134, 0x000FFFFFU, 0x0001802AU),
-+	EMIT_MASKWRITE(0XF8006138, 0x000FFFFFU, 0x0001802EU),
++	EMIT_MASKWRITE(0XF800612C, 0x000FFFFFU, 0x00018000U),
++	EMIT_MASKWRITE(0XF8006130, 0x000FFFFFU, 0x00018000U),
++	EMIT_MASKWRITE(0XF8006134, 0x000FFFFFU, 0x00018000U),
++	EMIT_MASKWRITE(0XF8006138, 0x000FFFFFU, 0x00018000U),
 +	EMIT_MASKWRITE(0XF8006140, 0x000FFFFFU, 0x00000035U),
 +	EMIT_MASKWRITE(0XF8006144, 0x000FFFFFU, 0x00000035U),
 +	EMIT_MASKWRITE(0XF8006148, 0x000FFFFFU, 0x00000035U),
 +	EMIT_MASKWRITE(0XF800614C, 0x000FFFFFU, 0x00000035U),
-+	EMIT_MASKWRITE(0XF8006154, 0x000FFFFFU, 0x000000A8U),
-+	EMIT_MASKWRITE(0XF8006158, 0x000FFFFFU, 0x000000AFU),
-+	EMIT_MASKWRITE(0XF800615C, 0x000FFFFFU, 0x000000AAU),
-+	EMIT_MASKWRITE(0XF8006160, 0x000FFFFFU, 0x000000AEU),
++	EMIT_MASKWRITE(0XF8006154, 0x000FFFFFU, 0x00000080U),
++	EMIT_MASKWRITE(0XF8006158, 0x000FFFFFU, 0x00000080U),
++	EMIT_MASKWRITE(0XF800615C, 0x000FFFFFU, 0x00000080U),
++	EMIT_MASKWRITE(0XF8006160, 0x000FFFFFU, 0x00000080U),
 +	EMIT_MASKWRITE(0XF8006168, 0x001FFFFFU, 0x000000B5U),
 +	EMIT_MASKWRITE(0XF800616C, 0x001FFFFFU, 0x000000B5U),
 +	EMIT_MASKWRITE(0XF8006170, 0x001FFFFFU, 0x000000B5U),
 +	EMIT_MASKWRITE(0XF8006174, 0x001FFFFFU, 0x000000B5U),
-+	EMIT_MASKWRITE(0XF800617C, 0x000FFFFFU, 0x000000E8U),
-+	EMIT_MASKWRITE(0XF8006180, 0x000FFFFFU, 0x000000EFU),
-+	EMIT_MASKWRITE(0XF8006184, 0x000FFFFFU, 0x000000EAU),
-+	EMIT_MASKWRITE(0XF8006188, 0x000FFFFFU, 0x000000EEU),
++	EMIT_MASKWRITE(0XF800617C, 0x000FFFFFU, 0x000000C0U),
++	EMIT_MASKWRITE(0XF8006180, 0x000FFFFFU, 0x000000C0U),
++	EMIT_MASKWRITE(0XF8006184, 0x000FFFFFU, 0x000000C0U),
++	EMIT_MASKWRITE(0XF8006188, 0x000FFFFFU, 0x000000C0U),
 +	EMIT_MASKWRITE(0XF8006190, 0x6FFFFEFEU, 0x00040080U),
 +	EMIT_MASKWRITE(0XF8006194, 0x000FFFFFU, 0x0001FC82U),
 +	EMIT_MASKWRITE(0XF8006204, 0xFFFFFFFFU, 0x00000000U),
@@ -1023,38 +930,38 @@ index 0000000..0a80818
 +	EMIT_MASKWRITE(0XF800072C, 0x00003FFFU, 0x00001260U),
 +	EMIT_MASKWRITE(0XF8000730, 0x00003FFFU, 0x00001261U),
 +	EMIT_MASKWRITE(0XF8000734, 0x00003FFFU, 0x00001261U),
-+	EMIT_MASKWRITE(0XF8000738, 0x00003FFFU, 0x000002E1U),
-+	EMIT_MASKWRITE(0XF800073C, 0x00003FFFU, 0x000002E0U),
-+	EMIT_MASKWRITE(0XF8000740, 0x00003FFFU, 0x00001302U),
-+	EMIT_MASKWRITE(0XF8000744, 0x00003FFFU, 0x00001302U),
-+	EMIT_MASKWRITE(0XF8000748, 0x00003FFFU, 0x00001302U),
-+	EMIT_MASKWRITE(0XF800074C, 0x00003FFFU, 0x00001302U),
-+	EMIT_MASKWRITE(0XF8000750, 0x00003FFFU, 0x00001302U),
-+	EMIT_MASKWRITE(0XF8000754, 0x00003FFFU, 0x00001302U),
-+	EMIT_MASKWRITE(0XF8000758, 0x00003FFFU, 0x00001303U),
-+	EMIT_MASKWRITE(0XF800075C, 0x00003FFFU, 0x00001303U),
-+	EMIT_MASKWRITE(0XF8000760, 0x00003FFFU, 0x00001303U),
-+	EMIT_MASKWRITE(0XF8000764, 0x00003FFFU, 0x00001303U),
-+	EMIT_MASKWRITE(0XF8000768, 0x00003FFFU, 0x00001303U),
-+	EMIT_MASKWRITE(0XF800076C, 0x00003FFFU, 0x00001303U),
-+	EMIT_MASKWRITE(0XF8000770, 0x00003FFFU, 0x00001304U),
-+	EMIT_MASKWRITE(0XF8000774, 0x00003FFFU, 0x00001305U),
-+	EMIT_MASKWRITE(0XF8000778, 0x00003FFFU, 0x00001304U),
-+	EMIT_MASKWRITE(0XF800077C, 0x00003FFFU, 0x00001305U),
-+	EMIT_MASKWRITE(0XF8000780, 0x00003FFFU, 0x00001304U),
-+	EMIT_MASKWRITE(0XF8000784, 0x00003FFFU, 0x00001304U),
-+	EMIT_MASKWRITE(0XF8000788, 0x00003FFFU, 0x00001304U),
-+	EMIT_MASKWRITE(0XF800078C, 0x00003FFFU, 0x00001304U),
-+	EMIT_MASKWRITE(0XF8000790, 0x00003FFFU, 0x00001305U),
-+	EMIT_MASKWRITE(0XF8000794, 0x00003FFFU, 0x00001304U),
-+	EMIT_MASKWRITE(0XF8000798, 0x00003FFFU, 0x00001304U),
-+	EMIT_MASKWRITE(0XF800079C, 0x00003FFFU, 0x00001304U),
-+	EMIT_MASKWRITE(0XF80007A0, 0x00003FFFU, 0x00000380U),
-+	EMIT_MASKWRITE(0XF80007A4, 0x00003FFFU, 0x00000380U),
-+	EMIT_MASKWRITE(0XF80007A8, 0x00003FFFU, 0x00000380U),
-+	EMIT_MASKWRITE(0XF80007AC, 0x00003FFFU, 0x00000380U),
-+	EMIT_MASKWRITE(0XF80007B0, 0x00003FFFU, 0x00000380U),
-+	EMIT_MASKWRITE(0XF80007B4, 0x00003FFFU, 0x00000380U),
++	EMIT_MASKWRITE(0XF8000738, 0x00003FFFU, 0x000012E1U),
++	EMIT_MASKWRITE(0XF800073C, 0x00003FFFU, 0x000012E0U),
++	EMIT_MASKWRITE(0XF8000740, 0x00003FFFU, 0x00001202U),
++	EMIT_MASKWRITE(0XF8000744, 0x00003FFFU, 0x00001202U),
++	EMIT_MASKWRITE(0XF8000748, 0x00003FFFU, 0x00001202U),
++	EMIT_MASKWRITE(0XF800074C, 0x00003FFFU, 0x00001202U),
++	EMIT_MASKWRITE(0XF8000750, 0x00003FFFU, 0x00001202U),
++	EMIT_MASKWRITE(0XF8000754, 0x00003FFFU, 0x00001202U),
++	EMIT_MASKWRITE(0XF8000758, 0x00003FFFU, 0x00001203U),
++	EMIT_MASKWRITE(0XF800075C, 0x00003FFFU, 0x00001203U),
++	EMIT_MASKWRITE(0XF8000760, 0x00003FFFU, 0x00001203U),
++	EMIT_MASKWRITE(0XF8000764, 0x00003FFFU, 0x00001203U),
++	EMIT_MASKWRITE(0XF8000768, 0x00003FFFU, 0x00001203U),
++	EMIT_MASKWRITE(0XF800076C, 0x00003FFFU, 0x00001203U),
++	EMIT_MASKWRITE(0XF8000770, 0x00003FFFU, 0x00001204U),
++	EMIT_MASKWRITE(0XF8000774, 0x00003FFFU, 0x00001205U),
++	EMIT_MASKWRITE(0XF8000778, 0x00003FFFU, 0x00001204U),
++	EMIT_MASKWRITE(0XF800077C, 0x00003FFFU, 0x00001205U),
++	EMIT_MASKWRITE(0XF8000780, 0x00003FFFU, 0x00001204U),
++	EMIT_MASKWRITE(0XF8000784, 0x00003FFFU, 0x00001204U),
++	EMIT_MASKWRITE(0XF8000788, 0x00003FFFU, 0x00001204U),
++	EMIT_MASKWRITE(0XF800078C, 0x00003FFFU, 0x00001204U),
++	EMIT_MASKWRITE(0XF8000790, 0x00003FFFU, 0x00001205U),
++	EMIT_MASKWRITE(0XF8000794, 0x00003FFFU, 0x00001204U),
++	EMIT_MASKWRITE(0XF8000798, 0x00003FFFU, 0x00001204U),
++	EMIT_MASKWRITE(0XF800079C, 0x00003FFFU, 0x00001204U),
++	EMIT_MASKWRITE(0XF80007A0, 0x00003FFFU, 0x00001280U),
++	EMIT_MASKWRITE(0XF80007A4, 0x00003FFFU, 0x00001280U),
++	EMIT_MASKWRITE(0XF80007A8, 0x00003FFFU, 0x00001280U),
++	EMIT_MASKWRITE(0XF80007AC, 0x00003FFFU, 0x00001280U),
++	EMIT_MASKWRITE(0XF80007B0, 0x00003FFFU, 0x00001280U),
++	EMIT_MASKWRITE(0XF80007B4, 0x00003FFFU, 0x00001280U),
 +	EMIT_MASKWRITE(0XF80007B8, 0x00003FFFU, 0x000012A0U),
 +	EMIT_MASKWRITE(0XF80007BC, 0x00003FFFU, 0x000012A0U),
 +	EMIT_MASKWRITE(0XF80007C0, 0x00003FFFU, 0x000012A0U),
@@ -1163,17 +1070,17 @@ index 0000000..0a80818
 +}
 diff --git a/configs/ni_sulfur_rev2_defconfig b/configs/ni_sulfur_rev2_defconfig
 new file mode 100644
-index 0000000..c7d8756
+index 0000000..0e4879a
 --- /dev/null
 +++ b/configs/ni_sulfur_rev2_defconfig
-@@ -0,0 +1,67 @@
+@@ -0,0 +1,69 @@
 +CONFIG_ARM=y
 +CONFIG_SYS_VENDOR="ni"
 +CONFIG_SYS_CONFIG_NAME="ni_sulfur_rev2"
 +CONFIG_ARCH_ZYNQ=y
 +CONFIG_DEFAULT_DEVICE_TREE="zynq-ni-sulfur-rev2"
++CONFIG_SYS_EXTRA_OPTIONS="ENV_IS_IN_MMC""
 +CONFIG_FIT=y
-+CONFIG_SYS_NO_FLASH=y
 +# CONFIG_DISPLAY_CPUINFO is not set
 +CONFIG_SPL=y
 +CONFIG_HUSH_PARSER=y
@@ -1188,6 +1095,7 @@ index 0000000..c7d8756
 +CONFIG_CMD_USB=y
 +CONFIG_CMD_DFU=y
 +CONFIG_CMD_GPIO=y
++CONFIG_DM_GPIO=y
 +# CONFIG_CMD_SETEXPR is not set
 +CONFIG_CMD_TFTPPUT=y
 +CONFIG_CMD_DHCP=y
@@ -1210,6 +1118,7 @@ index 0000000..c7d8756
 +CONFIG_I2C_CROS_EC_TUNNEL=y
 +CONFIG_DM_I2C_GPIO=y
 +CONFIG_SYS_I2C_CADENCE=y
++CONFIG_SYS_NOFLASH=y
 +CONFIG_I2C_MUX=y
 +CONFIG_I2C_MUX_PCA954x=y
 +CONFIG_MISC=y

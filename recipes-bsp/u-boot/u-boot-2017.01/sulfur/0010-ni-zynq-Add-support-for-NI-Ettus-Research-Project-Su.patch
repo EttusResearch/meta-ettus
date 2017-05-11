@@ -1,7 +1,7 @@
-From ec7a64c51b7d300fcd7b95be7252dc9b187f5594 Mon Sep 17 00:00:00 2001
+From eb003bfce43a654b44b662ce8958e19187f41c8d Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
-Date: Tue, 28 Mar 2017 10:26:14 -0700
-Subject: [PATCH 09/11] ni: zynq: Add support for NI Ettus Research Project
+Date: Wed, 10 May 2017 16:42:35 -0700
+Subject: [PATCH 10/11] ni: zynq: Add support for NI Ettus Research Project
  Sulfur Rev3 SDR
 
 Add support for second revision of NI Ettus Research Project Sulfur
@@ -12,11 +12,10 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  arch/arm/dts/Makefile                            |   1 +
  arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi      |  26 ++
  arch/arm/dts/zynq-ni-sulfur-rev3.dts             | 295 ++++++++++++++++++++++
- board/ni/zynq/board.c                            |   8 +-
  board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c | 307 +++++++++++++++++++++++
  configs/ni_sulfur_rev3_defconfig                 |  68 +++++
- include/configs/ni_sulfur_rev3.h                 |  58 +++++
- 7 files changed, 759 insertions(+), 4 deletions(-)
+ include/configs/ni_sulfur_rev3.h                 |  35 +++
+ 6 files changed, 732 insertions(+)
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev3.dts
  create mode 100644 board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c
@@ -368,32 +367,9 @@ index 0000000..6812731
 +};
 +
 +#include "zynq-ni-sulfur-rev3-uboot.dtsi"
-diff --git a/board/ni/zynq/board.c b/board/ni/zynq/board.c
-index 113f9c4..a8596e1 100644
---- a/board/ni/zynq/board.c
-+++ b/board/ni/zynq/board.c
-@@ -61,14 +61,14 @@ int board_power(enum board_power_type type)
- 		return ret;
- 	}
- 
-+
- 	if (type == BOARD_POWER_TYPE_OFF) {
--		dm_gpio_set_value(&sys_pwron_33, 0);
-+		dm_gpio_set_dir_flags(&sys_pwron_33, GPIOD_IS_OUT);
- 	} else {
--		dm_gpio_set_value(&sys_pwron_33, 1);
-+		dm_gpio_set_dir_flags(&sys_pwron_33,
-+				      GPIOD_IS_OUT | GPIOD_IS_OUT_ACTIVE);
- 	}
- 
--	printf("%s: Done ...\n", __func__);
--
- 	return 0;
- }
- #endif
 diff --git a/board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c b/board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c
 new file mode 100644
-index 0000000..a0976b1
+index 0000000..56a866b
 --- /dev/null
 +++ b/board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c
 @@ -0,0 +1,307 @@
@@ -444,10 +420,10 @@ index 0000000..a0976b1
 +	EMIT_MASKWRITE(0XF8000154, 0x00003F33U ,0x00000A03U),
 +	EMIT_MASKWRITE(0XF8000158, 0x00003F33U ,0x00000603U),
 +	EMIT_MASKWRITE(0XF8000168, 0x00003F31U ,0x00000501U),
-+	EMIT_MASKWRITE(0XF8000170, 0x03F03F30U ,0x00200400U),
-+	EMIT_MASKWRITE(0XF8000180, 0x03F03F30U ,0x00100100U),
-+	EMIT_MASKWRITE(0XF8000190, 0x03F03F30U ,0x00100100U),
-+	EMIT_MASKWRITE(0XF80001A0, 0x03F03F30U ,0x00100100U),
++	EMIT_MASKWRITE(0XF8000170, 0x03F03F30U ,0x00200500U),
++	EMIT_MASKWRITE(0XF8000180, 0x03F03F30U ,0x00500500U),
++	EMIT_MASKWRITE(0XF8000190, 0x03F03F30U ,0x00200300U),
++	EMIT_MASKWRITE(0XF80001A0, 0x03F03F30U ,0x00100500U),
 +	EMIT_MASKWRITE(0XF80001C4, 0x00000001U ,0x00000001U),
 +	EMIT_MASKWRITE(0XF800012C, 0x01FFCCCDU ,0x017CC44DU),
 +	EMIT_MASKWRITE(0XF8000004, 0x0000FFFFU ,0x0000767BU),
@@ -706,16 +682,16 @@ index 0000000..a0976b1
 +}
 diff --git a/configs/ni_sulfur_rev3_defconfig b/configs/ni_sulfur_rev3_defconfig
 new file mode 100644
-index 0000000..9b7026f
+index 0000000..2a6a519
 --- /dev/null
 +++ b/configs/ni_sulfur_rev3_defconfig
 @@ -0,0 +1,68 @@
 +CONFIG_ARM=y
 +CONFIG_SYS_VENDOR="ni"
 +CONFIG_SYS_CONFIG_NAME="ni_sulfur_rev3"
-+CONFIG_SYS_TEXT_BASE=0x4000000
 +CONFIG_ARCH_ZYNQ=y
 +CONFIG_DEFAULT_DEVICE_TREE="zynq-ni-sulfur-rev3"
++CONFIG_SYS_EXTRA_OPTIONS="ENV_IS_IN_MMC"
 +CONFIG_FIT=y
 +# CONFIG_DISPLAY_CPUINFO is not set
 +CONFIG_SPL=y
@@ -754,17 +730,17 @@ index 0000000..9b7026f
 +CONFIG_I2C_CROS_EC_TUNNEL=y
 +CONFIG_DM_I2C_GPIO=y
 +CONFIG_SYS_I2C_CADENCE=y
++CONFIG_SYS_NOFLASH=y
 +CONFIG_I2C_MUX=y
 +CONFIG_I2C_MUX_PCA954x=y
 +CONFIG_MISC=y
 +CONFIG_CROS_EC=y
 +CONFIG_CROS_EC_I2C=y
 +CONFIG_I2C_EEPROM=y
-+CONFIG_MMC_SDHCI_ZYNQ=y
++CONFIG_ZYNQ_SDHCI=y
 +CONFIG_MMC_SDHCI=y
 +CONFIG_ZYNQ_GEM=y
 +CONFIG_ZYNQ_SPI=y
-+CONFIG_TPM_TIS_INFINEON=y
 +CONFIG_TPM_AUTH_SESSIONS=y
 +CONFIG_USB=y
 +CONFIG_USB_EHCI_HCD=y
@@ -780,10 +756,10 @@ index 0000000..9b7026f
 +CONFIG_TPM=y
 diff --git a/include/configs/ni_sulfur_rev3.h b/include/configs/ni_sulfur_rev3.h
 new file mode 100644
-index 0000000..015ac9c
+index 0000000..3937bc2
 --- /dev/null
 +++ b/include/configs/ni_sulfur_rev3.h
-@@ -0,0 +1,58 @@
+@@ -0,0 +1,35 @@
 +/*
 + * (C) Copyright 2017 National Instruments
 + *
@@ -796,39 +772,16 @@ index 0000000..015ac9c
 +#ifndef __CONFIG_NI_SULFUR_REV3
 +#define __CONFIG_NI_SULFUR_REV3
 +
++#define CONFIG_ENV_IS_NOWHERE
 +#include "zynq-common.h"
++#undef CONFIG_ENV_IS_NOWHERE
++
++#define CONFIG_SYS_MMC_ENV_DEV 0
 +
 +#undef CONFIG_EXTRA_ENV_SETTINGS
 +#define CONFIG_EXTRA_ENV_SETTINGS	\
 +	"fit_image=fit.itb\0"		\
 +	"load_addr=0x2000000\0"		\
-+	"fit_size=0x800000\0"		\
-+	"fdt_high=0x20000000\0"		\
-+	"initrd_high=0x20000000\0"	\
-+	"loadbootenv_addr=0x2000000\0" \
-+	"bootenv=uEnv.txt\0" \
-+	"bootenv_dev=mmc\0" \
-+	"loadbootenv=load ${bootenv_dev} 0 ${loadbootenv_addr} ${bootenv}\0" \
-+	"importbootenv=echo Importing environment from ${bootenv_dev} ...; " \
-+		"env import -t ${loadbootenv_addr} $filesize\0" \
-+	"bootenv_existence_test=test -e ${bootenv_dev} 0 /${bootenv}\0" \
-+	"setbootenv=if env run bootenv_existence_test; then " \
-+			"if env run loadbootenv; then " \
-+				"env run importbootenv; " \
-+			"fi; " \
-+		"fi; \0" \
-+	"sd_loadbootenv=set bootenv_dev mmc && " \
-+	                "mmcinfo && "\
-+			"run setbootenv \0" \
-+	"usb_loadbootenv=set bootenv_dev usb && usb start && run setbootenv \0" \
-+	"preboot=if test $modeboot = sdboot; then " \
-+			"run sd_loadbootenv; " \
-+			"echo Checking if uenvcmd is set ...; " \
-+			"if test -n $uenvcmd; then " \
-+				"echo Running uenvcmd ...; " \
-+				"run uenvcmd; " \
-+			"fi; " \
-+		"fi; \0" \
 +	"sdboot=echo Copying FIT from SD to RAM... && " \
 +		"load mmc 0 ${load_addr} ${fit_image} && " \
 +		"bootm ${load_addr}\0" \

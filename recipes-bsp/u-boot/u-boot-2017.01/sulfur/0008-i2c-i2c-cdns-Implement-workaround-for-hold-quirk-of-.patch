@@ -1,8 +1,8 @@
-From 9428b14869b83fac0f5ebae79fd49cedb05c943f Mon Sep 17 00:00:00 2001
+From d8fff0f27fed83438ad9d7168b37e59cdbd826ea Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 16 Jan 2017 09:50:46 -0800
-Subject: [PATCH] i2c: i2c-cdns: Implement workaround for hold quirk of the rev
- 1.0
+Subject: [PATCH 08/11] i2c: i2c-cdns: Implement workaround for hold quirk of
+ the rev 1.0
 
 Revision 1.0 of this IP has a quirk where if during a long read transfer
 the transfer_size register will go to 0, the master will send a NACK to
