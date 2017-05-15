@@ -1,7 +1,7 @@
-From 682d0f3dc864b0ba16a5bb028cfeb06946f8558f Mon Sep 17 00:00:00 2001
+From f8f5b17657771c254310c0325cfea9a3b8926ede Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Wed, 10 May 2017 16:42:35 -0700
-Subject: [PATCH 10/12] ni: zynq: Add support for NI Ettus Research Project
+Subject: [PATCH 10/10] ni: zynq: Add support for NI Ettus Research Project
  Sulfur Rev3 SDR
 
 Add support for second revision of NI Ettus Research Project Sulfur
@@ -14,8 +14,8 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  arch/arm/dts/zynq-ni-sulfur-rev3.dts             | 295 ++++++++++++++++++++++
  board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c | 307 +++++++++++++++++++++++
  configs/ni_sulfur_rev3_defconfig                 |  68 +++++
- include/configs/ni_sulfur_rev3.h                 |  35 +++
- 6 files changed, 732 insertions(+)
+ include/configs/ni_sulfur_rev3.h                 |  40 +++
+ 6 files changed, 737 insertions(+)
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev3.dts
  create mode 100644 board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c
@@ -756,10 +756,10 @@ index 0000000..2a6a519
 +CONFIG_TPM=y
 diff --git a/include/configs/ni_sulfur_rev3.h b/include/configs/ni_sulfur_rev3.h
 new file mode 100644
-index 0000000..3937bc2
+index 0000000..c10c1f2
 --- /dev/null
 +++ b/include/configs/ni_sulfur_rev3.h
-@@ -0,0 +1,35 @@
+@@ -0,0 +1,40 @@
 +/*
 + * (C) Copyright 2017 National Instruments
 + *
@@ -777,11 +777,16 @@ index 0000000..3937bc2
 +#undef CONFIG_ENV_IS_NOWHERE
 +
 +#define CONFIG_SYS_MMC_ENV_DEV 0
++#define CONFIG_ENV_SECT_SIZE		CONFIG_ENV_SIZE
++#define CONFIG_ENV_OFFSET		0xE0000
 +
 +#undef CONFIG_EXTRA_ENV_SETTINGS
 +#define CONFIG_EXTRA_ENV_SETTINGS	\
 +	"fit_image=fit.itb\0"		\
 +	"load_addr=0x2000000\0"		\
++	"fit_size=0x800000\0"           \
++	"fdt_high=0x20000000\0"         \
++	"initrd_high=0x20000000\0"      \
 +	"sdboot=echo Copying FIT from SD to RAM... && " \
 +		"load mmc 0 ${load_addr} ${fit_image} && " \
 +		"bootm ${load_addr}\0" \
