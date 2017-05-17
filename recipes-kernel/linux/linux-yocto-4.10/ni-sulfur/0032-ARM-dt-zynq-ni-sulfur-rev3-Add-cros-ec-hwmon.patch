@@ -1,4 +1,4 @@
-From 29fbbd07bb5d49749a2bfdf581d90fe533d53726 Mon Sep 17 00:00:00 2001
+From 6094643fd5a10973066b8146e41122fc21211b47 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Thu, 11 May 2017 16:52:16 -0700
 Subject: [PATCH 32/32] ARM: dt: zynq-ni-sulfur-rev3: Add cros-ec-hwmon
@@ -9,10 +9,10 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  1 file changed, 4 insertions(+)
 
 diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
-index b7adcc9..d7a0d34 100644
+index 7adcfc0..5083e43 100644
 --- a/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
 +++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
-@@ -227,6 +227,10 @@
+@@ -234,6 +234,10 @@
  
  		wakeup-source;
  
