@@ -1,0 +1,7 @@
+# /etc/systemd/network/10-macb.link
+[Match]
+Path=platform-e000b000.ethernet
+
+[Link]
+NamePolicy=
+Name=en0

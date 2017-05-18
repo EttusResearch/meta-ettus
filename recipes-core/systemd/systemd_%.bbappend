@@ -2,6 +2,7 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
 SRC_URI_append_ni-sulfur = " file://system.conf \
                              file://eth.network \
+                             file://10-macb.link \
                            "
 
 def get_systemd_req_features(d):
