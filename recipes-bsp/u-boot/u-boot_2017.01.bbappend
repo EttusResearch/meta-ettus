@@ -16,8 +16,10 @@ SRC_URI_append_ni-sulfur = " \
                  file://sulfur/0006-i2c-i2c-cdns-No-need-for-dedicated-probe-function.patch \
                  file://sulfur/0007-i2c-mux-Allow-muxes-to-work-as-children-of-i2c-bus-w.patch \
                  file://sulfur/0008-i2c-i2c-cdns-Implement-workaround-for-hold-quirk-of-.patch \
-                 file://sulfur/0009-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
+                 file://sulfur/0009-misc-cros_ec-Add-trivial-support-for-software-sync.patch \
                  file://sulfur/0010-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
+                 file://sulfur/0011-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
+		 file://sulfur/0012-ni-sulfur-rev3-Added-swsync-feature.patch \
                  "
 
 SPL_BINARY = "spl/boot.bin"

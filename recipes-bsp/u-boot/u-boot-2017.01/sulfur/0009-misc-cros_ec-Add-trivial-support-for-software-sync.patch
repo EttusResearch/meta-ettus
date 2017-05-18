@@ -1,0 +1,213 @@
+From d8ccbee390d94868cd002a9b3f514173fae9b8d2 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Wed, 26 Oct 2016 09:58:51 -0700
+Subject: [PATCH 09/12] misc: cros_ec: Add trivial support for software sync
+
+This adds basic support for 'software sync' - the technique
+used by Chromebooks to keep the EC software in sync with
+the rest of the software stack.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ cmd/cros_ec.c          |  12 +++++
+ drivers/misc/cros_ec.c | 126 +++++++++++++++++++++++++++++++++++++++++++++++++
+ include/cros_ec.h      |   9 ++++
+ 3 files changed, 147 insertions(+)
+
+diff --git a/cmd/cros_ec.c b/cmd/cros_ec.c
+index 9d42f87..344e7cd 100644
+--- a/cmd/cros_ec.c
++++ b/cmd/cros_ec.c
+@@ -151,6 +151,17 @@ static int do_cros_ec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+ 			return 1;
+ 		}
+ 		printf("%d\n", image);
++	} else if (0 == strcmp("swsync", cmd)) {
++		unsigned long addr;
++		unsigned long size;
++		if (argc >= 3) {
++			addr = simple_strtoul(argv[2], NULL, 16);
++			debug("%s: addr = %lx\n", __func__, addr);
++			size = simple_strtoul(argv[3], NULL, 16);
++			debug("%s: size = %lx\n", __func__, size);
++			cros_ec_flash_sync_rw(dev, addr, size);
++		}
++
+ 	} else if (0 == strcmp("hash", cmd)) {
+ 		struct ec_response_vboot_hash hash;
+ 		int i;
+@@ -372,6 +383,7 @@ U_BOOT_CMD(
+ 	"crosec id                  Read CROS-EC ID\n"
+ 	"crosec info                Read CROS-EC info\n"
+ 	"crosec curimage            Read CROS-EC current image\n"
++	"crosec swsync <addr> <size> [hexstring] Sync CROS-EC image if required\n"
+ 	"crosec hash                Read CROS-EC hash\n"
+ 	"crosec reboot [rw | ro | cold]  Reboot CROS-EC\n"
+ 	"crosec events              Read CROS-EC host events\n"
+diff --git a/drivers/misc/cros_ec.c b/drivers/misc/cros_ec.c
+index 759bb46..fffab84 100644
+--- a/drivers/misc/cros_ec.c
++++ b/drivers/misc/cros_ec.c
+@@ -28,6 +28,9 @@
+ #include <dm/device-internal.h>
+ #include <dm/uclass-internal.h>
+ 
++#include <hash.h>
++#include <u-boot/sha256.h>
++
+ #ifdef DEBUG_TRACE
+ #define debug_trace(fmt, b...)	debug(fmt, #b)
+ #else
+@@ -930,6 +933,129 @@ int cros_ec_flash_update_rw(struct cros_ec_dev *dev,
+ 	return 0;
+ }
+ 
++int cros_ec_flash_checksum_match(struct cros_ec_dev *dev, const uint8_t *image,
++				 int image_size)
++{
++	struct ec_response_vboot_hash hash;
++	uint8_t digest[SHA256_SUM_LEN];
++	int ret, i;
++
++	ret = cros_ec_read_hash(dev, &hash);
++	if (ret) {
++		debug("%s: Could not read hash\n", __func__);
++		return ret;
++	}
++
++	if (hash.hash_type != EC_VBOOT_HASH_TYPE_SHA256)
++		return -ENOTSUPP;
++
++	sha256_csum_wd(image, image_size, digest, CHUNKSZ_SHA256);
++
++	for (i = 0; i < hash.digest_size; i++)
++		if (hash.hash_digest[i] != digest[i])
++			return -EINVAL;
++
++	return 0;
++}
++
++int cros_ec_flash_sync_rw(struct cros_ec_dev *dev, const uint8_t *image,
++			  int image_size)
++{
++	int ret;
++	enum ec_current_image cur_img;
++	uint32_t offset, size;
++	ulong start, duration;
++	uint8_t *verify_buf;
++
++	/* check if we're running RO or RW, in case RW, make EC
++	 * jump into RO so we can overwrite RW */
++	ret = cros_ec_read_current_image(dev, &cur_img);
++	if (ret) {
++		debug("%s: Could not read EC image\n", __func__);
++		return ret;
++	}
++	printf("Currently running %s\n", cur_img == EC_IMAGE_RW ? "RW" : "RO");
++
++	/* compare the checksum of the image given with the one
++	 * running on the EC, if they match, reboot EC into RW,
++	 * unless we're already runnig RW, then do nothing.
++	 */
++	ret = cros_ec_flash_checksum_match(dev, image, image_size);
++	if (!ret && cur_img == EC_IMAGE_RO) {
++		printf("Flash images match, rebooting to RW\n");
++		return cros_ec_reboot(dev, EC_REBOOT_JUMP_RW, 0);
++	} else if (!ret) {
++		printf("Flash images match, no swsync required\n");
++		return 0;
++	}
++
++	if (ret == -ENOTSUPP)
++		return ret;
++	printf("Hash not matching given image ... preparing sync ...\n");
++
++	debug("Reboting EC into RO ...\n");
++	if (EC_IMAGE_RW == cur_img) {
++		ret = cros_ec_reboot(dev, EC_REBOOT_JUMP_RO, 0);
++		if (ret) {
++			debug("%s: Could not reboot EC into RO mode\n",
++			      __func__);
++			return ret;
++		}
++	}
++
++	start = get_timer(0);
++	ret = cros_ec_flash_offset(dev, EC_FLASH_REGION_RW, &offset, &size);
++	if (ret) {
++		printf("%s: Could not offset and size from EC \n", __func__);
++		return ret;
++	}
++
++	debug("Erasing flash at offset %08x->%08x ...\n", offset,
++	       offset + size);
++	ret = cros_ec_flash_erase(dev, offset, size);
++	if (ret) {
++		printf("%s: Failed to erase RW region\n", __func__);
++		return ret;
++	}
++
++	debug("Overwriting flash at offset %08x->%08x...\n", offset,
++	       offset + image_size);
++	ret = cros_ec_flash_write(dev, (uint8_t*)image, offset, image_size);
++	if (ret) {
++		printf("%s: Failed to write RW region with new fw\n", __func__);
++		return ret;
++	}
++
++	verify_buf = malloc(size);
++	debug("Verifying flash at offset %08x->%08x ...\n", offset, offset +
++	      image_size);
++	ret = cros_ec_flash_read(dev, verify_buf, offset, image_size);
++	if (ret) {
++		printf("%s: Failed to read back RW region content\n", __func__);
++		goto out_free;
++	}
++
++	/* only if it matches do we actually jump there */
++	if (memcmp(verify_buf, image, image_size))
++		printf("%s: verification of image failed, bailing\n", __func__);
++
++	debug("Reboting EC into RW ...\n");
++	ret = cros_ec_reboot(dev, EC_REBOOT_JUMP_RW, 0);
++	if (ret) {
++		printf("%s: Could not reboot EC into RW mode\n", __func__);
++		goto out_free;
++	}
++
++	duration = get_timer(start);
++
++	printf("Finished full sw sync in %lu.%lus\n", duration / 1000,
++	       duration % 1000);
++
++out_free:
++	free(verify_buf);
++	return ret;
++}
++
+ int cros_ec_read_vbnvcontext(struct cros_ec_dev *dev, uint8_t *block)
+ {
+ 	struct ec_params_vbnvcontext p;
+diff --git a/include/cros_ec.h b/include/cros_ec.h
+index 0271f2b..9be33f8 100644
+--- a/include/cros_ec.h
++++ b/include/cros_ec.h
+@@ -166,6 +166,15 @@ int cros_ec_info(struct cros_ec_dev *dev,
+ int cros_ec_get_host_events(struct cros_ec_dev *dev, uint32_t *events_ptr);
+ 
+ /**
++ * Execute a swsync with given address
++ * @param dev		CROS-EC device
++ * @param addr		Source Address
++ * @param size		Size
++ */
++int cros_ec_flash_sync_rw(struct cros_ec_dev *dev, const uint8_t *addr,
++			  int size);
++
++/**
+  * Clear the specified host event flags
+  *
+  * @param dev		CROS-EC device
+-- 
+2.7.4
+
