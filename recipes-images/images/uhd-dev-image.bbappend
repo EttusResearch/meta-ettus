@@ -9,4 +9,5 @@ CORE_IMAGE_EXTRA_INSTALL_append = " \
     eeprom-tools \
     eeprom-tools-systemd \
     usrp-hwd \
+    openocd \
 "
