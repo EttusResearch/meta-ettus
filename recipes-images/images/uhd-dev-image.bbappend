@@ -6,6 +6,7 @@ CORE_IMAGE_EXTRA_INSTALL_append = " \
     python-systemd-dev \
     python-mprpc \
     python-netaddr \
+    python3-pip \
     eeprom-tools \
     eeprom-tools-systemd \
     usrp-hwd \
