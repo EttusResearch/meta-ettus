@@ -1,3 +1,3 @@
 do_install_append() {
-	rm ${D}${sysconfdir}/tmpfiles.d/etc.conf
+	rm -f ${D}${sysconfdir}/tmpfiles.d/etc.conf
 }
