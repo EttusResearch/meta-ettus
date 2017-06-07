@@ -24,7 +24,7 @@ RDEPENDS_${PN} = "python3-netaddr \
 PR = "r2"
 PV = "0.1+gitr${SRCPV}"
 
-SRCREV = "590ae315905ea75dab25743ec47a4d2b9b6c8b00"
+SRCREV = "17c7c26e7962769ea5391347c0b7b3a7c22e2ace"
 
 SRC_URI = "git://git@github.com/EttusResearch/uhddev.git;protocol=ssh;branch=n3xx-master \
            file://usrp-hwd.service \
