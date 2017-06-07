@@ -30,5 +30,7 @@ patch 0029-rtc-ds1374-wdt-Fix-stop-start-ioctl-always-returning.patch
 patch 0030-This-is-a-ghetto-hack-to-remap-the-reset-pin-to-INT.patch
 patch 0031-spi-cadence-Allow-for-GPIO-pins-to-be-used-as-chipse.patch
 patch 0032-ARM-dt-zynq-ni-sulfur-rev3-Add-cros-ec-hwmon.patch
+patch 0033-dma-Brought-in-support-for-TLAST-for-dma-axi-dmac.patch
+patch 0034-usrp-Added-support-for-USRP-DMA-device.patch
 
 kconf hardware sulfur.cfg
