@@ -1,4 +1,4 @@
-From 1569be53cfc18f361ac22b8f146c1b500d2abae3 Mon Sep 17 00:00:00 2001
+From d287c93faefa9c3e2dfcabea0b00688452e80156 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 28 Feb 2017 17:29:50 -0800
 Subject: [PATCH 16/31] net: ethernet: nixge: Add support for National
@@ -14,8 +14,8 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  drivers/net/ethernet/Makefile    |    1 +
  drivers/net/ethernet/ni/Kconfig  |   27 +
  drivers/net/ethernet/ni/Makefile |    1 +
- drivers/net/ethernet/ni/nixge.c  | 1315 ++++++++++++++++++++++++++++++++++++++
- 5 files changed, 1345 insertions(+)
+ drivers/net/ethernet/ni/nixge.c  | 1310 ++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 1340 insertions(+)
  create mode 100644 drivers/net/ethernet/ni/Kconfig
  create mode 100644 drivers/net/ethernet/ni/Makefile
  create mode 100644 drivers/net/ethernet/ni/nixge.c
@@ -86,10 +86,10 @@ index 0000000..99c6646
 +obj-$(CONFIG_NI_XGE_MANAGEMENT_ENET) += nixge.o
 diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
 new file mode 100644
-index 0000000..53e8344
+index 0000000..99d0953
 --- /dev/null
 +++ b/drivers/net/ethernet/ni/nixge.c
-@@ -0,0 +1,1315 @@
+@@ -0,0 +1,1310 @@
 +/*
 + * Copyright (c) 2016-2017, National Instruments Corp.
 + *
@@ -531,11 +531,6 @@ index 0000000..53e8344
 +			   __func__);
 +	}
 +
-+
-+	if (nixge_dma_bd_init(ndev)) {
-+		netdev_err(ndev, "%s: descriptor allocation failed\n",
-+			   __func__);
-+	}
 +
 +	netif_trans_update(ndev);
 +}
