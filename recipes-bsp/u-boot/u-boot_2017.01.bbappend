@@ -20,6 +20,7 @@ SRC_URI_append_ni-sulfur = " \
                  file://sulfur/0010-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
                  file://sulfur/0011-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
 		 file://sulfur/0012-ni-sulfur-rev3-Added-swsync-feature.patch \
+		 file://sulfur/0001-ni-sulfur-rev3-Add-autoboot-support.patch \
                  "
 
 SPL_BINARY = "spl/boot.bin"
