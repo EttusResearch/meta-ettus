@@ -1,7 +1,7 @@
-From aa1c0e0b1c4cfa212b82dd5a7255db5e5301c1ad Mon Sep 17 00:00:00 2001
+From cf5a23d0bb809d9f770603326b06e575cce3e822 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 12 Dec 2016 09:10:58 -0800
-Subject: [PATCH 14/31] Keep zynq_gpio running all the time
+Subject: [PATCH 14/38] Keep zynq_gpio running all the time
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---

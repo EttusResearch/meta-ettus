@@ -1,7 +1,7 @@
-From a76738d44e9f7a824e4836507c473fb4afeed498 Mon Sep 17 00:00:00 2001
+From d15a6e7481e0e10ede267b1f330472fe325c2180 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 10 Apr 2017 15:15:27 -0700
-Subject: [PATCH 25/31] net: phy: Fix the case where state machine gets stuck
+Subject: [PATCH 22/38] net: phy: Fix the case where state machine gets stuck
  in FORCING
 
 Fixes issue where phy statemachine gets stuck in FORCING state
@@ -15,10 +15,10 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  3 files changed, 12 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/net/phy/phy.c b/drivers/net/phy/phy.c
-index 7cc1b7d..5962b65 100644
+index b41a32b..5ad3531 100644
 --- a/drivers/net/phy/phy.c
 +++ b/drivers/net/phy/phy.c
-@@ -1043,9 +1043,15 @@ void phy_state_machine(struct work_struct *work)
+@@ -1075,9 +1075,15 @@ void phy_state_machine(struct work_struct *work)
  		}
  		break;
  	case PHY_FORCING:
@@ -59,7 +59,7 @@ index 8c8e15b..aefb1ef 100644
  /**
   * genphy_soft_reset - software reset the PHY via BMCR_RESET bit
 diff --git a/include/linux/phy.h b/include/linux/phy.h
-index 7fc1105..0e22875 100644
+index b19ae66..812f100 100644
 --- a/include/linux/phy.h
 +++ b/include/linux/phy.h
 @@ -826,6 +826,7 @@ int genphy_config_aneg(struct phy_device *phydev);

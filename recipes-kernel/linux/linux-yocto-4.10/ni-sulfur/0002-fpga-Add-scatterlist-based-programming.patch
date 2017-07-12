@@ -1,7 +1,7 @@
-From a44d7a4b052bd01f1c86edab09275484bb9e5f5d Mon Sep 17 00:00:00 2001
+From 9d78ddaff2ee46c7bc7110603a497dce36b79949 Mon Sep 17 00:00:00 2001
 From: Jason Gunthorpe <jgunthorpe@obsidianresearch.com>
 Date: Tue, 22 Nov 2016 11:22:11 -0700
-Subject: [PATCH 02/31] fpga: Add scatterlist based programming
+Subject: [PATCH 02/38] fpga: Add scatterlist based programming
 
 Requiring contiguous kernel memory is not a good idea, this is a limited
 resource and allocation can fail under normal work loads.

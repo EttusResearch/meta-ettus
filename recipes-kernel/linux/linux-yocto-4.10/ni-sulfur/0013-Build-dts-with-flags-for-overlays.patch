@@ -1,7 +1,7 @@
-From cd99b36488d9eb6293a529a82d3777ffbd1f0df3 Mon Sep 17 00:00:00 2001
+From 83421069dc66c61e181fdde898346791244a342a Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 12 Dec 2016 08:52:03 -0800
-Subject: [PATCH 13/31] Build dts with -@ flags for overlays
+Subject: [PATCH 13/38] Build dts with -@ flags for overlays
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---

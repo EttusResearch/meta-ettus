@@ -1,7 +1,7 @@
-From 1f24c3788c08d5a32ed744a4d1c1457002e1b01d Mon Sep 17 00:00:00 2001
+From ad96b3ce0083540cc4a4caf979657812cbc936c4 Mon Sep 17 00:00:00 2001
 From: Jason Gunthorpe <jgunthorpe@obsidianresearch.com>
 Date: Mon, 21 Nov 2016 15:26:46 -0700
-Subject: [PATCH 01/31] fpga zynq: Check for errors after completing DMA
+Subject: [PATCH 01/38] fpga zynq: Check for errors after completing DMA
 
 The completion did not check the interrupt status to see if any error
 bits were asserted, check error bits and dump some registers if things

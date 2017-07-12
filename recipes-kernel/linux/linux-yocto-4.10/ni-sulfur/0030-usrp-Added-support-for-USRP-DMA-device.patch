@@ -1,7 +1,7 @@
-From e37c0e0f5437e631f35f97807733aacf26a79889 Mon Sep 17 00:00:00 2001
+From db04ecdf7e01da74cccf2a5019705959838f0044 Mon Sep 17 00:00:00 2001
 From: Alex Williams <alex.williams@ni.com>
 Date: Wed, 24 May 2017 14:48:34 -0700
-Subject: [PATCH 2/2] usrp: Added support for USRP DMA device.
+Subject: [PATCH 30/38] usrp: Added support for USRP DMA device.
 
 ---
  drivers/Kconfig               |   2 +
@@ -32,10 +32,10 @@ index 0edd44a..a0b159c 100644
 +
  endmenu
 diff --git a/drivers/Makefile b/drivers/Makefile
-index 664173f..f4395ea 100644
+index 613f273..24b91b2 100644
 --- a/drivers/Makefile
 +++ b/drivers/Makefile
-@@ -174,3 +174,4 @@ obj-$(CONFIG_ANDROID)		+= android/
+@@ -175,3 +175,4 @@ obj-$(CONFIG_ANDROID)		+= android/
  obj-$(CONFIG_NVMEM)		+= nvmem/
  obj-$(CONFIG_FPGA)		+= fpga/
  obj-$(CONFIG_RFNOC)		+= rfnoc/

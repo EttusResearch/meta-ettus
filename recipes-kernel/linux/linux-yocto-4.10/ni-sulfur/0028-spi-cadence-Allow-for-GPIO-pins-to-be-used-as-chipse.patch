@@ -1,7 +1,7 @@
-From d6304933edc1ff2f563cd9f86dcd143a6554147c Mon Sep 17 00:00:00 2001
+From 309dd7fdfcd53c12563fad67954f12457eea2fe7 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <mdf@kernel.org>
 Date: Tue, 25 Apr 2017 11:23:32 -0700
-Subject: [PATCH 31/31] spi: cadence: Allow for GPIO pins to be used as
+Subject: [PATCH 28/38] spi: cadence: Allow for GPIO pins to be used as
  chipselects
 
 This adds support for using GPIOs for chipselects as described by the

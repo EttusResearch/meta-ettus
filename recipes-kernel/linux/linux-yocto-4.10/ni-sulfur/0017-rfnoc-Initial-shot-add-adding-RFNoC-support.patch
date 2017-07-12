@@ -1,7 +1,7 @@
-From 418b09ade1a010c8695b7e266aba7b9e159cbcc3 Mon Sep 17 00:00:00 2001
+From b4d74d8d104aeafc038b41c712ee5f38eef89b43 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Fri, 10 Mar 2017 16:37:08 -0800
-Subject: [PATCH 17/31] rfnoc: Initial shot add adding RFNoC support
+Subject: [PATCH 17/38] rfnoc: Initial shot add adding RFNoC support
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
@@ -33,10 +33,10 @@ index e1e2066..0edd44a 100644
 +
  endmenu
 diff --git a/drivers/Makefile b/drivers/Makefile
-index 060026a..664173f 100644
+index c409c66..613f273 100644
 --- a/drivers/Makefile
 +++ b/drivers/Makefile
-@@ -173,3 +173,4 @@ obj-$(CONFIG_STM)		+= hwtracing/stm/
+@@ -174,3 +174,4 @@ obj-$(CONFIG_STM)		+= hwtracing/stm/
  obj-$(CONFIG_ANDROID)		+= android/
  obj-$(CONFIG_NVMEM)		+= nvmem/
  obj-$(CONFIG_FPGA)		+= fpga/

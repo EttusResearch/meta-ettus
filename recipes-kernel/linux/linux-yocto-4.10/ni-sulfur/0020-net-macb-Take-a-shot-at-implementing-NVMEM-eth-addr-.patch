@@ -1,7 +1,7 @@
-From 6a57ee8ca03b5e5937ce543d4b16def4118d44ec Mon Sep 17 00:00:00 2001
+From 2c91488383d7cd4546d16d9d20f73a8cea2b6913 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Fri, 31 Mar 2017 15:32:42 -0700
-Subject: [PATCH 20/31] net: macb: Take a shot at implementing NVMEM eth addr
+Subject: [PATCH 20/38] net: macb: Take a shot at implementing NVMEM eth addr
  retrieval
 
 This is still a work in progress.
@@ -12,7 +12,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  1 file changed, 31 insertions(+)
 
 diff --git a/drivers/net/ethernet/cadence/macb.c b/drivers/net/ethernet/cadence/macb.c
-index baba2db..46ce51a 100644
+index 0b92b88..adc7328 100644
 --- a/drivers/net/ethernet/cadence/macb.c
 +++ b/drivers/net/ethernet/cadence/macb.c
 @@ -27,6 +27,7 @@
@@ -23,7 +23,7 @@ index baba2db..46ce51a 100644
  #include <linux/of.h>
  #include <linux/of_device.h>
  #include <linux/of_gpio.h>
-@@ -3197,6 +3198,26 @@ static const struct macb_config default_gem_config = {
+@@ -3199,6 +3200,26 @@ static const struct macb_config default_gem_config = {
  	.jumbo_max_len = 10240,
  };
  
@@ -50,7 +50,7 @@ index baba2db..46ce51a 100644
  static int macb_probe(struct platform_device *pdev)
  {
  	const struct macb_config *macb_config = &default_gem_config;
-@@ -3307,11 +3328,21 @@ static int macb_probe(struct platform_device *pdev)
+@@ -3309,11 +3330,21 @@ static int macb_probe(struct platform_device *pdev)
  	else
  		dev->max_mtu = ETH_DATA_LEN;
  

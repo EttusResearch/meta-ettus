@@ -1,7 +1,7 @@
-From 42a36de5bcc6798cd646361f978497bae6bc2d46 Mon Sep 17 00:00:00 2001
+From f0fb1f0b19aebed3bb875d606818c02bfe945869 Mon Sep 17 00:00:00 2001
 From: Rob Herring <robh@kernel.org>
 Date: Tue, 21 Mar 2017 09:01:08 -0500
-Subject: [PATCH 11/31] scripts/dtc: Update to upstream version
+Subject: [PATCH 11/38] scripts/dtc: Update to upstream version
  v1.4.4-8-g756ffc4f52f6
 
 This adds the following commits from upstream:
