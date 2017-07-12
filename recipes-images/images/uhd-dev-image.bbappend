@@ -5,4 +5,5 @@ CORE_IMAGE_EXTRA_INSTALL_append = " \
     eeprom-tools-systemd \
     usrp-hwd \
     openocd \
+    liberio \
 "
