@@ -36,7 +36,6 @@ patch 0035-ARM-dts-ni-sulfur-rev3-Add-fpga-thermal-thermal-zone.patch
 patch 0036-hwmon-lm75-Add-thermal-support.patch
 patch 0037-ARM-dts-Add-devicetree-file-for-NI-Project-EISCAT-SD.patch
 patch 0038-ARM-dts-Adding-NI-Project-Magnesium-SDR-devicetree.patch
-
-
+patch 0039-media-Increase-VIDEO_MAX_FRAMES-and-VB2_MAX_FRAMES-t.patch
 
 kconf hardware sulfur.cfg
