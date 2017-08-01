@@ -1,7 +1,7 @@
-From b4d74d8d104aeafc038b41c712ee5f38eef89b43 Mon Sep 17 00:00:00 2001
+From b058084cd93b528fe3a91055441d3ba9856e31a2 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Fri, 10 Mar 2017 16:37:08 -0800
-Subject: [PATCH 17/38] rfnoc: Initial shot add adding RFNoC support
+Subject: [PATCH 17/40] rfnoc: Initial shot add adding RFNoC support
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
@@ -10,10 +10,10 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  drivers/rfnoc/Kconfig                     |  22 ++
  drivers/rfnoc/Makefile                    |   6 +
  drivers/rfnoc/rfnoc-crossbar-platform.c   | 218 +++++++++++++
- drivers/rfnoc/rfnoc-crossbar.c            | 496 ++++++++++++++++++++++++++++++
+ drivers/rfnoc/rfnoc-crossbar.c            | 495 ++++++++++++++++++++++++++++++
  include/linux/rfnoc/rfnoc-crossbar.h      |  62 ++++
  include/uapi/linux/rfnoc/rfnoc-crossbar.h |  30 ++
- 8 files changed, 837 insertions(+)
+ 8 files changed, 836 insertions(+)
  create mode 100644 drivers/rfnoc/Kconfig
  create mode 100644 drivers/rfnoc/Makefile
  create mode 100644 drivers/rfnoc/rfnoc-crossbar-platform.c
@@ -83,7 +83,7 @@ index 0000000..1f963fc
 +obj-$(CONFIG_RFNOC_CROSSBAR)		+= rfnoc-crossbar.o rfnoc-crossbar-platform.o
 diff --git a/drivers/rfnoc/rfnoc-crossbar-platform.c b/drivers/rfnoc/rfnoc-crossbar-platform.c
 new file mode 100644
-index 0000000..772da6e
+index 0000000..87bd33f
 --- /dev/null
 +++ b/drivers/rfnoc/rfnoc-crossbar-platform.c
 @@ -0,0 +1,218 @@
@@ -137,7 +137,7 @@ index 0000000..772da6e
 +{
 +	struct platform_crossbar_priv *priv = xb->priv;
 +
-+	dev_info(&xb->dev, "%s: setting local addr to 0x%02x\n", __func__,
++	dev_dbg(&xb->dev, "%s: setting local addr to 0x%02x\n", __func__,
 +		 local_addr);
 +
 +	platform_crossbar_write(priv, PLATFORM_CROSSBAR_LADDR_OFF,
@@ -156,7 +156,7 @@ index 0000000..772da6e
 +		return err;
 +	}
 +
-+	dev_info(&xb->dev, "%s: Adding route for remote dest 0x%02x, port 0x%02x\n",
++	dev_dbg(&xb->dev, "%s: Adding route for remote dest 0x%02x, port 0x%02x\n",
 +		 __func__, dest, port);
 +
 +	platform_crossbar_write(priv, PLATFORM_CROSSBAR_TCAM_REMOTE_OFF
@@ -307,10 +307,10 @@ index 0000000..772da6e
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/rfnoc/rfnoc-crossbar.c b/drivers/rfnoc/rfnoc-crossbar.c
 new file mode 100644
-index 0000000..b2c0b6d
+index 0000000..fdbe010
 --- /dev/null
 +++ b/drivers/rfnoc/rfnoc-crossbar.c
-@@ -0,0 +1,496 @@
+@@ -0,0 +1,495 @@
 +/*
 + * Copyright (c) 2017 National Instruments Corp
 + *
@@ -393,7 +393,7 @@ index 0000000..b2c0b6d
 +	if (route)
 +		return 0;
 +
-+	dev_info(&xb->dev, "in %s: dest=%u, port=%u\n", __func__, dest, port);
++	dev_dbg(&xb->dev, "in %s: dest=%u, port=%u\n", __func__, dest, port);
 +
 +	/* nope? then remember the new one in a new route */
 +	route = devm_kzalloc(&xb->dev, sizeof(*route), GFP_KERNEL);
@@ -442,7 +442,7 @@ index 0000000..b2c0b6d
 +int rfnoc_crossbar_set_local_addr(struct rfnoc_crossbar *xb, u8 local_addr)
 +{
 +	if (xb && xb->ops && xb->ops->set_local_addr) {
-+		dev_info(&xb->dev, "%s\n", __func__);
++		dev_dbg(&xb->dev, "%s\n", __func__);
 +		xb->ops->set_local_addr(xb, local_addr);
 +		xb->local_addr = local_addr;
 +		return 0;
@@ -768,7 +768,6 @@ index 0000000..b2c0b6d
 +	spin_lock_irqsave(&xb->routes_list_lock, flags);
 +	list_for_each_entry_safe(route, next, &xb->routes, node) {
 +		list_del(&route->node);
-+		devm_kfree(&xb->dev, route);
 +	}
 +	spin_unlock_irqrestore(&xb->routes_list_lock, flags);
 +

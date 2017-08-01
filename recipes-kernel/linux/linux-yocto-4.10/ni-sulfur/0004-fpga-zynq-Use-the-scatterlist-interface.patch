@@ -1,7 +1,7 @@
 From e436f30bba5d1386bde9451ef9fda8575c401b6c Mon Sep 17 00:00:00 2001
 From: Jason Gunthorpe <jgunthorpe@obsidianresearch.com>
 Date: Tue, 22 Nov 2016 11:22:12 -0700
-Subject: [PATCH 04/38] fpga zynq: Use the scatterlist interface
+Subject: [PATCH 04/40] fpga zynq: Use the scatterlist interface
 
 This allows the driver to avoid a high order coherent DMA allocation
 and memory copy. With this patch it can DMA directly from the kernel

@@ -1,7 +1,7 @@
 From dff1eab0507cc91b76b6e8d05515519213698615 Mon Sep 17 00:00:00 2001
 From: Rob Herring <robh@kernel.org>
 Date: Wed, 4 Jan 2017 10:45:20 -0600
-Subject: [PATCH 09/38] scripts/dtc: Update to upstream version 0931cea3ba20
+Subject: [PATCH 09/40] scripts/dtc: Update to upstream version 0931cea3ba20
 
 Sync to upstream dtc commit 0931cea3ba20 ("dtc: fdtdump: check fdt if
 not in scanning mode"). In particular, this pulls in dtc overlay

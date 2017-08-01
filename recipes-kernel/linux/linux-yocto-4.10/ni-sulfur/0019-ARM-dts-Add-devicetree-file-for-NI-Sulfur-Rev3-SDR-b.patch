@@ -1,7 +1,7 @@
-From a5da1c4c02b2773bc18e5c743bb04bebbfb51cb0 Mon Sep 17 00:00:00 2001
+From 4eda7f845b86fb0aecfbc16b5d4b4827c6d912fe Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Thu, 30 Mar 2017 17:53:33 -0700
-Subject: [PATCH 19/38] ARM: dts: Add devicetree file for NI Sulfur Rev3 SDR
+Subject: [PATCH 19/40] ARM: dts: Add devicetree file for NI Sulfur Rev3 SDR
  board
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>

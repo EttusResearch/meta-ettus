@@ -1,7 +1,7 @@
-From 9d4592820375c9870edb0faf8712bd5b87ef994d Mon Sep 17 00:00:00 2001
+From af7d84987b404266e781eb111b07e611f9a09525 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Thu, 20 Apr 2017 17:14:09 -0700
-Subject: [PATCH 27/38] This is a ghetto hack to remap the reset pin to INT
+Subject: [PATCH 27/40] This is a ghetto hack to remap the reset pin to INT
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---

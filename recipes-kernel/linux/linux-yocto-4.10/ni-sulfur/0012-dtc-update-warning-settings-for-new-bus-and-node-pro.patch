@@ -1,7 +1,7 @@
 From ec9ba78d8d2e0712aebaef6fb6506a98993c3895 Mon Sep 17 00:00:00 2001
 From: Rob Herring <robh@kernel.org>
 Date: Tue, 21 Mar 2017 09:14:20 -0500
-Subject: [PATCH 12/38] dtc: update warning settings for new bus and
+Subject: [PATCH 12/40] dtc: update warning settings for new bus and
  node/property name checks
 
 dtc gained new warnings checking PCI and simple buses, unit address

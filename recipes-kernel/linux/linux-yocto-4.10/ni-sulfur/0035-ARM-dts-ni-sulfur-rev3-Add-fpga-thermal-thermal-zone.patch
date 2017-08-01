@@ -1,7 +1,7 @@
-From 6bfbd6b92e9f30e0ebc98364817b80ec3d2da26f Mon Sep 17 00:00:00 2001
+From e42e43c4c5eab9f3852ed744f41e5adae19e7a5a Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 11 Jul 2017 10:15:21 -0700
-Subject: [PATCH 35/38] ARM: dts: ni-sulfur-rev3: Add fpga-thermal thermal zone
+Subject: [PATCH 35/40] ARM: dts: ni-sulfur-rev3: Add fpga-thermal thermal zone
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---

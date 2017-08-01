@@ -1,18 +1,20 @@
-From db04ecdf7e01da74cccf2a5019705959838f0044 Mon Sep 17 00:00:00 2001
+From 25f1a526099c6d421a44ac555678d79569241595 Mon Sep 17 00:00:00 2001
 From: Alex Williams <alex.williams@ni.com>
 Date: Wed, 24 May 2017 14:48:34 -0700
-Subject: [PATCH 30/38] usrp: Added support for USRP DMA device.
+Subject: [PATCH 30/40] usrp: Added support for USRP DMA device.
 
+Signed-off-by: Alex Williams <alex.williams@ni.com>
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
  drivers/Kconfig               |   2 +
  drivers/Makefile              |   1 +
  drivers/usrp/Kconfig          |  32 +++
  drivers/usrp/Makefile         |   9 +
- drivers/usrp/usrp-dma-core.c  | 469 ++++++++++++++++++++++++++++++++++++++++++
- drivers/usrp/usrp-dmaengine.c | 333 ++++++++++++++++++++++++++++++
- include/linux/usrp/usrp-dma.h |  44 ++++
- include/uapi/linux/usrp.h     | 126 ++++++++++++
- 8 files changed, 1016 insertions(+)
+ drivers/usrp/usrp-dma-core.c  | 512 ++++++++++++++++++++++++++++++++++++++++++
+ drivers/usrp/usrp-dmaengine.c | 393 ++++++++++++++++++++++++++++++++
+ include/linux/usrp/usrp-dma.h |  59 +++++
+ include/uapi/linux/usrp.h     | 140 ++++++++++++
+ 8 files changed, 1148 insertions(+)
  create mode 100644 drivers/usrp/Kconfig
  create mode 100644 drivers/usrp/Makefile
  create mode 100644 drivers/usrp/usrp-dma-core.c
@@ -95,10 +97,16 @@ index 0000000..4ef4347
 +
 diff --git a/drivers/usrp/usrp-dma-core.c b/drivers/usrp/usrp-dma-core.c
 new file mode 100644
-index 0000000..927d6dc
+index 0000000..436bff9
 --- /dev/null
 +++ b/drivers/usrp/usrp-dma-core.c
-@@ -0,0 +1,469 @@
+@@ -0,0 +1,512 @@
++/*
++ * Copyright (C) 2017 National Instruments Corp
++ *
++ * SPDX-License-Identifier: GPL-2.0
++ */
++
 +#include <linux/lcm.h>
 +#include <linux/list.h>
 +#include <linux/module.h>
@@ -112,6 +120,9 @@ index 0000000..927d6dc
 +
 +#include <media/videobuf2-dma-contig.h>
 +#include <media/videobuf2-dma-sg.h>
++
++#define USRP_DMA_API_MAJOR 1
++#define USRP_DMA_API_MINOR 0
 +
 +static DEFINE_IDA(usrp_dma_tx_ida);
 +static DEFINE_IDA(usrp_dma_rx_ida);
@@ -136,23 +147,44 @@ index 0000000..927d6dc
 +	dma->priv = drvdata;
 +}
 +
-+static ssize_t port_show(struct device *dev, struct device_attribute *attr, char *buf)
++static ssize_t port_show(struct device *dev, struct device_attribute *attr,
++			 char *buf)
 +{
 +	struct usrp_dma *dma;
 +	dma = dev_get_drvdata(dev);
 +	return sprintf(buf, "%d\n", dma->port);
 +};
-+
 +static DEVICE_ATTR_RO(port);
 +
-+static struct attribute *port_sysfs_entries[] = {
++static ssize_t api_maj_show(struct device *dev, struct device_attribute *attr,
++			    char *buf)
++{
++	struct usrp_dma *dma;
++	dma = dev_get_drvdata(dev);
++	return sprintf(buf, "%u\n", USRP_DMA_API_MAJOR);
++};
++static DEVICE_ATTR_RO(api_maj);
++
++static ssize_t api_min_show(struct device *dev, struct device_attribute *attr,
++			    char *buf)
++{
++	struct usrp_dma *dma;
++	dma = dev_get_drvdata(dev);
++	return sprintf(buf, "%u\n", USRP_DMA_API_MINOR);
++};
++static DEVICE_ATTR_RO(api_min);
++
++
++static struct attribute *sysfs_entries[] = {
 +	&dev_attr_port.attr,
++	&dev_attr_api_maj.attr,
++	&dev_attr_api_min.attr,
 +	NULL
 +};
 +
 +static struct attribute_group usrp_dma_attr_group = {
 +	.name = NULL,
-+	.attrs = port_sysfs_entries,
++	.attrs = sysfs_entries,
 +};
 +
 +static const struct attribute_group *usrp_dma_attr_groups[] = {
@@ -229,9 +261,6 @@ index 0000000..927d6dc
 +
 +int usrp_dma_ioc_streamon(struct vb2_queue *q, enum usrp_buf_type type)
 +{
-+asm volatile ("MCR p15, 0, %0, c9, c14, 0\n\t"::"r" (1));
-+asm volatile ("MCR p15, 0, %0, c9, c12, 0\n\t"::"r" (1 | 16));
-+asm volatile ("MCR p15, 0, %0, c9, c12, 1\n\t"::"r" (0x8000000f));
 +	return vb2_core_streamon(q, type);
 +}
 +
@@ -272,6 +301,19 @@ index 0000000..927d6dc
 +	return err;
 +}
 +
++int usrp_dma_ioc_set_fmt(struct usrp_dma *dma, struct usrp_fmt __user *arg)
++{
++	struct usrp_fmt req;
++
++	if (copy_from_user(&req, (void __user *)arg, sizeof(req)))
++		return -EFAULT;
++
++	if (dma->ops && dma->ops->set_fmt)
++		return dma->ops->set_fmt(dma, &req);
++
++	return -ENOTTY;
++}
++
 +static long usrp_dma_core_fop_ioctl(struct file *file, unsigned int cmd,
 +				    unsigned long arg)
 +{
@@ -300,15 +342,19 @@ index 0000000..927d6dc
 +					  (struct usrp_buffer __user *)arg);
 +
 +	case USRPIOC_STREAMON: {
-+			enum usrp_buf_type type = (int)arg;
-+			return usrp_dma_ioc_streamon(&dma->queue, type);
-+		}
++		enum usrp_buf_type type = (int)arg;
++
++		return usrp_dma_ioc_streamon(&dma->queue, type);
++	}
 +
 +	case USRPIOC_STREAMOFF: {
-+			enum usrp_buf_type type = (int)arg;
-+			return usrp_dma_ioc_streamoff(&dma->queue, type);
-+		}
++		enum usrp_buf_type type = (int)arg;
 +
++		return usrp_dma_ioc_streamoff(&dma->queue, type);
++	}
++
++	case USRPIOC_SET_FMT:
++		return usrp_dma_ioc_set_fmt(dma, (struct usrp_fmt __user *)arg);
 +	default:
 +		return -ENOTTY;
 +	}
@@ -488,15 +534,14 @@ index 0000000..927d6dc
 +	if (USRP_TYPE_IS_OUTPUT(b->type)) {
 +		if (b->bytesused == 0)
 +			WARN_ON(1);
-+	} // HACK: Rest should be part of check for output
 +
 +		if (vb->vb2_queue->allow_zero_bytesused)
 +			planes[0].bytesused = b->bytesused;
 +		else
 +			planes[0].bytesused = b->bytesused ?
 +			    b->bytesused : planes[0].length;
-+/*	} else
-+		planes[0].bytesused = 0;*/
++	} else
++		planes[0].bytesused = 0;
 +
 +	return 0;
 +}
@@ -570,10 +615,16 @@ index 0000000..927d6dc
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/usrp/usrp-dmaengine.c b/drivers/usrp/usrp-dmaengine.c
 new file mode 100644
-index 0000000..513cac2
+index 0000000..738c19e
 --- /dev/null
 +++ b/drivers/usrp/usrp-dmaengine.c
-@@ -0,0 +1,333 @@
+@@ -0,0 +1,393 @@
++/*
++ * Copyright (C) 2017 National Instruments Corp
++ *
++ * SPDX-License-Identifier: GPL-2.0
++ */
++
 +#include <linux/lcm.h>
 +#include <linux/list.h>
 +#include <linux/module.h>
@@ -582,6 +633,8 @@ index 0000000..513cac2
 +#include <linux/mutex.h>
 +#include <linux/spinlock.h>
 +#include <linux/miscdevice.h>
++#include <linux/mfd/syscon.h>
++#include <linux/regmap.h>
 +#include <linux/of.h>
 +#include <linux/of_device.h>
 +
@@ -595,6 +648,11 @@ index 0000000..513cac2
 +
 +#define USRP_DMA_BUF_SZ (2*PAGE_SIZE)
 +
++struct usrp_dmaengine_fmt {
++	u32 type;
++	u32 length;
++};
++
 +struct usrp_dmaengine_priv {
 +	struct usrp_dma dma;
 +
@@ -607,6 +665,11 @@ index 0000000..513cac2
 +
 +	struct mutex lock;
 +	u32 port;
++
++	struct regmap *regmap;
++	u32 offset;
++
++	struct usrp_dmaengine_fmt fmt;
 +};
 +
 +static inline struct usrp_dmaengine_priv *to_usrp_dmaengine(const struct
@@ -625,10 +688,9 @@ index 0000000..513cac2
 +	list_del(&buf->queue);
 +	spin_unlock(&priv->queued_lock);
 +
-+	/* TODO: needed? */
-+	/*buf->buf.timestamp = ktime_get_ns(); */
-+	//vb2_set_plane_payload(&buf->buf, 0, USRP_DMA_BUF_SZ);
-+	vb2_set_plane_payload(&buf->buf, 0, buf->buf.planes[0].bytesused);
++	if (priv->dir == DMA_DEV_TO_MEM)
++		vb2_set_plane_payload(&buf->buf, 0, priv->fmt.length);
++
 +	vb2_buffer_done(&buf->buf, VB2_BUF_STATE_DONE);
 +}
 +
@@ -638,12 +700,18 @@ index 0000000..513cac2
 +				      unsigned int sizes[],
 +				      struct device *alloc_devs[])
 +{
-+	if (*nplanes)
-+		return sizes[0] != USRP_DMA_BUF_SZ ? -EINVAL : 0;
++	struct usrp_dma *dma = vb2_get_drv_priv(vq);
++	struct usrp_dmaengine_priv *priv = to_usrp_dmaengine(dma);
++
 +
 +	*nplanes = 1;
++	if (priv->fmt.length > PAGE_SIZE)
++		sizes[0] = PAGE_ALIGN(priv->fmt.length);
++	else
++		sizes[0] = PAGE_SIZE;
 +
-+	sizes[0] = USRP_DMA_BUF_SZ;
++	pr_debug("%s: nbuffers=%u nplanes=%u sizes[0]=%u\n",
++		 __func__, *nbuffers, *nplanes, sizes[0]);
 +
 +	return 0;
 +}
@@ -669,12 +737,11 @@ index 0000000..513cac2
 +	dma_cookie_t cookie;
 +
 +	addr = vb2_dma_contig_plane_dma_addr(vb, 0);
-+	/* HACK: Using bytesused for BOTH TX and RX. V4L would only use for TX */
 +	desc = dmaengine_prep_slave_single(chan, addr,
-+					   /* priv->dir == DMA_MEM_TO_DEV ?
-+					   vb->planes[0].bytesused
-+					   : vb->planes[0].length, priv->dir,*/
-+					   vb->planes[0].bytesused, priv->dir,
++					   priv->dir == DMA_MEM_TO_DEV ?
++					   vb2_get_plane_payload(vb, 0)
++					   : priv->fmt.length,
++					   priv->dir,
 +					   DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
 +
 +	desc->callback = usrp_dmaengine_buffer_complete_cb;
@@ -814,12 +881,34 @@ index 0000000..513cac2
 +MODULE_DEVICE_TABLE(of, usrp_dmaengine_of_match);
 +#endif
 +
++int usrp_dma_op_set_fmt(struct usrp_dma *dma, struct usrp_fmt *fmt)
++{
++	struct usrp_dmaengine_priv *priv = to_usrp_dmaengine(dma);
++
++	if (!fmt->length || fmt->type != USRP_FMT_CHDR_FIXED_BLOCK) {
++		pr_err("%s: fmt->length = %u\n", __func__, fmt->length);
++		pr_err("%s: fmt->type = %u\n", __func__, fmt->type);
++		return -EINVAL;
++	}
++
++	priv->fmt.length = fmt->length;
++	priv->fmt.type = fmt->type;
++
++	if (priv->dir == DMA_DEV_TO_MEM && priv->regmap)
++		regmap_write(priv->regmap, priv->offset, priv->fmt.length >> 3);
++
++	return 0;
++}
++
++static const struct usrp_dma_ops usrp_dmaengine_ops = {
++	.set_fmt = usrp_dma_op_set_fmt,
++};
++
 +static int usrp_dmaengine_probe(struct platform_device *pdev)
 +{
 +	const struct usrp_dmaengine_match_type *mdata;
-+	int err;
-+
 +	struct usrp_dmaengine_priv *priv;
++	int err;
 +
 +	priv = devm_kzalloc(&pdev->dev, sizeof(*priv), GFP_KERNEL);
 +	if (!priv)
@@ -843,6 +932,22 @@ index 0000000..513cac2
 +
 +	priv->dir = USRP_TYPE_IS_OUTPUT(mdata->type) ? DMA_MEM_TO_DEV :
 +	    DMA_DEV_TO_MEM;
++
++	if (priv->dir == DMA_DEV_TO_MEM) {
++		priv->regmap = syscon_regmap_lookup_by_phandle(pdev->dev.of_node,
++							    "regmap");
++		if (IS_ERR(priv->regmap)) {
++			dev_err(&pdev->dev, "unable to get syscon");
++			return PTR_ERR(priv->regmap);
++		}
++
++		if (of_property_read_u32(pdev->dev.of_node, "offset",
++					 &priv->offset)) {
++			dev_err(&pdev->dev, "unable to read 'offset'");
++			return -EINVAL;
++		}
++		priv->dma.ops = &usrp_dmaengine_ops;
++	}
 +
 +	mutex_init(&priv->lock);
 +	INIT_LIST_HEAD(&priv->queued_bufs);
@@ -897,9 +1002,9 @@ index 0000000..513cac2
 +	.probe = usrp_dmaengine_probe,
 +	.remove = usrp_dmaengine_remove,
 +	.driver = {
-+		   .name = "usrp_dmaengine",
-+		   .of_match_table = of_match_ptr(usrp_dmaengine_of_match),
-+		   },
++		.name = "usrp_dmaengine",
++		.of_match_table = of_match_ptr(usrp_dmaengine_of_match),
++	},
 +};
 +
 +module_platform_driver(usrp_dmaengine_driver);
@@ -909,10 +1014,16 @@ index 0000000..513cac2
 +MODULE_LICENSE("GPL v2");
 diff --git a/include/linux/usrp/usrp-dma.h b/include/linux/usrp/usrp-dma.h
 new file mode 100644
-index 0000000..28f3729
+index 0000000..75c6d3e
 --- /dev/null
 +++ b/include/linux/usrp/usrp-dma.h
-@@ -0,0 +1,44 @@
+@@ -0,0 +1,59 @@
++/*
++ * Copyright (C) 2017 National Instruments Corp
++ *
++ * SPDX-License-Identifier: GPL-2.0
++ */
++
 +#ifndef USRP_DMA_H
 +#define USRP_DMA_H
 +
@@ -920,6 +1031,13 @@ index 0000000..28f3729
 +#include <linux/miscdevice.h>
 +
 +#define USRP_DMA_MAX_NAME 64
++
++struct usrp_dma;
++struct usrp_fmt;
++
++struct usrp_dma_ops {
++	int (*set_fmt)(struct usrp_dma *, struct usrp_fmt *);
++};
 +
 +struct usrp_dma {
 +	struct list_head list;
@@ -933,6 +1051,8 @@ index 0000000..28f3729
 +	void *priv;
 +	int id;
 +	int port;
++
++	const struct usrp_dma_ops *ops;
 +};
 +
 +/**
@@ -959,16 +1079,24 @@ index 0000000..28f3729
 +#endif /* USRP_DMA_H */
 diff --git a/include/uapi/linux/usrp.h b/include/uapi/linux/usrp.h
 new file mode 100644
-index 0000000..3a9825c
+index 0000000..3cbdb4a
 --- /dev/null
 +++ b/include/uapi/linux/usrp.h
-@@ -0,0 +1,126 @@
+@@ -0,0 +1,140 @@
++/*
++ * Copyright (C) 2017 National Instruments Corp
++ *
++ * SPDX-License-Identifier: GPL-2.0
++ */
++
 +#ifndef USRP_H
 +#define USRP_H
 +
 +enum usrp_buf_type {
 +       USRP_BUF_TYPE_INPUT  = 1,
 +       USRP_BUF_TYPE_OUTPUT = 2,
++       USRP_BUF_TYPE_INPUT_MPLANE = 3,
++       USRP_BUF_TYPE_OUTPUT_MPLANE = 4,
 +};
 +
 +enum usrp_memory {
@@ -987,7 +1115,7 @@ index 0000000..3a9825c
 +
 +static inline int USRP_TYPE_IS_OUTPUT(enum usrp_buf_type type)
 +{
-+       return type == USRP_BUF_TYPE_OUTPUT;
++	return type == USRP_BUF_TYPE_OUTPUT || type == USRP_BUF_TYPE_OUTPUT_MPLANE;
 +}
 +
 +struct usrp_plane {
@@ -1043,12 +1171,6 @@ index 0000000..3a9825c
 +#define USRP_BUF_FLAG_QUEUED                   0x00000002
 +/* Buffer is ready */
 +#define USRP_BUF_FLAG_DONE                     0x00000004
-+/* Image is a keyframe (I-frame) */
-+#define USRP_BUF_FLAG_KEYFRAME                 0x00000008
-+/* Image is a P-frame */
-+#define USRP_BUF_FLAG_PFRAME                   0x00000010
-+/* Image is a B-frame */
-+#define USRP_BUF_FLAG_BFRAME                   0x00000020
 +/* Buffer is ready, but the data contained within is corrupted. */
 +#define USRP_BUF_FLAG_ERROR                    0x00000040
 +/* timecode field is valid */
@@ -1058,6 +1180,7 @@ index 0000000..3a9825c
 +/* Cache handling flags */
 +#define USRP_BUF_FLAG_NO_CACHE_INVALIDATE      0x00000800
 +#define USRP_BUF_FLAG_NO_CACHE_CLEAN           0x00001000
++
 +/* Timestamp type */
 +#define USRP_BUF_FLAG_TIMESTAMP_MASK           0x0000e000
 +#define USRP_BUF_FLAG_TIMESTAMP_UNKNOWN                0x00000000
@@ -1080,6 +1203,16 @@ index 0000000..3a9825c
 +       __u32           reserved[11];
 +};
 +
++enum usrp_fmt_type {
++	USRP_FMT_CHDR_FIXED_BLOCK,
++};
++
++struct usrp_fmt {
++	__u32		type;
++	__u32		length;
++	__u32		reserved[6];
++};
++
 +#define USRPIOC_REQBUFS                _IOWR('V',  8, struct usrp_requestbuffers)
 +#define USRPIOC_QUERYBUF               _IOWR('V',  9, struct usrp_buffer)
 +#define USRPIOC_QBUF           _IOWR('V', 15, struct usrp_buffer)
@@ -1087,6 +1220,7 @@ index 0000000..3a9825c
 +#define USRPIOC_DQBUF          _IOWR('V', 17, struct usrp_buffer)
 +#define USRPIOC_STREAMON                _IOW('V', 18, int)
 +#define USRPIOC_STREAMOFF       _IOW('V', 19, int)
++#define USRPIOC_SET_FMT        _IOW('V',  20, struct usrp_fmt)
 +
 +#endif /* USRP_H */
 -- 

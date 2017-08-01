@@ -1,7 +1,7 @@
-From d15a6e7481e0e10ede267b1f330472fe325c2180 Mon Sep 17 00:00:00 2001
+From 366db0f7bb4d27051b4c65e42abe0a1909599d9f Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 10 Apr 2017 15:15:27 -0700
-Subject: [PATCH 22/38] net: phy: Fix the case where state machine gets stuck
+Subject: [PATCH 22/40] net: phy: Fix the case where state machine gets stuck
  in FORCING
 
 Fixes issue where phy statemachine gets stuck in FORCING state

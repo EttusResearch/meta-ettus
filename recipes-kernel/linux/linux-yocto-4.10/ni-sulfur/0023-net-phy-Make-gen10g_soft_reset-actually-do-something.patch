@@ -1,7 +1,7 @@
-From fc6a4ad9a258456f0414b9017a58e7502966c09a Mon Sep 17 00:00:00 2001
+From 337659fc850974e9b4f39d10fd9da8885c4260c6 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 10 Apr 2017 15:17:24 -0700
-Subject: [PATCH 23/38] net: phy: Make gen10g_soft_reset actually do something.
+Subject: [PATCH 23/40] net: phy: Make gen10g_soft_reset actually do something.
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---

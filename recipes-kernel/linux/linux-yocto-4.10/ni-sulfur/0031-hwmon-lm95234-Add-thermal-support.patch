@@ -1,7 +1,7 @@
-From 1c6edb1451e3577f0b2ba83e63a723bc1458598d Mon Sep 17 00:00:00 2001
+From 125dd27f9ccee2fe09c0bf94853b6b411073e67d Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 10 Jul 2017 15:08:20 -0700
-Subject: [PATCH 31/38] hwmon: lm95234: Add thermal support
+Subject: [PATCH 31/40] hwmon: lm95234: Add thermal support
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---

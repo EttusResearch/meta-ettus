@@ -1,7 +1,7 @@
 From c07376b2b6de008e74604136544b0a9a46a60333 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 28 Feb 2017 17:29:50 -0800
-Subject: [PATCH 16/38] net: ethernet: nixge: Add support for National
+Subject: [PATCH 16/40] net: ethernet: nixge: Add support for National
  Instruments XGE netdev
 
 Add support for the National Instruments XGE 1/10G network device.

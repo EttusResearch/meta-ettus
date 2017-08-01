@@ -1,7 +1,7 @@
-From 2c91488383d7cd4546d16d9d20f73a8cea2b6913 Mon Sep 17 00:00:00 2001
+From 5da34417d4be5f5c83b56c8c1d43e892dcb1b7f9 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Fri, 31 Mar 2017 15:32:42 -0700
-Subject: [PATCH 20/38] net: macb: Take a shot at implementing NVMEM eth addr
+Subject: [PATCH 20/40] net: macb: Take a shot at implementing NVMEM eth addr
  retrieval
 
 This is still a work in progress.

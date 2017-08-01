@@ -1,7 +1,7 @@
 From 6312d9744c252ebaafec632aa7de8cd0e015be85 Mon Sep 17 00:00:00 2001
 From: Jason Gunthorpe <jgunthorpe@obsidianresearch.com>
 Date: Tue, 22 Nov 2016 11:22:10 -0700
-Subject: [PATCH 03/38] fpga zynq: Check the bitstream for validity
+Subject: [PATCH 03/40] fpga zynq: Check the bitstream for validity
 
 There is no sense in sending a bitstream we know will not work, and
 with the variety of options for bitstream generation in Xilinx tools

@@ -1,7 +1,7 @@
 From 00e624663c67948138837bf214713f31a30407a6 Mon Sep 17 00:00:00 2001
 From: Rob Herring <robh@kernel.org>
 Date: Tue, 21 Mar 2017 08:28:11 -0500
-Subject: [PATCH 10/38] scripts/dtc: automate getting dtc version and log in
+Subject: [PATCH 10/40] scripts/dtc: automate getting dtc version and log in
  update script
 
 Further automate the dtc update script to fill in the dtc version and
