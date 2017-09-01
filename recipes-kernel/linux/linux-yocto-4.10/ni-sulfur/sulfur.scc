@@ -37,5 +37,6 @@ patch 0036-hwmon-lm75-Add-thermal-support.patch
 patch 0037-ARM-dts-Add-devicetree-file-for-NI-Project-EISCAT-SD.patch
 patch 0038-ARM-dts-Adding-NI-Project-Magnesium-SDR-devicetree.patch
 patch 0039-media-Increase-VIDEO_MAX_FRAMES-and-VB2_MAX_FRAMES-t.patch
+patch 0002-i2c-cadance-fix-ctrl-addr-reg-write-order.patch
 
 kconf hardware sulfur.cfg
