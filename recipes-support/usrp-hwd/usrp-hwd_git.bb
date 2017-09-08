@@ -21,10 +21,10 @@ RDEPENDS_${PN} = "python3-netaddr \
 		  udev \
                  "
 
-PR = "r3"
+PR = "r4"
 PV = "0.1+gitr${SRCPV}"
 
-SRCREV = "df86ad7097a852d53573aad74f324999b28a8917"
+SRCREV = "310a018744fa2c25fbf7c80fe6f0eaeb43b54ed4"
 
 SRC_URI = "git://git@github.com/EttusResearch/uhddev.git;protocol=ssh;branch=n3xx-eiscat-demo \
            file://usrp-hwd.service \
