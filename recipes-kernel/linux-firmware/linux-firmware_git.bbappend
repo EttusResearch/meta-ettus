@@ -47,5 +47,4 @@ do_install_append_ni-sulfur() {
     install -m 0644 ${WORKDIR}/LICENSE.ec-sulfur ${D}/lib/firmware/ni/LICENSE.ec-sulfur
 
     install -m 0644 ${WORKDIR}/cpld-magnesium-revc.svf ${D}/lib/firmware/ni/cpld-magnesium-revc.svf
-    install -m 0644 ${WORKDIR}/LICENSE.cpld-magnesium ${D}/lib/firmware/ni/LICENSE.cpld-magnesium
 }
