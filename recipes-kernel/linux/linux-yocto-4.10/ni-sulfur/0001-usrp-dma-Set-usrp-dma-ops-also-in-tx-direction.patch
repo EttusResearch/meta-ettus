@@ -1,0 +1,43 @@
+From f8b30031910091cce8acfd71389c71ab68d5962b Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Mon, 9 Oct 2017 20:27:28 -0700
+Subject: [PATCH] usrp: dma: Set usrp-dma ops also in tx direction
+
+This allows setting the buffer size from userland.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ drivers/usrp/usrp-dmaengine.c | 2 +-
+ include/uapi/linux/usrp.h     | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/usrp/usrp-dmaengine.c b/drivers/usrp/usrp-dmaengine.c
+index 738c19ed98c5..d20cb7f383d5 100644
+--- a/drivers/usrp/usrp-dmaengine.c
++++ b/drivers/usrp/usrp-dmaengine.c
+@@ -325,8 +325,8 @@ static int usrp_dmaengine_probe(struct platform_device *pdev)
+ 			dev_err(&pdev->dev, "unable to read 'offset'");
+ 			return -EINVAL;
+ 		}
+-		priv->dma.ops = &usrp_dmaengine_ops;
+ 	}
++	priv->dma.ops = &usrp_dmaengine_ops;
+ 
+ 	mutex_init(&priv->lock);
+ 	INIT_LIST_HEAD(&priv->queued_bufs);
+diff --git a/include/uapi/linux/usrp.h b/include/uapi/linux/usrp.h
+index 3cbdb4a34d25..28096a30f697 100644
+--- a/include/uapi/linux/usrp.h
++++ b/include/uapi/linux/usrp.h
+@@ -119,7 +119,7 @@ struct usrp_exportbuffer {
+ };
+ 
+ enum usrp_fmt_type {
+-	USRP_FMT_CHDR_FIXED_BLOCK,
++	USRP_FMT_CHDR_FIXED_BLOCK = 0,
+ };
+ 
+ struct usrp_fmt {
+-- 
+2.14.2
+
