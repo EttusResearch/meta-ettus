@@ -5,7 +5,6 @@ CORE_IMAGE_EXTRA_INSTALL_append = " \
     eeprom-tools-systemd \
     usrp-hwd \
     openocd \
-    liberio \
 "
 
 MENDER_DATA_PART_DIR_append = "${DEPLOY_DIR_IMAGE}/persist"
