@@ -1,0 +1,11 @@
+[Unit]
+Description=Setting unique (s/n based) hostname
+Before=systemd-networkd.service
+Before=avahi-daemon.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "hostnamectl set-hostname ni-sulfur-`/usr/bin/eeprom-id | grep serial | sed -e 's/serial=//g'`"
+
+[Install]
+WantedBy=multi-user.target
