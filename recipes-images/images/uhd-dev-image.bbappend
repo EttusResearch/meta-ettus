@@ -7,4 +7,5 @@ CORE_IMAGE_EXTRA_INSTALL_append = " \
     python-mprpc \
     python-netaddr \
     eeprom-tools \
+    eeprom-tools-systemd \
 "
