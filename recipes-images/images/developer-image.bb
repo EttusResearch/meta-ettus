@@ -26,7 +26,7 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     cmake \
     gsl \
     python \
-    python-cheetah \
+    python-mako \
     python-modules \
     python-argparse \
     python-distutils \
