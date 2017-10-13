@@ -2,7 +2,7 @@ require ettus-zynq.inc
 
 MACHINEOVERRIDES = "ni-sulfur:${MACHINE}"
 
-MACHINE_FEATURES = "vfat ethernet usbhost ext2 wifi"
+MACHINE_FEATURES = "vfat ethernet usbhost ext2 rtc"
 
 SERIAL_CONSOLE = "115200 ttyPS0"
 

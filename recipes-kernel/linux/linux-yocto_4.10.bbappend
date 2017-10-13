@@ -4,4 +4,4 @@ SRC_URI_append_ni-sulfur = " \
 		file://sulfur.scc \
 		"
 
-COMPATIBLE_MACHINE_ni-sulfur = "ni-sulfur-rev2|ni-sulfur-rev3"
+COMPATIBLE_MACHINE_ni-sulfur = "ni-sulfur-rev2|ni-sulfur-rev3|ni-sulfur-rev4"
