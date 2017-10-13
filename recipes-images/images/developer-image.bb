@@ -47,6 +47,7 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     eeprom-tools-systemd \
     usrp-hwd \
     openocd \
+    salt-minion \
     "
 
 inherit core-image image-buildinfo
