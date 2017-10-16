@@ -1,24 +1,28 @@
-From 535375b32c1332caff967dd1d4cf0ba4410f0f9c Mon Sep 17 00:00:00 2001
+From df7dff83ba339de6fc3bd12b5bc389147a29dc2c Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 11 Jul 2017 14:16:21 -0700
-Subject: [PATCH 38/40] ARM: dts: Adding NI Project Magnesium SDR devicetree
+Subject: [PATCH 38/45] ARM: dts: Adding NI Project Magnesium SDR devicetree
 
 This adds the devicetree for NI Project Magnesium SDR.
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
- arch/arm/boot/dts/Makefile              |   1 +
- arch/arm/boot/dts/zynq-ni-magnesium.dts | 179 ++++++++++++++++++++++++++++++++
- 2 files changed, 180 insertions(+)
+ arch/arm/boot/dts/Makefile                |   2 +
+ arch/arm/boot/dts/zynq-ni-magnesium.dts   | 179 ++++++++++++++++++++++++++++++
+ arch/arm/boot/dts/zynq-ni-sulfur-rev4.dts |  25 +++++
+ 3 files changed, 206 insertions(+)
  create mode 100644 arch/arm/boot/dts/zynq-ni-magnesium.dts
+ create mode 100644 arch/arm/boot/dts/zynq-ni-sulfur-rev4.dts
 
 diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-index 39ea61f..125ed80 100644
+index 39ea61f2f49f..cf8e6cd5bf63 100644
 --- a/arch/arm/boot/dts/Makefile
 +++ b/arch/arm/boot/dts/Makefile
-@@ -937,6 +937,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
+@@ -936,7 +936,9 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
+ 	zynq-zed.dtb \
  	zynq-ni-sulfur-rev2.dtb \
  	zynq-ni-sulfur-rev3.dtb \
++	zynq-ni-sulfur-rev4.dtb \
  	zynq-ni-eiscat.dtb \
 +	zynq-ni-magnesium.dtb \
  	zynq-zybo.dtb
@@ -26,7 +30,7 @@ index 39ea61f..125ed80 100644
  	armada-370-db.dtb \
 diff --git a/arch/arm/boot/dts/zynq-ni-magnesium.dts b/arch/arm/boot/dts/zynq-ni-magnesium.dts
 new file mode 100644
-index 0000000..2b2bd8a
+index 000000000000..92445c1fc47c
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-ni-magnesium.dts
 @@ -0,0 +1,179 @@
@@ -38,7 +42,7 @@ index 0000000..2b2bd8a
 + * SPDX-License-Identifier: (GPL-2.0 OR X11)
 + */
 +
-+#include "zynq-ni-sulfur-rev3.dts"
++#include "zynq-ni-sulfur-rev4.dts"
 +#include <dt-bindings/thermal/thermal.h>
 +
 +&usrpio_i2c0 {
@@ -83,7 +87,7 @@ index 0000000..2b2bd8a
 +};
 +
 +&thermal_zones {
-+	eiscat-db0-zone {
++	magnesium-db0-zone {
 +		polling-delay-passive = <1000>;
 +		polling-delay = <1000>;
 +
@@ -145,7 +149,7 @@ index 0000000..2b2bd8a
 +		};
 +	};
 +
-+	eiscat-db1-zone {
++	magnesium-db1-zone {
 +		polling-delay-passive = <1000>;
 +		polling-delay = <1000>;
 +
@@ -209,6 +213,37 @@ index 0000000..2b2bd8a
 +
 +
 +};
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev4.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev4.dts
+new file mode 100644
+index 000000000000..a9a83b81dd81
+--- /dev/null
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev4.dts
+@@ -0,0 +1,25 @@
++/*
++ * National Instruments Ettus Research Project Sulfur SDR Revision 4
++ *
++ * Copyright (c) 2016,2017 National Instruments Corp.
++ *
++ * SPDX-License-Identifier: (GPL-2.0 OR X11)
++ */
++
++/dts-v1/;
++
++#include "zynq-ni-sulfur-rev3.dts"
++
++
++&i2c_switch0 {
++	i2c@4 {
++		reg = <4>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		tpm: tpm@29 {
++			compatible = "atmel,at97sc3205t", "atmel,at97sc3204t";
++			reg = <0x29>;
++		};
++	};
++};
 -- 
-2.7.4
+2.14.2
 

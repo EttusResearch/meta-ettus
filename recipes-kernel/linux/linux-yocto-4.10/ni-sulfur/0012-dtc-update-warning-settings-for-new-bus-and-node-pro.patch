@@ -1,7 +1,7 @@
 From ec9ba78d8d2e0712aebaef6fb6506a98993c3895 Mon Sep 17 00:00:00 2001
 From: Rob Herring <robh@kernel.org>
 Date: Tue, 21 Mar 2017 09:14:20 -0500
-Subject: [PATCH 12/40] dtc: update warning settings for new bus and
+Subject: [PATCH 12/45] dtc: update warning settings for new bus and
  node/property name checks
 
 dtc gained new warnings checking PCI and simple buses, unit address
@@ -17,7 +17,7 @@ Signed-off-by: Rob Herring <robh@kernel.org>
  2 files changed, 12 insertions(+), 1 deletion(-)
 
 diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
-index 0a07f90..8066b618 100644
+index 0a07f9014944..8066b6185d1e 100644
 --- a/scripts/Makefile.lib
 +++ b/scripts/Makefile.lib
 @@ -280,7 +280,17 @@ DTC ?= $(objtree)/scripts/dtc/dtc
@@ -40,7 +40,7 @@ index 0a07f90..8066b618 100644
  
  # Generate an assembly file to wrap the output of the device tree compiler
 diff --git a/scripts/dtc/update-dtc-source.sh b/scripts/dtc/update-dtc-source.sh
-index c92e6bd..b8ebcc6 100755
+index c92e6bd9458d..b8ebcc6722d2 100755
 --- a/scripts/dtc/update-dtc-source.sh
 +++ b/scripts/dtc/update-dtc-source.sh
 @@ -77,4 +77,5 @@ This adds the following commits from upstream:
@@ -50,5 +50,5 @@ index c92e6bd..b8ebcc6 100755
 +
  git commit -e -v -s -m "${commit_msg}"
 -- 
-2.7.4
+2.14.2
 

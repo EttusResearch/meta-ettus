@@ -1,7 +1,7 @@
-From e0d39fc94835302bb60631b659b1a59e2081c57c Mon Sep 17 00:00:00 2001
+From 53348358cd71bba716aa7fccf4b7186ba2d9c131 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 1 Aug 2017 12:00:41 -0700
-Subject: [PATCH 39/40] media: Increase VIDEO_MAX_FRAMES and VB2_MAX_FRAMES to
+Subject: [PATCH 39/45] media: Increase VIDEO_MAX_FRAMES and VB2_MAX_FRAMES to
  128
 
 Upstream-Status: Inappropriate, since affects all v4l2 devices.
@@ -13,7 +13,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  2 files changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/include/media/videobuf2-core.h b/include/media/videobuf2-core.h
-index ac5898a..1c2e1eb 100644
+index ac5898a55fd9..1c2e1eb412ce 100644
 --- a/include/media/videobuf2-core.h
 +++ b/include/media/videobuf2-core.h
 @@ -17,7 +17,7 @@
@@ -26,7 +26,7 @@ index ac5898a..1c2e1eb 100644
  
  /**
 diff --git a/include/uapi/linux/videodev2.h b/include/uapi/linux/videodev2.h
-index 45184a2..a3bcd1c 100644
+index 45184a2ef66c..a3bcd1cbaf1a 100644
 --- a/include/uapi/linux/videodev2.h
 +++ b/include/uapi/linux/videodev2.h
 @@ -69,7 +69,7 @@
@@ -39,5 +39,5 @@ index 45184a2..a3bcd1c 100644
  
  /*
 -- 
-2.7.4
+2.14.2
 

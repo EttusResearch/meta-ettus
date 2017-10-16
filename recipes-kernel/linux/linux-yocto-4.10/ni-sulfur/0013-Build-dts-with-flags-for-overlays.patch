@@ -1,7 +1,7 @@
 From 83421069dc66c61e181fdde898346791244a342a Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 12 Dec 2016 08:52:03 -0800
-Subject: [PATCH 13/40] Build dts with -@ flags for overlays
+Subject: [PATCH 13/45] Build dts with -@ flags for overlays
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
@@ -9,7 +9,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  1 file changed, 4 insertions(+)
 
 diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-index 01d178a..bc7335a 100644
+index 01d178a2009f..bc7335a52ef5 100644
 --- a/arch/arm/boot/dts/Makefile
 +++ b/arch/arm/boot/dts/Makefile
 @@ -1,5 +1,9 @@
@@ -23,5 +23,5 @@ index 01d178a..bc7335a 100644
  	alpine-db.dtb
  dtb-$(CONFIG_MACH_ARTPEC6) += \
 -- 
-2.7.4
+2.14.2
 

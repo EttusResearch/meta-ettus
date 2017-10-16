@@ -37,7 +37,11 @@ patch 0036-hwmon-lm75-Add-thermal-support.patch
 patch 0037-ARM-dts-Add-devicetree-file-for-NI-Project-EISCAT-SD.patch
 patch 0038-ARM-dts-Adding-NI-Project-Magnesium-SDR-devicetree.patch
 patch 0039-media-Increase-VIDEO_MAX_FRAMES-and-VB2_MAX_FRAMES-t.patch
-patch 0002-i2c-cadance-fix-ctrl-addr-reg-write-order.patch
-patch 0001-usrp-dma-Set-usrp-dma-ops-also-in-tx-direction.patch
+patch 0040-media-Add-V4L2_SDR_FMT_CHDR_CS16-format-for-CHDR-enc.patch
+patch 0041-i2c-cadance-fix-ctrl-addr-reg-write-order.patch
+patch 0042-net-phy-Fix-lack-of-reference-count-on-PHY-driver.patch
+patch 0043-net-phy-Fix-PHY-module-checks-and-NULL-deref-in-phy_.patch
+patch 0044-net-phy-Fix-PHY-unbind-crash.patch
+patch 0045-net-phy-Check-phydev-drv.patch
 
 kconf hardware sulfur.cfg

@@ -1,7 +1,7 @@
-From 5211b1a0cd5b8779dadde6606e6cc00f23f37cd7 Mon Sep 17 00:00:00 2001
+From c7639c800c26febbe2dfd108a576898ceaf4810c Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <mdf@kernel.org>
 Date: Mon, 17 Apr 2017 15:25:47 -0700
-Subject: [PATCH 24/40] rtc: ds1374: Add trickle charger device tree binding
+Subject: [PATCH 24/45] rtc: ds1374: Add trickle charger device tree binding
 
 Introduce a device tree binding for specifying the trickle charger
 configuration for ds1374. This is based on the code for ds13390.
@@ -15,7 +15,7 @@ Signed-off-by: Moritz Fischer <mdf@kernel.org>
 
 diff --git a/Documentation/devicetree/bindings/rtc/dallas,ds1374.txt b/Documentation/devicetree/bindings/rtc/dallas,ds1374.txt
 new file mode 100644
-index 0000000..4cf5bd7
+index 000000000000..4cf5bd76252c
 --- /dev/null
 +++ b/Documentation/devicetree/bindings/rtc/dallas,ds1374.txt
 @@ -0,0 +1,18 @@
@@ -38,7 +38,7 @@ index 0000000..4cf5bd7
 +		reg = <0>;
 +	};
 diff --git a/drivers/rtc/rtc-ds1374.c b/drivers/rtc/rtc-ds1374.c
-index 52429f0..7a7a987 100644
+index 52429f0a57cc..7a7a987a2f72 100644
 --- a/drivers/rtc/rtc-ds1374.c
 +++ b/drivers/rtc/rtc-ds1374.c
 @@ -53,6 +53,13 @@
@@ -117,5 +117,5 @@ index 52429f0..7a7a987 100644
  	if (ret)
  		return ret;
 -- 
-2.7.4
+2.14.2
 

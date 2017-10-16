@@ -1,7 +1,7 @@
-From 5da34417d4be5f5c83b56c8c1d43e892dcb1b7f9 Mon Sep 17 00:00:00 2001
+From 3c2105c667bd4e3434e28975f9d0ef927558a685 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Fri, 31 Mar 2017 15:32:42 -0700
-Subject: [PATCH 20/40] net: macb: Take a shot at implementing NVMEM eth addr
+Subject: [PATCH 20/45] net: macb: Take a shot at implementing NVMEM eth addr
  retrieval
 
 This is still a work in progress.
@@ -12,7 +12,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  1 file changed, 31 insertions(+)
 
 diff --git a/drivers/net/ethernet/cadence/macb.c b/drivers/net/ethernet/cadence/macb.c
-index 0b92b88..adc7328 100644
+index 0b92b88513a7..adc73285a2d3 100644
 --- a/drivers/net/ethernet/cadence/macb.c
 +++ b/drivers/net/ethernet/cadence/macb.c
 @@ -27,6 +27,7 @@
@@ -73,5 +73,5 @@ index 0b92b88..adc7328 100644
  	/* Power up the PHY if there is a GPIO reset */
  	phy_node =  of_get_next_available_child(np, NULL);
 -- 
-2.7.4
+2.14.2
 

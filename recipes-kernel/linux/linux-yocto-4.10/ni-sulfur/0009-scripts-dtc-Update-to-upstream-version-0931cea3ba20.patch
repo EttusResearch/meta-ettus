@@ -1,7 +1,7 @@
 From dff1eab0507cc91b76b6e8d05515519213698615 Mon Sep 17 00:00:00 2001
 From: Rob Herring <robh@kernel.org>
 Date: Wed, 4 Jan 2017 10:45:20 -0600
-Subject: [PATCH 09/40] scripts/dtc: Update to upstream version 0931cea3ba20
+Subject: [PATCH 09/45] scripts/dtc: Update to upstream version 0931cea3ba20
 
 Sync to upstream dtc commit 0931cea3ba20 ("dtc: fdtdump: check fdt if
 not in scanning mode"). In particular, this pulls in dtc overlay
@@ -101,7 +101,7 @@ Signed-off-by: Rob Herring <robh@kernel.org>
  24 files changed, 1661 insertions(+), 1019 deletions(-)
 
 diff --git a/scripts/dtc/checks.c b/scripts/dtc/checks.c
-index 386f956..3d18e45 100644
+index 386f9563313f..3d18e45374c8 100644
 --- a/scripts/dtc/checks.c
 +++ b/scripts/dtc/checks.c
 @@ -40,16 +40,11 @@ enum checkstatus {
@@ -746,7 +746,7 @@ index 386f956..3d18e45 100644
  
  	if (error) {
 diff --git a/scripts/dtc/dtc-lexer.l b/scripts/dtc/dtc-lexer.l
-index 790fbf6..c600603 100644
+index 790fbf6cf2d7..c600603044f3 100644
 --- a/scripts/dtc/dtc-lexer.l
 +++ b/scripts/dtc/dtc-lexer.l
 @@ -121,6 +121,11 @@ static void lexical_error(const char *fmt, ...);
@@ -787,7 +787,7 @@ index 790fbf6..c600603 100644
  		}
  
 diff --git a/scripts/dtc/dtc-lexer.lex.c_shipped b/scripts/dtc/dtc-lexer.lex.c_shipped
-index ba525c2..2c862bc 100644
+index ba525c2f9fc2..2c862bc86ad0 100644
 --- a/scripts/dtc/dtc-lexer.lex.c_shipped
 +++ b/scripts/dtc/dtc-lexer.lex.c_shipped
 @@ -8,8 +8,8 @@
@@ -1421,10 +1421,11 @@ index ba525c2..2c862bc 100644
  		yy_cp = (yy_last_accepting_cpos);
  		yy_current_state = (yy_last_accepting_state);
  
-@@ -1015,23 +1013,31 @@ case 5:
+@@ -1014,24 +1012,32 @@ YY_RULE_SETUP
+ case 5:
  YY_RULE_SETUP
  #line 124 "dtc-lexer.l"
- {
++{
 +			DPRINT("Keyword: /plugin/\n");
 +			return DT_PLUGIN;
 +		}
@@ -1432,7 +1433,7 @@ index ba525c2..2c862bc 100644
 +case 6:
 +YY_RULE_SETUP
 +#line 129 "dtc-lexer.l"
-+{
+ {
  			DPRINT("Keyword: /memreserve/\n");
  			BEGIN_DEFAULT();
  			return DT_MEMRESERVE;
@@ -2113,7 +2114,7 @@ index ba525c2..2c862bc 100644
  
  
 diff --git a/scripts/dtc/dtc-parser.tab.c_shipped b/scripts/dtc/dtc-parser.tab.c_shipped
-index 31cec50..2965227 100644
+index 31cec50a1265..2965227a1b4a 100644
 --- a/scripts/dtc/dtc-parser.tab.c_shipped
 +++ b/scripts/dtc/dtc-parser.tab.c_shipped
 @@ -1,8 +1,8 @@
@@ -3381,7 +3382,7 @@ index 31cec50..2965227 100644
  
  void yyerror(char const *s)
 diff --git a/scripts/dtc/dtc-parser.tab.h_shipped b/scripts/dtc/dtc-parser.tab.h_shipped
-index 30867c6..6aa512c 100644
+index 30867c688300..6aa512c1b337 100644
 --- a/scripts/dtc/dtc-parser.tab.h_shipped
 +++ b/scripts/dtc/dtc-parser.tab.h_shipped
 @@ -1,8 +1,8 @@
@@ -3469,7 +3470,7 @@ index 30867c6..6aa512c 100644
  # define YYSTYPE_IS_DECLARED 1
  #endif
 diff --git a/scripts/dtc/dtc-parser.y b/scripts/dtc/dtc-parser.y
-index 000873f..b2fd4d1 100644
+index 000873f070fd..b2fd4d155839 100644
 --- a/scripts/dtc/dtc-parser.y
 +++ b/scripts/dtc/dtc-parser.y
 @@ -19,6 +19,7 @@
@@ -3546,7 +3547,7 @@ index 000873f..b2fd4d1 100644
  	;
  
 diff --git a/scripts/dtc/dtc.c b/scripts/dtc/dtc.c
-index 5fa23c4..a4edf4c 100644
+index 5fa23c406266..a4edf4c7aebf 100644
 --- a/scripts/dtc/dtc.c
 +++ b/scripts/dtc/dtc.c
 @@ -30,7 +30,16 @@ int quiet;		/* Level of quietness */
@@ -3718,7 +3719,7 @@ index 5fa23c4..a4edf4c 100644
  		/* do nothing */
  	} else {
 diff --git a/scripts/dtc/dtc.h b/scripts/dtc/dtc.h
-index 56212c8..c6f125c 100644
+index 56212c8df660..c6f125c68ba8 100644
 --- a/scripts/dtc/dtc.h
 +++ b/scripts/dtc/dtc.h
 @@ -53,7 +53,11 @@ extern int quiet;		/* Level of quietness */
@@ -3800,7 +3801,7 @@ index 56212c8..c6f125c 100644
  
  #endif /* _DTC_H */
 diff --git a/scripts/dtc/flattree.c b/scripts/dtc/flattree.c
-index ec14954..ebac548b 100644
+index ec14954f5810..ebac548b3fa8 100644
 --- a/scripts/dtc/flattree.c
 +++ b/scripts/dtc/flattree.c
 @@ -366,7 +366,7 @@ static void make_fdt_header(struct fdt_header *fdt,
@@ -3926,7 +3927,7 @@ index ec14954..ebac548b 100644
 +	return build_dt_info(DTSF_V1, reservelist, tree, boot_cpuid_phys);
  }
 diff --git a/scripts/dtc/fstree.c b/scripts/dtc/fstree.c
-index 6d1beec..ae7d06c 100644
+index 6d1beec9581d..ae7d06c3c492 100644
 --- a/scripts/dtc/fstree.c
 +++ b/scripts/dtc/fstree.c
 @@ -79,13 +79,12 @@ static struct node *read_fstree(const char *dirname)
@@ -3946,7 +3947,7 @@ index 6d1beec..ae7d06c 100644
  }
 -
 diff --git a/scripts/dtc/libfdt/Makefile.libfdt b/scripts/dtc/libfdt/Makefile.libfdt
-index 09c322ed..098b3f3 100644
+index 09c322ed82ba..098b3f36e668 100644
 --- a/scripts/dtc/libfdt/Makefile.libfdt
 +++ b/scripts/dtc/libfdt/Makefile.libfdt
 @@ -7,5 +7,5 @@ LIBFDT_soname = libfdt.$(SHAREDLIB_EXT).1
@@ -3957,7 +3958,7 @@ index 09c322ed..098b3f3 100644
 +	fdt_addresses.c fdt_overlay.c
  LIBFDT_OBJS = $(LIBFDT_SRCS:%.c=%.o)
 diff --git a/scripts/dtc/libfdt/fdt_ro.c b/scripts/dtc/libfdt/fdt_ro.c
-index 50cce86..3d00d2e 100644
+index 50cce864283c..3d00d2eee0e3 100644
 --- a/scripts/dtc/libfdt/fdt_ro.c
 +++ b/scripts/dtc/libfdt/fdt_ro.c
 @@ -88,6 +88,32 @@ static int _fdt_string_eq(const void *fdt, int stroffset,
@@ -4012,7 +4013,7 @@ index 50cce86..3d00d2e 100644
  	len = strlen(string) + 1;
  	end = list + length;
 diff --git a/scripts/dtc/libfdt/fdt_rw.c b/scripts/dtc/libfdt/fdt_rw.c
-index 8be02b1..2eed4f5 100644
+index 8be02b1f68f3..2eed4f58387c 100644
 --- a/scripts/dtc/libfdt/fdt_rw.c
 +++ b/scripts/dtc/libfdt/fdt_rw.c
 @@ -191,17 +191,13 @@ int fdt_add_mem_rsv(void *fdt, uint64_t address, uint64_t size)
@@ -4035,7 +4036,7 @@ index 8be02b1..2eed4f5 100644
  
  static int _fdt_resize_property(void *fdt, int nodeoffset, const char *name,
 diff --git a/scripts/dtc/libfdt/fdt_strerror.c b/scripts/dtc/libfdt/fdt_strerror.c
-index e6c3cee..9677a18 100644
+index e6c3ceee8c58..9677a1887e57 100644
 --- a/scripts/dtc/libfdt/fdt_strerror.c
 +++ b/scripts/dtc/libfdt/fdt_strerror.c
 @@ -69,6 +69,7 @@ static struct fdt_errtabent fdt_errtable[] = {
@@ -4059,7 +4060,7 @@ index e6c3cee..9677a18 100644
  #define FDT_ERRTABSIZE	(sizeof(fdt_errtable) / sizeof(fdt_errtable[0]))
  
 diff --git a/scripts/dtc/libfdt/fdt_wip.c b/scripts/dtc/libfdt/fdt_wip.c
-index c5bbb68..6aaab39 100644
+index c5bbb68d3273..6aaab399929c 100644
 --- a/scripts/dtc/libfdt/fdt_wip.c
 +++ b/scripts/dtc/libfdt/fdt_wip.c
 @@ -55,21 +55,42 @@
@@ -4110,7 +4111,7 @@ index c5bbb68..6aaab39 100644
  
  static void _fdt_nop_region(void *start, int len)
 diff --git a/scripts/dtc/libfdt/libfdt.h b/scripts/dtc/libfdt/libfdt.h
-index 59ca339..b842b15 100644
+index 59ca33976e56..b842b156fa17 100644
 --- a/scripts/dtc/libfdt/libfdt.h
 +++ b/scripts/dtc/libfdt/libfdt.h
 @@ -61,7 +61,7 @@
@@ -4214,10 +4215,11 @@ index 59ca339..b842b15 100644
  		fdth->name = cpu_to_fdt32(val); \
  	}
  __fdt_set_hdr(magic);
-@@ -259,6 +298,21 @@ int fdt_move(const void *fdt, void *buf, int bufsize);
+@@ -258,6 +297,21 @@ int fdt_move(const void *fdt, void *buf, int bufsize);
+  */
  const char *fdt_string(const void *fdt, int stroffset);
  
- /**
++/**
 + * fdt_get_max_phandle - retrieves the highest phandle in a tree
 + * @fdt: pointer to the device tree blob
 + *
@@ -4232,10 +4234,9 @@ index 59ca339..b842b15 100644
 + */
 +uint32_t fdt_get_max_phandle(const void *fdt);
 +
-+/**
+ /**
   * fdt_num_mem_rsv - retrieve the number of memory reserve map entries
   * @fdt: pointer to the device tree blob
-  *
 @@ -318,8 +372,9 @@ int fdt_subnode_offset_namelen(const void *fdt, int parentoffset,
   * returns:
   *	structure block offset of the requested subnode (>=0), on success
@@ -4273,10 +4274,11 @@ index 59ca339..b842b15 100644
   *		-FDT_ERR_BADMAGIC,
   *		-FDT_ERR_BADVERSION,
   *		-FDT_ERR_BADSTATE, standard meanings
-@@ -427,6 +485,33 @@ int fdt_first_property_offset(const void *fdt, int nodeoffset);
+@@ -426,6 +484,33 @@ int fdt_first_property_offset(const void *fdt, int nodeoffset);
+  */
  int fdt_next_property_offset(const void *fdt, int offset);
  
- /**
++/**
 + * fdt_for_each_property_offset - iterate over all properties of a node
 + *
 + * @property_offset:	property offset (int, lvalue)
@@ -4303,10 +4305,9 @@ index 59ca339..b842b15 100644
 +	     property >= 0;					\
 +	     property = fdt_next_property_offset(fdt, property))
 +
-+/**
+ /**
   * fdt_get_property_by_offset - retrieve the property at a given offset
   * @fdt: pointer to the device tree blob
-  * @offset: offset of the property to retrieve
 @@ -490,7 +575,8 @@ const struct fdt_property *fdt_get_property_namelen(const void *fdt,
   *	NULL, on error
   *		if lenp is non-NULL, *lenp contains an error code (<0):
@@ -4439,10 +4440,11 @@ index 59ca339..b842b15 100644
   *	-FDT_ERR_BADMAGIC,
   *	-FDT_ERR_BADVERSION,
   *	-FDT_ERR_BADSTATE,
-@@ -995,6 +1091,27 @@ int fdt_size_cells(const void *fdt, int nodeoffset);
+@@ -994,6 +1090,27 @@ int fdt_size_cells(const void *fdt, int nodeoffset);
+ /* Write-in-place functions                                           */
  /**********************************************************************/
  
- /**
++/**
 + * fdt_setprop_inplace_namelen_partial - change a property's value,
 + *                                       but not its size
 + * @fdt: pointer to the device tree blob
@@ -4463,10 +4465,9 @@ index 59ca339..b842b15 100644
 +					uint32_t idx, const void *val,
 +					int len);
 +
-+/**
+ /**
   * fdt_setprop_inplace - change a property's value, but not its size
   * @fdt: pointer to the device tree blob
-  * @nodeoffset: offset of the node whose property to change
 @@ -1604,9 +1721,11 @@ int fdt_add_subnode_namelen(void *fdt, int parentoffset,
   * change the offsets of some existing nodes.
  
@@ -4520,7 +4521,7 @@ index 59ca339..b842b15 100644
  /* Debugging / informational functions                                */
  /**********************************************************************/
 diff --git a/scripts/dtc/libfdt/libfdt_env.h b/scripts/dtc/libfdt/libfdt_env.h
-index 9dea97d..99f936d 100644
+index 9dea97dfff81..99f936dacc60 100644
 --- a/scripts/dtc/libfdt/libfdt_env.h
 +++ b/scripts/dtc/libfdt/libfdt_env.h
 @@ -54,6 +54,7 @@
@@ -4532,7 +4533,7 @@ index 9dea97d..99f936d 100644
  
  #ifdef __CHECKER__
 diff --git a/scripts/dtc/livetree.c b/scripts/dtc/livetree.c
-index e229b84..afa2f67 100644
+index e229b84432f9..afa2f67b142a 100644
 --- a/scripts/dtc/livetree.c
 +++ b/scripts/dtc/livetree.c
 @@ -204,7 +204,7 @@ struct node *merge_nodes(struct node *old_node, struct node *new_node)
@@ -4889,7 +4890,7 @@ index e229b84..afa2f67 100644
 +					    dti->dt);
  }
 diff --git a/scripts/dtc/srcpos.c b/scripts/dtc/srcpos.c
-index f534c22..aa3aad0 100644
+index f534c22a888d..aa3aad04cec4 100644
 --- a/scripts/dtc/srcpos.c
 +++ b/scripts/dtc/srcpos.c
 @@ -246,46 +246,27 @@ srcpos_copy(struct srcpos *pos)
@@ -4948,7 +4949,7 @@ index f534c22..aa3aad0 100644
  	return pos_str;
  }
 diff --git a/scripts/dtc/srcpos.h b/scripts/dtc/srcpos.h
-index f81827b..2cdfcd8 100644
+index f81827bd684a..2cdfcd82e95e 100644
 --- a/scripts/dtc/srcpos.h
 +++ b/scripts/dtc/srcpos.h
 @@ -105,7 +105,6 @@ extern struct srcpos srcpos_empty;
@@ -4960,7 +4961,7 @@ index f81827b..2cdfcd8 100644
  extern void srcpos_verror(struct srcpos *pos, const char *prefix,
  			  const char *fmt, va_list va)
 diff --git a/scripts/dtc/treesource.c b/scripts/dtc/treesource.c
-index a55d1d1..c9d8967 100644
+index a55d1d128cce..c9d8967969f9 100644
 --- a/scripts/dtc/treesource.c
 +++ b/scripts/dtc/treesource.c
 @@ -25,12 +25,12 @@ extern FILE *yyin;
@@ -5013,7 +5014,7 @@ index a55d1d1..c9d8967 100644
  }
  
 diff --git a/scripts/dtc/util.c b/scripts/dtc/util.c
-index fb124ee..3550f86 100644
+index fb124eea4919..3550f86bd6df 100644
 --- a/scripts/dtc/util.c
 +++ b/scripts/dtc/util.c
 @@ -46,6 +46,36 @@ char *xstrdup(const char *s)
@@ -5054,7 +5055,7 @@ index fb124ee..3550f86 100644
  {
  	int lenp = strlen(path);
 diff --git a/scripts/dtc/util.h b/scripts/dtc/util.h
-index f800b60..f5c4f1b 100644
+index f800b6011fb1..f5c4f1b50d30 100644
 --- a/scripts/dtc/util.h
 +++ b/scripts/dtc/util.h
 @@ -59,6 +59,7 @@ static inline void *xrealloc(void *p, size_t len)
@@ -5066,12 +5067,12 @@ index f800b60..f5c4f1b 100644
  
  /**
 diff --git a/scripts/dtc/version_gen.h b/scripts/dtc/version_gen.h
-index ad9b05a..16c2e53 100644
+index ad9b05ae698b..16c2e53a85e3 100644
 --- a/scripts/dtc/version_gen.h
 +++ b/scripts/dtc/version_gen.h
 @@ -1 +1 @@
 -#define DTC_VERSION "DTC 1.4.1-g53bf130b"
 +#define DTC_VERSION "DTC 1.4.2-g0931cea3"
 -- 
-2.7.4
+2.14.2
 

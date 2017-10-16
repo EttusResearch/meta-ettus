@@ -1,7 +1,7 @@
-From b058084cd93b528fe3a91055441d3ba9856e31a2 Mon Sep 17 00:00:00 2001
+From fa1c6f0ee6d10e4f0e4bda0260698e8146a66622 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Fri, 10 Mar 2017 16:37:08 -0800
-Subject: [PATCH 17/40] rfnoc: Initial shot add adding RFNoC support
+Subject: [PATCH 17/45] rfnoc: Initial shot add adding RFNoC support
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
@@ -22,7 +22,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  create mode 100644 include/uapi/linux/rfnoc/rfnoc-crossbar.h
 
 diff --git a/drivers/Kconfig b/drivers/Kconfig
-index e1e2066..0edd44a 100644
+index e1e2066cecdb..0edd44a868a6 100644
 --- a/drivers/Kconfig
 +++ b/drivers/Kconfig
 @@ -202,4 +202,6 @@ source "drivers/hwtracing/intel_th/Kconfig"
@@ -33,7 +33,7 @@ index e1e2066..0edd44a 100644
 +
  endmenu
 diff --git a/drivers/Makefile b/drivers/Makefile
-index c409c66..613f273 100644
+index c409c66710ac..613f273c2974 100644
 --- a/drivers/Makefile
 +++ b/drivers/Makefile
 @@ -174,3 +174,4 @@ obj-$(CONFIG_STM)		+= hwtracing/stm/
@@ -43,7 +43,7 @@ index c409c66..613f273 100644
 +obj-$(CONFIG_RFNOC)		+= rfnoc/
 diff --git a/drivers/rfnoc/Kconfig b/drivers/rfnoc/Kconfig
 new file mode 100644
-index 0000000..51f2c2b
+index 000000000000..51f2c2b03c18
 --- /dev/null
 +++ b/drivers/rfnoc/Kconfig
 @@ -0,0 +1,22 @@
@@ -71,7 +71,7 @@ index 0000000..51f2c2b
 +endmenu
 diff --git a/drivers/rfnoc/Makefile b/drivers/rfnoc/Makefile
 new file mode 100644
-index 0000000..1f963fc
+index 000000000000..1f963fc5e1c2
 --- /dev/null
 +++ b/drivers/rfnoc/Makefile
 @@ -0,0 +1,6 @@
@@ -83,7 +83,7 @@ index 0000000..1f963fc
 +obj-$(CONFIG_RFNOC_CROSSBAR)		+= rfnoc-crossbar.o rfnoc-crossbar-platform.o
 diff --git a/drivers/rfnoc/rfnoc-crossbar-platform.c b/drivers/rfnoc/rfnoc-crossbar-platform.c
 new file mode 100644
-index 0000000..87bd33f
+index 000000000000..87bd33fbc478
 --- /dev/null
 +++ b/drivers/rfnoc/rfnoc-crossbar-platform.c
 @@ -0,0 +1,218 @@
@@ -307,7 +307,7 @@ index 0000000..87bd33f
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/rfnoc/rfnoc-crossbar.c b/drivers/rfnoc/rfnoc-crossbar.c
 new file mode 100644
-index 0000000..fdbe010
+index 000000000000..fdbe0103dd7a
 --- /dev/null
 +++ b/drivers/rfnoc/rfnoc-crossbar.c
 @@ -0,0 +1,495 @@
@@ -808,7 +808,7 @@ index 0000000..fdbe010
 +module_exit(rfnoc_crossbar_exit);
 diff --git a/include/linux/rfnoc/rfnoc-crossbar.h b/include/linux/rfnoc/rfnoc-crossbar.h
 new file mode 100644
-index 0000000..a80c068
+index 000000000000..a80c0684baca
 --- /dev/null
 +++ b/include/linux/rfnoc/rfnoc-crossbar.h
 @@ -0,0 +1,62 @@
@@ -876,7 +876,7 @@ index 0000000..a80c068
 +
 diff --git a/include/uapi/linux/rfnoc/rfnoc-crossbar.h b/include/uapi/linux/rfnoc/rfnoc-crossbar.h
 new file mode 100644
-index 0000000..3ad543a
+index 000000000000..3ad543afad5a
 --- /dev/null
 +++ b/include/uapi/linux/rfnoc/rfnoc-crossbar.h
 @@ -0,0 +1,30 @@
@@ -911,5 +911,5 @@ index 0000000..3ad543a
 +
 +#endif /* _UAPI_LINUX_RFNOC_CROSSBAR_H */
 -- 
-2.7.4
+2.14.2
 

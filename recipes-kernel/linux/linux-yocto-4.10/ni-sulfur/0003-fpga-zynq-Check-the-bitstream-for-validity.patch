@@ -1,7 +1,7 @@
 From 6312d9744c252ebaafec632aa7de8cd0e015be85 Mon Sep 17 00:00:00 2001
 From: Jason Gunthorpe <jgunthorpe@obsidianresearch.com>
 Date: Tue, 22 Nov 2016 11:22:10 -0700
-Subject: [PATCH 03/40] fpga zynq: Check the bitstream for validity
+Subject: [PATCH 03/45] fpga zynq: Check the bitstream for validity
 
 There is no sense in sending a bitstream we know will not work, and
 with the variety of options for bitstream generation in Xilinx tools
@@ -24,7 +24,7 @@ Signed-off-by: Jason Gunthorpe <jgunthorpe@obsidianresearch.com>
  1 file changed, 21 insertions(+)
 
 diff --git a/drivers/fpga/zynq-fpga.c b/drivers/fpga/zynq-fpga.c
-index f674e32..c3fc2a2 100644
+index f674e32832ec..c3fc2a231e28 100644
 --- a/drivers/fpga/zynq-fpga.c
 +++ b/drivers/fpga/zynq-fpga.c
 @@ -161,6 +161,19 @@ static irqreturn_t zynq_fpga_isr(int irq, void *data)
@@ -70,5 +70,5 @@ index f674e32..c3fc2a2 100644
  	.write_init = zynq_fpga_ops_write_init,
  	.write = zynq_fpga_ops_write,
 -- 
-2.7.4
+2.14.2
 

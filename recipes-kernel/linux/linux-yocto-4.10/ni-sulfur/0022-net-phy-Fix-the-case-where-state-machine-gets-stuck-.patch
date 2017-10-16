@@ -1,7 +1,7 @@
-From 366db0f7bb4d27051b4c65e42abe0a1909599d9f Mon Sep 17 00:00:00 2001
+From cd859fcaf31f73542187836ba67bbed36636eb02 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 10 Apr 2017 15:15:27 -0700
-Subject: [PATCH 22/40] net: phy: Fix the case where state machine gets stuck
+Subject: [PATCH 22/45] net: phy: Fix the case where state machine gets stuck
  in FORCING
 
 Fixes issue where phy statemachine gets stuck in FORCING state
@@ -15,7 +15,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  3 files changed, 12 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/net/phy/phy.c b/drivers/net/phy/phy.c
-index b41a32b..5ad3531 100644
+index b41a32b26be7..5ad3531e03d3 100644
 --- a/drivers/net/phy/phy.c
 +++ b/drivers/net/phy/phy.c
 @@ -1075,9 +1075,15 @@ void phy_state_machine(struct work_struct *work)
@@ -38,7 +38,7 @@ index b41a32b..5ad3531 100644
  		if (phydev->link) {
  			phydev->state = PHY_RUNNING;
 diff --git a/drivers/net/phy/phy_device.c b/drivers/net/phy/phy_device.c
-index 8c8e15b..aefb1ef 100644
+index 8c8e15b8739d..aefb1ef48c83 100644
 --- a/drivers/net/phy/phy_device.c
 +++ b/drivers/net/phy/phy_device.c
 @@ -1481,7 +1481,7 @@ int genphy_read_status(struct phy_device *phydev)
@@ -59,7 +59,7 @@ index 8c8e15b..aefb1ef 100644
  /**
   * genphy_soft_reset - software reset the PHY via BMCR_RESET bit
 diff --git a/include/linux/phy.h b/include/linux/phy.h
-index b19ae66..812f100 100644
+index b19ae667c9c4..812f1008eeac 100644
 --- a/include/linux/phy.h
 +++ b/include/linux/phy.h
 @@ -826,6 +826,7 @@ int genphy_config_aneg(struct phy_device *phydev);
@@ -71,5 +71,5 @@ index b19ae66..812f100 100644
  int genphy_resume(struct phy_device *phydev);
  int genphy_soft_reset(struct phy_device *phydev);
 -- 
-2.7.4
+2.14.2
 

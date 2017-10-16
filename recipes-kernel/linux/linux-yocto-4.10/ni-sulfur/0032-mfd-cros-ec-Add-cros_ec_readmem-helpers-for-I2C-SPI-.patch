@@ -1,7 +1,7 @@
-From f91548c5abd311868a4adeef11cdb78b4ff50768 Mon Sep 17 00:00:00 2001
+From 01267b97b96eecb041331c2dce36681ec4ff10a5 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <mdf@kernel.org>
 Date: Mon, 8 May 2017 12:32:03 -0700
-Subject: [PATCH 32/40] mfd: cros-ec: Add cros_ec_readmem() helpers for I2C/SPI
+Subject: [PATCH 32/45] mfd: cros-ec: Add cros_ec_readmem() helpers for I2C/SPI
  based ECs
 
 Add cros_ec_readmem() based helpers for I2C/SPI based ECs.
@@ -18,7 +18,7 @@ Signed-off-by: Moritz Fischer <mdf@kernel.org>
  create mode 100644 drivers/mfd/cros_ec.h
 
 diff --git a/drivers/mfd/cros_ec.c b/drivers/mfd/cros_ec.c
-index abd8342..5e51b73 100644
+index abd83424b498..5e51b73a62f0 100644
 --- a/drivers/mfd/cros_ec.c
 +++ b/drivers/mfd/cros_ec.c
 @@ -2,6 +2,7 @@
@@ -75,7 +75,7 @@ index abd8342..5e51b73 100644
  MODULE_DESCRIPTION("ChromeOS EC core driver");
 diff --git a/drivers/mfd/cros_ec.h b/drivers/mfd/cros_ec.h
 new file mode 100644
-index 0000000..09e83e6
+index 000000000000..09e83e64c499
 --- /dev/null
 +++ b/drivers/mfd/cros_ec.h
 @@ -0,0 +1,29 @@
@@ -109,7 +109,7 @@ index 0000000..09e83e6
 +
 +#endif /* MFD_CROS_EC_H */
 diff --git a/drivers/mfd/cros_ec_i2c.c b/drivers/mfd/cros_ec_i2c.c
-index 9f70de1..012f949 100644
+index 9f70de1e4c70..012f949815be 100644
 --- a/drivers/mfd/cros_ec_i2c.c
 +++ b/drivers/mfd/cros_ec_i2c.c
 @@ -23,6 +23,8 @@
@@ -130,7 +130,7 @@ index 9f70de1..012f949 100644
  	ec_dev->din_size = sizeof(struct ec_host_response_i2c) +
  			   sizeof(struct ec_response_get_protocol_info);
 diff --git a/drivers/mfd/cros_ec_spi.c b/drivers/mfd/cros_ec_spi.c
-index a518832..287c3c3 100644
+index a518832ed5f5..287c3c325a20 100644
 --- a/drivers/mfd/cros_ec_spi.c
 +++ b/drivers/mfd/cros_ec_spi.c
 @@ -23,6 +23,7 @@
@@ -150,5 +150,5 @@ index a518832..287c3c3 100644
  	ec_dev->din_size = EC_MSG_PREAMBLE_COUNT +
  			   sizeof(struct ec_host_response) +
 -- 
-2.7.4
+2.14.2
 

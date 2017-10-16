@@ -1,7 +1,7 @@
 From 4cf48f1f04bfbb7847b972b4b0f6348f0f9de550 Mon Sep 17 00:00:00 2001
 From: Pantelis Antoniou <pantelis.antoniou@konsulko.com>
 Date: Sun, 15 Mar 2015 20:39:36 +0200
-Subject: [PATCH 08/40] of: overlay: kobjectify overlay objects
+Subject: [PATCH 08/45] of: overlay: kobjectify overlay objects
 
 We are going to need the overlays to appear on sysfs with runtime
 global properties (like master enable) so turn them into kobjects.
@@ -19,7 +19,7 @@ Signed-off-by: Pantelis Antoniou <pantelis.antoniou@konsulko.com>
  3 files changed, 64 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/of/base.c b/drivers/of/base.c
-index d4bea3c..e6fbdbd 100644
+index d4bea3c797d6..e6fbdbda64f9 100644
 --- a/drivers/of/base.c
 +++ b/drivers/of/base.c
 @@ -201,6 +201,7 @@ int __of_attach_node_sysfs(struct device_node *np)
@@ -44,7 +44,7 @@ index d4bea3c..e6fbdbd 100644
  
  static struct property *__of_find_property(const struct device_node *np,
 diff --git a/drivers/of/of_private.h b/drivers/of/of_private.h
-index 18bbb451..350cec2 100644
+index 18bbb4517e25..350cec23e056 100644
 --- a/drivers/of/of_private.h
 +++ b/drivers/of/of_private.h
 @@ -95,4 +95,13 @@ extern void __of_sysfs_remove_bin_file(struct device_node *np,
@@ -62,7 +62,7 @@ index 18bbb451..350cec2 100644
 +
  #endif /* _LINUX_OF_PRIVATE_H */
 diff --git a/drivers/of/overlay.c b/drivers/of/overlay.c
-index 0d4cda7..e6f1ca7 100644
+index 0d4cda7050e0..e6f1ca740c4c 100644
 --- a/drivers/of/overlay.c
 +++ b/drivers/of/overlay.c
 @@ -22,6 +22,7 @@
@@ -176,5 +176,5 @@ index 0d4cda7..e6f1ca7 100644
 +	return 0;
 +}
 -- 
-2.7.4
+2.14.2
 

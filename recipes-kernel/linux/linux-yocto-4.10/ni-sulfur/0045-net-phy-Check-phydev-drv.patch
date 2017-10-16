@@ -1,0 +1,170 @@
+From a69eda6159add2055f7ff427404c1f82f284af34 Mon Sep 17 00:00:00 2001
+From: Florian Fainelli <f.fainelli@gmail.com>
+Date: Fri, 17 Feb 2017 16:07:34 -0800
+Subject: [PATCH 45/45] net: phy: Check phydev->drv
+
+There are number of function calls, originating from user-space,
+typically through the Ethernet driver that can make us crash by
+dereferencing phydev->drv which will be NULL once we unbind the driver
+from the PHY.
+
+There are still functional issues that prevent an unbind then rebind to
+work, but these will be addressed separately.
+
+Suggested-by: Russell King <rmk+kernel@armlinux.org.uk>
+Signed-off-by: Florian Fainelli <f.fainelli@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/phy/phy.c        | 26 ++++++++++++++++++++++----
+ drivers/net/phy/phy_device.c |  6 +++---
+ include/linux/phy.h          |  3 +++
+ 3 files changed, 28 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/net/phy/phy.c b/drivers/net/phy/phy.c
+index 5ad3531e03d3..1e9a542cbaf9 100644
+--- a/drivers/net/phy/phy.c
++++ b/drivers/net/phy/phy.c
+@@ -580,7 +580,7 @@ int phy_mii_ioctl(struct phy_device *phydev, struct ifreq *ifr, int cmd)
+ 		return 0;
+ 
+ 	case SIOCSHWTSTAMP:
+-		if (phydev->drv->hwtstamp)
++		if (phydev->drv && phydev->drv->hwtstamp)
+ 			return phydev->drv->hwtstamp(phydev, ifr);
+ 		/* fall through */
+ 
+@@ -605,6 +605,9 @@ static int phy_start_aneg_priv(struct phy_device *phydev, bool sync)
+ 	bool trigger = 0;
+ 	int err;
+ 
++	if (!phydev->drv)
++		return -EIO;
++
+ 	mutex_lock(&phydev->lock);
+ 
+ 	if (AUTONEG_DISABLE == phydev->autoneg)
+@@ -1007,7 +1010,7 @@ void phy_state_machine(struct work_struct *work)
+ 
+ 	old_state = phydev->state;
+ 
+-	if (phydev->drv->link_change_notify)
++	if (phydev->drv && phydev->drv->link_change_notify)
+ 		phydev->drv->link_change_notify(phydev);
+ 
+ 	switch (phydev->state) {
+@@ -1324,6 +1327,9 @@ EXPORT_SYMBOL(phy_write_mmd_indirect);
+  */
+ int phy_init_eee(struct phy_device *phydev, bool clk_stop_enable)
+ {
++	if (!phydev->drv)
++		return -EIO;
++
+ 	/* According to 802.3az,the EEE is supported only in full duplex-mode.
+ 	 * Also EEE feature is active when core is operating with MII, GMII
+ 	 * or RGMII (all kinds). Internal PHYs are also allowed to proceed and
+@@ -1401,6 +1407,9 @@ EXPORT_SYMBOL(phy_init_eee);
+  */
+ int phy_get_eee_err(struct phy_device *phydev)
+ {
++	if (!phydev->drv)
++		return -EIO;
++
+ 	return phy_read_mmd_indirect(phydev, MDIO_PCS_EEE_WK_ERR, MDIO_MMD_PCS);
+ }
+ EXPORT_SYMBOL(phy_get_eee_err);
+@@ -1417,6 +1426,9 @@ int phy_ethtool_get_eee(struct phy_device *phydev, struct ethtool_eee *data)
+ {
+ 	int val;
+ 
++	if (!phydev->drv)
++		return -EIO;
++
+ 	/* Get Supported EEE */
+ 	val = phy_read_mmd_indirect(phydev, MDIO_PCS_EEE_ABLE, MDIO_MMD_PCS);
+ 	if (val < 0)
+@@ -1450,6 +1462,9 @@ int phy_ethtool_set_eee(struct phy_device *phydev, struct ethtool_eee *data)
+ {
+ 	int val = ethtool_adv_to_mmd_eee_adv_t(data->advertised);
+ 
++	if (!phydev->drv)
++		return -EIO;
++
+ 	/* Mask prohibited EEE modes */
+ 	val &= ~phydev->eee_broken_modes;
+ 
+@@ -1461,7 +1476,7 @@ EXPORT_SYMBOL(phy_ethtool_set_eee);
+ 
+ int phy_ethtool_set_wol(struct phy_device *phydev, struct ethtool_wolinfo *wol)
+ {
+-	if (phydev->drv->set_wol)
++	if (phydev->drv && phydev->drv->set_wol)
+ 		return phydev->drv->set_wol(phydev, wol);
+ 
+ 	return -EOPNOTSUPP;
+@@ -1470,7 +1485,7 @@ EXPORT_SYMBOL(phy_ethtool_set_wol);
+ 
+ void phy_ethtool_get_wol(struct phy_device *phydev, struct ethtool_wolinfo *wol)
+ {
+-	if (phydev->drv->get_wol)
++	if (phydev->drv && phydev->drv->get_wol)
+ 		phydev->drv->get_wol(phydev, wol);
+ }
+ EXPORT_SYMBOL(phy_ethtool_get_wol);
+@@ -1506,6 +1521,9 @@ int phy_ethtool_nway_reset(struct net_device *ndev)
+ 	if (!phydev)
+ 		return -ENODEV;
+ 
++	if (!phydev->drv)
++		return -EIO;
++
+ 	return genphy_restart_aneg(phydev);
+ }
+ EXPORT_SYMBOL(phy_ethtool_nway_reset);
+diff --git a/drivers/net/phy/phy_device.c b/drivers/net/phy/phy_device.c
+index 3628f6ab0be3..67607411f19c 100644
+--- a/drivers/net/phy/phy_device.c
++++ b/drivers/net/phy/phy_device.c
+@@ -1094,7 +1094,7 @@ int phy_suspend(struct phy_device *phydev)
+ 	if (wol.wolopts)
+ 		return -EBUSY;
+ 
+-	if (phydrv->suspend)
++	if (phydev->drv && phydrv->suspend)
+ 		ret = phydrv->suspend(phydev);
+ 
+ 	if (ret)
+@@ -1111,7 +1111,7 @@ int phy_resume(struct phy_device *phydev)
+ 	struct phy_driver *phydrv = to_phy_driver(phydev->mdio.dev.driver);
+ 	int ret = 0;
+ 
+-	if (phydrv->resume)
++	if (phydev->drv && phydrv->resume)
+ 		ret = phydrv->resume(phydev);
+ 
+ 	if (ret)
+@@ -1800,7 +1800,7 @@ static int phy_remove(struct device *dev)
+ 	phydev->state = PHY_DOWN;
+ 	mutex_unlock(&phydev->lock);
+ 
+-	if (phydev->drv->remove)
++	if (phydev->drv && phydev->drv->remove)
+ 		phydev->drv->remove(phydev);
+ 	phydev->drv = NULL;
+ 
+diff --git a/include/linux/phy.h b/include/linux/phy.h
+index 812f1008eeac..8bf6739a1fa6 100644
+--- a/include/linux/phy.h
++++ b/include/linux/phy.h
+@@ -802,6 +802,9 @@ int phy_stop_interrupts(struct phy_device *phydev);
+ 
+ static inline int phy_read_status(struct phy_device *phydev)
+ {
++	if (!phydev->drv)
++		return -EIO;
++
+ 	return phydev->drv->read_status(phydev);
+ }
+ 
+-- 
+2.14.2
+

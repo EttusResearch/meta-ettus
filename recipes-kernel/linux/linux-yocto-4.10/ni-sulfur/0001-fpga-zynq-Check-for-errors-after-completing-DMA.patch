@@ -1,7 +1,7 @@
 From ad96b3ce0083540cc4a4caf979657812cbc936c4 Mon Sep 17 00:00:00 2001
 From: Jason Gunthorpe <jgunthorpe@obsidianresearch.com>
 Date: Mon, 21 Nov 2016 15:26:46 -0700
-Subject: [PATCH 01/40] fpga zynq: Check for errors after completing DMA
+Subject: [PATCH 01/45] fpga zynq: Check for errors after completing DMA
 
 The completion did not check the interrupt status to see if any error
 bits were asserted, check error bits and dump some registers if things
@@ -17,7 +17,7 @@ Signed-off-by: Jason Gunthorpe <jgunthorpe@obsidianresearch.com>
  1 file changed, 32 insertions(+), 22 deletions(-)
 
 diff --git a/drivers/fpga/zynq-fpga.c b/drivers/fpga/zynq-fpga.c
-index 1812bf7..f674e32 100644
+index 1812bf7614e1..f674e32832ec 100644
 --- a/drivers/fpga/zynq-fpga.c
 +++ b/drivers/fpga/zynq-fpga.c
 @@ -89,7 +89,7 @@
@@ -128,5 +128,5 @@ index 1812bf7..f674e32 100644
  	err = devm_request_irq(dev, priv->irq, zynq_fpga_isr, 0, dev_name(dev),
  			       priv);
 -- 
-2.7.4
+2.14.2
 

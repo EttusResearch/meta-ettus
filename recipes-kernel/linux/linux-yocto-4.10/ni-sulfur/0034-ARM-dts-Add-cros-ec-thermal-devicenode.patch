@@ -1,7 +1,7 @@
-From c98997611686953c542b61355a5cb4e08af400cf Mon Sep 17 00:00:00 2001
+From e70b49f2d9db94819bc87ed4f64b4f9b93657784 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 11 Jul 2017 10:14:33 -0700
-Subject: [PATCH 34/40] ARM: dts: Add cros-ec-thermal devicenode
+Subject: [PATCH 34/45] ARM: dts: Add cros-ec-thermal devicenode
 
 This adds the cros-ec-thermal devicetree node.
 
@@ -11,10 +11,10 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  1 file changed, 21 insertions(+)
 
 diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
-index e1e4878..63edbd5 100644
+index e4183508e216..71c9d38cb398 100644
 --- a/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
 +++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
-@@ -197,6 +197,27 @@
+@@ -177,6 +177,27 @@
  
  		wakeup-source;
  
@@ -43,5 +43,5 @@ index e1e4878..63edbd5 100644
  			compatible = "google,cros-ec-i2c-tunnel";
  			#address-cells = <1>;
 -- 
-2.7.4
+2.14.2
 

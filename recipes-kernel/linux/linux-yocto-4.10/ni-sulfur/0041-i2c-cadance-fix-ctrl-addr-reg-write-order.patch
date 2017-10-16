@@ -1,0 +1,50 @@
+From 46972e47c5b8f92610f74ea9216e8054f30b66bb Mon Sep 17 00:00:00 2001
+From: Matt Weber <matthew.weber@rockwellcollins.com>
+Date: Thu, 22 Jun 2017 15:00:33 -0500
+Subject: [PATCH 41/45] i2c: cadance: fix ctrl/addr reg write order
+
+The driver was clearing the hold bit in the control register before
+writing to the address register which resulted in a stop condition
+being generated rather than a repeated start.
+
+This issue was only observed when a system was running much
+slower than a normal processor would execute.  The IP data sheet
+mentions a ordering of writing to the address register before
+clearing the hold.
+
+Upstream-Status: Queued for 4.13
+
+Fixes: df8eb5691c4 ("i2c: Add driver for Cadence I2C controller")
+Signed-off-by: John Linn <john.linn@xilinx.com>
+Signed-off-by: Paresh Chaudhary <paresh.chaudhary@rockwellcollins.com>
+Signed-off-by: Matthew Weber <matthew.weber@rockwellcollins.com>
+Signed-off-by: Wolfram Sang <wsa@the-dreams.de>
+---
+ drivers/i2c/busses/i2c-cadence.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/i2c/busses/i2c-cadence.c b/drivers/i2c/busses/i2c-cadence.c
+index 45d6771fac8c..75d80161931f 100644
+--- a/drivers/i2c/busses/i2c-cadence.c
++++ b/drivers/i2c/busses/i2c-cadence.c
+@@ -405,14 +405,14 @@ static void cdns_i2c_mrecv(struct cdns_i2c *id)
+ 		cdns_i2c_writereg(id->recv_count, CDNS_I2C_XFER_SIZE_OFFSET);
+ 	}
+ 
++	/* Set the slave address in address register - triggers operation */
++	cdns_i2c_writereg(id->p_msg->addr & CDNS_I2C_ADDR_MASK,
++						CDNS_I2C_ADDR_OFFSET);
+ 	/* Clear the bus hold flag if bytes to receive is less than FIFO size */
+ 	if (!id->bus_hold_flag &&
+ 		((id->p_msg->flags & I2C_M_RECV_LEN) != I2C_M_RECV_LEN) &&
+ 		(id->recv_count <= CDNS_I2C_FIFO_DEPTH))
+ 			cdns_i2c_clear_bus_hold(id);
+-	/* Set the slave address in address register - triggers operation */
+-	cdns_i2c_writereg(id->p_msg->addr & CDNS_I2C_ADDR_MASK,
+-						CDNS_I2C_ADDR_OFFSET);
+ 	cdns_i2c_writereg(CDNS_I2C_ENABLED_INTR_MASK, CDNS_I2C_IER_OFFSET);
+ }
+ 
+-- 
+2.14.2
+

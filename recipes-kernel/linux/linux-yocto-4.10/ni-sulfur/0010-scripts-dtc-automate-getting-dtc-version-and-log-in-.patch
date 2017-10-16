@@ -1,7 +1,7 @@
 From 00e624663c67948138837bf214713f31a30407a6 Mon Sep 17 00:00:00 2001
 From: Rob Herring <robh@kernel.org>
 Date: Tue, 21 Mar 2017 08:28:11 -0500
-Subject: [PATCH 10/40] scripts/dtc: automate getting dtc version and log in
+Subject: [PATCH 10/45] scripts/dtc: automate getting dtc version and log in
  update script
 
 Further automate the dtc update script to fill in the dtc version and
@@ -13,7 +13,7 @@ Signed-off-by: Rob Herring <robh@kernel.org>
  1 file changed, 18 insertions(+), 1 deletion(-)
 
 diff --git a/scripts/dtc/update-dtc-source.sh b/scripts/dtc/update-dtc-source.sh
-index f5cde79..c92e6bd 100755
+index f5cde799db03..c92e6bd9458d 100755
 --- a/scripts/dtc/update-dtc-source.sh
 +++ b/scripts/dtc/update-dtc-source.sh
 @@ -36,10 +36,19 @@ DTC_SOURCE="checks.c data.c dtc.c dtc.h flattree.c fstree.c livetree.c srcpos.c
@@ -51,5 +51,5 @@ index f5cde79..c92e6bd 100755
 +)
 +git commit -e -v -s -m "${commit_msg}"
 -- 
-2.7.4
+2.14.2
 

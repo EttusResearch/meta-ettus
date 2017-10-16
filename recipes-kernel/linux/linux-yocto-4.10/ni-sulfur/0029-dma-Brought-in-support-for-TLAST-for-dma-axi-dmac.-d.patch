@@ -1,7 +1,7 @@
-From f5022de13c86316385c7821e10c6486188055084 Mon Sep 17 00:00:00 2001
+From 8754d04fd4bd92bbfa8f0d03e01f5165a216e665 Mon Sep 17 00:00:00 2001
 From: Alex Williams <alex.williams@ni.com>
 Date: Wed, 24 May 2017 14:45:51 -0700
-Subject: [PATCH 29/40] dma: Brought in support for TLAST for dma-axi-dmac.
+Subject: [PATCH 29/45] dma: Brought in support for TLAST for dma-axi-dmac.
  dma: Support shared IRQs in dma-axi-dmac.
 
 ---
@@ -11,7 +11,7 @@ Subject: [PATCH 29/40] dma: Brought in support for TLAST for dma-axi-dmac.
  3 files changed, 333 insertions(+), 51 deletions(-)
 
 diff --git a/drivers/dma/dma-axi-dmac.c b/drivers/dma/dma-axi-dmac.c
-index 7f0b9aa..eeed957 100644
+index 7f0b9aa15867..eeed95764931 100644
 --- a/drivers/dma/dma-axi-dmac.c
 +++ b/drivers/dma/dma-axi-dmac.c
 @@ -19,6 +19,7 @@
@@ -115,7 +115,7 @@ index 7f0b9aa..eeed957 100644
  		flags |= AXI_DMAC_FLAG_CYCLIC;
  
  	axi_dmac_write(dmac, AXI_DMAC_REG_X_LENGTH, sg->x_len - 1);
-@@ -237,39 +267,87 @@ static struct axi_dmac_desc *axi_dmac_active_desc(struct axi_dmac_chan *chan)
+@@ -237,38 +267,86 @@ static struct axi_dmac_desc *axi_dmac_active_desc(struct axi_dmac_chan *chan)
  		struct axi_dmac_desc, vdesc.node);
  }
  
@@ -189,7 +189,7 @@ index 7f0b9aa..eeed957 100644
  	struct axi_dmac *dmac = devid;
  	unsigned int pending;
  
- 	pending = axi_dmac_read(dmac, AXI_DMAC_REG_IRQ_PENDING);
++	pending = axi_dmac_read(dmac, AXI_DMAC_REG_IRQ_PENDING);
 +	axi_dmac_write(dmac, AXI_DMAC_REG_IRQ_PENDING, pending);
 +
 +	if (pending & 1) {
@@ -212,10 +212,9 @@ index 7f0b9aa..eeed957 100644
 +	unsigned int pending;
 +	bool start_next;
 +
-+	pending = axi_dmac_read(dmac, AXI_DMAC_REG_IRQ_PENDING);
+ 	pending = axi_dmac_read(dmac, AXI_DMAC_REG_IRQ_PENDING);
  	if (!pending)
  		return IRQ_NONE;
- 
 @@ -281,15 +359,16 @@ static irqreturn_t axi_dmac_interrupt_handler(int irq, void *devid)
  		unsigned int completed;
  
@@ -569,7 +568,7 @@ index 7f0b9aa..eeed957 100644
  
  err_unregister_of:
 diff --git a/include/linux/scatterlist.h b/include/linux/scatterlist.h
-index cb3c8fe..d199667 100644
+index cb3c8fe6acd7..d199667e6556 100644
 --- a/include/linux/scatterlist.h
 +++ b/include/linux/scatterlist.h
 @@ -243,6 +243,7 @@ static inline void *sg_virt(struct scatterlist *sg)
@@ -581,13 +580,14 @@ index cb3c8fe..d199667 100644
  struct scatterlist *sg_last(struct scatterlist *s, unsigned int);
  void sg_init_table(struct scatterlist *, unsigned int);
 diff --git a/lib/scatterlist.c b/lib/scatterlist.c
-index 004fc70..63001a5 100644
+index 004fc70fc56a..63001a56d5d5 100644
 --- a/lib/scatterlist.c
 +++ b/lib/scatterlist.c
-@@ -90,6 +90,32 @@ int sg_nents_for_len(struct scatterlist *sg, u64 len)
+@@ -89,6 +89,32 @@ int sg_nents_for_len(struct scatterlist *sg, u64 len)
+ }
  EXPORT_SYMBOL(sg_nents_for_len);
  
- /**
++/**
 + * sg_nents_for_dma - return count of DMA-capable entries in scatterlist
 + * @sgl:	The scatterlist
 + * @sglen:	The current number of entries
@@ -613,10 +613,9 @@ index 004fc70..63001a5 100644
 +}
 +EXPORT_SYMBOL(sg_nents_for_dma);
 +
-+/**
+ /**
   * sg_last - return the last scatterlist entry in a list
   * @sgl:	First entry in the scatterlist
-  * @nents:	Number of entries in the scatterlist
 -- 
-2.7.4
+2.14.2
 

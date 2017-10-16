@@ -1,7 +1,7 @@
-From 88b4b1816fdb41ddc7efc685aecd9ca6e657ea38 Mon Sep 17 00:00:00 2001
+From dce320e5e817013d539d3b5f5d316861b4bee135 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <mdf@kernel.org>
 Date: Thu, 20 Apr 2017 16:47:01 -0700
-Subject: [PATCH 25/40] rtc: ds1374: wdt: Fix issue with timeout scaling from
+Subject: [PATCH 25/45] rtc: ds1374: wdt: Fix issue with timeout scaling from
  secs to wdt ticks
 
 Fix commit 920f91e50c5b ("drivers/rtc/rtc-ds1374.c: add watchdog support")
@@ -17,7 +17,7 @@ Signed-off-by: Moritz Fischer <mdf@kernel.org>
  1 file changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/rtc/rtc-ds1374.c b/drivers/rtc/rtc-ds1374.c
-index 7a7a987..76968d8 100644
+index 7a7a987a2f72..76968d823b6a 100644
 --- a/drivers/rtc/rtc-ds1374.c
 +++ b/drivers/rtc/rtc-ds1374.c
 @@ -532,6 +532,10 @@ static long ds1374_wdt_ioctl(struct file *file, unsigned int cmd,
@@ -42,5 +42,5 @@ index 7a7a987..76968d8 100644
  		if (copy_from_user(&options, (int __user *)arg, sizeof(int)))
  			return -EFAULT;
 -- 
-2.7.4
+2.14.2
 

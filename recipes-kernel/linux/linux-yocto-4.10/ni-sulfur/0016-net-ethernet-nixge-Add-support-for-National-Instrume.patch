@@ -1,7 +1,7 @@
-From c07376b2b6de008e74604136544b0a9a46a60333 Mon Sep 17 00:00:00 2001
+From be8482165f931db5f87a42aad31cc7ac039b3da3 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 28 Feb 2017 17:29:50 -0800
-Subject: [PATCH 16/40] net: ethernet: nixge: Add support for National
+Subject: [PATCH 16/45] net: ethernet: nixge: Add support for National
  Instruments XGE netdev
 
 Add support for the National Instruments XGE 1/10G network device.
@@ -14,14 +14,14 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  drivers/net/ethernet/Makefile    |    1 +
  drivers/net/ethernet/ni/Kconfig  |   27 +
  drivers/net/ethernet/ni/Makefile |    1 +
- drivers/net/ethernet/ni/nixge.c  | 1310 ++++++++++++++++++++++++++++++++++++++
- 5 files changed, 1340 insertions(+)
+ drivers/net/ethernet/ni/nixge.c  | 1212 ++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 1242 insertions(+)
  create mode 100644 drivers/net/ethernet/ni/Kconfig
  create mode 100644 drivers/net/ethernet/ni/Makefile
  create mode 100644 drivers/net/ethernet/ni/nixge.c
 
 diff --git a/drivers/net/ethernet/Kconfig b/drivers/net/ethernet/Kconfig
-index e4c28fe..6689d5d 100644
+index e4c28fed61d5..6689d5d5ebb2 100644
 --- a/drivers/net/ethernet/Kconfig
 +++ b/drivers/net/ethernet/Kconfig
 @@ -126,6 +126,7 @@ config FEALNX
@@ -33,7 +33,7 @@ index e4c28fe..6689d5d 100644
  
  config NET_NETX
 diff --git a/drivers/net/ethernet/Makefile b/drivers/net/ethernet/Makefile
-index 24330f4..7ffd3a1 100644
+index 24330f4885a9..7ffd3a1362c2 100644
 --- a/drivers/net/ethernet/Makefile
 +++ b/drivers/net/ethernet/Makefile
 @@ -57,6 +57,7 @@ obj-$(CONFIG_NET_VENDOR_MYRI) += myricom/
@@ -46,7 +46,7 @@ index 24330f4..7ffd3a1 100644
  obj-$(CONFIG_NET_VENDOR_NVIDIA) += nvidia/
 diff --git a/drivers/net/ethernet/ni/Kconfig b/drivers/net/ethernet/ni/Kconfig
 new file mode 100644
-index 0000000..cd30f7d
+index 000000000000..cd30f7de16de
 --- /dev/null
 +++ b/drivers/net/ethernet/ni/Kconfig
 @@ -0,0 +1,27 @@
@@ -79,41 +79,38 @@ index 0000000..cd30f7d
 +endif
 diff --git a/drivers/net/ethernet/ni/Makefile b/drivers/net/ethernet/ni/Makefile
 new file mode 100644
-index 0000000..99c6646
+index 000000000000..99c664651c51
 --- /dev/null
 +++ b/drivers/net/ethernet/ni/Makefile
 @@ -0,0 +1 @@
 +obj-$(CONFIG_NI_XGE_MANAGEMENT_ENET) += nixge.o
 diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
 new file mode 100644
-index 0000000..99d0953
+index 000000000000..9959b70c3fca
 --- /dev/null
 +++ b/drivers/net/ethernet/ni/nixge.c
-@@ -0,0 +1,1310 @@
+@@ -0,0 +1,1212 @@
 +/*
 + * Copyright (c) 2016-2017, National Instruments Corp.
 + *
 + * Network Driver for Ettus Research XGE MAC
 + *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; version 2 of the License.
++ * This is largely based on the Xilinx AXI Ethernet Driver,
++ * and uses the same DMA engine in the FPGA
 + *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-+ * GNU General Public License for more details.
++ * SPDX-License-Identifier: GPL-2.0
++ *
 + */
 +
 +#include <linux/delay.h>
 +#include <linux/etherdevice.h>
 +#include <linux/module.h>
 +#include <linux/netdevice.h>
++#include <linux/of_address.h>
 +#include <linux/of_mdio.h>
 +#include <linux/of_net.h>
 +#include <linux/of_platform.h>
 +#include <linux/of_irq.h>
-+#include <linux/of_address.h>
 +#include <linux/skbuff.h>
 +#include <linux/spinlock.h>
 +#include <linux/phy.h>
@@ -125,8 +122,6 @@ index 0000000..99d0953
 +
 +#define TX_BD_NUM		64
 +#define RX_BD_NUM		128
-+
-+#define DELAY_OF_ONE_MILLISEC		1000
 +
 +/* Axi DMA Register definitions */
 +
@@ -198,6 +193,7 @@ index 0000000..99d0953
 +
 +#define XAXIDMA_BD_MINIMUM_ALIGNMENT	0x40
 +
++#define NIXGE_REG_CTRL_OFFSET	0x4000
 +#define NIXGE_REG_MDIO_DATA	0x10
 +#define NIXGE_REG_MDIO_ADDR	0x14
 +#define NIXGE_REG_MDIO_OP	0x18
@@ -205,64 +201,33 @@ index 0000000..99d0953
 +
 +#define NIXGE_MDIO_CLAUSE45	BIT(12)
 +#define NIXGE_MDIO_CLAUSE22	0
-+#define NIXGE_MDIO_OP(n)     ((n & 0x3) << 10)
++#define NIXGE_MDIO_OP(n)     (((n) & 0x3) << 10)
 +#define NIXGE_MDIO_OP_ADDRESS	0
 +#define NIXGE_MDIO_OP_WRITE	BIT(0)
 +#define NIXGE_MDIO_OP_READ	(BIT(1) | BIT(0))
 +#define MDIO_C22_WRITE		BIT(0)
 +#define MDIO_C22_READ		BIT(1)
 +#define MDIO_READ_POST		2
-+#define NIXGE_MDIO_ADDR(n)   ((n & 0x1f) << 5)
-+#define NIXGE_MDIO_MMD(n)    ((n & 0x1f) << 0)
++#define NIXGE_MDIO_ADDR(n)   (((n) & 0x1f) << 5)
++#define NIXGE_MDIO_MMD(n)    (((n) & 0x1f) << 0)
 +
-+#define NIXGE_MAX_PHY_ADDR 32
++#define NIXGE_MAX_PHY_ADDR	32
 +
 +#define NIXGE_REG_MAC_LSB	0x1000
 +#define NIXGE_REG_MAC_MSB	0x1004
 +
-+/* ----------------TODO: GET RID OF THESE --------------------------- */
 +/* Packet size info */
-+#define XAE_HDR_SIZE			14 /* Size of Ethernet header */
-+#define XAE_TRL_SIZE			 4 /* Size of Ethernet trailer (FCS) */
-+#define XAE_MTU			      1500 /* Max MTU of an Ethernet frame */
-+#define XAE_JUMBO_MTU		      9000 /* Max MTU of a jumbo Eth. frame */
++#define NIXGE_HDR_SIZE			14 /* Size of Ethernet header */
++#define NIXGE_TRL_SIZE			4 /* Size of Ethernet trailer (FCS) */
++#define NIXGE_MTU			1500 /* Max MTU of an Ethernet frame */
++#define NIXGE_JUMBO_MTU			9000 /* Max MTU of a jumbo Eth. frame */
 +
-+#define XAE_MAX_FRAME_SIZE	 (XAE_MTU + XAE_HDR_SIZE + XAE_TRL_SIZE)
-+#define XAE_MAX_VLAN_FRAME_SIZE  (XAE_MTU + VLAN_ETH_HLEN + XAE_TRL_SIZE)
-+#define XAE_MAX_JUMBO_FRAME_SIZE (XAE_JUMBO_MTU + XAE_HDR_SIZE + XAE_TRL_SIZE)
++#define NIXGE_MAX_FRAME_SIZE	 (NIXGE_MTU + NIXGE_HDR_SIZE + NIXGE_TRL_SIZE)
++#define NIXGE_MAX_VLAN_FRAME_SIZE  (NIXGE_MTU + VLAN_ETH_HLEN + NIXGE_TRL_SIZE)
++#define NIXGE_MAX_JUMBO_FRAME_SIZE \
++	(NIXGE_JUMBO_MTU + NIXGE_HDR_SIZE + NIXGE_TRL_SIZE)
 +
-+#define XAE_OPTION_PROMISC			(1 << 0)
-+
-+/* Jumbo frame support for Tx & Rx. Default: disabled (cleared) */
-+#define XAE_OPTION_JUMBO			(1 << 1)
-+
-+/* VLAN Rx & Tx frame support. Default: disabled (cleared) */
-+#define XAE_OPTION_VLAN				(1 << 2)
-+
-+/* Enable recognition of flow control frames on Rx. Default: enabled (set) */
-+#define XAE_OPTION_FLOW_CONTROL			(1 << 4)
-+
-+/* Strip FCS and PAD from incoming frames. Note: PAD from VLAN frames is not
-+ * stripped. Default: disabled (set)
-+ */
-+#define XAE_OPTION_FCS_STRIP			(1 << 5)
-+
-+#define XAE_OPTION_LENTYPE_ERR			(1 << 7)
-+
-+/* Enable the transmitter. Default: enabled (set) */
-+#define XAE_OPTION_TXEN				(1 << 11)
-+
-+/*  Enable the receiver. Default: enabled (set) */
-+#define XAE_OPTION_RXEN				(1 << 12)
-+
-+
-+#define XAE_OPTION_DEFAULTS				   \
-+				(XAE_OPTION_TXEN |	   \
-+				 XAE_OPTION_FLOW_CONTROL | \
-+				 XAE_OPTION_RXEN)
-+
-+/* ------------------------------------------------------------------*/
-+
++#define NIXGE_DEFAULT_RX_MEM	10000
 +
 +struct nixge_dma_bd {
 +	u32 next;	/* Physical address of next buffer descriptor */
@@ -283,7 +248,6 @@ index 0000000..99d0953
 +	u32 reserved6;
 +};
 +
-+
 +struct nixge_priv {
 +	struct net_device *ndev;
 +	struct device *dev;
@@ -291,10 +255,10 @@ index 0000000..99d0953
 +	/* Connection to PHY device */
 +	struct phy_device *phy_dev;
 +	phy_interface_t		phy_interface;
-+	spinlock_t              lock;
++
 +	int link;
-+	int speed;
-+	int duplex;
++	unsigned int speed;
++	unsigned int duplex;
 +
 +	/* MDIO bus data */
 +	struct mii_bus *mii_bus;	/* MII bus reference */
@@ -325,39 +289,37 @@ index 0000000..99d0953
 +	u32 max_frm_size;
 +	u32 rxmem;
 +
-+	int csum_offload_on_tx_path;
-+	int csum_offload_on_rx_path;
-+
 +	u32 coalesce_count_rx;
 +	u32 coalesce_count_tx;
 +};
 +
-+static inline void nixge_dma_write_reg(struct nixge_priv *priv, off_t offset,
-+				   u32 val)
++static void nixge_dma_write_reg(struct nixge_priv *priv, off_t offset, u32 val)
 +{
 +	writel(val, priv->dma_regs + offset);
 +}
 +
-+static inline u32 nixge_dma_read_reg(const struct nixge_priv *priv,
-+				 off_t offset)
++static u32 nixge_dma_read_reg(const struct nixge_priv *priv, off_t offset)
 +{
 +	return readl(priv->dma_regs + offset);
 +}
 +
-+static inline void nixge_ctrl_write_reg(struct nixge_priv *priv, off_t offset,
-+					u32 val)
++static void nixge_ctrl_write_reg(struct nixge_priv *priv, off_t offset, u32 val)
 +{
 +	writel(val, priv->ctrl_regs + offset);
 +}
 +
-+static inline u32 nixge_ctrl_read_reg(struct nixge_priv *priv, off_t offset)
++static u32 nixge_ctrl_read_reg(struct nixge_priv *priv, off_t offset)
 +{
 +	return readl(priv->ctrl_regs + offset);
 +}
 +
 +#define nixge_ctrl_poll_timeout(priv, addr, val, cond, sleep_us, timeout_us) \
-+	readl_poll_timeout(priv->ctrl_regs + addr, val, cond, sleep_us, \
-+			   timeout_us)
++	readl_poll_timeout((priv)->ctrl_regs + (addr), (val), (cond), \
++			   (sleep_us), (timeout_us))
++
++#define nixge_dma_poll_timeout(priv, addr, val, cond, sleep_us, timeout_us) \
++	readl_poll_timeout((priv)->dma_regs + (addr), (val), (cond), \
++			   (sleep_us), (timeout_us))
 +
 +static void nixge_dma_bd_release(struct net_device *ndev)
 +{
@@ -425,7 +387,7 @@ index 0000000..99d0953
 +		if (!skb)
 +			goto out;
 +
-+		priv->rx_bd_v[i].sw_id_offset = (u32) skb;
++		priv->rx_bd_v[i].sw_id_offset = (u32)skb;
 +		priv->rx_bd_v[i].phys = dma_map_single(ndev->dev.parent,
 +						     skb->data,
 +						     priv->max_frm_size,
@@ -465,9 +427,9 @@ index 0000000..99d0953
 +	nixge_dma_write_reg(priv, XAXIDMA_RX_CDESC_OFFSET, priv->rx_bd_p);
 +	cr = nixge_dma_read_reg(priv, XAXIDMA_RX_CR_OFFSET);
 +	nixge_dma_write_reg(priv, XAXIDMA_RX_CR_OFFSET,
-+			  cr | XAXIDMA_CR_RUNSTOP_MASK);
++			    cr | XAXIDMA_CR_RUNSTOP_MASK);
 +	nixge_dma_write_reg(priv, XAXIDMA_RX_TDESC_OFFSET, priv->rx_bd_p +
-+			  (sizeof(*priv->rx_bd_v) * (RX_BD_NUM - 1)));
++			    (sizeof(*priv->rx_bd_v) * (RX_BD_NUM - 1)));
 +
 +	/* Write to the RS (Run-stop) bit in the Tx channel control register.
 +	 * Tx channel is now ready to run. But only after we write to the
@@ -476,7 +438,7 @@ index 0000000..99d0953
 +	nixge_dma_write_reg(priv, XAXIDMA_TX_CDESC_OFFSET, priv->tx_bd_p);
 +	cr = nixge_dma_read_reg(priv, XAXIDMA_TX_CR_OFFSET);
 +	nixge_dma_write_reg(priv, XAXIDMA_TX_CR_OFFSET,
-+			  cr | XAXIDMA_CR_RUNSTOP_MASK);
++			    cr | XAXIDMA_CR_RUNSTOP_MASK);
 +
 +	return 0;
 +out:
@@ -486,22 +448,19 @@ index 0000000..99d0953
 +
 +static void __nixge_device_reset(struct nixge_priv *priv, off_t offset)
 +{
-+	u32 timeout;
-+	/* Reset Axi DMA. This would reset NIXGE Ethernet core as well. The reset
-+	 * process of Axi DMA takes a while to complete as all pending
-+	 * commands/transfers will be flushed or completed during this
-+	 * reset process.
++	u32 status;
++	int err;
++	/* Reset Axi DMA. This would reset NIXGE Ethernet core as well.
++	 * The reset process of Axi DMA takes a while to complete as all
++	 * pending commands/transfers will be flushed or completed during
++	 * this reset process.
 +	 */
 +	nixge_dma_write_reg(priv, offset, XAXIDMA_CR_RESET_MASK);
-+	timeout = DELAY_OF_ONE_MILLISEC;
-+	while (nixge_dma_read_reg(priv, offset) & XAXIDMA_CR_RESET_MASK) {
-+		udelay(1);
-+		if (--timeout == 0) {
-+			netdev_err(priv->ndev, "%s: DMA reset timeout!\n",
-+				   __func__);
-+			break;
-+		}
-+	}
++	err = nixge_dma_poll_timeout(priv, offset, status,
++				     !(status & XAXIDMA_CR_RESET_MASK), 10,
++				     1000);
++	if (err)
++		netdev_err(priv->ndev, "%s: DMA reset timeout!\n", __func__);
 +}
 +
 +static void nixge_device_reset(struct net_device *ndev)
@@ -511,26 +470,14 @@ index 0000000..99d0953
 +	__nixge_device_reset(priv, XAXIDMA_TX_CR_OFFSET);
 +	__nixge_device_reset(priv, XAXIDMA_RX_CR_OFFSET);
 +
-+	/* TODO: Deal with MTU */
++	priv->max_frm_size = NIXGE_MAX_VLAN_FRAME_SIZE;
 +
-+	priv->max_frm_size = XAE_MAX_VLAN_FRAME_SIZE;
-+	priv->options |= XAE_OPTION_VLAN;
-+	priv->options &= (~XAE_OPTION_JUMBO);
++	if ((ndev->mtu > NIXGE_MTU) && (ndev->mtu <= NIXGE_JUMBO_MTU))
++		priv->max_frm_size = ndev->mtu + VLAN_ETH_HLEN + NIXGE_TRL_SIZE;
 +
-+	if ((ndev->mtu > XAE_MTU) &&
-+		(ndev->mtu <= XAE_JUMBO_MTU)) {
-+		priv->max_frm_size = ndev->mtu + VLAN_ETH_HLEN +
-+					XAE_TRL_SIZE;
-+
-+		if (priv->max_frm_size <= priv->rxmem)
-+			priv->options |= XAE_OPTION_JUMBO;
-+	}
-+
-+	if (nixge_dma_bd_init(ndev)) {
++	if (nixge_dma_bd_init(ndev))
 +		netdev_err(ndev, "%s: descriptor allocation failed\n",
 +			   __func__);
-+	}
-+
 +
 +	netif_trans_update(ndev);
 +}
@@ -539,45 +486,18 @@ index 0000000..99d0953
 +{
 +	struct nixge_priv *priv = netdev_priv(ndev);
 +	struct phy_device *phydev = ndev->phydev;
-+	unsigned long flags;
 +	int status_change = 0;
 +
-+	spin_lock_irqsave(&priv->lock, flags);
-+
-+	/*
-+	if ((priv->speed != phydev->speed) ||
-+	    (priv->duplex != phydev->duplex)) {
-+
++	if (phydev->link != priv->link || phydev->speed != priv->speed ||
++	    phydev->duplex != priv->duplex) {
++		priv->link = phydev->link;
 +		priv->speed = phydev->speed;
 +		priv->duplex = phydev->duplex;
 +		status_change = 1;
 +	}
-+	*/
 +
-+	if (phydev->link != priv->link) {
-+		if (!phydev->link) {
-+			priv->speed = 0;
-+			priv->duplex = -1;
-+		}
-+		priv->link = phydev->link;
-+
-+		status_change = 1;
-+	}
-+
-+	spin_unlock_irqrestore(&priv->lock, flags);
-+
-+	if (status_change) {
-+		if (phydev->link) {
-+			netif_carrier_on(ndev);
-+			netdev_info(ndev, "link up (%d/%s)\n",
-+				    phydev->speed,
-+				    phydev->duplex == DUPLEX_FULL ?
-+				    "Full" : "Half");
-+		} else {
-+			netif_carrier_off(ndev);
-+			netdev_info(ndev, "link down\n");
-+		}
-+	}
++	if (status_change)
++		phy_print_status(phydev);
 +}
 +
 +static void nixge_start_xmit_done(struct net_device *ndev)
@@ -593,7 +513,7 @@ index 0000000..99d0953
 +
 +	while (status & XAXIDMA_BD_STS_COMPLETE_MASK) {
 +		dma_unmap_single(ndev->dev.parent, cur_p->phys,
-+				(cur_p->cntrl & XAXIDMA_BD_CTRL_LENGTH_MASK),
++				 (cur_p->cntrl & XAXIDMA_BD_CTRL_LENGTH_MASK),
 +				DMA_TO_DEVICE);
 +		if (cur_p->app4)
 +			dev_kfree_skb_irq((struct sk_buff *)cur_p->app4);
@@ -619,9 +539,10 @@ index 0000000..99d0953
 +}
 +
 +static inline int nixge_check_tx_bd_space(struct nixge_priv *priv,
-+					    int num_frag)
++					  int num_frag)
 +{
 +	struct nixge_dma_bd *cur_p;
++
 +	cur_p = &priv->tx_bd_v[(priv->tx_bd_tail + num_frag) % TX_BD_NUM];
 +	if (cur_p->status & XAXIDMA_BD_STS_ALL_MASK)
 +		return NETDEV_TX_BUSY;
@@ -687,22 +608,26 @@ index 0000000..99d0953
 +	cur_p = &priv->rx_bd_v[priv->rx_bd_ci];
 +
 +	while ((cur_p->status & XAXIDMA_BD_STS_COMPLETE_MASK)) {
-+		tail_p = priv->rx_bd_p + sizeof(*priv->rx_bd_v) * priv->rx_bd_ci;
-+		skb = (struct sk_buff *) (cur_p->sw_id_offset);
++		tail_p = priv->rx_bd_p
++			+ sizeof(*priv->rx_bd_v) * priv->rx_bd_ci;
++		skb = (struct sk_buff *)(cur_p->sw_id_offset);
 +
 +		length = cur_p->status & 0x7fffff;
++		if (length > priv->max_frm_size)
++			length = priv->max_frm_size;
++
 +		dma_unmap_single(ndev->dev.parent, cur_p->phys,
 +				 priv->max_frm_size,
 +				 DMA_FROM_DEVICE);
 +
-+
 +		skb_put(skb, length);
 +
 +		skb->protocol = eth_type_trans(skb, ndev);
-+		/*skb_checksum_none_assert(skb);*/
++		skb_checksum_none_assert(skb);
 +
 +		/* For now mark them as CHECKSUM_NONE since
-+		 * we don't have offload capabilities */
++		 * we don't have offload capabilities
++		 */
 +		skb->ip_summed = CHECKSUM_NONE;
 +
 +		netif_rx(skb);
@@ -717,9 +642,13 @@ index 0000000..99d0953
 +		cur_p->phys = dma_map_single(ndev->dev.parent, new_skb->data,
 +					     priv->max_frm_size,
 +					     DMA_FROM_DEVICE);
++		if (dma_mapping_error(ndev->dev.parent, cur_p->phys)) {
++			/* FIXME: bail out and clean up */
++			netdev_err(ndev, "Failed to map ...\n");
++		}
 +		cur_p->cntrl = priv->max_frm_size;
 +		cur_p->status = 0;
-+		cur_p->sw_id_offset = (u32) new_skb;
++		cur_p->sw_id_offset = (u32)new_skb;
 +
 +		++priv->rx_bd_ci;
 +		priv->rx_bd_ci %= RX_BD_NUM;
@@ -735,10 +664,10 @@ index 0000000..99d0953
 +
 +static irqreturn_t nixge_tx_irq(int irq, void *_ndev)
 +{
-+	u32 cr;
-+	unsigned int status;
++	struct nixge_priv *priv = netdev_priv(_ndev);
 +	struct net_device *ndev = _ndev;
-+	struct nixge_priv *priv = netdev_priv(ndev);
++	unsigned int status;
++	u32 cr;
 +
 +	status = nixge_dma_read_reg(priv, XAXIDMA_TX_SR_OFFSET);
 +	if (status & (XAXIDMA_IRQ_IOC_MASK | XAXIDMA_IRQ_DELAY_MASK)) {
@@ -747,11 +676,11 @@ index 0000000..99d0953
 +		goto out;
 +	}
 +	if (!(status & XAXIDMA_IRQ_ALL_MASK))
-+		dev_err(&ndev->dev, "No interrupts asserted in Tx path\n");
++		netdev_err(ndev, "No interrupts asserted in Tx path\n");
 +	if (status & XAXIDMA_IRQ_ERROR_MASK) {
-+		dev_err(&ndev->dev, "DMA Tx error 0x%x\n", status);
-+		dev_err(&ndev->dev, "Current BD is at: 0x%x\n",
-+			(priv->tx_bd_v[priv->tx_bd_ci]).phys);
++		netdev_err(ndev, "DMA Tx error 0x%x\n", status);
++		netdev_err(ndev, "Current BD is at: 0x%x\n",
++			   (priv->tx_bd_v[priv->tx_bd_ci]).phys);
 +
 +		cr = nixge_dma_read_reg(priv, XAXIDMA_TX_CR_OFFSET);
 +		/* Disable coalesce, delay timer and error interrupts */
@@ -774,10 +703,10 @@ index 0000000..99d0953
 +
 +static irqreturn_t nixge_rx_irq(int irq, void *_ndev)
 +{
-+	u32 cr;
-+	unsigned int status;
++	struct nixge_priv *priv = netdev_priv(_ndev);
 +	struct net_device *ndev = _ndev;
-+	struct nixge_priv *priv = netdev_priv(ndev);
++	unsigned int status;
++	u32 cr;
 +
 +	status = nixge_dma_read_reg(priv, XAXIDMA_RX_SR_OFFSET);
 +	if (status & (XAXIDMA_IRQ_IOC_MASK | XAXIDMA_IRQ_DELAY_MASK)) {
@@ -786,11 +715,11 @@ index 0000000..99d0953
 +		goto out;
 +	}
 +	if (!(status & XAXIDMA_IRQ_ALL_MASK))
-+		dev_err(&ndev->dev, "No interrupts asserted in Rx path\n");
++		netdev_err(ndev, "No interrupts asserted in Rx path\n");
 +	if (status & XAXIDMA_IRQ_ERROR_MASK) {
-+		dev_err(&ndev->dev, "DMA Rx error 0x%x\n", status);
-+		dev_err(&ndev->dev, "Current BD is at: 0x%x\n",
-+			(priv->rx_bd_v[priv->rx_bd_ci]).phys);
++		netdev_err(ndev, "DMA Rx error 0x%x\n", status);
++		netdev_err(ndev, "Current BD is at: 0x%x\n",
++			   (priv->rx_bd_v[priv->rx_bd_ci]).phys);
 +
 +		cr = nixge_dma_read_reg(priv, XAXIDMA_TX_CR_OFFSET);
 +		/* Disable coalesce, delay timer and error interrupts */
@@ -814,7 +743,7 @@ index 0000000..99d0953
 +static void nixge_dma_err_handler(unsigned long data)
 +{
 +	u32 cr, i;
-+	struct nixge_priv *lp = (struct nixge_priv *) data;
++	struct nixge_priv *lp = (struct nixge_priv *)data;
 +	struct net_device *ndev = lp->ndev;
 +	struct nixge_dma_bd *cur_p;
 +
@@ -829,7 +758,7 @@ index 0000000..99d0953
 +					  XAXIDMA_BD_CTRL_LENGTH_MASK),
 +					 DMA_TO_DEVICE);
 +		if (cur_p->app4)
-+			dev_kfree_skb_irq((struct sk_buff *) cur_p->app4);
++			dev_kfree_skb_irq((struct sk_buff *)cur_p->app4);
 +		cur_p->phys = 0;
 +		cur_p->cntrl = 0;
 +		cur_p->status = 0;
@@ -887,9 +816,9 @@ index 0000000..99d0953
 +	nixge_dma_write_reg(lp, XAXIDMA_RX_CDESC_OFFSET, lp->rx_bd_p);
 +	cr = nixge_dma_read_reg(lp, XAXIDMA_RX_CR_OFFSET);
 +	nixge_dma_write_reg(lp, XAXIDMA_RX_CR_OFFSET,
-+			  cr | XAXIDMA_CR_RUNSTOP_MASK);
++			    cr | XAXIDMA_CR_RUNSTOP_MASK);
 +	nixge_dma_write_reg(lp, XAXIDMA_RX_TDESC_OFFSET, lp->rx_bd_p +
-+			  (sizeof(*lp->rx_bd_v) * (RX_BD_NUM - 1)));
++			    (sizeof(*lp->rx_bd_v) * (RX_BD_NUM - 1)));
 +
 +	/* Write to the RS (Run-stop) bit in the Tx channel control register.
 +	 * Tx channel is now ready to run. But only after we write to the
@@ -898,10 +827,8 @@ index 0000000..99d0953
 +	nixge_dma_write_reg(lp, XAXIDMA_TX_CDESC_OFFSET, lp->tx_bd_p);
 +	cr = nixge_dma_read_reg(lp, XAXIDMA_TX_CR_OFFSET);
 +	nixge_dma_write_reg(lp, XAXIDMA_TX_CR_OFFSET,
-+			  cr | XAXIDMA_CR_RUNSTOP_MASK);
-+
++			    cr | XAXIDMA_CR_RUNSTOP_MASK);
 +}
-+
 +
 +static int nixge_open(struct net_device *ndev)
 +{
@@ -920,7 +847,7 @@ index 0000000..99d0953
 +
 +	/* Enable tasklets for Axi DMA error handling */
 +	tasklet_init(&priv->dma_err_tasklet, nixge_dma_err_handler,
-+		     (unsigned long) priv);
++		     (unsigned long)priv);
 +
 +	/* Enable interrupts for Axi DMA Tx */
 +	ret = request_irq(priv->tx_irq, nixge_tx_irq, 0, ndev->name, ndev);
@@ -937,7 +864,7 @@ index 0000000..99d0953
 +	free_irq(priv->tx_irq, ndev);
 +err_tx_irq:
 +	tasklet_kill(&priv->dma_err_tasklet);
-+	dev_err(priv->dev, "request_irq() failed\n");
++	netdev_err(ndev, "request_irq() failed\n");
 +	return ret;
 +}
 +
@@ -946,25 +873,25 @@ index 0000000..99d0953
 +	u32 cr;
 +	struct nixge_priv *priv = netdev_priv(ndev);
 +
-+	dev_dbg(&ndev->dev, "axienet_close()\n");
++	netif_stop_queue(ndev);
 +
 +	if (ndev->phydev)
 +		phy_stop(ndev->phydev);
 +
 +	cr = nixge_dma_read_reg(priv, XAXIDMA_RX_CR_OFFSET);
 +	nixge_dma_write_reg(priv, XAXIDMA_RX_CR_OFFSET,
-+			  cr & (~XAXIDMA_CR_RUNSTOP_MASK));
++			    cr & (~XAXIDMA_CR_RUNSTOP_MASK));
 +	cr = nixge_dma_read_reg(priv, XAXIDMA_TX_CR_OFFSET);
 +	nixge_dma_write_reg(priv, XAXIDMA_TX_CR_OFFSET,
-+			  cr & (~XAXIDMA_CR_RUNSTOP_MASK));
++			    cr & (~XAXIDMA_CR_RUNSTOP_MASK));
 +
 +	tasklet_kill(&priv->dma_err_tasklet);
 +
 +	free_irq(priv->tx_irq, ndev);
 +	free_irq(priv->rx_irq, ndev);
 +
-+
 +	nixge_dma_bd_release(ndev);
++
 +	return 0;
 +}
 +
@@ -976,7 +903,7 @@ index 0000000..99d0953
 +		return -EBUSY;
 +
 +	if ((new_mtu + VLAN_ETH_HLEN +
-+		XAE_TRL_SIZE) > priv->rxmem)
++		NIXGE_TRL_SIZE) > priv->rxmem)
 +		return -EINVAL;
 +
 +	ndev->mtu = new_mtu;
@@ -984,17 +911,12 @@ index 0000000..99d0953
 +	return 0;
 +}
 +
-+static s32 __nixge_set_mac_address(struct net_device *ndev, const void *addr)
++static s32 __nixge_hw_set_mac_address(struct net_device *ndev)
 +{
 +	struct nixge_priv *priv = netdev_priv(ndev);
 +
-+	if (addr)
-+		memcpy(ndev->dev_addr, addr, ETH_ALEN);
-+	if (!is_valid_ether_addr(ndev->dev_addr))
-+		eth_random_addr(ndev->dev_addr);
-+
 +	nixge_ctrl_write_reg(priv, NIXGE_REG_MAC_LSB,
-+			     (ndev->dev_addr[2])<< 24 |
++			     (ndev->dev_addr[2]) << 24 |
 +			     (ndev->dev_addr[3] << 16) |
 +			     (ndev->dev_addr[4] << 8) |
 +			     (ndev->dev_addr[5] << 0));
@@ -1007,9 +929,13 @@ index 0000000..99d0953
 +
 +static int nixge_net_set_mac_address(struct net_device *ndev, void *p)
 +{
-+	struct sockaddr *addr = p;
-+	__nixge_set_mac_address(ndev, addr->sa_data);
-+	return 0;
++	int err;
++
++	err = eth_mac_addr(ndev, p);
++	if (!err)
++		__nixge_hw_set_mac_address(ndev);
++
++	return err;
 +}
 +
 +static const struct net_device_ops nixge_netdev_ops = {
@@ -1019,24 +945,21 @@ index 0000000..99d0953
 +	.ndo_change_mtu	= nixge_change_mtu,
 +	.ndo_set_mac_address = nixge_net_set_mac_address,
 +	.ndo_validate_addr = eth_validate_addr,
-+//	.ndo_set_rx_mode = axienet_set_multicast_list,
-+#ifdef CONFIG_NET_POLL_CONTROLLER
-+//	.ndo_poll_controller = axienet_poll_controller,
-+#endif
 +};
 +
 +static void nixge_ethtools_get_drvinfo(struct net_device *ndev,
-+					 struct ethtool_drvinfo *ed)
++				       struct ethtool_drvinfo *ed)
 +{
 +	strlcpy(ed->driver, "nixge", sizeof(ed->driver));
-+	strlcpy(ed->version, "1.00a", sizeof(ed->version));
++	strlcpy(ed->bus_info, "platform", sizeof(ed->driver));
 +}
 +
 +static int nixge_ethtools_get_coalesce(struct net_device *ndev,
 +				       struct ethtool_coalesce *ecoalesce)
 +{
-+	u32 regval = 0;
 +	struct nixge_priv *priv = netdev_priv(ndev);
++	u32 regval = 0;
++
 +	regval = nixge_dma_read_reg(priv, XAXIDMA_RX_CR_OFFSET);
 +	ecoalesce->rx_max_coalesced_frames = (regval & XAXIDMA_COALESCE_MASK)
 +					     >> XAXIDMA_COALESCE_SHIFT;
@@ -1054,7 +977,7 @@ index 0000000..99d0953
 +	if (netif_running(ndev)) {
 +		netdev_err(ndev,
 +			   "Please stop netif before applying configuration\n");
-+		return -EFAULT;
++		return -EBUSY;
 +	}
 +
 +	if ((ecoalesce->rx_coalesce_usecs) ||
@@ -1092,7 +1015,7 @@ index 0000000..99d0953
 +	.set_coalesce   = nixge_ethtools_set_coalesce,
 +};
 +
-+int nixge_mdio_read(struct mii_bus *bus, int phy_id, int reg)
++static int nixge_mdio_read(struct mii_bus *bus, int phy_id, int reg)
 +{
 +	struct nixge_priv *priv = bus->priv;
 +	u32 status, tmp;
@@ -1104,8 +1027,8 @@ index 0000000..99d0953
 +
 +		nixge_ctrl_write_reg(priv, NIXGE_REG_MDIO_ADDR, reg & 0xffff);
 +
-+		tmp = NIXGE_MDIO_CLAUSE45 | NIXGE_MDIO_OP(NIXGE_MDIO_OP_ADDRESS) |
-+			NIXGE_MDIO_ADDR(phy_id) | NIXGE_MDIO_MMD(device);
++		tmp = NIXGE_MDIO_CLAUSE45 | NIXGE_MDIO_OP(NIXGE_MDIO_OP_ADDRESS)
++			| NIXGE_MDIO_ADDR(phy_id) | NIXGE_MDIO_MMD(device);
 +
 +		nixge_ctrl_write_reg(priv, NIXGE_REG_MDIO_OP, tmp);
 +		nixge_ctrl_write_reg(priv, NIXGE_REG_MDIO_CTRL, 1);
@@ -1114,7 +1037,7 @@ index 0000000..99d0953
 +					      !status, 10, 1000);
 +		if (err) {
 +			dev_err(priv->dev, "timeout setting address");
-+			return -ETIMEDOUT;
++			return err;
 +		}
 +
 +		tmp = NIXGE_MDIO_CLAUSE45 | NIXGE_MDIO_OP(NIXGE_MDIO_OP_READ) |
@@ -1133,66 +1056,79 @@ index 0000000..99d0953
 +				      !status, 10, 1000);
 +	if (err) {
 +		dev_err(priv->dev, "timeout setting read command");
-+		return -ETIMEDOUT;
++		return err;
 +	}
 +
 +	status = nixge_ctrl_read_reg(priv, NIXGE_REG_MDIO_DATA);
 +
-+	dev_dbg(priv->dev, "%s: phy_id = %x reg = %x got %x\n", __func__,
-+		 phy_id, reg & 0xffff, status);
-+
 +	return status;
 +}
 +
-+int nixge_mdio_write(struct mii_bus *bus, int phy_id, int reg,
-+		   u16 val)
++static int nixge_mdio_write(struct mii_bus *bus, int phy_id, int reg, u16 val)
 +{
 +	struct nixge_priv *priv = bus->priv;
 +	u32 status, tmp;
-+	int err;
 +	u16 device;
++	int err;
 +
 +	if (reg & MII_ADDR_C45) {
-+		return 0;
++		device = (reg >> 16) & 0x1f;
++
++		nixge_ctrl_write_reg(priv, NIXGE_REG_MDIO_ADDR, reg & 0xffff);
++
++		tmp = NIXGE_MDIO_CLAUSE45 | NIXGE_MDIO_OP(NIXGE_MDIO_OP_ADDRESS)
++			| NIXGE_MDIO_ADDR(phy_id) | NIXGE_MDIO_MMD(device);
++
++		nixge_ctrl_write_reg(priv, NIXGE_REG_MDIO_OP, tmp);
++		nixge_ctrl_write_reg(priv, NIXGE_REG_MDIO_CTRL, 1);
++
++		err = nixge_ctrl_poll_timeout(priv, NIXGE_REG_MDIO_CTRL, status,
++					      !status, 10, 1000);
++		if (err) {
++			dev_err(priv->dev, "timeout setting address");
++			return err;
++		}
++
++		tmp = NIXGE_MDIO_CLAUSE45 | NIXGE_MDIO_OP(NIXGE_MDIO_OP_WRITE)
++			| NIXGE_MDIO_ADDR(phy_id) | NIXGE_MDIO_MMD(device);
++
++		nixge_ctrl_write_reg(priv, NIXGE_REG_MDIO_DATA, val);
++		nixge_ctrl_write_reg(priv, NIXGE_REG_MDIO_OP, tmp);
++		err = nixge_ctrl_poll_timeout(priv, NIXGE_REG_MDIO_CTRL, status,
++					      !status, 10, 1000);
++		if (err)
++			dev_err(priv->dev, "timeout setting write command");
 +	} else {
 +		device = reg & 0x1f;
 +
 +		tmp = NIXGE_MDIO_CLAUSE22 | NIXGE_MDIO_OP(MDIO_C22_WRITE) |
 +			NIXGE_MDIO_ADDR(phy_id) | NIXGE_MDIO_MMD(device);
++
++		nixge_ctrl_write_reg(priv, NIXGE_REG_MDIO_DATA, val);
++		nixge_ctrl_write_reg(priv, NIXGE_REG_MDIO_OP, tmp);
++		nixge_ctrl_write_reg(priv, NIXGE_REG_MDIO_CTRL, 1);
++
++		err = nixge_ctrl_poll_timeout(priv, NIXGE_REG_MDIO_CTRL, status,
++					      !status, 10, 1000);
++		if (err)
++			dev_err(priv->dev, "timeout setting write command");
 +	}
 +
-+	nixge_ctrl_write_reg(priv, NIXGE_REG_MDIO_DATA, val);
-+	nixge_ctrl_write_reg(priv, NIXGE_REG_MDIO_OP, tmp);
-+	nixge_ctrl_write_reg(priv, NIXGE_REG_MDIO_CTRL, 1);
-+
-+	err = nixge_ctrl_poll_timeout(priv, NIXGE_REG_MDIO_CTRL, status,
-+				      !status, 10, 1000);
-+	if (err) {
-+		dev_err(priv->dev, "timeout setting write command");
-+		return -ETIMEDOUT;
-+	}
-+
-+	dev_dbg(priv->dev, "%x %x <- %x\n", phy_id, reg, val);
-+
-+	return 0;
++	return err;
 +}
 +
-+
-+int nixge_mdio_setup(struct nixge_priv *priv, struct device_node *np)
++static int nixge_mdio_setup(struct nixge_priv *priv, struct device_node *np)
 +{
 +	struct mii_bus *bus;
-+	struct resource res;
 +	int err;
 +
 +	bus = mdiobus_alloc();
 +	if (!bus)
 +		return -ENOMEM;
 +
-+	of_address_to_resource(np, 0, &res);
-+	snprintf(bus->id, MII_BUS_ID_SIZE, "%.8llx",
-+		 (unsigned long long)res.start);
++	snprintf(bus->id, MII_BUS_ID_SIZE, "%s-mii", dev_name(priv->dev));
 +	bus->priv = priv;
-+	bus->name = "NIXGE_MAC_mii_bus";
++	bus->name = "nixge_mii_bus";
 +	bus->read = nixge_mdio_read;
 +	bus->write = nixge_mdio_write;
 +	bus->parent = priv->dev;
@@ -1201,8 +1137,6 @@ index 0000000..99d0953
 +	err = of_mdiobus_register(bus, np);
 +	if (err)
 +		goto err_register;
-+
-+	dev_info(priv->dev, "MDIO bus registered\n");
 +
 +	return 0;
 +
@@ -1215,7 +1149,6 @@ index 0000000..99d0953
 +{
 +	struct nvmem_cell *cell;
 +	size_t cell_size;
-+	int err = 0;
 +	char *mac;
 +
 +	cell = nvmem_cell_get(dev, "address");
@@ -1224,9 +1157,6 @@ index 0000000..99d0953
 +
 +	mac = nvmem_cell_read(cell, &cell_size);
 +	nvmem_cell_put(cell);
-+
-+	if (IS_ERR(mac))
-+		return mac;
 +
 +	return mac;
 +}
@@ -1246,60 +1176,52 @@ index 0000000..99d0953
 +	platform_set_drvdata(pdev, ndev);
 +	SET_NETDEV_DEV(ndev, &pdev->dev);
 +
-+	ndev->flags &= ~IFF_MULTICAST;  /* clear multicast */
 +	ndev->features = NETIF_F_SG;
 +	ndev->netdev_ops = &nixge_netdev_ops;
 +	ndev->ethtool_ops = &nixge_ethtool_ops;
 +
 +	/* MTU range: 64 - 9000 */
 +	ndev->min_mtu = 64;
-+	ndev->max_mtu = XAE_JUMBO_MTU;
++	ndev->max_mtu = NIXGE_JUMBO_MTU;
 +
 +	mac_addr = nixge_get_nvmem_address(&pdev->dev);
-+	if (mac_addr)
++	if (mac_addr && is_valid_ether_addr(mac_addr))
 +		ether_addr_copy(ndev->dev_addr, mac_addr);
 +	else
 +		eth_hw_addr_random(ndev);
 +
-+
 +	priv = netdev_priv(ndev);
 +	priv->ndev = ndev;
 +	priv->dev = &pdev->dev;
-+	priv->options = XAE_OPTION_DEFAULTS;
-+
-+	priv->features = 0;
-+	/* default to this for now ... */
-+	priv->rxmem = 10000;
++	priv->rxmem = NIXGE_DEFAULT_RX_MEM;
 +
 +	dmares = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 +	priv->dma_regs = devm_ioremap_resource(&pdev->dev, dmares);
 +	if (IS_ERR(priv->dma_regs)) {
-+		dev_err(&pdev->dev, "failed to map dma regs\n");
++		netdev_err(ndev, "failed to map dma regs\n");
 +		return PTR_ERR(priv->dma_regs);
 +	}
-+	priv->ctrl_regs = priv->dma_regs + 0x4000;
-+	__nixge_set_mac_address(ndev, mac_addr);
++	priv->ctrl_regs = priv->dma_regs + NIXGE_REG_CTRL_OFFSET;
++	__nixge_hw_set_mac_address(ndev);
 +
 +	priv->tx_irq = platform_get_irq_byname(pdev, "tx-irq");
 +	if (priv->tx_irq < 0) {
-+		dev_err(&pdev->dev, "no tx irq available");
++		netdev_err(ndev, "no tx irq available");
 +		return priv->tx_irq;
 +	}
 +
 +	priv->rx_irq = platform_get_irq_byname(pdev, "rx-irq");
 +	if (priv->rx_irq < 0) {
-+		dev_err(&pdev->dev, "no rx irq available");
++		netdev_err(ndev, "no rx irq available");
 +		return priv->rx_irq;
 +	}
 +
 +	priv->coalesce_count_rx = XAXIDMA_DFT_RX_THRESHOLD;
 +	priv->coalesce_count_tx = XAXIDMA_DFT_TX_THRESHOLD;
 +
-+	spin_lock_init(&priv->lock);
-+
 +	err = nixge_mdio_setup(priv, pdev->dev.of_node);
 +	if (err) {
-+		dev_warn(&pdev->dev, "error registering mdio bus");
++		netdev_err(ndev, "error registering mdio bus");
 +		goto free_netdev;
 +	}
 +
@@ -1311,14 +1233,14 @@ index 0000000..99d0953
 +
 +	err = register_netdev(priv->ndev);
 +	if (err) {
-+		dev_err(priv->dev, "register_netdev() error (%i)\n", err);
++		netdev_err(priv->ndev, "register_netdev() error (%i)\n", err);
 +		goto free_netdev;
 +	}
 +
 +	err = phy_connect_direct(ndev, priv->phy_dev, &nixge_handle_link_change,
 +				 priv->phy_interface);
 +	if (err) {
-+		dev_err(&pdev->dev, "failed to attach to phy ...");
++		netdev_err(priv->ndev, "failed to attach to phy ...");
 +		goto unregister_mdio;
 +	}
 +
@@ -1328,10 +1250,6 @@ index 0000000..99d0953
 +	ndev->phydev->autoneg = AUTONEG_DISABLE;
 +
 +	phy_attached_info(ndev->phydev);
-+
-+	netdev_info(ndev, "NIXGE_MAC rev 0x%08x at %p and %p,tx_irq %d rx_irq %d(%pM)\n",
-+		    0x200000, priv->dma_regs, priv->ctrl_regs, priv->tx_irq,
-+		    priv->rx_irq, ndev->dev_addr);
 +
 +	return 0;
 +
@@ -1353,11 +1271,9 @@ index 0000000..99d0953
 +
 +	if (ndev->phydev)
 +		phy_disconnect(ndev->phydev);
-+	ndev->phydev = NULL;
 +
 +	mdiobus_unregister(priv->mii_bus);
 +	mdiobus_free(priv->mii_bus);
-+	priv->mii_bus = NULL;
 +
 +	unregister_netdev(ndev);
 +
@@ -1366,19 +1282,6 @@ index 0000000..99d0953
 +	return 0;
 +}
 +
-+static int __maybe_unused nixge_suspend(struct device *dev)
-+{
-+	return 0;
-+}
-+
-+
-+static int __maybe_unused nixge_resume(struct device *dev)
-+{
-+	return 0;
-+}
-+
-+static SIMPLE_DEV_PM_OPS(nixge_pm_ops, nixge_suspend, nixge_resume);
-+
 +/* Match table for of_platform binding */
 +static const struct of_device_id nixge_dt_ids[] = {
 +	{ .compatible = "ni,xge-enet-2.00", },
@@ -1386,20 +1289,19 @@ index 0000000..99d0953
 +};
 +MODULE_DEVICE_TABLE(of, nixge_dt_ids);
 +
-+static struct platform_driver nixge_dma_driver = {
++static struct platform_driver nixge_driver = {
 +	.probe		= nixge_probe,
 +	.remove		= nixge_remove,
 +	.driver		= {
 +		.name		= "nixge",
 +		.of_match_table	= of_match_ptr(nixge_dt_ids),
-+		.pm	= &nixge_pm_ops,
 +	},
 +};
-+module_platform_driver(nixge_dma_driver);
++module_platform_driver(nixge_driver);
 +
 +MODULE_LICENSE("GPL");
 +MODULE_DESCRIPTION("National Instruments XGE Management MAC");
-+MODULE_AUTHOR("Moritz Fischer <moritz.fischer@ettus.com>");
++MODULE_AUTHOR("Moritz Fischer <mdf@kernel.org>");
 -- 
-2.7.4
+2.14.2
 

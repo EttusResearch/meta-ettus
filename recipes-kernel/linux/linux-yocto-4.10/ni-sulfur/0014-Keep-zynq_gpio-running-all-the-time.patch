@@ -1,7 +1,7 @@
 From cf5a23d0bb809d9f770603326b06e575cce3e822 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 12 Dec 2016 09:10:58 -0800
-Subject: [PATCH 14/40] Keep zynq_gpio running all the time
+Subject: [PATCH 14/45] Keep zynq_gpio running all the time
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
@@ -9,7 +9,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/drivers/gpio/gpio-zynq.c b/drivers/gpio/gpio-zynq.c
-index 6b4d10d..feac78e 100644
+index 6b4d10d6e10f..feac78ef3648 100644
 --- a/drivers/gpio/gpio-zynq.c
 +++ b/drivers/gpio/gpio-zynq.c
 @@ -754,7 +754,7 @@ static int zynq_gpio_probe(struct platform_device *pdev)
@@ -22,5 +22,5 @@ index 6b4d10d..feac78e 100644
  	return 0;
  
 -- 
-2.7.4
+2.14.2
 

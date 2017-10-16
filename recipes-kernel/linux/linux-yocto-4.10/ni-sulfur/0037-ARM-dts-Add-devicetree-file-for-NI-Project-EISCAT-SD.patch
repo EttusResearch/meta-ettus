@@ -1,7 +1,7 @@
-From e6802ed65f3f6069ff8e25d3dadab7afb6d6c6b3 Mon Sep 17 00:00:00 2001
+From 7184cc00e4b749f00e024e035ec78ef3395085f1 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 11 Jul 2017 10:17:05 -0700
-Subject: [PATCH 37/40] ARM: dts: Add devicetree file for NI Project EISCAT SDR
+Subject: [PATCH 37/45] ARM: dts: Add devicetree file for NI Project EISCAT SDR
 
 This adds the devicetree file for NI Project EISCAT SDR
 
@@ -13,7 +13,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  create mode 100644 arch/arm/boot/dts/zynq-ni-eiscat.dts
 
 diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-index 774a9fc..39ea61f 100644
+index 774a9fc5c596..39ea61f2f49f 100644
 --- a/arch/arm/boot/dts/Makefile
 +++ b/arch/arm/boot/dts/Makefile
 @@ -936,6 +936,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
@@ -26,7 +26,7 @@ index 774a9fc..39ea61f 100644
  	armada-370-db.dtb \
 diff --git a/arch/arm/boot/dts/zynq-ni-eiscat.dts b/arch/arm/boot/dts/zynq-ni-eiscat.dts
 new file mode 100644
-index 0000000..14796e8c
+index 000000000000..14796e8cfa29
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-ni-eiscat.dts
 @@ -0,0 +1,163 @@
@@ -194,5 +194,5 @@ index 0000000..14796e8c
 +
 +};
 -- 
-2.7.4
+2.14.2
 

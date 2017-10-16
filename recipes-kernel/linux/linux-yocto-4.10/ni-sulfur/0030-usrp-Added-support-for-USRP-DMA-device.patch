@@ -1,7 +1,7 @@
-From 25f1a526099c6d421a44ac555678d79569241595 Mon Sep 17 00:00:00 2001
+From 598e9bc579089f9825a36552cadd325663755d8a Mon Sep 17 00:00:00 2001
 From: Alex Williams <alex.williams@ni.com>
 Date: Wed, 24 May 2017 14:48:34 -0700
-Subject: [PATCH 30/40] usrp: Added support for USRP DMA device.
+Subject: [PATCH 30/45] usrp: Added support for USRP DMA device.
 
 Signed-off-by: Alex Williams <alex.williams@ni.com>
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
@@ -23,7 +23,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  create mode 100644 include/uapi/linux/usrp.h
 
 diff --git a/drivers/Kconfig b/drivers/Kconfig
-index 0edd44a..a0b159c 100644
+index 0edd44a868a6..a0b159c74c2c 100644
 --- a/drivers/Kconfig
 +++ b/drivers/Kconfig
 @@ -204,4 +204,6 @@ source "drivers/fpga/Kconfig"
@@ -34,7 +34,7 @@ index 0edd44a..a0b159c 100644
 +
  endmenu
 diff --git a/drivers/Makefile b/drivers/Makefile
-index 613f273..24b91b2 100644
+index 613f273c2974..24b91b2514ab 100644
 --- a/drivers/Makefile
 +++ b/drivers/Makefile
 @@ -175,3 +175,4 @@ obj-$(CONFIG_ANDROID)		+= android/
@@ -44,7 +44,7 @@ index 613f273..24b91b2 100644
 +obj-$(CONFIG_USRP)              += usrp/
 diff --git a/drivers/usrp/Kconfig b/drivers/usrp/Kconfig
 new file mode 100644
-index 0000000..f875fb9
+index 000000000000..f875fb93432a
 --- /dev/null
 +++ b/drivers/usrp/Kconfig
 @@ -0,0 +1,32 @@
@@ -82,7 +82,7 @@ index 0000000..f875fb9
 +endmenu
 diff --git a/drivers/usrp/Makefile b/drivers/usrp/Makefile
 new file mode 100644
-index 0000000..4ef4347
+index 000000000000..4ef4347defdb
 --- /dev/null
 +++ b/drivers/usrp/Makefile
 @@ -0,0 +1,9 @@
@@ -97,7 +97,7 @@ index 0000000..4ef4347
 +
 diff --git a/drivers/usrp/usrp-dma-core.c b/drivers/usrp/usrp-dma-core.c
 new file mode 100644
-index 0000000..436bff9
+index 000000000000..436bff993c83
 --- /dev/null
 +++ b/drivers/usrp/usrp-dma-core.c
 @@ -0,0 +1,512 @@
@@ -615,7 +615,7 @@ index 0000000..436bff9
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/usrp/usrp-dmaengine.c b/drivers/usrp/usrp-dmaengine.c
 new file mode 100644
-index 0000000..738c19e
+index 000000000000..d20cb7f383d5
 --- /dev/null
 +++ b/drivers/usrp/usrp-dmaengine.c
 @@ -0,0 +1,393 @@
@@ -946,8 +946,8 @@ index 0000000..738c19e
 +			dev_err(&pdev->dev, "unable to read 'offset'");
 +			return -EINVAL;
 +		}
-+		priv->dma.ops = &usrp_dmaengine_ops;
 +	}
++	priv->dma.ops = &usrp_dmaengine_ops;
 +
 +	mutex_init(&priv->lock);
 +	INIT_LIST_HEAD(&priv->queued_bufs);
@@ -1014,7 +1014,7 @@ index 0000000..738c19e
 +MODULE_LICENSE("GPL v2");
 diff --git a/include/linux/usrp/usrp-dma.h b/include/linux/usrp/usrp-dma.h
 new file mode 100644
-index 0000000..75c6d3e
+index 000000000000..75c6d3e42f53
 --- /dev/null
 +++ b/include/linux/usrp/usrp-dma.h
 @@ -0,0 +1,59 @@
@@ -1079,7 +1079,7 @@ index 0000000..75c6d3e
 +#endif /* USRP_DMA_H */
 diff --git a/include/uapi/linux/usrp.h b/include/uapi/linux/usrp.h
 new file mode 100644
-index 0000000..3cbdb4a
+index 000000000000..28096a30f697
 --- /dev/null
 +++ b/include/uapi/linux/usrp.h
 @@ -0,0 +1,140 @@
@@ -1204,7 +1204,7 @@ index 0000000..3cbdb4a
 +};
 +
 +enum usrp_fmt_type {
-+	USRP_FMT_CHDR_FIXED_BLOCK,
++	USRP_FMT_CHDR_FIXED_BLOCK = 0,
 +};
 +
 +struct usrp_fmt {
@@ -1224,5 +1224,5 @@ index 0000000..3cbdb4a
 +
 +#endif /* USRP_H */
 -- 
-2.7.4
+2.14.2
 

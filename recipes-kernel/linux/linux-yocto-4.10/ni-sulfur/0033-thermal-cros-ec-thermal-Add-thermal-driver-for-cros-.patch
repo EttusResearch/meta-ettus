@@ -1,7 +1,7 @@
-From baa356e4055d018d63896ae64b53f5ae364e5397 Mon Sep 17 00:00:00 2001
+From 6d4a0d27437e7ff3e2212dca685adec1e3930552 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 11 Jul 2017 10:11:25 -0700
-Subject: [PATCH 33/40] thermal: cros-ec-thermal: Add thermal driver for
+Subject: [PATCH 33/45] thermal: cros-ec-thermal: Add thermal driver for
  cros-ec
 
 This adds a thermal framework driver for the chromium-ec
@@ -10,13 +10,13 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
  drivers/thermal/Kconfig              |   8 +
  drivers/thermal/Makefile             |   1 +
- drivers/thermal/cros-ec-thermal.c    | 320 +++++++++++++++++++++++++++++++++++
+ drivers/thermal/cros-ec-thermal.c    | 322 +++++++++++++++++++++++++++++++++++
  include/linux/mfd/cros_ec_commands.h |   5 +
- 4 files changed, 334 insertions(+)
+ 4 files changed, 336 insertions(+)
  create mode 100644 drivers/thermal/cros-ec-thermal.c
 
 diff --git a/drivers/thermal/Kconfig b/drivers/thermal/Kconfig
-index c2c056c..f3c817b 100644
+index c2c056cc7ea5..f3c817ba63ce 100644
 --- a/drivers/thermal/Kconfig
 +++ b/drivers/thermal/Kconfig
 @@ -147,6 +147,14 @@ config CLOCK_THERMAL
@@ -35,7 +35,7 @@ index c2c056c..f3c817b 100644
  	bool "Generic device cooling support"
  	depends on PM_DEVFREQ
 diff --git a/drivers/thermal/Makefile b/drivers/thermal/Makefile
-index 6a3d7b5..dcf3c4f 100644
+index 6a3d7b573036..dcf3c4f45b71 100644
 --- a/drivers/thermal/Makefile
 +++ b/drivers/thermal/Makefile
 @@ -33,6 +33,7 @@ obj-$(CONFIG_ROCKCHIP_THERMAL)	+= rockchip_thermal.o
@@ -48,10 +48,10 @@ index 6a3d7b5..dcf3c4f 100644
  obj-$(CONFIG_ARMADA_THERMAL)	+= armada_thermal.o
 diff --git a/drivers/thermal/cros-ec-thermal.c b/drivers/thermal/cros-ec-thermal.c
 new file mode 100644
-index 0000000..f160292
+index 000000000000..549e72dc195e
 --- /dev/null
 +++ b/drivers/thermal/cros-ec-thermal.c
-@@ -0,0 +1,320 @@
+@@ -0,0 +1,322 @@
 +/* cros_ec_thermal.c - Google Chromium EC Thermal driver
 + *
 + * Copyright (c) 2017, National Instruments Corp.
@@ -242,6 +242,7 @@ index 0000000..f160292
 +{
 +	struct cros_ec_fan *fan;
 +	struct thermal_cooling_device *cdev;
++	char name[THERMAL_NAME_LENGTH];
 +	u32 value;
 +	int err;
 +
@@ -258,8 +259,9 @@ index 0000000..f160292
 +
 +	fan->thermal = data;
 +	fan->id = idx;
++	snprintf(name, THERMAL_NAME_LENGTH, "ec-fan%u", fan->id);
 +
-+	cdev = thermal_of_cooling_device_register(np, "cros-ec-fan", fan,
++	cdev = thermal_of_cooling_device_register(np, kstrdup(name, GFP_KERNEL), fan,
 +						  &tcd_ops);
 +	if (IS_ERR(cdev))
 +		return PTR_ERR(cdev);
@@ -373,7 +375,7 @@ index 0000000..f160292
 +MODULE_ALIAS("platform:cros-ec-thermal");
 +MODULE_AUTHOR("Moritz Fischer <mdf@kernel.org>");
 diff --git a/include/linux/mfd/cros_ec_commands.h b/include/linux/mfd/cros_ec_commands.h
-index 1683003..12cae3f 100644
+index 1683003603f3..12cae3f981e0 100644
 --- a/include/linux/mfd/cros_ec_commands.h
 +++ b/include/linux/mfd/cros_ec_commands.h
 @@ -1011,6 +1011,11 @@ struct ec_params_pwm_set_fan_target_rpm {
@@ -389,5 +391,5 @@ index 1683003..12cae3f 100644
  #define EC_CMD_PWM_GET_KEYBOARD_BACKLIGHT 0x22
  
 -- 
-2.7.4
+2.14.2
 

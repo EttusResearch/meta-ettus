@@ -1,7 +1,7 @@
 From 3c1a361d55752735a8a0a9fd03f94279b1c65933 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 12 Dec 2016 09:10:21 -0800
-Subject: [PATCH 15/40] ARM: dts: Add support for NI Ettus Research Sulfur Rev2
+Subject: [PATCH 15/45] ARM: dts: Add support for NI Ettus Research Sulfur Rev2
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
@@ -11,7 +11,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  create mode 100644 arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts
 
 diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-index bc7335a..1ad1d6d 100644
+index bc7335a52ef5..1ad1d6de1e71 100644
 --- a/arch/arm/boot/dts/Makefile
 +++ b/arch/arm/boot/dts/Makefile
 @@ -934,6 +934,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
@@ -24,7 +24,7 @@ index bc7335a..1ad1d6d 100644
  	armada-370-db.dtb \
 diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts
 new file mode 100644
-index 0000000..a729270
+index 000000000000..a7292705c732
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts
 @@ -0,0 +1,259 @@
@@ -288,5 +288,5 @@ index 0000000..a729270
 +	};
 +};
 -- 
-2.7.4
+2.14.2
 

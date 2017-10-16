@@ -1,7 +1,7 @@
-From 33e9ace200535ff7d29dbf3832512df92fab86c8 Mon Sep 17 00:00:00 2001
+From dc4ec973e080ea7c7ceab8c01b30a78c50063070 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <mdf@kernel.org>
 Date: Thu, 20 Apr 2017 17:07:15 -0700
-Subject: [PATCH 26/40] rtc: ds1374: wdt: Fix stop/start ioctl always returning
+Subject: [PATCH 26/45] rtc: ds1374: wdt: Fix stop/start ioctl always returning
  -EINVAL
 
 Fix commit 920f91e50c5b ("drivers/rtc/rtc-ds1374.c: add watchdog support")
@@ -16,7 +16,7 @@ Signed-off-by: Moritz Fischer <mdf@kernel.org>
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/rtc/rtc-ds1374.c b/drivers/rtc/rtc-ds1374.c
-index 76968d8..01d8f48 100644
+index 76968d823b6a..01d8f48bd3dc 100644
 --- a/drivers/rtc/rtc-ds1374.c
 +++ b/drivers/rtc/rtc-ds1374.c
 @@ -553,14 +553,15 @@ static long ds1374_wdt_ioctl(struct file *file, unsigned int cmd,
@@ -37,5 +37,5 @@ index 76968d8..01d8f48 100644
  	}
  	return -ENOTTY;
 -- 
-2.7.4
+2.14.2
 

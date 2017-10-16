@@ -1,7 +1,7 @@
-From 481bc1cb8306b182c64e960f76b7a7a4ad47c2a4 Mon Sep 17 00:00:00 2001
+From 456f2c17ea9020e4541e823687a77a588f37fc62 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Thu, 30 Mar 2017 17:51:09 -0700
-Subject: [PATCH 18/40] ARM: dts: iio_hwmon to zynq dt
+Subject: [PATCH 18/45] ARM: dts: iio_hwmon to zynq dt
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
@@ -10,7 +10,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  2 files changed, 56 insertions(+), 5 deletions(-)
 
 diff --git a/arch/arm/boot/dts/zynq-7000.dtsi b/arch/arm/boot/dts/zynq-7000.dtsi
-index f3ac9bf..5281ce3 100644
+index f3ac9bfe580e..5281ce33d4e2 100644
 --- a/arch/arm/boot/dts/zynq-7000.dtsi
 +++ b/arch/arm/boot/dts/zynq-7000.dtsi
 @@ -59,6 +59,11 @@
@@ -34,7 +34,7 @@ index f3ac9bf..5281ce3 100644
  
  		can0: can@e0008000 {
 diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts
-index a729270..3bc7459 100644
+index a7292705c732..3bc74593896d 100644
 --- a/arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts
 +++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts
 @@ -59,6 +59,7 @@
@@ -124,5 +124,5 @@ index a729270..3bc7459 100644
  	};
  };
 -- 
-2.7.4
+2.14.2
 

@@ -1,7 +1,7 @@
-From 1e54da04ca3cd3bbd78c8e34ae219f70f87ec0a5 Mon Sep 17 00:00:00 2001
+From 99626fc779bca6a41c89a68431b4e9bf7569f24d Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Fri, 31 Mar 2017 15:38:07 -0700
-Subject: [PATCH 21/40] misc: eeprom: Hardcode the io_length constraint to 16
+Subject: [PATCH 21/45] misc: eeprom: Hardcode the io_length constraint to 16
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
@@ -9,7 +9,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/drivers/misc/eeprom/at24.c b/drivers/misc/eeprom/at24.c
-index 051b147..3d94f69 100644
+index 051b14766ef9..3d94f69ea493 100644
 --- a/drivers/misc/eeprom/at24.c
 +++ b/drivers/misc/eeprom/at24.c
 @@ -91,7 +91,7 @@ struct at24_data {
@@ -22,5 +22,5 @@ index 051b147..3d94f69 100644
  MODULE_PARM_DESC(io_limit, "Maximum bytes per I/O (default 128)");
  
 -- 
-2.7.4
+2.14.2
 

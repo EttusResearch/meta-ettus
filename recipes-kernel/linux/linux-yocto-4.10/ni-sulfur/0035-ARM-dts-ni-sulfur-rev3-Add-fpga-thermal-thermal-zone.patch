@@ -1,7 +1,7 @@
-From e42e43c4c5eab9f3852ed744f41e5adae19e7a5a Mon Sep 17 00:00:00 2001
+From 1a35f0956d1cb6de1cf17a665ceb094b042c5efa Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 11 Jul 2017 10:15:21 -0700
-Subject: [PATCH 35/40] ARM: dts: ni-sulfur-rev3: Add fpga-thermal thermal zone
+Subject: [PATCH 35/45] ARM: dts: ni-sulfur-rev3: Add fpga-thermal thermal zone
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
@@ -9,7 +9,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  1 file changed, 65 insertions(+)
 
 diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
-index 63edbd5..1be22d2 100644
+index 71c9d38cb398..4cd541c7a01a 100644
 --- a/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
 +++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
 @@ -70,6 +70,71 @@
@@ -85,5 +85,5 @@ index 63edbd5..1be22d2 100644
  
  &cpu0 {
 -- 
-2.7.4
+2.14.2
 

@@ -1,7 +1,7 @@
 From f0fb1f0b19aebed3bb875d606818c02bfe945869 Mon Sep 17 00:00:00 2001
 From: Rob Herring <robh@kernel.org>
 Date: Tue, 21 Mar 2017 09:01:08 -0500
-Subject: [PATCH 11/40] scripts/dtc: Update to upstream version
+Subject: [PATCH 11/45] scripts/dtc: Update to upstream version
  v1.4.4-8-g756ffc4f52f6
 
 This adds the following commits from upstream:
@@ -63,7 +63,7 @@ Signed-off-by: Rob Herring <robh@kernel.org>
  19 files changed, 523 insertions(+), 182 deletions(-)
 
 diff --git a/scripts/dtc/checks.c b/scripts/dtc/checks.c
-index 3d18e45..5adfc8f 100644
+index 3d18e45374c8..5adfc8f52b4f 100644
 --- a/scripts/dtc/checks.c
 +++ b/scripts/dtc/checks.c
 @@ -72,17 +72,16 @@ struct check {
@@ -677,7 +677,7 @@ index 3d18e45..5adfc8f 100644
  	&avoid_default_addr_size,
  	&obsolete_chosen_interrupt_controller,
 diff --git a/scripts/dtc/data.c b/scripts/dtc/data.c
-index 8cae237..aa37a16 100644
+index 8cae23746882..aa37a16c8891 100644
 --- a/scripts/dtc/data.c
 +++ b/scripts/dtc/data.c
 @@ -171,9 +171,9 @@ struct data data_merge(struct data d1, struct data d2)
@@ -714,7 +714,7 @@ index 8cae237..aa37a16 100644
  
  struct data data_append_cell(struct data d, cell_t word)
 diff --git a/scripts/dtc/dtc-lexer.l b/scripts/dtc/dtc-lexer.l
-index c600603..fd825eb 100644
+index c600603044f3..fd825ebba69c 100644
 --- a/scripts/dtc/dtc-lexer.l
 +++ b/scripts/dtc/dtc-lexer.l
 @@ -62,7 +62,8 @@ static int dts_version = 1;
@@ -728,7 +728,7 @@ index c600603..fd825eb 100644
  
  %%
 diff --git a/scripts/dtc/dtc-lexer.lex.c_shipped b/scripts/dtc/dtc-lexer.lex.c_shipped
-index 2c862bc..64c2437 100644
+index 2c862bc86ad0..64c243772398 100644
 --- a/scripts/dtc/dtc-lexer.lex.c_shipped
 +++ b/scripts/dtc/dtc-lexer.lex.c_shipped
 @@ -655,8 +655,9 @@ static int dts_version = 1;
@@ -1026,7 +1026,7 @@ index 2c862bc..64c2437 100644
  
  
 diff --git a/scripts/dtc/dtc-parser.tab.c_shipped b/scripts/dtc/dtc-parser.tab.c_shipped
-index 2965227..0a7a5ed 100644
+index 2965227a1b4a..0a7a5ed86f04 100644
 --- a/scripts/dtc/dtc-parser.tab.c_shipped
 +++ b/scripts/dtc/dtc-parser.tab.c_shipped
 @@ -1557,10 +1557,10 @@ yyreduce:
@@ -1044,7 +1044,7 @@ index 2965227..0a7a5ed 100644
  			(yyval.node) = (yyvsp[-3].node);
  		}
 diff --git a/scripts/dtc/dtc-parser.y b/scripts/dtc/dtc-parser.y
-index b2fd4d1..ca3f500 100644
+index b2fd4d155839..ca3f5003427c 100644
 --- a/scripts/dtc/dtc-parser.y
 +++ b/scripts/dtc/dtc-parser.y
 @@ -171,10 +171,10 @@ devicetree:
@@ -1062,7 +1062,7 @@ index b2fd4d1..ca3f500 100644
  			$$ = $1;
  		}
 diff --git a/scripts/dtc/dtc.c b/scripts/dtc/dtc.c
-index a4edf4c..f5eed9d 100644
+index a4edf4c7aebf..f5eed9d72c02 100644
 --- a/scripts/dtc/dtc.c
 +++ b/scripts/dtc/dtc.c
 @@ -138,7 +138,7 @@ static const char *guess_type_by_name(const char *fname, const char *fallback)
@@ -1103,7 +1103,7 @@ index a4edf4c..f5eed9d 100644
  		fputc('\n', depfile);
  		fclose(depfile);
 diff --git a/scripts/dtc/dtc.h b/scripts/dtc/dtc.h
-index c6f125c..fc24e17 100644
+index c6f125c68ba8..fc24e17510fd 100644
 --- a/scripts/dtc/dtc.h
 +++ b/scripts/dtc/dtc.h
 @@ -43,7 +43,6 @@
@@ -1160,7 +1160,7 @@ index c6f125c..fc24e17 100644
  
  /* DTS version flags definitions */
 diff --git a/scripts/dtc/flattree.c b/scripts/dtc/flattree.c
-index ebac548b..fcf7154 100644
+index ebac548b3fa8..fcf71541d8a7 100644
 --- a/scripts/dtc/flattree.c
 +++ b/scripts/dtc/flattree.c
 @@ -49,7 +49,7 @@ static struct version_info {
@@ -1324,7 +1324,7 @@ index ebac548b..fcf7154 100644
  		die("DT blob size (%d) is too small\n", totalsize);
  
 diff --git a/scripts/dtc/libfdt/fdt_rw.c b/scripts/dtc/libfdt/fdt_rw.c
-index 2eed4f5..3fd5847 100644
+index 2eed4f58387c..3fd5847377c9 100644
 --- a/scripts/dtc/libfdt/fdt_rw.c
 +++ b/scripts/dtc/libfdt/fdt_rw.c
 @@ -283,7 +283,8 @@ int fdt_setprop(void *fdt, int nodeoffset, const char *name,
@@ -1338,7 +1338,7 @@ index 2eed4f5..3fd5847 100644
  }
  
 diff --git a/scripts/dtc/libfdt/libfdt.h b/scripts/dtc/libfdt/libfdt.h
-index b842b15..ba86caa 100644
+index b842b156fa17..ba86caa73d01 100644
 --- a/scripts/dtc/libfdt/libfdt.h
 +++ b/scripts/dtc/libfdt/libfdt.h
 @@ -143,7 +143,9 @@
@@ -1504,7 +1504,7 @@ index b842b15..ba86caa 100644
  /**
   * fdt_add_subnode - creates a new node
 diff --git a/scripts/dtc/libfdt/libfdt_env.h b/scripts/dtc/libfdt/libfdt_env.h
-index 99f936d..952056c 100644
+index 99f936dacc60..952056cddf09 100644
 --- a/scripts/dtc/libfdt/libfdt_env.h
 +++ b/scripts/dtc/libfdt/libfdt_env.h
 @@ -58,16 +58,16 @@
@@ -1568,7 +1568,7 @@ index 99f936d..952056c 100644
  #undef CPU_TO_FDT64
  #undef CPU_TO_FDT32
 diff --git a/scripts/dtc/livetree.c b/scripts/dtc/livetree.c
-index afa2f67..3673de0 100644
+index afa2f67b142a..3673de07e4e5 100644
 --- a/scripts/dtc/livetree.c
 +++ b/scripts/dtc/livetree.c
 @@ -242,7 +242,7 @@ void delete_property_by_name(struct node *node, char *name)
@@ -1646,7 +1646,7 @@ index afa2f67..3673de0 100644
  	int i, depth;
  
 diff --git a/scripts/dtc/srcpos.c b/scripts/dtc/srcpos.c
-index aa3aad0..9d38459 100644
+index aa3aad04cec4..9d38459902f3 100644
 --- a/scripts/dtc/srcpos.c
 +++ b/scripts/dtc/srcpos.c
 @@ -252,7 +252,7 @@ srcpos_string(struct srcpos *pos)
@@ -1659,7 +1659,7 @@ index aa3aad0..9d38459 100644
  
  
 diff --git a/scripts/dtc/srcpos.h b/scripts/dtc/srcpos.h
-index 2cdfcd8..7caca82 100644
+index 2cdfcd82e95e..7caca8257c6d 100644
 --- a/scripts/dtc/srcpos.h
 +++ b/scripts/dtc/srcpos.h
 @@ -22,6 +22,7 @@
@@ -1688,7 +1688,7 @@ index 2cdfcd8..7caca82 100644
  extern void srcpos_set_line(char *f, int l);
  
 diff --git a/scripts/dtc/treesource.c b/scripts/dtc/treesource.c
-index c9d8967..2461a3d 100644
+index c9d8967969f9..2461a3d068a0 100644
 --- a/scripts/dtc/treesource.c
 +++ b/scripts/dtc/treesource.c
 @@ -137,7 +137,7 @@ static void write_propval_string(FILE *f, struct data val)
@@ -1712,7 +1712,7 @@ index c9d8967..2461a3d 100644
  
  	write_tree_source_node(f, dti->dt, 0);
 diff --git a/scripts/dtc/util.c b/scripts/dtc/util.c
-index 3550f86..9953c32 100644
+index 3550f86bd6df..9953c32a0244 100644
 --- a/scripts/dtc/util.c
 +++ b/scripts/dtc/util.c
 @@ -396,7 +396,7 @@ void utilfdt_print_data(const char *data, int len)
@@ -1746,7 +1746,7 @@ index 3550f86..9953c32 100644
  	FILE *fp = errmsg ? stderr : stdout;
  	const char a_arg[] = "<arg>";
 diff --git a/scripts/dtc/util.h b/scripts/dtc/util.h
-index f5c4f1b..ad5f411 100644
+index f5c4f1b50d30..ad5f41199edb 100644
 --- a/scripts/dtc/util.h
 +++ b/scripts/dtc/util.h
 @@ -25,9 +25,17 @@
@@ -1809,12 +1809,12 @@ index f5c4f1b..ad5f411 100644
  /**
   * Show usage and exit
 diff --git a/scripts/dtc/version_gen.h b/scripts/dtc/version_gen.h
-index 16c2e53..1229e07 100644
+index 16c2e53a85e3..1229e07b4912 100644
 --- a/scripts/dtc/version_gen.h
 +++ b/scripts/dtc/version_gen.h
 @@ -1 +1 @@
 -#define DTC_VERSION "DTC 1.4.2-g0931cea3"
 +#define DTC_VERSION "DTC 1.4.4-g756ffc4f"
 -- 
-2.7.4
+2.14.2
 
