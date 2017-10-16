@@ -48,6 +48,7 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     usrp-hwd \
     openocd \
     salt-minion \
+    trousers \
     "
 
 inherit core-image image-buildinfo
