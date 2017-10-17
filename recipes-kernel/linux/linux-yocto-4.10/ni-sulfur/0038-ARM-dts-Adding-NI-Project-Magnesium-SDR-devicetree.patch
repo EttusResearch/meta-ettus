@@ -1,4 +1,4 @@
-From df7dff83ba339de6fc3bd12b5bc389147a29dc2c Mon Sep 17 00:00:00 2001
+From e6a16e1188c12adafe33aa4869554b11e41b9ffc Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 11 Jul 2017 14:16:21 -0700
 Subject: [PATCH 38/45] ARM: dts: Adding NI Project Magnesium SDR devicetree
@@ -9,8 +9,8 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
  arch/arm/boot/dts/Makefile                |   2 +
  arch/arm/boot/dts/zynq-ni-magnesium.dts   | 179 ++++++++++++++++++++++++++++++
- arch/arm/boot/dts/zynq-ni-sulfur-rev4.dts |  25 +++++
- 3 files changed, 206 insertions(+)
+ arch/arm/boot/dts/zynq-ni-sulfur-rev4.dts |  26 +++++
+ 3 files changed, 207 insertions(+)
  create mode 100644 arch/arm/boot/dts/zynq-ni-magnesium.dts
  create mode 100644 arch/arm/boot/dts/zynq-ni-sulfur-rev4.dts
 
@@ -215,10 +215,10 @@ index 000000000000..92445c1fc47c
 +};
 diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev4.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev4.dts
 new file mode 100644
-index 000000000000..a9a83b81dd81
+index 000000000000..b4109ae23e96
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev4.dts
-@@ -0,0 +1,25 @@
+@@ -0,0 +1,26 @@
 +/*
 + * National Instruments Ettus Research Project Sulfur SDR Revision 4
 + *
@@ -241,6 +241,7 @@ index 000000000000..a9a83b81dd81
 +		tpm: tpm@29 {
 +			compatible = "atmel,at97sc3205t", "atmel,at97sc3204t";
 +			reg = <0x29>;
++			reset-gpios = <&gpio0 6 GPIO_ACTIVE_LOW>;
 +		};
 +	};
 +};
