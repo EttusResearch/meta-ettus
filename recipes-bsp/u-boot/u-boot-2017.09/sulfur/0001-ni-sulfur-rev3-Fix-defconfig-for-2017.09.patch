@@ -1,0 +1,57 @@
+From 1c31e98dd6879546d2ef407be7fdea3578ea313b Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Wed, 1 Nov 2017 17:58:33 -0700
+Subject: [PATCH] ni: sulfur-rev3: Fix defconfig for 2017.09
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ configs/ni_sulfur_rev3_defconfig | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/configs/ni_sulfur_rev3_defconfig b/configs/ni_sulfur_rev3_defconfig
+index 594ab7a86c..d22b246e86 100644
+--- a/configs/ni_sulfur_rev3_defconfig
++++ b/configs/ni_sulfur_rev3_defconfig
+@@ -2,15 +2,18 @@ CONFIG_ARM=y
+ CONFIG_SYS_VENDOR="ni"
+ CONFIG_SYS_CONFIG_NAME="ni_sulfur_rev3"
+ CONFIG_ARCH_ZYNQ=y
++CONFIG_SYS_TEXT_BASE=0x4000000
+ CONFIG_DEFAULT_DEVICE_TREE="zynq-ni-sulfur-rev3"
+ CONFIG_SYS_EXTRA_OPTIONS="ENV_IS_IN_MMC"
+ CONFIG_FIT=y
++CONFIG_BOOTSTAGE_STASH_SIZE=4096
+ # CONFIG_DISPLAY_CPUINFO is not set
+ CONFIG_SPL=y
+ CONFIG_HUSH_PARSER=y
+ CONFIG_SYS_PROMPT="ni-sulfur-rev3> "
+ # CONFIG_CMD_IMLS is not set
+ CONFIG_CMD_MEMTEST=y
++CONFIG_CMD_SPL_NAND_OFS=0x0
+ CONFIG_CMD_MEMINFO=y
+ # CONFIG_CMD_FLASH is not set
+ CONFIG_CMD_MMC=y
+@@ -34,6 +37,7 @@ CONFIG_CMD_EXT4=y
+ CONFIG_CMD_EXT4_WRITE=y
+ CONFIG_CMD_FAT=y
+ CONFIG_CMD_FS_GENERIC=y
++CONFIG_OF_SPL_REMOVE_PROPS="pinctrl-0 pinctrl-names clocks clock-names interrupt-parent"
+ CONFIG_NET_RANDOM_ETHADDR=y
+ CONFIG_SPL_DM_SEQ_ALIAS=y
+ CONFIG_DFU_MMC=y
+@@ -42,7 +46,6 @@ CONFIG_DM_I2C=y
+ CONFIG_I2C_CROS_EC_TUNNEL=y
+ CONFIG_DM_I2C_GPIO=y
+ CONFIG_SYS_I2C_CADENCE=y
+-CONFIG_SYS_NOFLASH=y
+ CONFIG_I2C_MUX=y
+ CONFIG_I2C_MUX_PCA954x=y
+ CONFIG_MISC=y
+@@ -70,3 +73,4 @@ CONFIG_AUTOBOOT_KEYED=y
+ CONFIG_AUTOBOOT_PROMPT="autobooting in %d seconds...\nType <stop> to stop or <delay> to delay\n"
+ CONFIG_AUTOBOOT_STOP_STR="stop"
+ CONFIG_AUTOBOOT_DELAY_STR="delay"
++CONFIG_OF_LIBFDT_OVERLAY=y
+-- 
+2.14.2
+

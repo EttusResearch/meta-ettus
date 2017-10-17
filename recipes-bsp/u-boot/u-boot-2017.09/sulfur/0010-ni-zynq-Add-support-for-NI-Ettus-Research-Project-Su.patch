@@ -14,13 +14,13 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  arch/arm/dts/zynq-ni-sulfur-rev2.dts             | 276 ++++++++++++++++++++
  board/ni/zynq/MAINTAINERS                        |   6 +
  board/ni/zynq/Makefile                           |  10 +
- board/ni/zynq/board.c                            | 202 +++++++++++++++
+ board/ni/zynq/board.c                            | 203 +++++++++++++++
  board/ni/zynq/ps7_init_common.c                  | 119 +++++++++
  board/ni/zynq/ps7_init_gpl.h                     |  34 +++
  board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c | 313 +++++++++++++++++++++++
  configs/ni_sulfur_rev2_defconfig                 |  69 +++++
  include/configs/ni_sulfur_rev2.h                 |  64 +++++
- 11 files changed, 1110 insertions(+)
+ 11 files changed, 1111 insertions(+)
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev2-uboot.dtsi
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev2.dts
  create mode 100644 board/ni/zynq/MAINTAINERS
@@ -33,20 +33,20 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  create mode 100644 include/configs/ni_sulfur_rev2.h
 
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
-index 3ee608b..33d3b13 100644
+index fee4680057..5687099934 100644
 --- a/arch/arm/dts/Makefile
 +++ b/arch/arm/dts/Makefile
-@@ -99,6 +99,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb \
+@@ -128,6 +128,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb \
  	zynq-zed.dtb \
  	zynq-zybo.dtb \
  	zynq-microzed.dtb \
 +	zynq-ni-sulfur-rev2.dtb \
  	zynq-picozed.dtb \
  	zynq-topic-miami.dtb \
- 	zynq-topic-miamiplus.dtb \
+ 	zynq-topic-miamilite.dtb \
 diff --git a/arch/arm/dts/zynq-ni-sulfur-rev2-uboot.dtsi b/arch/arm/dts/zynq-ni-sulfur-rev2-uboot.dtsi
 new file mode 100644
-index 0000000..28344c5
+index 0000000000..28344c57c3
 --- /dev/null
 +++ b/arch/arm/dts/zynq-ni-sulfur-rev2-uboot.dtsi
 @@ -0,0 +1,16 @@
@@ -68,7 +68,7 @@ index 0000000..28344c5
 +};
 diff --git a/arch/arm/dts/zynq-ni-sulfur-rev2.dts b/arch/arm/dts/zynq-ni-sulfur-rev2.dts
 new file mode 100644
-index 0000000..f844f1a
+index 0000000000..f844f1af21
 --- /dev/null
 +++ b/arch/arm/dts/zynq-ni-sulfur-rev2.dts
 @@ -0,0 +1,276 @@
@@ -350,7 +350,7 @@ index 0000000..f844f1a
 +#include "zynq-ni-sulfur-rev2-uboot.dtsi"
 diff --git a/board/ni/zynq/MAINTAINERS b/board/ni/zynq/MAINTAINERS
 new file mode 100644
-index 0000000..ff7595e
+index 0000000000..ff7595e602
 --- /dev/null
 +++ b/board/ni/zynq/MAINTAINERS
 @@ -0,0 +1,6 @@
@@ -362,7 +362,7 @@ index 0000000..ff7595e
 +F:	configs/ni_*_defconfig
 diff --git a/board/ni/zynq/Makefile b/board/ni/zynq/Makefile
 new file mode 100644
-index 0000000..eaf59cd
+index 0000000000..eaf59cd55c
 --- /dev/null
 +++ b/board/ni/zynq/Makefile
 @@ -0,0 +1,10 @@
@@ -378,10 +378,10 @@ index 0000000..eaf59cd
 +obj-$(CONFIG_SPL_BUILD) += $(hw-platform-y)/ps7_init_gpl.o ps7_init_common.o
 diff --git a/board/ni/zynq/board.c b/board/ni/zynq/board.c
 new file mode 100644
-index 0000000..a8596e1
+index 0000000000..f719885403
 --- /dev/null
 +++ b/board/ni/zynq/board.c
-@@ -0,0 +1,202 @@
+@@ -0,0 +1,203 @@
 +/*
 + * (C) Copyright 2012 Michal Simek <monstr@monstr.eu>
 + *
@@ -435,10 +435,9 @@ index 0000000..a8596e1
 +		return 0;
 +	}
 +
-+	node = fdt_subnode_offset(blob, zynq_gpio->of_offset,
-+				  "sys_pwron_33");
++	node = fdt_subnode_offset(blob, dev_of_offset(zynq_gpio), "sys_pwron_33");
 +
-+	ret = gpio_request_by_name_nodev(blob, node, "gpios", 0,
++	ret = gpio_request_by_name_nodev(offset_to_ofnode(node), "gpios", 0,
 +					 &sys_pwron_33, 0);
 +	if (ret < 0) {
 +		printf("Failed to request 'sys_pwron_33' gpio.\n");
@@ -512,22 +511,22 @@ index 0000000..a8596e1
 +{
 +	switch ((zynq_slcr_get_boot_mode()) & ZYNQ_BM_MASK) {
 +	case ZYNQ_BM_QSPI:
-+		setenv("modeboot", "qspiboot");
++		env_set("modeboot", "qspiboot");
 +		break;
 +	case ZYNQ_BM_NAND:
-+		setenv("modeboot", "nandboot");
++		env_set("modeboot", "nandboot");
 +		break;
 +	case ZYNQ_BM_NOR:
-+		setenv("modeboot", "norboot");
++		env_set("modeboot", "norboot");
 +		break;
 +	case ZYNQ_BM_SD:
-+		setenv("modeboot", "sdboot");
++		env_set("modeboot", "sdboot");
 +		break;
 +	case ZYNQ_BM_JTAG:
-+		setenv("modeboot", "jtagboot");
++		env_set("modeboot", "jtagboot");
 +		break;
 +	default:
-+		setenv("modeboot", "");
++		env_set("modeboot", "");
 +		break;
 +	}
 +
@@ -560,9 +559,11 @@ index 0000000..a8596e1
 +}
 +
 +#if !defined(CONFIG_SYS_SDRAM_BASE) && !defined(CONFIG_SYS_SDRAM_SIZE)
-+void dram_init_banksize(void)
++int dram_init_banksize(void)
 +{
 +	fdtdec_setup_memory_banksize();
++
++	return 0;
 +}
 +
 +int dram_init(void)
@@ -586,7 +587,7 @@ index 0000000..a8596e1
 +#endif
 diff --git a/board/ni/zynq/ps7_init_common.c b/board/ni/zynq/ps7_init_common.c
 new file mode 100644
-index 0000000..b182436
+index 0000000000..b182436e9f
 --- /dev/null
 +++ b/board/ni/zynq/ps7_init_common.c
 @@ -0,0 +1,119 @@
@@ -711,7 +712,7 @@ index 0000000..b182436
 +}
 diff --git a/board/ni/zynq/ps7_init_gpl.h b/board/ni/zynq/ps7_init_gpl.h
 new file mode 100644
-index 0000000..ef719ac
+index 0000000000..ef719acaba
 --- /dev/null
 +++ b/board/ni/zynq/ps7_init_gpl.h
 @@ -0,0 +1,34 @@
@@ -751,7 +752,7 @@ index 0000000..ef719ac
 +int ps7_config(unsigned long *ps7_config_init);
 diff --git a/board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c b/board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c
 new file mode 100644
-index 0000000..43a9655
+index 0000000000..43a9655bb2
 --- /dev/null
 +++ b/board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c
 @@ -0,0 +1,313 @@
@@ -1070,7 +1071,7 @@ index 0000000..43a9655
 +}
 diff --git a/configs/ni_sulfur_rev2_defconfig b/configs/ni_sulfur_rev2_defconfig
 new file mode 100644
-index 0000000..2970d0a
+index 0000000000..ee5af861a7
 --- /dev/null
 +++ b/configs/ni_sulfur_rev2_defconfig
 @@ -0,0 +1,69 @@
@@ -1125,7 +1126,7 @@ index 0000000..2970d0a
 +CONFIG_CROS_EC=y
 +CONFIG_CROS_EC_SPI=y
 +CONFIG_I2C_EEPROM=y
-+CONFIG_ZYNQ_SDHCI=y
++CONFIG_MMC_SDHCI_ZYNQ=y
 +CONFIG_MMC_SDHCI=y
 +CONFIG_ZYNQ_GEM=y
 +CONFIG_ZYNQ_SPI=y
@@ -1145,7 +1146,7 @@ index 0000000..2970d0a
 +CONFIG_TPM=y
 diff --git a/include/configs/ni_sulfur_rev2.h b/include/configs/ni_sulfur_rev2.h
 new file mode 100644
-index 0000000..1165104
+index 0000000000..1165104829
 --- /dev/null
 +++ b/include/configs/ni_sulfur_rev2.h
 @@ -0,0 +1,64 @@
@@ -1214,5 +1215,5 @@ index 0000000..1165104
 +
 +#endif /* __CONFIG_NI_SULFUR_REV2 */
 -- 
-2.7.4
+2.14.2
 

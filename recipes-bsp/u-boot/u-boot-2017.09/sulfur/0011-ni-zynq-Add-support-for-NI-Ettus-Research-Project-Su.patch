@@ -16,8 +16,8 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  board/ni/zynq/sulfur-eeprom.h                    |  66 +++++
  board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c | 307 +++++++++++++++++++++++
  configs/ni_sulfur_rev3_defconfig                 |  68 +++++
- include/configs/ni_sulfur_rev3.h                 |  41 +++
- 8 files changed, 842 insertions(+)
+ include/configs/ni_sulfur_rev3.h                 |  43 ++++
+ 8 files changed, 844 insertions(+)
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev3.dts
  create mode 100644 board/ni/zynq/sulfur-eeprom.h
@@ -26,20 +26,20 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  create mode 100644 include/configs/ni_sulfur_rev3.h
 
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
-index 33d3b13..7538cca 100644
+index 5687099934..69870216b1 100644
 --- a/arch/arm/dts/Makefile
 +++ b/arch/arm/dts/Makefile
-@@ -100,6 +100,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb \
+@@ -129,6 +129,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb \
  	zynq-zybo.dtb \
  	zynq-microzed.dtb \
  	zynq-ni-sulfur-rev2.dtb \
 +	zynq-ni-sulfur-rev3.dtb \
  	zynq-picozed.dtb \
  	zynq-topic-miami.dtb \
- 	zynq-topic-miamiplus.dtb \
+ 	zynq-topic-miamilite.dtb \
 diff --git a/arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi b/arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi
 new file mode 100644
-index 0000000..9a8b4e7
+index 0000000000..9a8b4e7e14
 --- /dev/null
 +++ b/arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi
 @@ -0,0 +1,26 @@
@@ -71,7 +71,7 @@ index 0000000..9a8b4e7
 +};
 diff --git a/arch/arm/dts/zynq-ni-sulfur-rev3.dts b/arch/arm/dts/zynq-ni-sulfur-rev3.dts
 new file mode 100644
-index 0000000..6812731
+index 0000000000..6812731a8b
 --- /dev/null
 +++ b/arch/arm/dts/zynq-ni-sulfur-rev3.dts
 @@ -0,0 +1,295 @@
@@ -371,7 +371,7 @@ index 0000000..6812731
 +
 +#include "zynq-ni-sulfur-rev3-uboot.dtsi"
 diff --git a/board/ni/zynq/board.c b/board/ni/zynq/board.c
-index a8596e1..50df040 100644
+index f719885403..0d3b8db899 100644
 --- a/board/ni/zynq/board.c
 +++ b/board/ni/zynq/board.c
 @@ -14,6 +14,9 @@
@@ -384,7 +384,7 @@ index a8596e1..50df040 100644
  DECLARE_GLOBAL_DATA_PTR;
  
  #if (defined(CONFIG_FPGA) && !defined(CONFIG_SPL_BUILD)) || \
-@@ -162,6 +165,39 @@ int checkboard(void)
+@@ -161,6 +164,39 @@ int checkboard(void)
  }
  #endif
  
@@ -424,7 +424,7 @@ index a8596e1..50df040 100644
  int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
  {
  #if defined(CONFIG_ZYNQ_GEM_EEPROM_ADDR) && \
-@@ -172,6 +208,8 @@ int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
+@@ -171,6 +207,8 @@ int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
  		printf("I2C EEPROM MAC address read failed\n");
  #endif
  
@@ -435,7 +435,7 @@ index a8596e1..50df040 100644
  
 diff --git a/board/ni/zynq/sulfur-eeprom.h b/board/ni/zynq/sulfur-eeprom.h
 new file mode 100644
-index 0000000..58d2cf8
+index 0000000000..58d2cf8737
 --- /dev/null
 +++ b/board/ni/zynq/sulfur-eeprom.h
 @@ -0,0 +1,66 @@
@@ -507,7 +507,7 @@ index 0000000..58d2cf8
 +#endif /* NI_ZYNQ_SULFUR_EEPROM_H */
 diff --git a/board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c b/board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c
 new file mode 100644
-index 0000000..56a866b
+index 0000000000..56a866b39f
 --- /dev/null
 +++ b/board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c
 @@ -0,0 +1,307 @@
@@ -820,7 +820,7 @@ index 0000000..56a866b
 +}
 diff --git a/configs/ni_sulfur_rev3_defconfig b/configs/ni_sulfur_rev3_defconfig
 new file mode 100644
-index 0000000..2a6a519
+index 0000000000..56b2726cb7
 --- /dev/null
 +++ b/configs/ni_sulfur_rev3_defconfig
 @@ -0,0 +1,68 @@
@@ -875,7 +875,7 @@ index 0000000..2a6a519
 +CONFIG_CROS_EC=y
 +CONFIG_CROS_EC_I2C=y
 +CONFIG_I2C_EEPROM=y
-+CONFIG_ZYNQ_SDHCI=y
++CONFIG_MMC_SDHCI_ZYNQ=y
 +CONFIG_MMC_SDHCI=y
 +CONFIG_ZYNQ_GEM=y
 +CONFIG_ZYNQ_SPI=y
@@ -894,10 +894,10 @@ index 0000000..2a6a519
 +CONFIG_TPM=y
 diff --git a/include/configs/ni_sulfur_rev3.h b/include/configs/ni_sulfur_rev3.h
 new file mode 100644
-index 0000000..609eebe
+index 0000000000..e3d5fec445
 --- /dev/null
 +++ b/include/configs/ni_sulfur_rev3.h
-@@ -0,0 +1,41 @@
+@@ -0,0 +1,43 @@
 +/*
 + * (C) Copyright 2017 National Instruments
 + *
@@ -910,7 +910,9 @@ index 0000000..609eebe
 +#ifndef __CONFIG_NI_SULFUR_REV3
 +#define __CONFIG_NI_SULFUR_REV3
 +
++#ifndef CONFIG_ENV_IS_NOWHERE
 +#define CONFIG_ENV_IS_NOWHERE
++#endif
 +#include "zynq-common.h"
 +#undef CONFIG_ENV_IS_NOWHERE
 +
@@ -940,5 +942,5 @@ index 0000000..609eebe
 +
 +#endif /* __CONFIG_NI_SULFUR_REV3 */
 -- 
-2.7.4
+2.14.2
 
