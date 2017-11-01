@@ -49,6 +49,7 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     openocd \
     salt-minion \
     trousers \
+    tpm-tools \
     "
 
 inherit core-image image-buildinfo
