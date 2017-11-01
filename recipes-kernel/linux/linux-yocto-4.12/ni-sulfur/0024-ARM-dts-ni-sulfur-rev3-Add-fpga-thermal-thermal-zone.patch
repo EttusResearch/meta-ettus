@@ -1,0 +1,89 @@
+From fb9d80e0d797ba55a8654cf92ab4e4748a536739 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Tue, 11 Jul 2017 10:15:21 -0700
+Subject: [PATCH 24/34] ARM: dts: ni-sulfur-rev3: Add fpga-thermal thermal zone
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts | 65 +++++++++++++++++++++++++++++++
+ 1 file changed, 65 insertions(+)
+
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
+index a15fe06c9da7..c1670798169b 100644
+--- a/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
+@@ -70,6 +70,71 @@
+ 		reset-gpios = <&gpio0 51 GPIO_ACTIVE_LOW>;
+ 	};
+ 
++	thermal_zones: thermal-zones {
++		fpga_thermal: fpga-thermal-zone {
++			polling-delay-passive = <5000>;
++			polling-delay = <5000>;
++
++			thermal-sensors = <&thermal0 1>;
++
++			trips  {
++				fpga_alert0: fpga-alert0 {
++					temperature = <30000>; /* millicelsius */
++					hysteresis = <2000>;   /* millicelsius */
++					type = "active";
++				};
++
++				fpga_alert1: fpga-alert1 {
++					temperature = <50000>; /* millicelsius */
++					hysteresis = <2000>;   /* millicelsius */
++					type = "active";
++				};
++
++				fpga_alert2: fpga-alert2 {
++					temperature = <100000>; /* millicelsius */
++					hysteresis = <2000>;    /* millicelsius */
++					type = "active";
++				};
++
++
++				fpga_crit: fpga-crit {
++					temperature = <125000>; /* millicelsius */
++					hysteresis = <2000>;    /* millicelsius */
++					type = "critical";
++				};
++
++			};
++
++			cooling-maps {
++				map0 {
++					trip = <&fpga_alert0>;
++					cooling-device = <&fan0 0 6000>;
++					contribution = <100>;
++				};
++
++				map1 {
++					trip = <&fpga_alert1>;
++					cooling-device = <&fan0 6000 8000>;
++					contribution = <100>;
++				};
++
++				map2 {
++					trip = <&fpga_alert2>;
++					cooling-device = <&fan0 8000 12500>;
++					contribution = <100>;
++				};
++
++				map3 {
++					trip = <&fpga_crit>;
++					cooling-device = <&fan0 12500 12500>;
++					contribution = <100>;
++				};
++
++			};
++		};
++
++	};
++
+ };
+ 
+ &cpu0 {
+-- 
+2.14.2
+

@@ -1,0 +1,86 @@
+From 4c585175bf36bdd674e060421e93fba255beca3d Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Mon, 10 Jul 2017 15:08:20 -0700
+Subject: [PATCH 20/34] hwmon: lm95234: Add thermal support
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ drivers/hwmon/lm95234.c | 48 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 48 insertions(+)
+
+diff --git a/drivers/hwmon/lm95234.c b/drivers/hwmon/lm95234.c
+index c7fcc9e7f57a..9b93f862e0d3 100644
+--- a/drivers/hwmon/lm95234.c
++++ b/drivers/hwmon/lm95234.c
+@@ -27,6 +27,7 @@
+ #include <linux/err.h>
+ #include <linux/mutex.h>
+ #include <linux/sysfs.h>
++#include <linux/thermal.h>
+ 
+ #define DRVNAME "lm95234"
+ 
+@@ -713,6 +714,49 @@ static int lm95234_init_client(struct i2c_client *client)
+ 	return 0;
+ }
+ 
++struct lm95234_thermal_sensor {
++	struct lm95234_data *data;
++	int index;
++};
++
++static int lm95234_thermal_get_temp(void *data, int *temp)
++{
++	struct lm95234_thermal_sensor *sensor = data;
++	struct lm95234_data *ldata = sensor->data;
++
++	int ret = lm95234_update_device(ldata);
++	if (ret)
++		return ret;
++	*temp = DIV_ROUND_CLOSEST(ldata->temp[sensor->index] * 125, 32);
++
++	return 0;
++}
++
++const static struct thermal_zone_of_device_ops tzd_ops = {
++	.get_temp = lm95234_thermal_get_temp,
++};
++
++static int lm95234_setup_thermal_device(struct device *dev,
++					struct lm95234_data *data)
++					//struct device_node *zone)
++{
++	struct lm95234_thermal_sensor *sensor;
++	int i;
++
++	for (i = 0; i < 5; ++i) {
++		sensor = devm_kzalloc(dev, sizeof(*sensor), GFP_KERNEL);
++		if (!sensor)
++			return -ENOMEM;
++
++		sensor->data = data;
++		sensor->index = i;
++
++		devm_thermal_zone_of_sensor_register(dev, i, sensor, &tzd_ops);
++	}
++
++	return 0;
++}
++
+ static int lm95234_probe(struct i2c_client *client,
+ 			 const struct i2c_device_id *id)
+ {
+@@ -733,6 +777,10 @@ static int lm95234_probe(struct i2c_client *client,
+ 	if (err < 0)
+ 		return err;
+ 
++	err = lm95234_setup_thermal_device(dev, data);
++	if (err)
++		return err;
++
+ 	data->groups[0] = &lm95234_common_group;
+ 	if (id->driver_data == lm95234)
+ 		data->groups[1] = &lm95234_group;
+-- 
+2.14.2
+

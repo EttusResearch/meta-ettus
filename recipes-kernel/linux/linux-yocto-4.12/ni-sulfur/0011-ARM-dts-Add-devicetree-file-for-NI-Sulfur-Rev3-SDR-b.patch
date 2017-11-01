@@ -1,0 +1,302 @@
+From 94067d0c551ef46d2235c88ec36dfd650236af1a Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Thu, 30 Mar 2017 17:53:33 -0700
+Subject: [PATCH 11/34] ARM: dts: Add devicetree file for NI Sulfur Rev3 SDR
+ board
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ arch/arm/boot/dts/Makefile                |   1 +
+ arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts | 268 ++++++++++++++++++++++++++++++
+ 2 files changed, 269 insertions(+)
+ create mode 100644 arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
+
+diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
+index 6efe6cdbe7ce..f6eb14290d48 100644
+--- a/arch/arm/boot/dts/Makefile
++++ b/arch/arm/boot/dts/Makefile
+@@ -985,6 +985,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
+ 	zynq-zc706.dtb \
+ 	zynq-zed.dtb \
+ 	zynq-ni-sulfur-rev2.dtb \
++	zynq-ni-sulfur-rev3.dtb \
+ 	zynq-zybo.dtb
+ dtb-$(CONFIG_MACH_ARMADA_370) += \
+ 	armada-370-db.dtb \
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
+new file mode 100644
+index 000000000000..2d75ab1820ad
+--- /dev/null
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
+@@ -0,0 +1,268 @@
++/*
++ * National Instruments Ettus Research Project Sulfur SDR Revision 3
++ *
++ * Copyright (c) 2016,2017 National Instruments Corp.
++ *
++ * SPDX-License-Identifier: (GPL-2.0 OR X11)
++ */
++
++/dts-v1/;
++
++#include <dt-bindings/input/input.h>
++#include <dt-bindings/interrupt-controller/irq.h>
++#include <dt-bindings/gpio/gpio.h>
++#include "zynq-7000.dtsi"
++
++/ {
++	model = "NI Ettus Research Project Sulfur SDR Rev3";
++	compatible = "ettus,zynq-sulfur-rev3", "xlnx,zynq-7000";
++
++	aliases {
++		ethernet0 = &gem0;
++		serial0 = &uart0;
++		serial1 = &uart1;
++		spi0 = &spi0;
++		spi1 = &spi1;
++		i2c0 = &i2c0;
++		i2c1 = &i2c1;
++		i2c2 = &tun;
++	};
++
++	memory {
++		device_type = "memory";
++		reg = <0x0 0x40000000>;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	gpio-keys {
++		compatible = "gpio-keys";
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		power-button {
++			label = "Power Button";
++			linux,code = <KEY_POWER>;
++			gpios = <&gpio0 1 GPIO_ACTIVE_HIGH>;
++		};
++	};
++
++	gpio-poweroff {
++		compatible = "gpio-poweroff";
++		gpios = <&gpio0 3 GPIO_ACTIVE_LOW>;
++	};
++
++	leds {
++		compatible = "gpio-leds";
++		led0 {
++			label = "sulfur:ledp";
++			gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;
++			linux,default-trigger = "heartbeat";
++			default-state = "keep";
++		};
++	};
++
++	usb_phy0: phy0 {
++		compatible = "usb-nop-xceiv";
++		#phy-cells = <0>;
++		reset-gpios = <&gpio0 51 GPIO_ACTIVE_LOW>;
++	};
++
++};
++
++&cpu0 {
++	operating-points = <800000 1000000>;
++};
++
++&sdhci0 {
++	status = "okay";
++};
++
++&uart0 {
++	status = "okay";
++};
++
++&uart1 {
++	status = "okay";
++};
++
++/* we use the ARM global timer */
++&ttc0 {
++	status = "disabled";
++};
++
++/* we use the ARM global timer */
++&ttc1 {
++	status = "disabled";
++};
++
++&i2c0 {
++	status = "okay";
++	clock-frequency = <400000>;
++
++	i2c_switch0: i2cswitch@70 {
++		compatible = "ti,pca9548";
++		#address-cells = <1>;
++		#size-cells = <0>;
++		reg = <0x70>;
++
++		reset-gpios = <&gpio0 7 GPIO_ACTIVE_LOW>;
++
++		i2c@3 {
++			reg = <3>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			gpio1: gpio@22 {
++				compatible = "ti,tca6424";
++				reg = <0x22>;
++				gpio-controller;
++				#gpio-cells = <2>;
++			};
++		};
++
++		i2c@5 {
++			reg = <5>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			rtc0: rtc@68 {
++				compatible = "dallas,ds1374";
++				reg = <0x68>;
++				reset-on-timeout;
++				trickle-resistor-ohms = <250>;
++				trickle-diode-disable;
++				timeout-sec = <10>;
++			};
++		};
++
++		usrpio_i2c0: i2c@6 {
++			reg = <6>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			eeprom@50 {
++				compatible = "atmel,24c256";
++				reg = <0x50>;
++			};
++		};
++
++		usrpio_i2c1: i2c@7 {
++			reg = <7>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			eeprom@50 {
++				compatible = "atmel,24c256";
++				reg = <0x50>;
++			};
++
++		};
++	};
++};
++
++&i2c1 {
++	status = "okay";
++	clock-frequency = <400000>;
++
++	embedded-controller@1e {
++		reg = <0x1e>;
++		compatible = "ni,embedded-controller-i2c",
++			     "google,cros-ec-i2c";
++		interrupts = <0 IRQ_TYPE_EDGE_FALLING>;
++		interrupt-parent = <&gpio0>;
++		google,has-vbc-nvram;
++
++		wakeup-source;
++
++		tun: i2c-tunnel {
++			compatible = "google,cros-ec-i2c-tunnel";
++			#address-cells = <1>;
++			#size-cells = <0>;
++			google,remote-bus = <0>;
++			clock-frequency = <100000>;
++
++			eeprom@50 {
++				compatible = "at24,24c02";
++				reg = <0x50>;
++				#address-cells = <1>;
++				#size-cells = <0>;
++				read-only;
++
++				eth0_addr: eth-addr@24 {
++					reg = <0x24 0x6>;
++				};
++
++				eth1_addr: eth-addr@2c {
++					reg = <0x2c 0x6>;
++				};
++
++				eth2_addr: eth-addr@34 {
++					reg = <0x34 0x6>;
++				};
++			};
++		};
++	};
++
++};
++
++&gpio0 {
++	status = "okay";
++
++	ledn {
++		gpio-hog;
++		gpios = <4 GPIO_ACTIVE_LOW>;
++		output-high;
++	};
++};
++
++&clkc {
++	ps-clk-frequency = <33333333>;
++	fclk-enable = <0xf>;
++};
++
++&spi0 {
++	status = "disabled";
++};
++
++&spi1 {
++	status = "disabled";
++};
++
++&gem0 {
++	status = "okay";
++	phy-mode = "rgmii-id";
++	phy-handle = <&ethernet_phy0>;
++
++	nvmem-cells = <&eth0_addr>;
++	nvmem-cell-names = "address";
++
++	ethernet_phy0: ethernet-phy@0 {
++		reg = <0>;
++		marvell,reg-init = <3 0x10 0x0f0f 0x01>;
++		reset-gpios = <&gpio0 50 GPIO_ACTIVE_LOW>;
++	};
++};
++
++&usb0 {
++	status = "okay";
++	dr_mode = "host";
++	usb-phy = <&usb_phy0>;
++};
++
++&amba {
++	fpga_region0: fpga-region@40000000 {
++		compatible = "fpga-region";
++		fpga-mgr = <&devcfg>;
++		#address-cells = <0x1>;
++		#size-cells = <0x1>;
++		ranges;
++	};
++
++	ocm: sram@fffc0000 {
++		compatible = "mmio-sram";
++		reg = <0xfffc0000 0x10000>;
++	};
++};
+-- 
+2.14.2
+

@@ -15,7 +15,7 @@ MACHINE_EXTRA_RRECOMMENDS = "kernel-modules \
 KERNEL_CLASSES += "kernel-fitimage"
 KERNEL_IMAGETYPE = "fitImage"
 
-PREFERRED_VERSION_linux-yocto = "4.10.%"
+PREFERRED_VERSION_linux-yocto = "4.12.%"
 
 MACHINE_EXTRA_RRECOMMENDS = " \
                              kernel-modules \

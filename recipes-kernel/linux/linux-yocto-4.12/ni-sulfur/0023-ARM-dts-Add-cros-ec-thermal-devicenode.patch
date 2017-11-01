@@ -1,0 +1,47 @@
+From 85788b5b63a7c153d1446c8d0aa3913d11a9f399 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Tue, 11 Jul 2017 10:14:33 -0700
+Subject: [PATCH 23/34] ARM: dts: Add cros-ec-thermal devicenode
+
+This adds the cros-ec-thermal devicetree node.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
+index 2d75ab1820ad..a15fe06c9da7 100644
+--- a/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
+@@ -177,6 +177,27 @@
+ 
+ 		wakeup-source;
+ 
++		thermal0: thermal {
++			compatible = "google,cros-ec-thermal";
++			#thermal-sensor-cells = <1>;
++
++			fans {
++				fan0: fan@0 {
++					compatible = "google,cros-ec-fan";
++					#cooling-cells = <2>;
++					cooling-min-state = <3300>;
++					cooling-max-state = <12500>;
++				};
++
++				fan1: fan@1 {
++					compatible = "google,cros-ec-fan";
++					#cooling-cells = <2>;
++					cooling-min-state = <3300>;
++					cooling-max-state = <12500>;
++				};
++			};
++		};
++
+ 		tun: i2c-tunnel {
+ 			compatible = "google,cros-ec-i2c-tunnel";
+ 			#address-cells = <1>;
+-- 
+2.14.2
+

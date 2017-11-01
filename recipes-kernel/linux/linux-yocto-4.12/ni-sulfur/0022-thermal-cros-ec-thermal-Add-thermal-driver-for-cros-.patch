@@ -1,0 +1,395 @@
+From c2004ad2fe1f43dd8ea1952149239d1739a803f1 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Tue, 11 Jul 2017 10:11:25 -0700
+Subject: [PATCH 22/34] thermal: cros-ec-thermal: Add thermal driver for
+ cros-ec
+
+This adds a thermal framework driver for the chromium-ec
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ drivers/thermal/Kconfig              |   8 +
+ drivers/thermal/Makefile             |   1 +
+ drivers/thermal/cros-ec-thermal.c    | 322 +++++++++++++++++++++++++++++++++++
+ include/linux/mfd/cros_ec_commands.h |   5 +
+ 4 files changed, 336 insertions(+)
+ create mode 100644 drivers/thermal/cros-ec-thermal.c
+
+diff --git a/drivers/thermal/Kconfig b/drivers/thermal/Kconfig
+index b5b5facb8747..bce29cedf0bd 100644
+--- a/drivers/thermal/Kconfig
++++ b/drivers/thermal/Kconfig
+@@ -164,6 +164,14 @@ config CLOCK_THERMAL
+ 	  device that is configured to use this cooling mechanism will be
+ 	  controlled to reduce clock frequency whenever temperature is high.
+ 
++config CROS_EC_THERMAL
++	tristate "Thermal control for Google Chromebooks"
++	depends on MFD_CROS_EC
++	depends on OF
++	help
++	  Support for the Google Chromebook thermal sensor driver into the Linux thermal
++	  framework.
++
+ config DEVFREQ_THERMAL
+ 	bool "Generic device cooling support"
+ 	depends on PM_DEVFREQ
+diff --git a/drivers/thermal/Makefile b/drivers/thermal/Makefile
+index 094d7039981c..471bea0deb34 100644
+--- a/drivers/thermal/Makefile
++++ b/drivers/thermal/Makefile
+@@ -35,6 +35,7 @@ obj-$(CONFIG_RCAR_THERMAL)	+= rcar_thermal.o
+ obj-$(CONFIG_RCAR_GEN3_THERMAL)	+= rcar_gen3_thermal.o
+ obj-$(CONFIG_KIRKWOOD_THERMAL)  += kirkwood_thermal.o
+ obj-y				+= samsung/
++obj-$(CONFIG_CROS_EC_THERMAL)  	+= cros-ec-thermal.o
+ obj-$(CONFIG_DOVE_THERMAL)  	+= dove_thermal.o
+ obj-$(CONFIG_DB8500_THERMAL)	+= db8500_thermal.o
+ obj-$(CONFIG_ARMADA_THERMAL)	+= armada_thermal.o
+diff --git a/drivers/thermal/cros-ec-thermal.c b/drivers/thermal/cros-ec-thermal.c
+new file mode 100644
+index 000000000000..549e72dc195e
+--- /dev/null
++++ b/drivers/thermal/cros-ec-thermal.c
+@@ -0,0 +1,322 @@
++/* cros_ec_thermal.c - Google Chromium EC Thermal driver
++ *
++ * Copyright (c) 2017, National Instruments Corp.
++ *
++ * Authors:
++ *	Moritz Fischer <mdf@kernel.org>
++ *
++ * This program is free software; you can redistribute it and/or modify it
++ * under the terms and conditions of the GNU General Public License,
++ * version 2, as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
++ *
++ */
++
++#include <linux/device.h>
++#include <linux/err.h>
++#include <linux/io.h>
++#include <linux/kernel.h>
++#include <linux/of.h>
++#include <linux/module.h>
++#include <linux/delay.h>
++#include <linux/mfd/cros_ec.h>
++#include <linux/mfd/cros_ec_commands.h>
++#include <linux/of_device.h>
++#include <linux/platform_device.h>
++#include <linux/thermal.h>
++
++#define REG_TO_MILLICELSIUS(x) ((((int)(x) + EC_TEMP_SENSOR_OFFSET) - 273) \
++				* 1000)
++
++struct cros_ec_fan {
++	struct cros_ec_thermal_data *thermal;
++	int id;
++	int max_speed;
++};
++
++struct cros_ec_thermal_sensor {
++	struct cros_ec_thermal_data *thermal;
++	int id;
++};
++
++#define to_cros_ec_thermal_sensor(x) \
++	container_of((x), struct cros_ec_thermal_sensor, tzd)
++
++struct cros_ec_thermal_data {
++	struct cros_ec_device *ec;
++};
++
++#ifdef CONFIG_OF
++static const struct of_device_id cros_ec_thermal_of_match[] = {
++	{ .compatible = "google,cros-ec-thermal" },
++	{},
++};
++MODULE_DEVICE_TABLE(of, cros_ec_thermal_of_match);
++#endif
++
++static int cros_ec_thermal_get_temp(void *data, int *temp)
++{
++	struct cros_ec_thermal_sensor *sensor = data;
++	struct cros_ec_thermal_data *thermal = sensor->thermal;
++	u8 _temp;
++	int err;
++
++	if (sensor->id < EC_TEMP_SENSOR_ENTRIES)
++		err = thermal->ec->cmd_readmem(thermal->ec,
++					    EC_MEMMAP_TEMP_SENSOR
++					    + 1 * sensor->id,
++					    sizeof(_temp), &_temp);
++	else
++		err = thermal->ec->cmd_readmem(thermal->ec,
++					    EC_MEMMAP_TEMP_SENSOR_B
++					    + 1 * sensor->id,
++					    sizeof(_temp), &_temp);
++	if (err < 0)
++		return err;
++
++	switch (_temp) {
++	case EC_TEMP_SENSOR_NOT_PRESENT:
++	case EC_TEMP_SENSOR_ERROR:
++	case EC_TEMP_SENSOR_NOT_POWERED:
++	case EC_TEMP_SENSOR_NOT_CALIBRATED:
++		return -EIO;
++	}
++
++	*temp = (long)REG_TO_MILLICELSIUS(_temp);
++
++	return 0;
++}
++
++static struct thermal_zone_of_device_ops tzd_ops = {
++	.get_temp = cros_ec_thermal_get_temp,
++};
++
++static int cros_ec_thermal_add_sensor(struct device *dev,
++				      struct cros_ec_thermal_data *data, int id)
++{
++	struct cros_ec_thermal_sensor *sensor;
++
++	sensor = devm_kzalloc(dev, sizeof(*sensor), GFP_KERNEL);
++	if (!sensor)
++		return -ENOMEM;
++
++	sensor->thermal = data;
++	sensor->id = id;
++
++	devm_thermal_zone_of_sensor_register(dev, id, sensor, &tzd_ops);
++
++	return 0;
++}
++
++static int cros_ec_fan_get_max_state(struct thermal_cooling_device *cdev,
++				     unsigned long *state)
++{
++	struct cros_ec_fan *fan = cdev->devdata;
++
++	*state = fan->max_speed;
++
++	return 0;
++}
++
++static int cros_ec_fan_get_cur_state(struct thermal_cooling_device *cdev,
++				     unsigned long *state)
++{
++	struct cros_ec_fan *fan = cdev->devdata;
++	struct cros_ec_thermal_data *thermal = fan->thermal;
++	int err = -EINVAL;
++	u16 rpm;
++
++	err = thermal->ec->cmd_readmem(thermal->ec, EC_MEMMAP_FAN
++				       + 2 * fan->id,
++				       sizeof(rpm), &rpm);
++	switch (rpm) {
++	case EC_FAN_SPEED_STALLED:
++		*state = 0L;
++		break;
++	case EC_FAN_SPEED_NOT_PRESENT:
++		return -ENODEV;
++	default:
++		break;
++	};
++
++	*state = (long)rpm;
++
++	return 0;
++}
++
++static int cros_ec_fan_set_cur_state(struct thermal_cooling_device *cdev,
++				     unsigned long state)
++{
++	struct cros_ec_fan *fan = cdev->devdata;
++	struct cros_ec_thermal_data *thermal = fan->thermal;
++	u8 buffer[sizeof(struct cros_ec_command) +
++		  sizeof(struct ec_params_pwm_set_fan_target_rpm_v1)];
++	struct cros_ec_command *msg = (struct cros_ec_command *)&buffer;
++	struct ec_params_pwm_set_fan_target_rpm_v1 *p_v1
++		= (struct ec_params_pwm_set_fan_target_rpm_v1*)msg->data;
++	int err = 0;
++
++	p_v1->fan_idx = fan->id;
++	p_v1->rpm = state;
++
++	msg->version = 1;
++	msg->command = EC_CMD_PWM_SET_FAN_TARGET_RPM;
++	msg->outsize = sizeof(struct ec_params_pwm_set_fan_target_rpm_v1);
++	msg->insize = 0;
++
++	err = cros_ec_cmd_xfer_status(thermal->ec, msg);
++	if (err < 0)
++		pr_err("Error transferring EC i2c message %d\n", err);
++
++	return err;
++}
++
++static struct thermal_cooling_device_ops tcd_ops = {
++	.get_max_state = cros_ec_fan_get_max_state,
++	.get_cur_state = cros_ec_fan_get_cur_state,
++	.set_cur_state = cros_ec_fan_set_cur_state,
++};
++
++static int cros_ec_thermal_of_add_fan(struct device *dev,
++				      struct device_node *np,
++				      struct cros_ec_thermal_data *data,
++				      int idx)
++{
++	struct cros_ec_fan *fan;
++	struct thermal_cooling_device *cdev;
++	char name[THERMAL_NAME_LENGTH];
++	u32 value;
++	int err;
++
++	fan = devm_kzalloc(dev, sizeof(*fan), GFP_KERNEL);
++	if (!fan)
++		return -ENOMEM;
++
++	err = of_property_read_u32(np, "cooling-max-state", &value);
++	if (err) {
++		dev_err(dev, "missing cooling-max-state\n");
++		return err;
++	}
++	fan->max_speed = value;
++
++	fan->thermal = data;
++	fan->id = idx;
++	snprintf(name, THERMAL_NAME_LENGTH, "ec-fan%u", fan->id);
++
++	cdev = thermal_of_cooling_device_register(np, kstrdup(name, GFP_KERNEL), fan,
++						  &tcd_ops);
++	if (IS_ERR(cdev))
++		return PTR_ERR(cdev);
++
++	return 0;
++}
++
++static int cros_ec_thermal_probe_fans(struct cros_ec_thermal_data *tdata,
++					struct device *dev)
++{
++#if 0
++	int err, idx;
++	u16 data[EC_FAN_SPEED_ENTRIES];
++
++	err = tdata->ec->cmd_readmem(tdata->ec, EC_MEMMAP_FAN,
++				     2 * EC_FAN_SPEED_ENTRIES, &data);
++	if (err < 0)
++		return err;
++
++	for (idx = 0; idx < EC_FAN_SPEED_ENTRIES; idx++)
++		if (data[idx] != EC_FAN_SPEED_NOT_PRESENT)
++			cros_ec_thermal_add_fan(dev, tdata, idx);
++	return idx;
++#endif
++	struct device_node *child, *gchild;
++	int i = 0;
++	int err;
++
++	child = of_get_child_by_name(dev->of_node, "fans");
++	if (!child)
++		return -ENODEV;
++
++	for_each_child_of_node(child, gchild) {
++		err = cros_ec_thermal_of_add_fan(dev, gchild, tdata, i++);
++		if (err)
++			return err;
++	}
++
++	return 0;
++}
++
++static int __cros_ec_thermal_probe_temps(struct cros_ec_thermal_data *tdata)
++{
++	u8 version;
++	int err;
++
++	if (tdata->ec && !tdata->ec->cmd_readmem)
++		return -ENODEV;
++
++	err = tdata->ec->cmd_readmem(tdata->ec, EC_MEMMAP_THERMAL_VERSION,
++				     sizeof(u8), &version);
++
++	/* if we have a read error, or EC_MEMMAP_THERMAL_VERSION is not set,
++	 * most likely we don't have temperature sensors ...
++	 */
++	if (err < 0 || !version)
++		return 0;
++
++	if (version >= 2)
++		return EC_TEMP_SENSOR_ENTRIES + EC_TEMP_SENSOR_B_ENTRIES;
++
++	return EC_TEMP_SENSOR_ENTRIES;
++}
++
++static int cros_ec_thermal_probe(struct platform_device *pdev)
++{
++	struct cros_ec_device *ec = dev_get_drvdata(pdev->dev.parent);
++	struct cros_ec_thermal_data *thermal;
++	int s, num_sensors;
++
++	if (!ec)
++		return -ENODEV;
++
++	thermal = devm_kzalloc(&pdev->dev, sizeof(*thermal), GFP_KERNEL);
++	if (!thermal)
++		return -ENOMEM;
++
++	thermal->ec = ec;
++
++	cros_ec_thermal_probe_fans(thermal, &pdev->dev);
++
++	num_sensors = __cros_ec_thermal_probe_temps(thermal);
++	for (s = 0; s < num_sensors; s++)
++		cros_ec_thermal_add_sensor(&pdev->dev, thermal, s);
++
++	platform_set_drvdata(pdev, thermal);
++
++	return 0;
++}
++
++static int cros_ec_thermal_remove(struct platform_device *pdev)
++{
++	struct cros_ec_thermal_data *thermal = platform_get_drvdata(pdev);
++
++
++	return 0;
++}
++
++static struct platform_driver cros_ec_thermal_driver = {
++	.probe = cros_ec_thermal_probe,
++	.remove = cros_ec_thermal_remove,
++	.driver = {
++		.name = "cros-ec-thermal",
++		.of_match_table = of_match_ptr(cros_ec_thermal_of_match),
++	},
++};
++module_platform_driver(cros_ec_thermal_driver);
++
++MODULE_LICENSE("GPL v2");
++MODULE_DESCRIPTION("ChromeOS EC Thermal driver");
++MODULE_ALIAS("platform:cros-ec-thermal");
++MODULE_AUTHOR("Moritz Fischer <mdf@kernel.org>");
+diff --git a/include/linux/mfd/cros_ec_commands.h b/include/linux/mfd/cros_ec_commands.h
+index c93e7e0300ef..25899cd6d098 100644
+--- a/include/linux/mfd/cros_ec_commands.h
++++ b/include/linux/mfd/cros_ec_commands.h
+@@ -1011,6 +1011,11 @@ struct ec_params_pwm_set_fan_target_rpm {
+ 	uint32_t rpm;
+ } __packed;
+ 
++struct ec_params_pwm_set_fan_target_rpm_v1 {
++	uint32_t rpm;
++	uint8_t fan_idx;
++} __packed;
++
+ /* Get keyboard backlight */
+ #define EC_CMD_PWM_GET_KEYBOARD_BACKLIGHT 0x22
+ 
+-- 
+2.14.2
+
