@@ -1,7 +1,7 @@
 From ff2bc0c53a867ae41318bd7f2dc832e6cdb707f3 Mon Sep 17 00:00:00 2001
 From: Pantelis Antoniou <pantelis.antoniou@konsulko.com>
 Date: Wed, 21 Jan 2015 19:06:14 +0200
-Subject: [PATCH 03/34] vsprintf: Add %p extension "%pOF" for device tree
+Subject: [PATCH 03/35] vsprintf: Add %p extension "%pOF" for device tree
 
 90% of the usage of device node's full_name is printing it out in a
 kernel message. However, storing the full path for every node is

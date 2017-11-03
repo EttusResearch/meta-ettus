@@ -1,7 +1,7 @@
 From f0e9aafc1631d125d068c13ce0b36b6b81798df6 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 10 Apr 2017 15:15:27 -0700
-Subject: [PATCH 14/34] net: phy: Fix the case where state machine gets stuck
+Subject: [PATCH 14/35] net: phy: Fix the case where state machine gets stuck
  in FORCING
 
 Fixes issue where phy statemachine gets stuck in FORCING state

@@ -1,7 +1,7 @@
 From 3e87d0bd163928f0f3dc7f3d1037aad38361f08d Mon Sep 17 00:00:00 2001
 From: Matt Weber <matthew.weber@rockwellcollins.com>
 Date: Thu, 22 Jun 2017 15:00:33 -0500
-Subject: [PATCH 30/34] i2c: cadance: fix ctrl/addr reg write order
+Subject: [PATCH 30/35] i2c: cadance: fix ctrl/addr reg write order
 
 The driver was clearing the hold bit in the control register before
 writing to the address register which resulted in a stop condition

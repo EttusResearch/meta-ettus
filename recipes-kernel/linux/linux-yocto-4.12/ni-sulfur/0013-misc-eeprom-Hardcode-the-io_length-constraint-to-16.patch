@@ -1,7 +1,7 @@
 From c001003344d7ac2cbd51e5559f3be26a04276afa Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Fri, 31 Mar 2017 15:38:07 -0700
-Subject: [PATCH 13/34] misc: eeprom: Hardcode the io_length constraint to 16
+Subject: [PATCH 13/35] misc: eeprom: Hardcode the io_length constraint to 16
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---

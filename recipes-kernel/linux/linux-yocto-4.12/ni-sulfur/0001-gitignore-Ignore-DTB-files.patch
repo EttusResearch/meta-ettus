@@ -1,7 +1,7 @@
 From e82d652f560ce436e52468b1de1b6e173bf10e83 Mon Sep 17 00:00:00 2001
 From: Pantelis Antoniou <pantelis.antoniou@konsulko.com>
 Date: Fri, 21 Feb 2014 18:49:29 +0200
-Subject: [PATCH 01/34] gitignore: Ignore DTB files
+Subject: [PATCH 01/35] gitignore: Ignore DTB files
 
 Signed-off-by: Pantelis Antoniou <pantelis.antoniou@konsulko.com>
 ---

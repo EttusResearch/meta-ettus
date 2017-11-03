@@ -1,7 +1,7 @@
 From d98c2fcbc118fd1bd47009767a87fdc2dd6b3820 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 12 Dec 2016 09:10:21 -0800
-Subject: [PATCH 07/34] ARM: dts: Add support for NI Ettus Research Sulfur Rev2
+Subject: [PATCH 07/35] ARM: dts: Add support for NI Ettus Research Sulfur Rev2
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---

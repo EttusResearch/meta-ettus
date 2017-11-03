@@ -1,7 +1,7 @@
 From fa0e62dd7f3696db8738cb973844409c10c6c002 Mon Sep 17 00:00:00 2001
 From: Mao Wenan <maowenan@huawei.com>
 Date: Tue, 31 Jan 2017 18:46:43 -0800
-Subject: [PATCH 31/34] net: phy: Fix lack of reference count on PHY driver
+Subject: [PATCH 31/35] net: phy: Fix lack of reference count on PHY driver
 
 There is currently no reference count being held on the PHY driver,
 which makes it possible to remove the PHY driver module while the PHY

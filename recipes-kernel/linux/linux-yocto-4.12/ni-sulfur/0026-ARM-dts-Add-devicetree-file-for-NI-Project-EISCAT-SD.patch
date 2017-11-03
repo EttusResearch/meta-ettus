@@ -1,7 +1,7 @@
 From a879fc8d3e9bdf1ae6289e77314ed2ae28cce272 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 11 Jul 2017 10:17:05 -0700
-Subject: [PATCH 26/34] ARM: dts: Add devicetree file for NI Project EISCAT SDR
+Subject: [PATCH 26/35] ARM: dts: Add devicetree file for NI Project EISCAT SDR
 
 This adds the devicetree file for NI Project EISCAT SDR
 

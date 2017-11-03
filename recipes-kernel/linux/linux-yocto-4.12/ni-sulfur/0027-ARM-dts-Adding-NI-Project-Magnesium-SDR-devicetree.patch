@@ -1,7 +1,7 @@
 From b556ae8265ab60a0f518129db484438652c3c7b8 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 11 Jul 2017 14:16:21 -0700
-Subject: [PATCH 27/34] ARM: dts: Adding NI Project Magnesium SDR devicetree
+Subject: [PATCH 27/35] ARM: dts: Adding NI Project Magnesium SDR devicetree
 
 This adds the devicetree for NI Project Magnesium SDR.
 
