@@ -6,7 +6,12 @@ MACHINE_FEATURES = "vfat ethernet usbhost ext2 rtc"
 
 SERIAL_CONSOLE = "115200 ttyPS0"
 
-UBOOT_BINARY_sulfur = "u-boot.${UBOOT_SUFFIX}"
+UBOOT_SUFFIX ?= "img"
+UBOOT_ENTRYPOINT = "0000000"
+UBOOT_LOADADDRESS = "0000000"
+UBOOT_BINARY_ni_sulfur = "u-boot.${UBOOT_SUFFIX}"
+
+IMAGE_BOOT_FILES ?= "boot.bin ${UBOOT_BINARY}"
 
 MACHINE_EXTRA_RRECOMMENDS = "kernel-modules \
                              gpsd gpsd-gpsctl gps-utils \
