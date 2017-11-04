@@ -8,13 +8,16 @@ SRC_URI_append_ettus-e300 = " \
 		 "
 
 SRC_URI_append_ni-sulfur = " \
-                 file://sulfur/0009-misc-cros_ec-Add-trivial-support-for-software-sync.patch \
-                 file://sulfur/0010-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
-                 file://sulfur/0011-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
-		 file://sulfur/0012-ni-sulfur-rev3-Added-swsync-feature.patch \
-		 file://sulfur/0001-ni-sulfur-rev3-Add-autoboot-support.patch \
-                 file://sulfur/0001-ni-sulfur-rev3-Fix-defconfig-for-2017.09.patch \
-                 "
+    file://sulfur/0001-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
+    file://sulfur/0002-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
+    file://sulfur/0003-ni-sulfur-rev3-Added-swsync-feature.patch \
+    file://sulfur/0004-ni-sulfur-rev3-Add-autoboot-support.patch \
+    file://sulfur/0005-ni-sulfur-rev3-Fix-defconfig-for-2017.09.patch \
+    file://sulfur/0010-i2c-mux-pca954x-Add-addtitional-compatible-string-fo.patch \
+    file://sulfur/0011-misc-i2c-eeprom-Deal-with-different-address-width.patch \
+    file://sulfur/0012-board-ni-zynq-Add-parsing-code-for-sulfur.patch \
+    file://sulfur/0013-misc-cros_ec-Add-trivial-support-for-software-sync.patch \
+    "
 
 SPL_BINARY = "spl/boot.bin"
 

@@ -1,0 +1,314 @@
+From 459a4238e7c88789cf4f99768307495a8088b725 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Tue, 19 Sep 2017 10:11:57 -0700
+Subject: [PATCH 12/13] board: ni: zynq: Add parsing code for sulfur
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ board/ni/zynq/Makefile        |   2 +-
+ board/ni/zynq/board.c         |  59 ++++++---------
+ board/ni/zynq/sulfur-eeprom.c | 169 ++++++++++++++++++++++++++++++++++++++++++
+ board/ni/zynq/sulfur-eeprom.h |   4 +
+ 4 files changed, 198 insertions(+), 36 deletions(-)
+ create mode 100644 board/ni/zynq/sulfur-eeprom.c
+
+diff --git a/board/ni/zynq/Makefile b/board/ni/zynq/Makefile
+index eaf59cd55c..b8a55978cd 100644
+--- a/board/ni/zynq/Makefile
++++ b/board/ni/zynq/Makefile
+@@ -2,7 +2,7 @@
+ # SPDX-License-Identifier:	GPL-2.0+
+ #
+ 
+-obj-y	:= board.o
++obj-y	:= board.o sulfur-eeprom.o
+ 
+ # Remove quotes
+ hw-platform-y :=$(shell echo $(CONFIG_DEFAULT_DEVICE_TREE))
+diff --git a/board/ni/zynq/board.c b/board/ni/zynq/board.c
+index 0d3b8db899..30ec1d1de8 100644
+--- a/board/ni/zynq/board.c
++++ b/board/ni/zynq/board.c
+@@ -126,8 +126,12 @@ int board_init(void)
+ 	return 0;
+ }
+ 
++
++
+ int board_late_init(void)
+ {
++	int slot0, slot1;
++
+ 	switch ((zynq_slcr_get_boot_mode()) & ZYNQ_BM_MASK) {
+ 	case ZYNQ_BM_QSPI:
+ 		env_set("modeboot", "qspiboot");
+@@ -153,50 +157,35 @@ int board_late_init(void)
+ 	board_power(BOARD_POWER_TYPE_ON);
+ #endif
+ 
++	sulfur_probe_mboard();
++
++	slot0 = sulfur_probe_dboard(0);
++	slot1 = sulfur_probe_dboard(1);
++
++	if (((slot0 == 0x150) && (slot1 == 0x150)) ||
++		(slot0 < 0 && slot1 == 0x150) ||
++		(slot1 < 0 && slot0 == 0x150)) {
++		env_set("variant","magnesium");
++	} else if (((slot0 == 0x180) && (slot1 == 0x180)) ||
++		(slot0 < 0 && slot1 == 0x180) ||
++		(slot1 < 0 && slot0 == 0x180)) {
++		env_set("variant", "eiscat");
++	} else {
++		env_set("variant", "sulfur-rev-3");
++		printf("No known dboard found, falling back to sulfur-rev3\n");
++	}
++
+ 	return 0;
+ }
+ 
+ #ifdef CONFIG_DISPLAY_BOARDINFO
+ int checkboard(void)
+ {
+-	puts("Board: Xilinx Zynq\n");
++	//puts("Board: Xilinx Zynq\n");
+ 	return 0;
+ }
+ #endif
+ 
+-int sulfur_read_ethaddr(unsigned char *ethaddr)
+-{
+-	struct udevice *i2c_tun, *eeprom_chip;
+-	struct sulfur_mboard_eeprom eeprom;
+-	int err, i;
+-	u32 crc;
+-
+-	err = uclass_get_device_by_seq(UCLASS_I2C, 20, &i2c_tun);
+-	if (err < 0)
+-		return err;
+-
+-	err = dm_i2c_probe(i2c_tun, 0x50, 0, &eeprom_chip);
+-	if (err < 0)
+-		return err;
+-
+-	for (i = 0; i < sizeof(eeprom); i++) {
+-		err = dm_i2c_reg_read(eeprom_chip, i);
+-		if (err < 0)
+-			break;
+-		*(((u8*)(&eeprom)) + i) = err & 0xff;
+-	}
+-
+-	crc = crc32(0, (const u8*)&eeprom, sizeof(eeprom) - 4);
+-	if (htonl(crc) != eeprom.crc) {
+-		printf("%s: CRC for eeprom doesn't match! %08x vs %08x\n",
+-		       __func__, htonl(crc), eeprom.crc);
+-		return -EINVAL;
+-	}
+-	memcpy(ethaddr, &eeprom.eth_addr0, ETH_ALEN);
+-
+-	return 0;
+-}
+-
+ int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
+ {
+ #if defined(CONFIG_ZYNQ_GEM_EEPROM_ADDR) && \
+@@ -207,7 +196,7 @@ int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
+ 		printf("I2C EEPROM MAC address read failed\n");
+ #endif
+ 
+-	sulfur_read_ethaddr(ethaddr);
++	sulfur_read_ethaddr(ethaddr, 0);
+ 
+ 	return 0;
+ }
+diff --git a/board/ni/zynq/sulfur-eeprom.c b/board/ni/zynq/sulfur-eeprom.c
+new file mode 100644
+index 0000000000..713d5b8ccf
+--- /dev/null
++++ b/board/ni/zynq/sulfur-eeprom.c
+@@ -0,0 +1,169 @@
++/*
++ * (C) Copyright 2017 National Instruments Corp
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#include <common.h>
++#include "sulfur-eeprom.h"
++#include <dm.h>
++#include <i2c.h>
++
++DECLARE_GLOBAL_DATA_PTR;
++
++struct sulfur_xboard_match {
++	u16 pid;
++	const char *name;
++};
++
++static const struct sulfur_xboard_match db_match[] = {
++	{ .pid = 0x150, .name = "Magnesium XCVR" },
++	{ .pid = 0x180, .name = "EISCAT RX" },
++	{},
++};
++
++static const struct sulfur_xboard_match mb_match[] = {
++	{ .pid = 0x4242, .name = "Sulfur" },
++	{},
++};
++
++const char *sulfur_get_mboard_name(u16 pid)
++{
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(mb_match); i++)
++		if (pid == mb_match[i].pid)
++			return mb_match[i].name;
++
++	return "Unknown";
++}
++
++const char *sulfur_get_dboard_name(u16 pid)
++{
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(db_match); i++)
++		if (pid == db_match[i].pid)
++			return db_match[i].name;
++
++	return "Unknown";
++}
++
++int sulfur_probe_dboard(int dboard)
++{
++	struct udevice *usrpio, *eeprom_chip;
++	struct sulfur_dboard_eeprom eeprom;
++	int err, i;
++	u32 crc;
++
++	err = uclass_get_device_by_seq(UCLASS_I2C, dboard ? 706 : 707,
++			&usrpio);
++	if (err < 0)
++		return err;
++
++	err = dm_i2c_probe(usrpio, 0x50, 0, &eeprom_chip);
++	if (err < 0) {
++		printf("Slot %u: Failed to probe\n", dboard);
++		return err;
++	}
++
++	for (i = 0; i < sizeof(eeprom); i++) {
++		err = dm_i2c_reg_read(eeprom_chip, i);
++		if (err < 0)
++			break;
++		*(((u8*)(&eeprom)) + i) = err & 0xff;
++	}
++
++	crc = crc32(0, (const u8*)&eeprom, sizeof(eeprom) - 4);
++	if (htonl(crc) != eeprom.crc) {
++		/*
++		printf("%s: CRC for eeprom doesn't match! %08x vs %08x\n",
++		       __func__, htonl(crc), eeprom.crc);
++		       */
++		printf("Slot %u: Unitialized\n", dboard);
++		return -EINVAL;
++	}
++
++	printf("Slot %u: %s Rev %c s/n: %s\n", dboard,
++	       sulfur_get_dboard_name(htons(eeprom.pid)),
++	       'A' + htons(eeprom.rev),
++	       eeprom.serial);
++
++	return htons(eeprom.pid);
++}
++
++int sulfur_probe_mboard(void)
++{
++	struct udevice *i2c_tun, *eeprom_chip;
++	struct sulfur_mboard_eeprom eeprom;
++	int err, i;
++	u32 crc;
++
++	err = uclass_get_device_by_seq(UCLASS_I2C, 20, &i2c_tun);
++	if (err < 0)
++		return err;
++
++	err = dm_i2c_probe(i2c_tun, 0x50, 0, &eeprom_chip);
++	if (err < 0)
++		return err;
++
++	for (i = 0; i < sizeof(eeprom); i++) {
++		err = dm_i2c_reg_read(eeprom_chip, i);
++		if (err < 0)
++			break;
++		*(((u8*)(&eeprom)) + i) = err & 0xff;
++	}
++
++	crc = crc32(0, (const u8*)&eeprom, sizeof(eeprom) - 4);
++	if (htonl(crc) != eeprom.crc) {
++		printf("%s: CRC for eeprom doesn't match! %08x vs %08x\n",
++		       __func__, htonl(crc), eeprom.crc);
++		return -EINVAL;
++	}
++
++	printf("NI Ettus Research Project %s SDR Rev %c s/n %s \n",
++			sulfur_get_mboard_name(htons(eeprom.pid)),
++			'A' + htons(eeprom.rev),
++			eeprom.serial);
++	return 0;
++}
++
++int sulfur_read_ethaddr(unsigned char *ethaddr, int which)
++{
++	struct udevice *i2c_tun, *eeprom_chip;
++	struct sulfur_mboard_eeprom eeprom;
++	int err, i;
++	u32 crc;
++
++	err = uclass_get_device_by_seq(UCLASS_I2C, 20, &i2c_tun);
++	if (err < 0)
++		return err;
++
++	err = dm_i2c_probe(i2c_tun, 0x50, 0, &eeprom_chip);
++	if (err < 0)
++		return err;
++
++	for (i = 0; i < sizeof(eeprom); i++) {
++		err = dm_i2c_reg_read(eeprom_chip, i);
++		if (err < 0)
++			break;
++		*(((u8*)(&eeprom)) + i) = err & 0xff;
++	}
++
++	crc = crc32(0, (const u8*)&eeprom, sizeof(eeprom) - 4);
++	if (htonl(crc) != eeprom.crc) {
++		printf("%s: CRC for eeprom doesn't match! %08x vs %08x\n",
++		       __func__, htonl(crc), eeprom.crc);
++		return -EINVAL;
++	}
++
++	if (which == 0)
++		memcpy(ethaddr, &eeprom.eth_addr0, ETH_ALEN);
++	else if (which == 1)
++		memcpy(ethaddr, &eeprom.eth_addr1, ETH_ALEN);
++
++	else if (which == 2)
++		memcpy(ethaddr, &eeprom.eth_addr1, ETH_ALEN);
++
++	return 0;
++}
+diff --git a/board/ni/zynq/sulfur-eeprom.h b/board/ni/zynq/sulfur-eeprom.h
+index 58d2cf8737..fe49f2cddd 100644
+--- a/board/ni/zynq/sulfur-eeprom.h
++++ b/board/ni/zynq/sulfur-eeprom.h
+@@ -63,4 +63,8 @@ struct sulfur_dboard_eeprom {
+ 	u32 crc;
+ } __attribute__((packed));
+ 
++int sulfur_probe_mboard(void);
++int sulfur_probe_dboard(int dboard);
++int sulfur_read_ethaddr(unsigned char *ethaddr, int which);
++
+ #endif /* NI_ZYNQ_SULFUR_EEPROM_H */
+-- 
+2.14.2
+

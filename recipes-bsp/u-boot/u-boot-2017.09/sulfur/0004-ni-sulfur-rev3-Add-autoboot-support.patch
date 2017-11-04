@@ -1,7 +1,7 @@
-From 1cf145a2ec62b3570b6746393fdba6931ea7575d Mon Sep 17 00:00:00 2001
+From ad67bbacf7b203fa1f7148d036121a17a4789a22 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 12 Jun 2017 23:26:17 -0700
-Subject: [PATCH] ni: sulfur-rev3: Add autoboot support
+Subject: [PATCH 04/13] ni: sulfur-rev3: Add autoboot support
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
@@ -10,7 +10,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  2 files changed, 9 insertions(+)
 
 diff --git a/configs/ni_sulfur_rev3_defconfig b/configs/ni_sulfur_rev3_defconfig
-index 42bb18e..a7cd75f 100644
+index 56b2726cb7..594ab7a86c 100644
 --- a/configs/ni_sulfur_rev3_defconfig
 +++ b/configs/ni_sulfur_rev3_defconfig
 @@ -66,3 +66,7 @@ CONFIG_G_DNL_MANUFACTURER="National Instruments Inc"
@@ -22,10 +22,10 @@ index 42bb18e..a7cd75f 100644
 +CONFIG_AUTOBOOT_STOP_STR="stop"
 +CONFIG_AUTOBOOT_DELAY_STR="delay"
 diff --git a/include/configs/zynq-common.h b/include/configs/zynq-common.h
-index 2fe6897..8f7afa7 100644
+index b9599c73a6..be47f1b761 100644
 --- a/include/configs/zynq-common.h
 +++ b/include/configs/zynq-common.h
-@@ -359,4 +359,9 @@
+@@ -377,4 +377,9 @@
  
  #define CONFIG_SYS_UBOOT_START	CONFIG_SYS_TEXT_BASE
  
@@ -36,5 +36,5 @@ index 2fe6897..8f7afa7 100644
 +
  #endif /* __CONFIG_ZYNQ_COMMON_H */
 -- 
-2.7.4
+2.14.2
 

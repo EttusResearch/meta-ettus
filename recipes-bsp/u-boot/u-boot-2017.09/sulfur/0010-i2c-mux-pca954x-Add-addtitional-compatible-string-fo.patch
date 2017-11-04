@@ -1,0 +1,26 @@
+From 1bf7292431d8f81f639fe1172fbf2a62b9963ad7 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Fri, 1 Sep 2017 12:03:12 -0700
+Subject: [PATCH 10/13] i2c-mux: pca954x: Add addtitional compatible string for
+ ti,pca9548
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ drivers/i2c/muxes/pca954x.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/i2c/muxes/pca954x.c b/drivers/i2c/muxes/pca954x.c
+index 01ca1ff48d..e2d06339cb 100644
+--- a/drivers/i2c/muxes/pca954x.c
++++ b/drivers/i2c/muxes/pca954x.c
+@@ -83,6 +83,7 @@ static const struct udevice_id pca954x_ids[] = {
+ 	{ .compatible = "nxp,pca9544", .data = PCA9544 },
+ 	{ .compatible = "nxp,pca9547", .data = PCA9547 },
+ 	{ .compatible = "nxp,pca9548", .data = PCA9548 },
++	{ .compatible = "ti,pca9548", .data = PCA9548 },
+ 	{ }
+ };
+ 
+-- 
+2.14.2
+

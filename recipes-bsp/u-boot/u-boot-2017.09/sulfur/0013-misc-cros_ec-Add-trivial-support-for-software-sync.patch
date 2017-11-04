@@ -1,7 +1,7 @@
-From d8ccbee390d94868cd002a9b3f514173fae9b8d2 Mon Sep 17 00:00:00 2001
+From 112074f4054c6fd097cad44703be07ecb85e6ba5 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Wed, 26 Oct 2016 09:58:51 -0700
-Subject: [PATCH 09/12] misc: cros_ec: Add trivial support for software sync
+Subject: [PATCH 13/13] misc: cros_ec: Add trivial support for software sync
 
 This adds basic support for 'software sync' - the technique
 used by Chromebooks to keep the EC software in sync with
@@ -15,7 +15,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  3 files changed, 147 insertions(+)
 
 diff --git a/cmd/cros_ec.c b/cmd/cros_ec.c
-index 9d42f87..344e7cd 100644
+index af0b4eee78..23074f08f8 100644
 --- a/cmd/cros_ec.c
 +++ b/cmd/cros_ec.c
 @@ -151,6 +151,17 @@ static int do_cros_ec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
@@ -45,11 +45,11 @@ index 9d42f87..344e7cd 100644
  	"crosec reboot [rw | ro | cold]  Reboot CROS-EC\n"
  	"crosec events              Read CROS-EC host events\n"
 diff --git a/drivers/misc/cros_ec.c b/drivers/misc/cros_ec.c
-index 759bb46..fffab84 100644
+index eefaaa53ad..1ff2fd1db3 100644
 --- a/drivers/misc/cros_ec.c
 +++ b/drivers/misc/cros_ec.c
-@@ -28,6 +28,9 @@
- #include <dm/device-internal.h>
+@@ -29,6 +29,9 @@
+ #include <dm/of_extra.h>
  #include <dm/uclass-internal.h>
  
 +#include <hash.h>
@@ -189,13 +189,14 @@ index 759bb46..fffab84 100644
  {
  	struct ec_params_vbnvcontext p;
 diff --git a/include/cros_ec.h b/include/cros_ec.h
-index 0271f2b..9be33f8 100644
+index 771a176eea..28d55fcf72 100644
 --- a/include/cros_ec.h
 +++ b/include/cros_ec.h
-@@ -166,6 +166,15 @@ int cros_ec_info(struct cros_ec_dev *dev,
+@@ -165,6 +165,15 @@ int cros_ec_info(struct cros_ec_dev *dev,
+  */
  int cros_ec_get_host_events(struct cros_ec_dev *dev, uint32_t *events_ptr);
  
- /**
++/**
 + * Execute a swsync with given address
 + * @param dev		CROS-EC device
 + * @param addr		Source Address
@@ -204,10 +205,9 @@ index 0271f2b..9be33f8 100644
 +int cros_ec_flash_sync_rw(struct cros_ec_dev *dev, const uint8_t *addr,
 +			  int size);
 +
-+/**
+ /**
   * Clear the specified host event flags
   *
-  * @param dev		CROS-EC device
 -- 
-2.7.4
+2.14.2
 

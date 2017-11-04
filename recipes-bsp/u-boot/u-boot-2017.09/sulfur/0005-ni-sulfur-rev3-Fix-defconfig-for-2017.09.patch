@@ -1,7 +1,7 @@
-From 1c31e98dd6879546d2ef407be7fdea3578ea313b Mon Sep 17 00:00:00 2001
+From 7e3ff5f969bbf6a3a2bff57ec90dff57d65a4442 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Wed, 1 Nov 2017 17:58:33 -0700
-Subject: [PATCH] ni: sulfur-rev3: Fix defconfig for 2017.09
+Subject: [PATCH 05/13] ni: sulfur-rev3: Fix defconfig for 2017.09
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
