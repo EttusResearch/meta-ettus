@@ -25,8 +25,6 @@ SRC_URI_append_ni-sulfur = " \
     file://sulfur/0011-misc-i2c-eeprom-Deal-with-different-address-width.patch \
     file://sulfur/0012-board-ni-zynq-Add-parsing-code-for-sulfur.patch \
     file://sulfur/0013-misc-cros_ec-Add-trivial-support-for-software-sync.patch \
-    file://0014-fixup-board-ni-zynq-Add-parsing-code-for-sulfur.patch \
-    file://0015-fixup-board-ni-zynq-Add-parsing-code-for-sulfur.patch \
     "
 
 
