@@ -1,7 +1,7 @@
-From f2050d875783a24f458578280aeba50dc78c49e8 Mon Sep 17 00:00:00 2001
+From 6e5f47d9f37eef486ee826f6fb0f27af369d1878 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Thu, 18 May 2017 12:39:41 -0700
-Subject: [PATCH 02/13] ni: zynq: Add support for NI Ettus Research Project
+Subject: [PATCH 02/14] ni: zynq: Add support for NI Ettus Research Project
  Sulfur Rev3 SDR
 
 Add support for second revision of NI Ettus Research Project Sulfur
@@ -11,13 +11,13 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
  arch/arm/dts/Makefile                            |   1 +
  arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi      |  26 ++
- arch/arm/dts/zynq-ni-sulfur-rev3.dts             | 295 ++++++++++++++++++++++
+ arch/arm/dts/zynq-ni-sulfur-rev3.dts             | 289 +++++++++++++++++++++
  board/ni/zynq/board.c                            |  38 +++
  board/ni/zynq/sulfur-eeprom.h                    |  66 +++++
  board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c | 307 +++++++++++++++++++++++
  configs/ni_sulfur_rev3_defconfig                 |  68 +++++
  include/configs/ni_sulfur_rev3.h                 |  43 ++++
- 8 files changed, 844 insertions(+)
+ 8 files changed, 838 insertions(+)
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev3.dts
  create mode 100644 board/ni/zynq/sulfur-eeprom.h
@@ -26,7 +26,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  create mode 100644 include/configs/ni_sulfur_rev3.h
 
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
-index 5687099934..69870216b1 100644
+index 56870999349..69870216b19 100644
 --- a/arch/arm/dts/Makefile
 +++ b/arch/arm/dts/Makefile
 @@ -129,6 +129,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb \
@@ -39,7 +39,7 @@ index 5687099934..69870216b1 100644
  	zynq-topic-miamilite.dtb \
 diff --git a/arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi b/arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi
 new file mode 100644
-index 0000000000..9a8b4e7e14
+index 00000000000..9a8b4e7e140
 --- /dev/null
 +++ b/arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi
 @@ -0,0 +1,26 @@
@@ -71,10 +71,10 @@ index 0000000000..9a8b4e7e14
 +};
 diff --git a/arch/arm/dts/zynq-ni-sulfur-rev3.dts b/arch/arm/dts/zynq-ni-sulfur-rev3.dts
 new file mode 100644
-index 0000000000..6812731a8b
+index 00000000000..fa06a0ebaed
 --- /dev/null
 +++ b/arch/arm/dts/zynq-ni-sulfur-rev3.dts
-@@ -0,0 +1,295 @@
+@@ -0,0 +1,289 @@
 +/*
 + * National Instruments Ettus Research Project Sulfur SDR Revision 2
 + * devicetree source.
@@ -141,6 +141,8 @@ index 0000000000..6812731a8b
 +		i2c0 = &i2c0;
 +		i2c1 = &i2c1;
 +		i2c20 = &tun;
++		i2c706 = &i2c0_70_6;
++		i2c707 = &i2c0_70_7;
 +	};
 +
 +	memory {
@@ -215,48 +217,28 @@ index 0000000000..6812731a8b
 +	clock-frequency = <400000>;
 +
 +	i2cswitch@70 {
-+		compatible = "ti,pca9548";
++		compatible = "nxp,pca9548";
 +		#address-cells = <1>;
 +		#size-cells = <0>;
 +		reg = <0x70>;
++		status = "okay";
 +
 +		reset-gpios = <&gpio0 7 GPIO_ACTIVE_LOW>;
 +
-+		i2c@0 {
-+			reg = <0>;
-+			status = "disabled";
-+		};
-+
-+		i2c@1 {
-+			reg = <1>;
-+			status = "disabled";
-+		};
-+
-+		i2c@2 {
-+			reg = <2>;
-+			status = "disabled";
-+		};
-+
-+		i2c@3 {
++		i2c0_70_3: i2c@3 {
 +			reg = <3>;
-+			status = "okay";
 +			#address-cells = <1>;
 +			#size-cells = <0>;
 +
 +			gpio1: gpio@22 {
-+				compatible = "ti,tca6424";
++				compatible = "nxp,tca6424";
 +				reg = <0x22>;
 +				gpio-controller;
 +				#gpio-cells = <2>;
 +			};
 +		};
 +
-+		i2c@4 {
-+			reg = <4>;
-+			status = "disabled";
-+		};
-+
-+		i2c@5 {
++		i2c0_70_5: i2c@5 {
 +			reg = <5>;
 +			status = "okay";
 +			#address-cells = <1>;
@@ -268,18 +250,30 @@ index 0000000000..6812731a8b
 +			};
 +		};
 +
-+		usrpio_i2c0: i2c@6 {
++		i2c0_70_6: i2c@6 {
 +			#address-cells = <1>;
 +			#size-cells = <0>;
 +
 +			reg = <6>;
++
++			nvmem2: eeprom@50 {
++				compatible = "atmel,24c256";
++				reg = <0x50>;
++			};
++
 +		};
 +
-+		usrpio_i2c1: i2c@7 {
++		i2c0_70_7: i2c@7 {
 +			#address-cells = <1>;
 +			#size-cells = <0>;
 +
-+			reg = <6>;
++			reg = <7>;
++
++			nvmem3: eeprom@50 {
++				compatible = "atmel,24c256";
++				reg = <0x50>;
++			};
++
 +		};
 +	};
 +};
@@ -306,7 +300,7 @@ index 0000000000..6812731a8b
 +			clock-frequency = <50000>;
 +
 +			nvmem0: eeprom@50 {
-+				compatible = "at,24c02";
++				compatible = "atmel,24c02";
 +				reg = <0x50>;
 +			};
 +		};
@@ -371,7 +365,7 @@ index 0000000000..6812731a8b
 +
 +#include "zynq-ni-sulfur-rev3-uboot.dtsi"
 diff --git a/board/ni/zynq/board.c b/board/ni/zynq/board.c
-index f719885403..0d3b8db899 100644
+index f7198854035..0d3b8db8999 100644
 --- a/board/ni/zynq/board.c
 +++ b/board/ni/zynq/board.c
 @@ -14,6 +14,9 @@
@@ -435,7 +429,7 @@ index f719885403..0d3b8db899 100644
  
 diff --git a/board/ni/zynq/sulfur-eeprom.h b/board/ni/zynq/sulfur-eeprom.h
 new file mode 100644
-index 0000000000..58d2cf8737
+index 00000000000..58d2cf8737d
 --- /dev/null
 +++ b/board/ni/zynq/sulfur-eeprom.h
 @@ -0,0 +1,66 @@
@@ -507,7 +501,7 @@ index 0000000000..58d2cf8737
 +#endif /* NI_ZYNQ_SULFUR_EEPROM_H */
 diff --git a/board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c b/board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c
 new file mode 100644
-index 0000000000..56a866b39f
+index 00000000000..56a866b39f3
 --- /dev/null
 +++ b/board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c
 @@ -0,0 +1,307 @@
@@ -820,7 +814,7 @@ index 0000000000..56a866b39f
 +}
 diff --git a/configs/ni_sulfur_rev3_defconfig b/configs/ni_sulfur_rev3_defconfig
 new file mode 100644
-index 0000000000..56b2726cb7
+index 00000000000..56b2726cb70
 --- /dev/null
 +++ b/configs/ni_sulfur_rev3_defconfig
 @@ -0,0 +1,68 @@
@@ -894,7 +888,7 @@ index 0000000000..56b2726cb7
 +CONFIG_TPM=y
 diff --git a/include/configs/ni_sulfur_rev3.h b/include/configs/ni_sulfur_rev3.h
 new file mode 100644
-index 0000000000..e3d5fec445
+index 00000000000..e3d5fec4453
 --- /dev/null
 +++ b/include/configs/ni_sulfur_rev3.h
 @@ -0,0 +1,43 @@
