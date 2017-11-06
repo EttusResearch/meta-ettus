@@ -1,4 +1,4 @@
-From 6e5f47d9f37eef486ee826f6fb0f27af369d1878 Mon Sep 17 00:00:00 2001
+From 6b4895dd5d099b78c642cbbed2e0677162d1902d Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Thu, 18 May 2017 12:39:41 -0700
 Subject: [PATCH 02/14] ni: zynq: Add support for NI Ettus Research Project
@@ -10,14 +10,14 @@ Revision 3 SDR board.
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
  arch/arm/dts/Makefile                            |   1 +
- arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi      |  26 ++
+ arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi      |  34 +++
  arch/arm/dts/zynq-ni-sulfur-rev3.dts             | 289 +++++++++++++++++++++
  board/ni/zynq/board.c                            |  38 +++
  board/ni/zynq/sulfur-eeprom.h                    |  66 +++++
  board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c | 307 +++++++++++++++++++++++
  configs/ni_sulfur_rev3_defconfig                 |  68 +++++
  include/configs/ni_sulfur_rev3.h                 |  43 ++++
- 8 files changed, 838 insertions(+)
+ 8 files changed, 846 insertions(+)
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev3.dts
  create mode 100644 board/ni/zynq/sulfur-eeprom.h
@@ -39,10 +39,10 @@ index 56870999349..69870216b19 100644
  	zynq-topic-miamilite.dtb \
 diff --git a/arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi b/arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi
 new file mode 100644
-index 00000000000..9a8b4e7e140
+index 00000000000..a743871fdb3
 --- /dev/null
 +++ b/arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi
-@@ -0,0 +1,26 @@
+@@ -0,0 +1,34 @@
 +/*
 + * U-Boot addition to handle Sulfur Rev3 pins
 + *
@@ -68,6 +68,14 @@ index 00000000000..9a8b4e7e140
 +
 +&sdhci0 {
 +	u-boot,dm-pre-reloc;
++};
++
++&nvmem2 {
++	u-boot,i2c-offset-len = <2>;
++};
++
++&nvmem3 {
++	u-boot,i2c-offset-len = <2>;
 +};
 diff --git a/arch/arm/dts/zynq-ni-sulfur-rev3.dts b/arch/arm/dts/zynq-ni-sulfur-rev3.dts
 new file mode 100644
