@@ -1,7 +1,7 @@
-From 6b4895dd5d099b78c642cbbed2e0677162d1902d Mon Sep 17 00:00:00 2001
+From 726355e01ffdb36e63c9894b2be29029f6b6918a Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
-Date: Thu, 18 May 2017 12:39:41 -0700
-Subject: [PATCH 02/14] ni: zynq: Add support for NI Ettus Research Project
+Date: Tue, 7 Nov 2017 11:51:19 -0800
+Subject: [PATCH 4/6] ni: zynq: Add support for NI Ettus Research Project
  Sulfur Rev3 SDR
 
 Add support for second revision of NI Ettus Research Project Sulfur
@@ -10,26 +10,23 @@ Revision 3 SDR board.
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
  arch/arm/dts/Makefile                            |   1 +
- arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi      |  34 +++
- arch/arm/dts/zynq-ni-sulfur-rev3.dts             | 289 +++++++++++++++++++++
- board/ni/zynq/board.c                            |  38 +++
- board/ni/zynq/sulfur-eeprom.h                    |  66 +++++
+ arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi      |  39 +++
+ arch/arm/dts/zynq-ni-sulfur-rev3.dts             | 238 ++++++++++++++++++
  board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c | 307 +++++++++++++++++++++++
- configs/ni_sulfur_rev3_defconfig                 |  68 +++++
- include/configs/ni_sulfur_rev3.h                 |  43 ++++
- 8 files changed, 846 insertions(+)
+ configs/ni_sulfur_rev3_defconfig                 |  61 +++++
+ include/configs/ni_sulfur_rev3.h                 |  35 +++
+ 6 files changed, 681 insertions(+)
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev3.dts
- create mode 100644 board/ni/zynq/sulfur-eeprom.h
  create mode 100644 board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c
  create mode 100644 configs/ni_sulfur_rev3_defconfig
  create mode 100644 include/configs/ni_sulfur_rev3.h
 
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
-index 56870999349..69870216b19 100644
+index bf47896f69..0cb21054dd 100644
 --- a/arch/arm/dts/Makefile
 +++ b/arch/arm/dts/Makefile
-@@ -129,6 +129,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb \
+@@ -128,6 +128,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb \
  	zynq-zybo.dtb \
  	zynq-microzed.dtb \
  	zynq-ni-sulfur-rev2.dtb \
@@ -39,10 +36,10 @@ index 56870999349..69870216b19 100644
  	zynq-topic-miamilite.dtb \
 diff --git a/arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi b/arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi
 new file mode 100644
-index 00000000000..a743871fdb3
+index 0000000000..3d7d5ba7d5
 --- /dev/null
 +++ b/arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi
-@@ -0,0 +1,34 @@
+@@ -0,0 +1,39 @@
 +/*
 + * U-Boot addition to handle Sulfur Rev3 pins
 + *
@@ -66,6 +63,11 @@ index 00000000000..a743871fdb3
 +	u-boot,dm-pre-reloc;
 +};
 +
++&uart1 {
++	u-boot,dm-pre-reloc;
++};
++
++
 +&sdhci0 {
 +	u-boot,dm-pre-reloc;
 +};
@@ -79,53 +81,17 @@ index 00000000000..a743871fdb3
 +};
 diff --git a/arch/arm/dts/zynq-ni-sulfur-rev3.dts b/arch/arm/dts/zynq-ni-sulfur-rev3.dts
 new file mode 100644
-index 00000000000..fa06a0ebaed
+index 0000000000..14ff122a6e
 --- /dev/null
 +++ b/arch/arm/dts/zynq-ni-sulfur-rev3.dts
-@@ -0,0 +1,289 @@
+@@ -0,0 +1,238 @@
 +/*
-+ * National Instruments Ettus Research Project Sulfur SDR Revision 2
++ * National Instruments Ettus Research Project Sulfur SDR Revision 3
 + * devicetree source.
 + *
 + * Copyright (c) 2016 National Instruments Corp.
++ * SPDX-License-Identifier: GPL-2.0 OR X11
 + *
-+ * This file is dual-licensed: you can use it either under the terms
-+ * of the GPL or the X11 license, at your option. Note that this dual
-+ * licensing only applies to this file, and not this project as a
-+ * whole.
-+ *
-+ *  a) This file is free software; you can redistribute it and/or
-+ *     modify it under the terms of the GNU General Public License as
-+ *     published by the Free Software Foundation; either version 2 of the
-+ *     License, or (at your option) any later version.
-+ *
-+ *     This file is distributed in the hope that it will be useful,
-+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ *     GNU General Public License for more details.
-+ *
-+ *  Or, alternatively,
-+ *
-+ *  b) Permission is hereby granted, free of charge, to any person
-+ *     obtaining a copy of this software and associated documentation
-+ *     files (the "Software"), to deal in the Software without
-+ *     restriction, including without limitation the rights to use,
-+ *     copy, modify, merge, publish, distribute, sublicense, and/or
-+ *     sell copies of the Software, and to permit persons to whom the
-+ *     Software is furnished to do so, subject to the following
-+ *     conditions:
-+ *
-+ *     The above copyright notice and this permission notice shall be
-+ *     included in all copies or substantial portions of the Software.
-+ *
-+ *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-+ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-+ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-+ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-+ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-+ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-+ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-+ *     OTHER DEALINGS IN THE SOFTWARE.
 + */
 +
 +/dts-v1/;
@@ -146,6 +112,7 @@ index 00000000000..fa06a0ebaed
 +		spi0 = &spi0;
 +		spi1 = &spi1;
 +		gpio0 = &gpio0;
++		mmc0 = &sdhci0;
 +		i2c0 = &i2c0;
 +		i2c1 = &i2c1;
 +		i2c20 = &tun;
@@ -153,7 +120,7 @@ index 00000000000..fa06a0ebaed
 +		i2c707 = &i2c0_70_7;
 +	};
 +
-+	memory {
++	memory@0 {
 +		device_type = "memory";
 +		reg = <0x0 0x40000000>;
 +	};
@@ -331,14 +298,6 @@ index 00000000000..fa06a0ebaed
 +	fclk-enable = <0xf>;
 +};
 +
-+&spi0 {
-+	status = "okay";
-+};
-+
-+&spi1 {
-+	status = "okay";
-+};
-+
 +&gem0 {
 +	status = "okay";
 +	phy-mode = "rgmii-id";
@@ -357,14 +316,6 @@ index 00000000000..fa06a0ebaed
 +};
 +
 +&amba {
-+	fpga_region0: fpga-region@40000000 {
-+		compatible = "fpga-region";
-+		fpga-mgr = <&devcfg>;
-+		#address-cells = <0x1>;
-+		#size-cells = <0x1>;
-+		ranges;
-+	};
-+
 +	ocm: sram@fffc0000 {
 +		compatible = "mmio-sram";
 +		reg = <0xfffc0000 0x10000>;
@@ -372,144 +323,9 @@ index 00000000000..fa06a0ebaed
 +};
 +
 +#include "zynq-ni-sulfur-rev3-uboot.dtsi"
-diff --git a/board/ni/zynq/board.c b/board/ni/zynq/board.c
-index f7198854035..0d3b8db8999 100644
---- a/board/ni/zynq/board.c
-+++ b/board/ni/zynq/board.c
-@@ -14,6 +14,9 @@
- #include <asm/arch/hardware.h>
- #include <asm/arch/sys_proto.h>
- 
-+#include "sulfur-eeprom.h"
-+#include <i2c.h>
-+
- DECLARE_GLOBAL_DATA_PTR;
- 
- #if (defined(CONFIG_FPGA) && !defined(CONFIG_SPL_BUILD)) || \
-@@ -161,6 +164,39 @@ int checkboard(void)
- }
- #endif
- 
-+int sulfur_read_ethaddr(unsigned char *ethaddr)
-+{
-+	struct udevice *i2c_tun, *eeprom_chip;
-+	struct sulfur_mboard_eeprom eeprom;
-+	int err, i;
-+	u32 crc;
-+
-+	err = uclass_get_device_by_seq(UCLASS_I2C, 20, &i2c_tun);
-+	if (err < 0)
-+		return err;
-+
-+	err = dm_i2c_probe(i2c_tun, 0x50, 0, &eeprom_chip);
-+	if (err < 0)
-+		return err;
-+
-+	for (i = 0; i < sizeof(eeprom); i++) {
-+		err = dm_i2c_reg_read(eeprom_chip, i);
-+		if (err < 0)
-+			break;
-+		*(((u8*)(&eeprom)) + i) = err & 0xff;
-+	}
-+
-+	crc = crc32(0, (const u8*)&eeprom, sizeof(eeprom) - 4);
-+	if (htonl(crc) != eeprom.crc) {
-+		printf("%s: CRC for eeprom doesn't match! %08x vs %08x\n",
-+		       __func__, htonl(crc), eeprom.crc);
-+		return -EINVAL;
-+	}
-+	memcpy(ethaddr, &eeprom.eth_addr0, ETH_ALEN);
-+
-+	return 0;
-+}
-+
- int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
- {
- #if defined(CONFIG_ZYNQ_GEM_EEPROM_ADDR) && \
-@@ -171,6 +207,8 @@ int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
- 		printf("I2C EEPROM MAC address read failed\n");
- #endif
- 
-+	sulfur_read_ethaddr(ethaddr);
-+
- 	return 0;
- }
- 
-diff --git a/board/ni/zynq/sulfur-eeprom.h b/board/ni/zynq/sulfur-eeprom.h
-new file mode 100644
-index 00000000000..58d2cf8737d
---- /dev/null
-+++ b/board/ni/zynq/sulfur-eeprom.h
-@@ -0,0 +1,66 @@
-+/*
-+ * NI Ettus Research Sulfur EEPROM helpers
-+ *
-+ * Copyright (c) 2017 National Instruments Corp
-+ *
-+ * SPDX-License-Identifier:	GPL-2.0+
-+ */
-+
-+#ifndef NI_ZYNQ_SULFUR_EEPROM_H
-+#define NI_ZYNQ_SULFUR_EEPROM_H
-+
-+#define ETH_ALEN 6
-+
-+/**
-+ * sulfur_mboard_eeprom - The memory map of the USRP Sulfur SDR EEPROM
-+ *
-+ * @magic: Magic constant to indicate that one is looking at a MB eeprom
-+ * @version: Data layout version
-+ * @mcu_flags: Flags for the EC
-+ * @pid: Product Identifier
-+ * @rev: Revision Number (zero based)
-+ * @serial: (Non zero terminated) String containing the serial number
-+ * @eth_addr0: Contains ethernet address for eth0
-+ * @__pad0: Padding
-+ * @eth_addr1: Contains ethernet address for eth1
-+ * @__pad1: Padding
-+ * @eth_addr2: Contains ethernet address for eth2
-+ * @__pad2: Padding
-+ * @crc: Contains checksum over the entire struct minus the crc member
-+ */
-+struct sulfur_mboard_eeprom {
-+	u32 magic;
-+	u32 version;
-+	u32 mcu_flags[4];
-+	u16 pid;
-+	u16 rev;
-+	u8 serial[8];
-+	u8 eth_addr0[ETH_ALEN];
-+	u8 __pad_0[2];
-+	u8 eth_addr1[ETH_ALEN];
-+	u8 __pad_1[2];
-+	u8 eth_addr2[ETH_ALEN];
-+	u8 __pad_2[2];
-+	u32 crc;
-+} __attribute__((packed));
-+
-+/**
-+ * sulfur_dboard_eeprom - The memory map of the USRP Sulfur SDR EEPROM
-+ *
-+ * @magic: Magic constant to indicate that one is looking at a DB eeprom
-+ * @version: Data layout version
-+ * @pid: Product Identifier
-+ * @rev: Revision Number (zero based)
-+ * @serial: (Non zero terminated) String containing the serial number
-+ * @crc: Contains checksum over the entire struct minus the crc member
-+ */
-+struct sulfur_dboard_eeprom {
-+	u32 magic;
-+	u32 version;
-+	u16 pid;
-+	u16 rev;
-+	u8 serial[8];
-+	u32 crc;
-+} __attribute__((packed));
-+
-+#endif /* NI_ZYNQ_SULFUR_EEPROM_H */
 diff --git a/board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c b/board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c
 new file mode 100644
-index 00000000000..56a866b39f3
+index 0000000000..56a866b39f
 --- /dev/null
 +++ b/board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c
 @@ -0,0 +1,307 @@
@@ -822,66 +638,60 @@ index 00000000000..56a866b39f3
 +}
 diff --git a/configs/ni_sulfur_rev3_defconfig b/configs/ni_sulfur_rev3_defconfig
 new file mode 100644
-index 00000000000..56b2726cb70
+index 0000000000..bcf43e55e7
 --- /dev/null
 +++ b/configs/ni_sulfur_rev3_defconfig
-@@ -0,0 +1,68 @@
+@@ -0,0 +1,61 @@
 +CONFIG_ARM=y
 +CONFIG_SYS_VENDOR="ni"
 +CONFIG_SYS_CONFIG_NAME="ni_sulfur_rev3"
 +CONFIG_ARCH_ZYNQ=y
++CONFIG_SYS_TEXT_BASE=0x4000000
 +CONFIG_DEFAULT_DEVICE_TREE="zynq-ni-sulfur-rev3"
-+CONFIG_SYS_EXTRA_OPTIONS="ENV_IS_IN_MMC"
++CONFIG_DEBUG_UART=y
 +CONFIG_FIT=y
++CONFIG_FIT_SIGNATURE=y
++CONFIG_SYS_EXTRA_OPTIONS="ENV_IS_IN_MMC"
++CONFIG_BOOTDELAY=0
 +# CONFIG_DISPLAY_CPUINFO is not set
 +CONFIG_SPL=y
 +CONFIG_HUSH_PARSER=y
-+CONFIG_SYS_PROMPT="ni-sulfur-rev3> "
++CONFIG_SYS_PROMPT="ni-sulfur-rev3-uboot> "
 +# CONFIG_CMD_IMLS is not set
-+CONFIG_CMD_MEMTEST=y
-+CONFIG_CMD_MEMINFO=y
-+# CONFIG_CMD_FLASH is not set
-+CONFIG_CMD_MMC=y
-+CONFIG_CMD_SPI=y
-+CONFIG_CMD_I2C=y
-+CONFIG_CMD_USB=y
++CONFIG_CMD_THOR_DOWNLOAD=y
 +CONFIG_CMD_DFU=y
++# CONFIG_CMD_FLASH is not set
 +CONFIG_CMD_GPIO=y
-+CONFIG_DM_GPIO=y
++CONFIG_CMD_I2C=y
++CONFIG_CMD_MMC=y
++CONFIG_CMD_USB=y
 +# CONFIG_CMD_SETEXPR is not set
-+CONFIG_CMD_TFTPPUT=y
-+CONFIG_CMD_DHCP=y
-+CONFIG_CMD_MII=y
-+CONFIG_CMD_PING=y
-+CONFIG_CMD_DNS=y
++# CONFIG_CMD_NET is not set
++# CONFIG_CMD_NFS is not set
 +CONFIG_CMD_CACHE=y
-+CONFIG_CMD_TPM=y
-+CONFIG_CMD_TPM_TEST=y
-+CONFIG_CMD_EXT2=y
 +CONFIG_CMD_EXT4=y
-+CONFIG_CMD_EXT4_WRITE=y
 +CONFIG_CMD_FAT=y
 +CONFIG_CMD_FS_GENERIC=y
-+CONFIG_NET_RANDOM_ETHADDR=y
 +CONFIG_SPL_DM_SEQ_ALIAS=y
-+CONFIG_DFU_MMC=y
 +CONFIG_DFU_RAM=y
 +CONFIG_DM_I2C=y
 +CONFIG_I2C_CROS_EC_TUNNEL=y
-+CONFIG_DM_I2C_GPIO=y
 +CONFIG_SYS_I2C_CADENCE=y
-+CONFIG_SYS_NOFLASH=y
 +CONFIG_I2C_MUX=y
 +CONFIG_I2C_MUX_PCA954x=y
 +CONFIG_MISC=y
 +CONFIG_CROS_EC=y
 +CONFIG_CROS_EC_I2C=y
 +CONFIG_I2C_EEPROM=y
-+CONFIG_MMC_SDHCI_ZYNQ=y
 +CONFIG_MMC_SDHCI=y
-+CONFIG_ZYNQ_GEM=y
-+CONFIG_ZYNQ_SPI=y
-+CONFIG_TPM_AUTH_SESSIONS=y
++CONFIG_MMC_SDHCI_ZYNQ=y
++CONFIG_SPI_FLASH=y
++CONFIG_SPI_FLASH_BAR=y
++CONFIG_SPI_FLASH_STMICRO=y
++# CONFIG_SPI_FLASH_USE_4K_SECTORS is not set
++CONFIG_DEBUG_UART_ZYNQ=y
++CONFIG_DEBUG_UART_BASE=0xe0000000
++CONFIG_DEBUG_UART_CLOCK=100000000
 +CONFIG_USB=y
 +CONFIG_USB_EHCI_HCD=y
 +CONFIG_USB_ULPI_VIEWPORT=y
@@ -890,37 +700,27 @@ index 00000000000..56b2726cb70
 +CONFIG_USB_GADGET=y
 +CONFIG_CI_UDC=y
 +CONFIG_USB_GADGET_DOWNLOAD=y
-+CONFIG_G_DNL_MANUFACTURER="National Instruments Inc"
-+CONFIG_G_DNL_VENDOR_NUM=0x3923
-+CONFIG_G_DNL_PRODUCT_NUM=0x0301
-+CONFIG_TPM=y
++CONFIG_G_DNL_MANUFACTURER="Xilinx"
++CONFIG_G_DNL_VENDOR_NUM=0x03fd
++CONFIG_G_DNL_PRODUCT_NUM=0x0300
 diff --git a/include/configs/ni_sulfur_rev3.h b/include/configs/ni_sulfur_rev3.h
 new file mode 100644
-index 00000000000..e3d5fec4453
+index 0000000000..d3114959b9
 --- /dev/null
 +++ b/include/configs/ni_sulfur_rev3.h
-@@ -0,0 +1,43 @@
+@@ -0,0 +1,35 @@
 +/*
-+ * (C) Copyright 2017 National Instruments
++ * (C) Copyright 2016,2017 National Instruments Corp
 + *
-+ * Configuration for NI Ettus Research Project Sulfur Rev3
++ * Configuration settings for the NI Project Sulfur Rev3 SDR board
 + * See zynq-common.h for Zynq common configs
 + *
-+ * SPDX-License-Identifier:	GPL-2.0+
++ * SPDX-License-Identifier:	GPL-2.0
 + */
++#ifndef __CONFIG_NI_SULFUR_REV3_H
++#define __CONFIG_NI_SULFUR_REV3_H
 +
-+#ifndef __CONFIG_NI_SULFUR_REV3
-+#define __CONFIG_NI_SULFUR_REV3
-+
-+#ifndef CONFIG_ENV_IS_NOWHERE
-+#define CONFIG_ENV_IS_NOWHERE
-+#endif
-+#include "zynq-common.h"
-+#undef CONFIG_ENV_IS_NOWHERE
-+
-+#define CONFIG_SYS_MMC_ENV_DEV 0
-+#define CONFIG_ENV_SECT_SIZE		CONFIG_ENV_SIZE
-+#define CONFIG_ENV_OFFSET		0xE0000
++#include <configs/zynq-common.h>
 +
 +#undef CONFIG_EXTRA_ENV_SETTINGS
 +#define CONFIG_EXTRA_ENV_SETTINGS	\
@@ -942,7 +742,8 @@ index 00000000000..e3d5fec4453
 +			"bootm ${load_addr}; fi\0" \
 +		DFU_ALT_INFO
 +
-+#endif /* __CONFIG_NI_SULFUR_REV3 */
++
++#endif /* __CONFIG_NI_SULFUR_REV3_H */
 -- 
-2.14.2
+2.15.0
 

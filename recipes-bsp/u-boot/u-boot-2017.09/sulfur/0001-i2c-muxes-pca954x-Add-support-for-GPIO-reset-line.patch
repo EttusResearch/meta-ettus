@@ -1,7 +1,7 @@
-From 36bdeb75a4f4f276c841644775e687eb6b3d9ec4 Mon Sep 17 00:00:00 2001
+From e6803064d981ebf19697c2b4db851369131cc0f0 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 12 Sep 2017 06:46:59 -0700
-Subject: [PATCH] i2c: muxes: pca954x: Add support for GPIO reset line
+Subject: [PATCH 1/6] i2c: muxes: pca954x: Add support for GPIO reset line
 
 This commit adds support for GPIO reset lines matching the
 common linux "reset-gpios" devicetree binding.
@@ -14,7 +14,7 @@ Reviewed-by: Simon Glass <sjg@chromium.org>
  1 file changed, 39 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/i2c/muxes/pca954x.c b/drivers/i2c/muxes/pca954x.c
-index 383f72f5522..01ca1ff48db 100644
+index 383f72f552..01ca1ff48d 100644
 --- a/drivers/i2c/muxes/pca954x.c
 +++ b/drivers/i2c/muxes/pca954x.c
 @@ -1,5 +1,6 @@
@@ -89,5 +89,5 @@ index 383f72f5522..01ca1ff48db 100644
  	.ofdata_to_platdata = pca954x_ofdata_to_platdata,
  	.priv_auto_alloc_size = sizeof(struct pca954x_priv),
 -- 
-2.14.2
+2.15.0
 

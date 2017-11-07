@@ -1,7 +1,7 @@
-From 112074f4054c6fd097cad44703be07ecb85e6ba5 Mon Sep 17 00:00:00 2001
+From 881cefdc6104a889171d6faa5cc2230665319766 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Wed, 26 Oct 2016 09:58:51 -0700
-Subject: [PATCH 13/13] misc: cros_ec: Add trivial support for software sync
+Subject: [PATCH 2/6] misc: cros_ec: Add trivial support for software sync
 
 This adds basic support for 'software sync' - the technique
 used by Chromebooks to keep the EC software in sync with
@@ -15,7 +15,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  3 files changed, 147 insertions(+)
 
 diff --git a/cmd/cros_ec.c b/cmd/cros_ec.c
-index af0b4eee78..23074f08f8 100644
+index af0b4eee78..fd1dd9e644 100644
 --- a/cmd/cros_ec.c
 +++ b/cmd/cros_ec.c
 @@ -151,6 +151,17 @@ static int do_cros_ec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
@@ -30,7 +30,7 @@ index af0b4eee78..23074f08f8 100644
 +			debug("%s: addr = %lx\n", __func__, addr);
 +			size = simple_strtoul(argv[3], NULL, 16);
 +			debug("%s: size = %lx\n", __func__, size);
-+			cros_ec_flash_sync_rw(dev, addr, size);
++			cros_ec_flash_sync_rw(dev, (uint8_t*)addr, size);
 +		}
 +
  	} else if (0 == strcmp("hash", cmd)) {
@@ -45,7 +45,7 @@ index af0b4eee78..23074f08f8 100644
  	"crosec reboot [rw | ro | cold]  Reboot CROS-EC\n"
  	"crosec events              Read CROS-EC host events\n"
 diff --git a/drivers/misc/cros_ec.c b/drivers/misc/cros_ec.c
-index eefaaa53ad..1ff2fd1db3 100644
+index feaa5d8567..c21dc0aa02 100644
 --- a/drivers/misc/cros_ec.c
 +++ b/drivers/misc/cros_ec.c
 @@ -29,6 +29,9 @@
@@ -209,5 +209,5 @@ index 771a176eea..28d55fcf72 100644
   * Clear the specified host event flags
   *
 -- 
-2.14.2
+2.15.0
 

@@ -1,7 +1,7 @@
-From 653a48920a276027b48f10624ca338be0ddd1201 Mon Sep 17 00:00:00 2001
+From 4cc3a74d5de0243792ca52ae844d891b941a6b76 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
-Date: Wed, 10 May 2017 16:41:31 -0700
-Subject: [PATCH 01/13] ni: zynq: Add support for NI Ettus Research Project
+Date: Tue, 7 Nov 2017 11:51:56 -0800
+Subject: [PATCH 3/6] ni: zynq: Add support for NI Ettus Research Project
  Sulfur Rev2 SDR
 
 Add support for second revision of NI Ettus Research Project Sulfur
@@ -14,13 +14,15 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  arch/arm/dts/zynq-ni-sulfur-rev2.dts             | 276 ++++++++++++++++++++
  board/ni/zynq/MAINTAINERS                        |   6 +
  board/ni/zynq/Makefile                           |  10 +
- board/ni/zynq/board.c                            | 203 +++++++++++++++
- board/ni/zynq/ps7_init_common.c                  | 119 +++++++++
- board/ni/zynq/ps7_init_gpl.h                     |  34 +++
+ board/ni/zynq/board.c                            | 255 ++++++++++++++++++
+ board/ni/zynq/ps7_init_common.c                  | 118 +++++++++
+ board/ni/zynq/ps7_init_gpl.h                     |  35 +++
+ board/ni/zynq/sulfur-eeprom.c                    | 166 ++++++++++++
+ board/ni/zynq/sulfur-eeprom.h                    |  70 +++++
  board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c | 313 +++++++++++++++++++++++
- configs/ni_sulfur_rev2_defconfig                 |  69 +++++
- include/configs/ni_sulfur_rev2.h                 |  64 +++++
- 11 files changed, 1111 insertions(+)
+ configs/ni_sulfur_rev2_defconfig                 |  61 +++++
+ include/configs/ni_sulfur_rev2.h                 |  33 +++
+ 13 files changed, 1360 insertions(+)
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev2-uboot.dtsi
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev2.dts
  create mode 100644 board/ni/zynq/MAINTAINERS
@@ -28,15 +30,17 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  create mode 100644 board/ni/zynq/board.c
  create mode 100644 board/ni/zynq/ps7_init_common.c
  create mode 100644 board/ni/zynq/ps7_init_gpl.h
+ create mode 100644 board/ni/zynq/sulfur-eeprom.c
+ create mode 100644 board/ni/zynq/sulfur-eeprom.h
  create mode 100644 board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c
  create mode 100644 configs/ni_sulfur_rev2_defconfig
  create mode 100644 include/configs/ni_sulfur_rev2.h
 
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
-index fee4680057..5687099934 100644
+index 762429c463..bf47896f69 100644
 --- a/arch/arm/dts/Makefile
 +++ b/arch/arm/dts/Makefile
-@@ -128,6 +128,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb \
+@@ -127,6 +127,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb \
  	zynq-zed.dtb \
  	zynq-zybo.dtb \
  	zynq-microzed.dtb \
@@ -350,19 +354,19 @@ index 0000000000..f844f1af21
 +#include "zynq-ni-sulfur-rev2-uboot.dtsi"
 diff --git a/board/ni/zynq/MAINTAINERS b/board/ni/zynq/MAINTAINERS
 new file mode 100644
-index 0000000000..ff7595e602
+index 0000000000..3edb51aab3
 --- /dev/null
 +++ b/board/ni/zynq/MAINTAINERS
 @@ -0,0 +1,6 @@
-+NI BOARD
-+M:	Moritz Fischer <moritz.fischer@ettus.com>
++TOPIC BOARD
++M:	Moritz Fischer <moritz@ettus.com>
 +S:	Maintained
 +F:	board/ni/zynq/
-+F:	include/configs/ni*.h
++F:	include/configs/ni_*.h
 +F:	configs/ni_*_defconfig
 diff --git a/board/ni/zynq/Makefile b/board/ni/zynq/Makefile
 new file mode 100644
-index 0000000000..eaf59cd55c
+index 0000000000..b8a55978cd
 --- /dev/null
 +++ b/board/ni/zynq/Makefile
 @@ -0,0 +1,10 @@
@@ -370,7 +374,7 @@ index 0000000000..eaf59cd55c
 +# SPDX-License-Identifier:	GPL-2.0+
 +#
 +
-+obj-y	:= board.o
++obj-y	:= board.o sulfur-eeprom.o
 +
 +# Remove quotes
 +hw-platform-y :=$(shell echo $(CONFIG_DEFAULT_DEVICE_TREE))
@@ -378,10 +382,10 @@ index 0000000000..eaf59cd55c
 +obj-$(CONFIG_SPL_BUILD) += $(hw-platform-y)/ps7_init_gpl.o ps7_init_common.o
 diff --git a/board/ni/zynq/board.c b/board/ni/zynq/board.c
 new file mode 100644
-index 0000000000..f719885403
+index 0000000000..ed05c17528
 --- /dev/null
 +++ b/board/ni/zynq/board.c
-@@ -0,0 +1,203 @@
+@@ -0,0 +1,255 @@
 +/*
 + * (C) Copyright 2012 Michal Simek <monstr@monstr.eu>
 + *
@@ -397,6 +401,9 @@ index 0000000000..f719885403
 +#include <zynqpl.h>
 +#include <asm/arch/hardware.h>
 +#include <asm/arch/sys_proto.h>
++
++#include "sulfur-eeprom.h"
++#include <i2c.h>
 +
 +DECLARE_GLOBAL_DATA_PTR;
 +
@@ -507,8 +514,38 @@ index 0000000000..f719885403
 +	return 0;
 +}
 +
++static int legit_combo(u16 x, u16 y, u16 compare)
++{
++	/* if both of them are error, return error */
++	if (x < 0 && y < 0)
++		return x;
++
++	/* if first one matches, second can be error,
++	 * different, or the same */
++	if (x == compare) {
++		/* y not present, is ok, y == x is ok */
++		if (y < 0 || y == x)
++			return 0;
++
++		/* not supported combo x != y */
++		if (x != y)
++			return -ENOTSUPP;
++
++	/* else try the opposite */
++	} else if (x > 0) {
++		return legit_combo(y, x, compare);
++	}
++
++	return -ENOTSUPP;
++}
++
++
 +int board_late_init(void)
 +{
++	int slot0, slot1;
++	int rev;
++	char base_fdt[128];
++
 +	switch ((zynq_slcr_get_boot_mode()) & ZYNQ_BM_MASK) {
 +	case ZYNQ_BM_QSPI:
 +		env_set("modeboot", "qspiboot");
@@ -534,16 +571,33 @@ index 0000000000..f719885403
 +	board_power(BOARD_POWER_TYPE_ON);
 +#endif
 +
-+	return 0;
-+}
++	rev = sulfur_probe_mboard();
++	if (rev > 0) {
++		snprintf(base_fdt, 128, "sulfur-rev%u", rev+1);
++		env_set("mboard", base_fdt);
++	} else {
++		snprintf(base_fdt, 128, "sulfur-rev3");
++		env_set("mboard", base_fdt);
++	}
 +
-+#ifdef CONFIG_DISPLAY_BOARDINFO
-+int checkboard(void)
-+{
-+	puts("Board: Xilinx Zynq\n");
++	slot0 = sulfur_probe_dboard(0);
++	slot1 = sulfur_probe_dboard(1);
++
++	if (!legit_combo(slot0, slot1, 0x150)) {
++		env_set("variant", "magnesium");
++	} else if (!legit_combo(slot0, slot1, 0x152)) {
++		env_set("variant", "rhodium");
++	} else if (!legit_combo(slot0, slot1, 0x180)) {
++		env_set("variant", "eiscat");
++	} else {
++		env_set("variant", env_get("mboard"));
++		printf("No known dboard found, falling back to %s\n", env_get("mboard"));
++		printf("If Slot0: %x / Slot1: %x is a legit combo, try updating your u-boot\n",
++			slot0, slot1);
++	}
++
 +	return 0;
 +}
-+#endif
 +
 +int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
 +{
@@ -554,6 +608,8 @@ index 0000000000..f719885403
 +			ethaddr, 6))
 +		printf("I2C EEPROM MAC address read failed\n");
 +#endif
++
++	sulfur_read_ethaddr(ethaddr, 0);
 +
 +	return 0;
 +}
@@ -587,16 +643,16 @@ index 0000000000..f719885403
 +#endif
 diff --git a/board/ni/zynq/ps7_init_common.c b/board/ni/zynq/ps7_init_common.c
 new file mode 100644
-index 0000000000..b182436e9f
+index 0000000000..7c6ae52d66
 --- /dev/null
 +++ b/board/ni/zynq/ps7_init_common.c
-@@ -0,0 +1,119 @@
+@@ -0,0 +1,118 @@
 +/*
 + * (c) Copyright 2010-2014 Xilinx, Inc. All rights reserved.
 + * (c) Copyright 2016 Topic Embedded Products.
 + * (c) Copyright 2016 National Instruments Corp.
 + *
-+ * SPDX-License-Identifier:	GPL-2.0+
++ * SPDX-License-Identifier:	GPL-2.0
 + */
 +
 +#include "ps7_init_gpl.h"
@@ -657,7 +713,6 @@ index 0000000000..b182436e9f
 +	perf_start_clock();
 +}
 +
-+
 +int ps7_config(unsigned long *ps7_config_init)
 +{
 +	unsigned long *ptr = ps7_config_init;
@@ -712,15 +767,16 @@ index 0000000000..b182436e9f
 +}
 diff --git a/board/ni/zynq/ps7_init_gpl.h b/board/ni/zynq/ps7_init_gpl.h
 new file mode 100644
-index 0000000000..ef719acaba
+index 0000000000..e728cb296a
 --- /dev/null
 +++ b/board/ni/zynq/ps7_init_gpl.h
-@@ -0,0 +1,34 @@
+@@ -0,0 +1,35 @@
 +/*
 + * (c) Copyright 2010-2014 Xilinx, Inc. All rights reserved.
 + * (c) Copyright 2016 Topic Embedded Products.
++ * (c) Copyright 2017 National Instruments Corp.
 + *
-+ * SPDX-License-Identifier:	GPL-2.0+
++ * SPDX-License-Identifier:	GPL-2.0
 + */
 +
 +#define OPCODE_EXIT       0U
@@ -750,6 +806,254 @@ index 0000000000..ef719acaba
 +
 +/* Defined in ps7_init_common.c */
 +int ps7_config(unsigned long *ps7_config_init);
+diff --git a/board/ni/zynq/sulfur-eeprom.c b/board/ni/zynq/sulfur-eeprom.c
+new file mode 100644
+index 0000000000..d2f1916594
+--- /dev/null
++++ b/board/ni/zynq/sulfur-eeprom.c
+@@ -0,0 +1,166 @@
++/*
++ * (C) Copyright 2017 National Instruments Corp
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#include <common.h>
++#include "sulfur-eeprom.h"
++#include <dm.h>
++#include <i2c.h>
++
++DECLARE_GLOBAL_DATA_PTR;
++
++struct sulfur_xboard_match {
++	u16 pid;
++	const char *name;
++};
++
++static const struct sulfur_xboard_match db_match[] = {
++	{ .pid = 0x150, .name = "Magnesium XCVR" },
++	{ .pid = 0x152, .name = "Rhodium XCVR" },
++	{ .pid = 0x180, .name = "EISCAT RX" },
++	{},
++};
++
++static const struct sulfur_xboard_match mb_match[] = {
++	{ .pid = 0x4242, .name = "Sulfur" },
++	{},
++};
++
++const char *sulfur_get_mboard_name(u16 pid)
++{
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(mb_match); i++)
++		if (pid == mb_match[i].pid)
++			return mb_match[i].name;
++
++	return "Unknown";
++}
++
++const char *sulfur_get_dboard_name(u16 pid)
++{
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(db_match); i++)
++		if (pid == db_match[i].pid)
++			return db_match[i].name;
++
++	return "Unknown";
++}
++
++int sulfur_probe_dboard(int dboard)
++{
++	struct udevice *usrpio, *eeprom_chip;
++	struct sulfur_dboard_eeprom eeprom;
++	int err, i;
++	u32 crc;
++
++	err = uclass_get_device_by_seq(UCLASS_I2C, dboard ? 706 : 707,
++			&usrpio);
++	if (err < 0)
++		return err;
++
++	err = dm_i2c_probe(usrpio, 0x50, 0, &eeprom_chip);
++	if (err < 0) {
++		printf("Slot %u: Failed to probe\n", dboard);
++		return err;
++	}
++
++	for (i = 0; i < sizeof(eeprom); i++) {
++		err = dm_i2c_reg_read(eeprom_chip, i);
++		if (err < 0)
++			break;
++		*(((u8*)(&eeprom)) + i) = err & 0xff;
++	}
++
++	crc = crc32(0, (const u8*)&eeprom, sizeof(eeprom) - 4);
++	if (htonl(crc) != eeprom.crc) {
++		printf("Slot %u: Unitialized\n", dboard);
++		return -EINVAL;
++	}
++
++	printf("Slot %u: %s Rev %c s/n: %s\n", dboard,
++	       sulfur_get_dboard_name(htons(eeprom.pid)),
++	       'A' + htons(eeprom.rev),
++	       eeprom.serial);
++
++	return htons(eeprom.pid);
++}
++
++int sulfur_probe_mboard(void)
++{
++	struct udevice *i2c_tun, *eeprom_chip;
++	struct sulfur_mboard_eeprom eeprom;
++	int err, i;
++	u32 crc;
++
++	err = uclass_get_device_by_seq(UCLASS_I2C, 20, &i2c_tun);
++	if (err < 0)
++		return err;
++
++	err = dm_i2c_probe(i2c_tun, 0x50, 0, &eeprom_chip);
++	if (err < 0)
++		return err;
++
++	for (i = 0; i < sizeof(eeprom); i++) {
++		err = dm_i2c_reg_read(eeprom_chip, i);
++		if (err < 0)
++			break;
++		*(((u8*)(&eeprom)) + i) = err & 0xff;
++	}
++
++	crc = crc32(0, (const u8*)&eeprom, sizeof(eeprom) - 4);
++	if (htonl(crc) != eeprom.crc) {
++		printf("%s: CRC for eeprom doesn't match! %08x vs %08x\n",
++		       __func__, htonl(crc), eeprom.crc);
++		return -EINVAL;
++	}
++
++	printf("NI Ettus Research Project %s SDR Rev %c s/n %s \n",
++			sulfur_get_mboard_name(htons(eeprom.pid)),
++			'A' + htons(eeprom.rev),
++			eeprom.serial);
++	return htons(eeprom.rev);
++}
++
++int sulfur_read_ethaddr(unsigned char *ethaddr, int which)
++{
++	struct udevice *i2c_tun, *eeprom_chip;
++	struct sulfur_mboard_eeprom eeprom;
++	int err, i;
++	u32 crc;
++
++	err = uclass_get_device_by_seq(UCLASS_I2C, 20, &i2c_tun);
++	if (err < 0)
++		return err;
++
++	err = dm_i2c_probe(i2c_tun, 0x50, 0, &eeprom_chip);
++	if (err < 0)
++		return err;
++
++	for (i = 0; i < sizeof(eeprom); i++) {
++		err = dm_i2c_reg_read(eeprom_chip, i);
++		if (err < 0)
++			break;
++		*(((u8*)(&eeprom)) + i) = err & 0xff;
++	}
++
++	crc = crc32(0, (const u8*)&eeprom, sizeof(eeprom) - 4);
++	if (htonl(crc) != eeprom.crc) {
++		printf("%s: CRC for eeprom doesn't match! %08x vs %08x\n",
++		       __func__, htonl(crc), eeprom.crc);
++		return -EINVAL;
++	}
++
++	if (which == 0)
++		memcpy(ethaddr, &eeprom.eth_addr0, ETH_ALEN);
++	else if (which == 1)
++		memcpy(ethaddr, &eeprom.eth_addr1, ETH_ALEN);
++
++	else if (which == 2)
++		memcpy(ethaddr, &eeprom.eth_addr1, ETH_ALEN);
++
++	return 0;
++}
+diff --git a/board/ni/zynq/sulfur-eeprom.h b/board/ni/zynq/sulfur-eeprom.h
+new file mode 100644
+index 0000000000..fe49f2cddd
+--- /dev/null
++++ b/board/ni/zynq/sulfur-eeprom.h
+@@ -0,0 +1,70 @@
++/*
++ * NI Ettus Research Sulfur EEPROM helpers
++ *
++ * Copyright (c) 2017 National Instruments Corp
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#ifndef NI_ZYNQ_SULFUR_EEPROM_H
++#define NI_ZYNQ_SULFUR_EEPROM_H
++
++#define ETH_ALEN 6
++
++/**
++ * sulfur_mboard_eeprom - The memory map of the USRP Sulfur SDR EEPROM
++ *
++ * @magic: Magic constant to indicate that one is looking at a MB eeprom
++ * @version: Data layout version
++ * @mcu_flags: Flags for the EC
++ * @pid: Product Identifier
++ * @rev: Revision Number (zero based)
++ * @serial: (Non zero terminated) String containing the serial number
++ * @eth_addr0: Contains ethernet address for eth0
++ * @__pad0: Padding
++ * @eth_addr1: Contains ethernet address for eth1
++ * @__pad1: Padding
++ * @eth_addr2: Contains ethernet address for eth2
++ * @__pad2: Padding
++ * @crc: Contains checksum over the entire struct minus the crc member
++ */
++struct sulfur_mboard_eeprom {
++	u32 magic;
++	u32 version;
++	u32 mcu_flags[4];
++	u16 pid;
++	u16 rev;
++	u8 serial[8];
++	u8 eth_addr0[ETH_ALEN];
++	u8 __pad_0[2];
++	u8 eth_addr1[ETH_ALEN];
++	u8 __pad_1[2];
++	u8 eth_addr2[ETH_ALEN];
++	u8 __pad_2[2];
++	u32 crc;
++} __attribute__((packed));
++
++/**
++ * sulfur_dboard_eeprom - The memory map of the USRP Sulfur SDR EEPROM
++ *
++ * @magic: Magic constant to indicate that one is looking at a DB eeprom
++ * @version: Data layout version
++ * @pid: Product Identifier
++ * @rev: Revision Number (zero based)
++ * @serial: (Non zero terminated) String containing the serial number
++ * @crc: Contains checksum over the entire struct minus the crc member
++ */
++struct sulfur_dboard_eeprom {
++	u32 magic;
++	u32 version;
++	u16 pid;
++	u16 rev;
++	u8 serial[8];
++	u32 crc;
++} __attribute__((packed));
++
++int sulfur_probe_mboard(void);
++int sulfur_probe_dboard(int dboard);
++int sulfur_read_ethaddr(unsigned char *ethaddr, int which);
++
++#endif /* NI_ZYNQ_SULFUR_EEPROM_H */
 diff --git a/board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c b/board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c
 new file mode 100644
 index 0000000000..43a9655bb2
@@ -1071,67 +1375,60 @@ index 0000000000..43a9655bb2
 +}
 diff --git a/configs/ni_sulfur_rev2_defconfig b/configs/ni_sulfur_rev2_defconfig
 new file mode 100644
-index 0000000000..ee5af861a7
+index 0000000000..e3f6ff828d
 --- /dev/null
 +++ b/configs/ni_sulfur_rev2_defconfig
-@@ -0,0 +1,69 @@
+@@ -0,0 +1,61 @@
 +CONFIG_ARM=y
 +CONFIG_SYS_VENDOR="ni"
-+CONFIG_SYS_CONFIG_NAME="ni_sulfur_rev2"
++CONFIG_SYS_CONFIG_NAME="ni_sulfur_rev3"
 +CONFIG_ARCH_ZYNQ=y
-+CONFIG_DEFAULT_DEVICE_TREE="zynq-ni-sulfur-rev2"
-+CONFIG_SYS_EXTRA_OPTIONS="ENV_IS_IN_MMC"
++CONFIG_SYS_TEXT_BASE=0x4000000
++CONFIG_DEFAULT_DEVICE_TREE="zynq-ni-sulfur-rev3"
++CONFIG_DEBUG_UART=y
 +CONFIG_FIT=y
++CONFIG_FIT_SIGNATURE=y
++CONFIG_SYS_EXTRA_OPTIONS="BOOTCOUNT_LIMIT,BOOTCOUNT_ENV,ENV_IS_IN_MMC"
++CONFIG_BOOTDELAY=0
 +# CONFIG_DISPLAY_CPUINFO is not set
 +CONFIG_SPL=y
 +CONFIG_HUSH_PARSER=y
-+CONFIG_SYS_PROMPT="ni-sulfur-rev2> "
++CONFIG_SYS_PROMPT="ni-sulfur-rev3-uboot> "
 +# CONFIG_CMD_IMLS is not set
-+CONFIG_CMD_MEMTEST=y
-+CONFIG_CMD_MEMINFO=y
-+# CONFIG_CMD_FLASH is not set
-+CONFIG_CMD_MMC=y
-+CONFIG_CMD_SPI=y
-+CONFIG_CMD_I2C=y
-+CONFIG_CMD_USB=y
++CONFIG_CMD_THOR_DOWNLOAD=y
 +CONFIG_CMD_DFU=y
++# CONFIG_CMD_FLASH is not set
 +CONFIG_CMD_GPIO=y
-+CONFIG_DM_GPIO=y
++CONFIG_CMD_I2C=y
++CONFIG_CMD_MMC=y
++CONFIG_CMD_USB=y
 +# CONFIG_CMD_SETEXPR is not set
-+CONFIG_CMD_TFTPPUT=y
-+CONFIG_CMD_DHCP=y
-+CONFIG_CMD_MII=y
-+CONFIG_CMD_PING=y
-+CONFIG_CMD_DNS=y
++# CONFIG_CMD_NET is not set
++# CONFIG_CMD_NFS is not set
 +CONFIG_CMD_CACHE=y
-+CONFIG_CMD_TPM=y
-+CONFIG_CMD_TPM_TEST=y
-+CONFIG_CMD_EXT2=y
 +CONFIG_CMD_EXT4=y
-+CONFIG_CMD_EXT4_WRITE=y
 +CONFIG_CMD_FAT=y
 +CONFIG_CMD_FS_GENERIC=y
-+CONFIG_NET_RANDOM_ETHADDR=y
 +CONFIG_SPL_DM_SEQ_ALIAS=y
-+CONFIG_DFU_MMC=y
 +CONFIG_DFU_RAM=y
 +CONFIG_DM_I2C=y
 +CONFIG_I2C_CROS_EC_TUNNEL=y
-+CONFIG_DM_I2C_GPIO=y
 +CONFIG_SYS_I2C_CADENCE=y
-+CONFIG_SYS_NOFLASH=y
 +CONFIG_I2C_MUX=y
 +CONFIG_I2C_MUX_PCA954x=y
 +CONFIG_MISC=y
 +CONFIG_CROS_EC=y
 +CONFIG_CROS_EC_SPI=y
 +CONFIG_I2C_EEPROM=y
-+CONFIG_MMC_SDHCI_ZYNQ=y
 +CONFIG_MMC_SDHCI=y
-+CONFIG_ZYNQ_GEM=y
-+CONFIG_ZYNQ_SPI=y
-+CONFIG_TPM_TIS_INFINEON=y
-+CONFIG_TPM_AUTH_SESSIONS=y
++CONFIG_MMC_SDHCI_ZYNQ=y
++CONFIG_SPI_FLASH=y
++CONFIG_SPI_FLASH_BAR=y
++CONFIG_SPI_FLASH_STMICRO=y
++# CONFIG_SPI_FLASH_USE_4K_SECTORS is not set
++CONFIG_DEBUG_UART_ZYNQ=y
++CONFIG_DEBUG_UART_BASE=0xe0000000
++CONFIG_DEBUG_UART_CLOCK=100000000
 +CONFIG_USB=y
 +CONFIG_USB_EHCI_HCD=y
 +CONFIG_USB_ULPI_VIEWPORT=y
@@ -1140,67 +1437,35 @@ index 0000000000..ee5af861a7
 +CONFIG_USB_GADGET=y
 +CONFIG_CI_UDC=y
 +CONFIG_USB_GADGET_DOWNLOAD=y
-+CONFIG_G_DNL_MANUFACTURER="National Instruments Inc"
-+CONFIG_G_DNL_VENDOR_NUM=0x3923
++CONFIG_G_DNL_MANUFACTURER="Xilinx"
++CONFIG_G_DNL_VENDOR_NUM=0x03fd
 +CONFIG_G_DNL_PRODUCT_NUM=0x0300
-+CONFIG_TPM=y
 diff --git a/include/configs/ni_sulfur_rev2.h b/include/configs/ni_sulfur_rev2.h
 new file mode 100644
-index 0000000000..1165104829
+index 0000000000..78052da0f3
 --- /dev/null
 +++ b/include/configs/ni_sulfur_rev2.h
-@@ -0,0 +1,64 @@
+@@ -0,0 +1,33 @@
 +/*
-+ * (C) Copyright 2016 National Instruments
++ * (C) Copyright 2016,2017 National Instruments Corp
 + *
-+ * Configuration for NI Ettus Research Project Sulfur Rev2
++ * Configuration settings for the NI Project Sulfur Rev2 SDR board
 + * See zynq-common.h for Zynq common configs
 + *
-+ * SPDX-License-Identifier:	GPL-2.0+
++ * SPDX-License-Identifier:	GPL-2.0
 + */
++#ifndef __CONFIG_NI_SULFUR_REV2_H
++#define __CONFIG_NI_SULFUR_REV2_H
 +
-+#ifndef __CONFIG_NI_SULFUR_REV2
-+#define __CONFIG_NI_SULFUR_REV2
-+
-+#define CONFIG_ENV_IS_NOWHERE
-+#include "zynq-common.h"
-+#undef CONFIG_ENV_IS_NOWHERE
-+
-+#define CONFIG_SYS_MMC_ENV_DEV 0
-+#define CONFIG_ENV_SECT_SIZE		CONFIG_ENV_SIZE
-+#define CONFIG_ENV_OFFSET		0xE0000
++#include <configs/zynq-common.h>
 +
 +#undef CONFIG_EXTRA_ENV_SETTINGS
 +#define CONFIG_EXTRA_ENV_SETTINGS	\
 +	"fit_image=fit.itb\0"		\
 +	"load_addr=0x2000000\0"		\
-+	"fit_size=0x800000\0"		\
-+	"fdt_high=0x20000000\0"		\
-+	"initrd_high=0x20000000\0"	\
-+	"loadbootenv_addr=0x2000000\0" \
-+	"bootenv=uEnv.txt\0" \
-+	"bootenv_dev=mmc\0" \
-+	"loadbootenv=load ${bootenv_dev} 0 ${loadbootenv_addr} ${bootenv}\0" \
-+	"importbootenv=echo Importing environment from ${bootenv_dev} ...; " \
-+		"env import -t ${loadbootenv_addr} $filesize\0" \
-+	"bootenv_existence_test=test -e ${bootenv_dev} 0 /${bootenv}\0" \
-+	"setbootenv=if env run bootenv_existence_test; then " \
-+			"if env run loadbootenv; then " \
-+				"env run importbootenv; " \
-+			"fi; " \
-+		"fi; \0" \
-+	"sd_loadbootenv=set bootenv_dev mmc && " \
-+	                "mmcinfo && "\
-+			"run setbootenv \0" \
-+	"usb_loadbootenv=set bootenv_dev usb && usb start && run setbootenv \0" \
-+	"preboot=if test $modeboot = sdboot; then " \
-+			"run sd_loadbootenv; " \
-+			"echo Checking if uenvcmd is set ...; " \
-+			"if test -n $uenvcmd; then " \
-+				"echo Running uenvcmd ...; " \
-+				"run uenvcmd; " \
-+			"fi; " \
-+		"fi; \0" \
++	"fit_size=0x800000\0"           \
++	"fdt_high=0x20000000\0"         \
++	"initrd_high=0x20000000\0"      \
 +	"sdboot=echo Copying FIT from SD to RAM... && " \
 +		"load mmc 0 ${load_addr} ${fit_image} && " \
 +		"bootm ${load_addr}\0" \
@@ -1213,7 +1478,7 @@ index 0000000000..1165104829
 +			"bootm ${load_addr}; fi\0" \
 +		DFU_ALT_INFO
 +
-+#endif /* __CONFIG_NI_SULFUR_REV2 */
++#endif /* __CONFIG_NI_SULFUR_REV2_H */
 -- 
-2.14.2
+2.15.0
 
