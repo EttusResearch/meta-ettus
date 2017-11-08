@@ -1,3 +1,5 @@
+FILESEXTRAPATHS_prepend := "${THISDIR}/u-boot-${PV}:"
+
 require u-boot_2017.09.inc
 
 SPL_BINARY = "spl/boot.bin"
