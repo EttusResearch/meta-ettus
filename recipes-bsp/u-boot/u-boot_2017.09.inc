@@ -6,6 +6,4 @@ SRC_URI_append_ni-sulfur = " \
     file://sulfur/0005-ni-sulfur-rev3-Added-swsync-feature.patch \
     "
 
-SPL_BINARY = "boot.bin"
-UBOOT_SUFFIX = "img"
-UBOOT_BINARY = "u-boot.${UBOOT_SUFFIX}"
+
