@@ -514,7 +514,7 @@ index 0000000000..ed05c17528
 +	return 0;
 +}
 +
-+static int legit_combo(u16 x, u16 y, u16 compare)
++static int legit_combo(int x, int y, int compare)
 +{
 +	/* if both of them are error, return error */
 +	if (x < 0 && y < 0)
@@ -532,7 +532,7 @@ index 0000000000..ed05c17528
 +			return -ENOTSUPP;
 +
 +	/* else try the opposite */
-+	} else if (x > 0) {
++	} else if (y > 0) {
 +		return legit_combo(y, x, compare);
 +	}
 +
