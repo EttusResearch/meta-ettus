@@ -1,4 +1,4 @@
-From 4cc3a74d5de0243792ca52ae844d891b941a6b76 Mon Sep 17 00:00:00 2001
+From 659ca6b1d16bab1a5b99fb70c0e53729a456c30d Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 7 Nov 2017 11:51:56 -0800
 Subject: [PATCH 3/6] ni: zynq: Add support for NI Ettus Research Project
@@ -14,7 +14,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  arch/arm/dts/zynq-ni-sulfur-rev2.dts             | 276 ++++++++++++++++++++
  board/ni/zynq/MAINTAINERS                        |   6 +
  board/ni/zynq/Makefile                           |  10 +
- board/ni/zynq/board.c                            | 255 ++++++++++++++++++
+ board/ni/zynq/board.c                            | 256 ++++++++++++++++++
  board/ni/zynq/ps7_init_common.c                  | 118 +++++++++
  board/ni/zynq/ps7_init_gpl.h                     |  35 +++
  board/ni/zynq/sulfur-eeprom.c                    | 166 ++++++++++++
@@ -22,7 +22,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c | 313 +++++++++++++++++++++++
  configs/ni_sulfur_rev2_defconfig                 |  61 +++++
  include/configs/ni_sulfur_rev2.h                 |  33 +++
- 13 files changed, 1360 insertions(+)
+ 13 files changed, 1361 insertions(+)
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev2-uboot.dtsi
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev2.dts
  create mode 100644 board/ni/zynq/MAINTAINERS
@@ -382,10 +382,10 @@ index 0000000000..b8a55978cd
 +obj-$(CONFIG_SPL_BUILD) += $(hw-platform-y)/ps7_init_gpl.o ps7_init_common.o
 diff --git a/board/ni/zynq/board.c b/board/ni/zynq/board.c
 new file mode 100644
-index 0000000000..ed05c17528
+index 0000000000..18127ca1bc
 --- /dev/null
 +++ b/board/ni/zynq/board.c
-@@ -0,0 +1,255 @@
+@@ -0,0 +1,256 @@
 +/*
 + * (C) Copyright 2012 Michal Simek <monstr@monstr.eu>
 + *
@@ -592,7 +592,8 @@ index 0000000000..ed05c17528
 +	} else {
 +		env_set("variant", env_get("mboard"));
 +		printf("No known dboard found, falling back to %s\n", env_get("mboard"));
-+		printf("If Slot0: %x / Slot1: %x is a legit combo, try updating your u-boot\n",
++		if (slot0 > 0 && slot1 > 0)
++			printf("If Slot0: %x / Slot1: %x is a legit combo, try updating your u-boot\n",
 +			slot0, slot1);
 +	}
 +
