@@ -6,6 +6,7 @@ SRC_URI_append_ni-sulfur = " file://ec-sulfur-rev3.bin \
                              file://ec-sulfur-rev4.RW.bin \
                              file://LICENSE.ec-sulfur \
                              file://cpld-magnesium-revc.svf \
+                             file://mykonos-m3.bin \
                            "
 
 LICENSE += "& Firmware-ni-sulfur"
@@ -18,6 +19,7 @@ PACKAGES =+ " \
     ${PN}-ni-sulfur-license \
     ${PN}-ni-sulfur \
     ${PN}-ni-magnesium \
+    ${PN}-adi-mykonos \
     "
 
 # The EC image is under the Chromium License, so add custom license file
@@ -47,4 +49,10 @@ do_install_append_ni-sulfur() {
     install -m 0644 ${WORKDIR}/LICENSE.ec-sulfur ${D}/lib/firmware/ni/LICENSE.ec-sulfur
 
     install -m 0644 ${WORKDIR}/cpld-magnesium-revc.svf ${D}/lib/firmware/ni/cpld-magnesium-revc.svf
+    install -D -m 0644 ${WORKDIR}/mykonos-m3.bin ${D}/lib/firmware/adi/mykonos-m3.bin
 }
+
+FILES_${PN}-adi-mykonos = " \
+                           /lib/firmware/adi/mykonos-m3.bin \
+                          "
+LICENSE_${PN}-adi-mykonos = "CLOSED"
