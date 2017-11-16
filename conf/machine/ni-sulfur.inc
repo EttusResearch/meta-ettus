@@ -28,4 +28,5 @@ MACHINE_EXTRA_RRECOMMENDS = " \
                              kernel-image \
                              linux-firmware-ni-sulfur \
                              linux-firmware-ni-magnesium \
+                             linux-firmware-adi-mykonos \
 			    "
