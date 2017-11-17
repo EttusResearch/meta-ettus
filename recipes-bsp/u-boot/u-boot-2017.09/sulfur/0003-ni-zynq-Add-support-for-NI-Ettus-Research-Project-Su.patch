@@ -872,7 +872,7 @@ index 0000000000..d2f1916594
 +	int err, i;
 +	u32 crc;
 +
-+	err = uclass_get_device_by_seq(UCLASS_I2C, dboard ? 706 : 707,
++	err = uclass_get_device_by_seq(UCLASS_I2C, dboard ? 707 : 706,
 +			&usrpio);
 +	if (err < 0)
 +		return err;
