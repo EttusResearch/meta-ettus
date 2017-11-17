@@ -2,7 +2,7 @@
 Description=USRP Hardware Daemon (MPM)
 
 [Service]
-ExecStart=/usr/bin/python3 /usr/bin/usrp_hwd.py --default-args time_source=external,bridge_mode=1 --discovery-addr 192.168.255.255
+ExecStart=/usr/bin/python3 /usr/bin/usrp_hwd.py
 
 [Install]
 WantedBy=multi-user.target
