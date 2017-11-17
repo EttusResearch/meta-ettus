@@ -272,7 +272,7 @@ index 000000000000..2d75ab1820ad
 +
 +	ethernet_phy0: ethernet-phy@0 {
 +		reg = <0>;
-+		marvell,reg-init = <3 0x10 0x0f0f 0x01>;
++		marvell,reg-init = <3 0x10 0xffff 0x400>;
 +		reset-gpios = <&gpio0 50 GPIO_ACTIVE_LOW>;
 +	};
 +};
