@@ -243,7 +243,7 @@ index 000000000000..87bd33fbc478
 +
 +	version = platform_crossbar_rp_read(priv, PLATFORM_CROSSBAR_VERSION_OFF);
 +	if (version != 1) {
-+		dev_err(&pdev->dev, "Found unknwon revision %08x, bailing!\n",
++		dev_err(&pdev->dev, "Found unknown revision %08x, bailing!\n",
 +			version);
 +		goto out_unknown_rev;
 +	}
