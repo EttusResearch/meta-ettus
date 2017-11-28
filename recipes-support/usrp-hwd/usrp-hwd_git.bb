@@ -18,7 +18,8 @@ RDEPENDS_${PN} = "python3-netaddr \
                   python3-mmap \
                   python3-six \
                   python3-pyroute2 \
-		  udev \
+                  udev \
+                  dtc \
                  "
 
 PR = "r7"
