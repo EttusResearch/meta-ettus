@@ -50,6 +50,7 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     salt-minion \
     trousers \
     tpm-tools \
+    overlay-script \
     "
 
 inherit core-image image-buildinfo
