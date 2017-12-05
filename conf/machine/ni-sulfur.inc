@@ -13,10 +13,6 @@ UBOOT_BINARY_ni-sulfur = "u-boot.${UBOOT_SUFFIX}"
 
 IMAGE_BOOT_FILES ?= "boot.bin ${UBOOT_BINARY}"
 
-MACHINE_EXTRA_RRECOMMENDS = "kernel-modules \
-                             gpsd gpsd-gpsctl gps-utils \
-                            "
-
 KERNEL_CLASSES += "kernel-fitimage"
 KERNEL_IMAGETYPE = "fitImage"
 KERNEL_DEFCONFIG ?= "ni_sulfur_defconfig"
@@ -25,8 +21,12 @@ PREFERRED_VERSION_linux-yocto = "4.12.%"
 
 MACHINE_EXTRA_RRECOMMENDS = " \
                              kernel-modules \
+                             gpsd \
+                             gpsd-gpsctl \
+                             gps-utils \
+                             gpsd-machine-conf \
                              kernel-image \
                              linux-firmware-ni-sulfur \
                              linux-firmware-ni-magnesium \
                              linux-firmware-adi-mykonos \
-			    "
+                            "
