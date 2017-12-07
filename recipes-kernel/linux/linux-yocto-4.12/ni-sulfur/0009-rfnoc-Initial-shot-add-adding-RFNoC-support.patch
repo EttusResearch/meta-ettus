@@ -9,7 +9,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  drivers/Makefile                          |   1 +
  drivers/rfnoc/Kconfig                     |  22 ++
  drivers/rfnoc/Makefile                    |   6 +
- drivers/rfnoc/rfnoc-crossbar-platform.c   | 218 +++++++++++++
+ drivers/rfnoc/rfnoc-crossbar-platform.c   | 219 +++++++++++++
  drivers/rfnoc/rfnoc-crossbar.c            | 497 ++++++++++++++++++++++++++++++
  include/linux/rfnoc/rfnoc-crossbar.h      |  62 ++++
  include/uapi/linux/rfnoc/rfnoc-crossbar.h |  30 ++
@@ -109,6 +109,7 @@ index 000000000000..87bd33fbc478
 +#include <linux/io.h>
 +#include <linux/of_address.h>
 +#include <linux/platform_device.h>
++#include <linux/log2.h>
 +#include <linux/rfnoc/rfnoc-crossbar.h>
 +
 +#define PLATFORM_CROSSBAR_VERSION_OFF		0x10
@@ -194,7 +195,7 @@ index 000000000000..87bd33fbc478
 +{
 +	return platform_crossbar_rp_read(xb->priv,
 +					 PLATFORM_CROSSBAR_TCAM_LOCAL_OFF +
-+					 SR_ADDR(from + to * xb->nports));
++					 SR_ADDR((from << order_base_2(xb->nports)) + to));
 +}
 +
 +static void __platform_crossbar_static_init(struct platform_crossbar_priv *priv)
