@@ -4,6 +4,8 @@ SRC_URI_append_ni-sulfur = " file://ec-sulfur-rev3.bin \
                              file://ec-sulfur-rev3.RW.bin \
                              file://ec-sulfur-rev4.bin \
                              file://ec-sulfur-rev4.RW.bin \
+                             file://ec-sulfur-rev5.bin \
+                             file://ec-sulfur-rev5.RW.bin \
                              file://LICENSE.ec-sulfur \
                              file://cpld-magnesium-revc.svf \
                              file://mykonos-m3.bin \
@@ -30,6 +32,8 @@ FILES_${PN}-ni-sulfur = "/lib/firmware/ni/ec-sulfur-rev3.bin \
                          /lib/firmware/ni/ec-sulfur-rev3.RW.bin \
                          /lib/firmware/ni/ec-sulfur-rev4.bin \
                          /lib/firmware/ni/ec-sulfur-rev4.RW.bin \
+                         /lib/firmware/ni/ec-sulfur-rev5.bin \
+                         /lib/firmware/ni/ec-sulfur-rev5.RW.bin \
                         "
 RDEPENDS_${PN}-ni-sulfur += "${PN}-ni-sulfur-license"
 
@@ -46,6 +50,9 @@ do_install_append_ni-sulfur() {
     install -m 0644 ${WORKDIR}/ec-sulfur-rev3.RW.bin ${D}/lib/firmware/ni/ec-sulfur-rev3.RW.bin
     install -D -m 0644 ${WORKDIR}/ec-sulfur-rev4.bin ${D}/lib/firmware/ni/ec-sulfur-rev4.bin
     install -m 0644 ${WORKDIR}/ec-sulfur-rev4.RW.bin ${D}/lib/firmware/ni/ec-sulfur-rev4.RW.bin
+    install -D -m 0644 ${WORKDIR}/ec-sulfur-rev5.bin ${D}/lib/firmware/ni/ec-sulfur-rev5.bin
+    install -m 0644 ${WORKDIR}/ec-sulfur-rev5.RW.bin ${D}/lib/firmware/ni/ec-sulfur-rev5.RW.bin
+
     install -m 0644 ${WORKDIR}/LICENSE.ec-sulfur ${D}/lib/firmware/ni/LICENSE.ec-sulfur
 
     install -m 0644 ${WORKDIR}/cpld-magnesium-revc.svf ${D}/lib/firmware/ni/cpld-magnesium-revc.svf
