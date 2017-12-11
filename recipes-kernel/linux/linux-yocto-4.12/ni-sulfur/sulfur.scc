@@ -33,4 +33,5 @@ patch 0031-net-phy-Fix-lack-of-reference-count-on-PHY-driver.patch
 patch 0032-net-phy-Fix-PHY-module-checks-and-NULL-deref-in-phy_.patch
 patch 0033-tpm-tpm_i2c_atmel-Add-hack-to-allow-taking-TPM-out-o.patch
 patch 0034-net-phy-Check-phydev-drv.patch
+patch 0001-ARM-dt-Add-NI-Projects-Sulfur-Rev5-Devicetree.patch
 patch 0035-configs-Add-ni_sulfur_defconfig.patch
