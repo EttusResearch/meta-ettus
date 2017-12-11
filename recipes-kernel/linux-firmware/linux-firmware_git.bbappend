@@ -9,7 +9,16 @@ SRC_URI_append_ni-sulfur = " file://ec-sulfur-rev3.bin \
                              file://LICENSE.ec-sulfur \
                              file://cpld-magnesium-revc.svf \
                              file://mykonos-m3.bin \
+                             http://orbitty.ni.corp.natinst.com:9090/sulfur-rev3-devel/n3xx-fpga-images/mvr/n3xx.bin;name=sulfur-fpga-image \
+                             http://orbitty.ni.corp.natinst.com:9090/sulfur-rev3-devel/n3xx-fpga-images/mvr/n3xx.dtbo;name=sulfur-fpga-overlay \
                            "
+
+SRC_URI[sulfur-fpga-image.md5sum] = "75ea897191c38d069e8dbc7d07b8f88d"
+SRC_URI[sulfur-fpga-image.sha256sum] = "125f50b969fe56889f3ee475577663fb47a6718037487ca3e52788647547357b"
+
+SRC_URI[sulfur-fpga-overlay.md5sum] = "dfb07c6400b5d3a45c657947a4171c68"
+SRC_URI[sulfur-fpga-overlay.sha256sum] = "fd526e6eddf4b822880db86e4a0ca7403ff2257ca8e68200d0cdcd9a4f539b8c"
+
 
 LICENSE += "& Firmware-ni-sulfur"
 LIC_FILES_CHKSUM += "file://${WORKDIR}/LICENSE.ec-sulfur;md5=72f855f00b364ec8bdc025e1a36b39c3"
@@ -21,6 +30,7 @@ PACKAGES =+ " \
     ${PN}-ni-sulfur-license \
     ${PN}-ni-sulfur \
     ${PN}-ni-magnesium \
+    ${PN}-ni-sulfur-fpga \
     ${PN}-adi-mykonos \
     "
 
@@ -57,9 +67,20 @@ do_install_append_ni-sulfur() {
 
     install -m 0644 ${WORKDIR}/cpld-magnesium-revc.svf ${D}/lib/firmware/ni/cpld-magnesium-revc.svf
     install -D -m 0644 ${WORKDIR}/mykonos-m3.bin ${D}/lib/firmware/adi/mykonos-m3.bin
+
+    install -m 0644 ${WORKDIR}/n3xx.bin ${D}/lib/firmware/n3xx.bin
+    install -m 0644 ${WORKDIR}/n3xx.dtbo ${D}/lib/firmware/n3xx.dtbo
 }
 
 FILES_${PN}-adi-mykonos = " \
                            /lib/firmware/adi/mykonos-m3.bin \
                           "
 LICENSE_${PN}-adi-mykonos = "CLOSED"
+
+FILES_${PN}-ni-sulfur-fpga = " \
+                              /lib/firmware/n3xx.bin \
+                              /lib/firmware/n3xx.dtbo \
+                             "
+
+LICENSE_${PN}-ni-sulfur-fpga = "Firmware-GPLv2"
+RDEPENDS_${PN}-ni-sulfur-fpga += "${PN}-gplv2-license"
