@@ -13,7 +13,7 @@ ALTERNATIVE_${PN}_ni-sulfur = "gpsd-defaults"
 ALTERNATIVE_LINK_NAME[gpsd-defaults] = "${sysconfdir}/default/gpsd"
 ALTERNATIVE_TARGET[gpsd-defaults] = "${sysconfdir}/default/gpsd.machine"
 ALTERNATIVE_PRIORITY[gpsd-defaults] = "100"
-COMPATIBLE_MACHINE = "ni-sulfur-rev4|ni-sulfur-rev3"
+COMPATIBLE_MACHINE = "ni-sulfur-rev5|ni-sulfur-rev4|ni-sulfur-rev3"
 
 RREPLACES_${PN} += "gpsd-conf"
 
