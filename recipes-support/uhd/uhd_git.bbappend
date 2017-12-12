@@ -4,7 +4,7 @@ PV = "3.11.0"
 SRC_URI = "git://git@github.com/EttusResearch/uhddev;branch=n3xx-master;protocol=ssh \
           "
 
-SRCREV = "cee7914aaeb6768d4741d413dc17d17733cc3e66"
+SRCREV = "a94419793b65db03539599e97a293e35b6c497b6"
 
 EXTRA_OECMAKE_append = " -DENABLE_LIBERIO=ON -DENABLE_RFNOC=ON -DENABLE_MPMD=ON"
 
