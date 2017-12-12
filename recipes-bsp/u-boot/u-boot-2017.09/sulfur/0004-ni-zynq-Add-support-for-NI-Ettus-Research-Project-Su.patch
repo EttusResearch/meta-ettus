@@ -641,7 +641,7 @@ new file mode 100644
 index 0000000000..bcf43e55e7
 --- /dev/null
 +++ b/configs/ni_sulfur_rev3_defconfig
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,64 @@
 +CONFIG_ARM=y
 +CONFIG_SYS_VENDOR="ni"
 +CONFIG_SYS_CONFIG_NAME="ni_sulfur_rev3"
@@ -656,7 +656,7 @@ index 0000000000..bcf43e55e7
 +# CONFIG_DISPLAY_CPUINFO is not set
 +CONFIG_SPL=y
 +CONFIG_HUSH_PARSER=y
-+CONFIG_SYS_PROMPT="ni-sulfur-rev3-uboot> "
++CONFIG_SYS_PROMPT="ni-sulfur-uboot> "
 +# CONFIG_CMD_IMLS is not set
 +CONFIG_CMD_THOR_DOWNLOAD=y
 +CONFIG_CMD_DFU=y
@@ -703,6 +703,9 @@ index 0000000000..bcf43e55e7
 +CONFIG_G_DNL_MANUFACTURER="Xilinx"
 +CONFIG_G_DNL_VENDOR_NUM=0x03fd
 +CONFIG_G_DNL_PRODUCT_NUM=0x0300
++CONFIG_AUTOBOOT_KEYED=y
++CONFIG_AUTOBOOT_PROMPT="Automatic boot in %ds...\nEnter 'noautoboot' to enter prompt without timeout\n"
++CONFIG_AUTOBOOT_STOP_STR="noautoboot"
 diff --git a/include/configs/ni_sulfur_rev3.h b/include/configs/ni_sulfur_rev3.h
 new file mode 100644
 index 0000000000..d3114959b9
