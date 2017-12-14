@@ -1,4 +1,4 @@
-From 659ca6b1d16bab1a5b99fb70c0e53729a456c30d Mon Sep 17 00:00:00 2001
+From 9c184cc54a8563348d79a7773bdf05d831ca6493 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 7 Nov 2017 11:51:56 -0800
 Subject: [PATCH 3/6] ni: zynq: Add support for NI Ettus Research Project
@@ -14,15 +14,15 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  arch/arm/dts/zynq-ni-sulfur-rev2.dts             | 276 ++++++++++++++++++++
  board/ni/zynq/MAINTAINERS                        |   6 +
  board/ni/zynq/Makefile                           |  10 +
- board/ni/zynq/board.c                            | 256 ++++++++++++++++++
+ board/ni/zynq/board.c                            | 266 +++++++++++++++++++
  board/ni/zynq/ps7_init_common.c                  | 118 +++++++++
  board/ni/zynq/ps7_init_gpl.h                     |  35 +++
- board/ni/zynq/sulfur-eeprom.c                    | 166 ++++++++++++
+ board/ni/zynq/sulfur-eeprom.c                    | 170 ++++++++++++
  board/ni/zynq/sulfur-eeprom.h                    |  70 +++++
  board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c | 313 +++++++++++++++++++++++
  configs/ni_sulfur_rev2_defconfig                 |  61 +++++
  include/configs/ni_sulfur_rev2.h                 |  33 +++
- 13 files changed, 1361 insertions(+)
+ 13 files changed, 1375 insertions(+)
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev2-uboot.dtsi
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev2.dts
  create mode 100644 board/ni/zynq/MAINTAINERS
@@ -382,10 +382,10 @@ index 0000000000..b8a55978cd
 +obj-$(CONFIG_SPL_BUILD) += $(hw-platform-y)/ps7_init_gpl.o ps7_init_common.o
 diff --git a/board/ni/zynq/board.c b/board/ni/zynq/board.c
 new file mode 100644
-index 0000000000..18127ca1bc
+index 0000000000..711c758cc2
 --- /dev/null
 +++ b/board/ni/zynq/board.c
-@@ -0,0 +1,256 @@
+@@ -0,0 +1,266 @@
 +/*
 + * (C) Copyright 2012 Michal Simek <monstr@monstr.eu>
 + *
@@ -542,9 +542,10 @@ index 0000000000..18127ca1bc
 +
 +int board_late_init(void)
 +{
-+	int slot0, slot1;
-+	int rev;
++	int slot0, slot1, slot0_rev, slot1_rev;
++	char dboard[128];
 +	char base_fdt[128];
++	int rev;
 +
 +	switch ((zynq_slcr_get_boot_mode()) & ZYNQ_BM_MASK) {
 +	case ZYNQ_BM_QSPI:
@@ -580,15 +581,24 @@ index 0000000000..18127ca1bc
 +		env_set("mboard", base_fdt);
 +	}
 +
-+	slot0 = sulfur_probe_dboard(0);
-+	slot1 = sulfur_probe_dboard(1);
++	slot0 = sulfur_probe_dboard(0, &slot0_rev);
++	slot1 = sulfur_probe_dboard(1, &slot1_rev);
 +
 +	if (!legit_combo(slot0, slot1, 0x150)) {
-+		env_set("variant", "magnesium");
++		snprintf(dboard, 128, "%s-magnesium-rev%u",
++			 base_fdt,
++			 max(slot0_rev, slot1_rev));
++		env_set("variant", dboard);
 +	} else if (!legit_combo(slot0, slot1, 0x152)) {
-+		env_set("variant", "rhodium");
++		snprintf(dboard, 128, "%s-rhodium-rev%u",
++			 base_fdt,
++			 max(slot0_rev, slot1_rev));
++		env_set("variant", dboard);
 +	} else if (!legit_combo(slot0, slot1, 0x180)) {
-+		env_set("variant", "eiscat");
++		snprintf(dboard, 128, "%s-eiscat-rev%u",
++			 base_fdt,
++			 max(slot0_rev, slot1_rev));
++		env_set("variant", dboard);
 +	} else {
 +		env_set("variant", env_get("mboard"));
 +		printf("No known dboard found, falling back to %s\n", env_get("mboard"));
@@ -809,10 +819,10 @@ index 0000000000..e728cb296a
 +int ps7_config(unsigned long *ps7_config_init);
 diff --git a/board/ni/zynq/sulfur-eeprom.c b/board/ni/zynq/sulfur-eeprom.c
 new file mode 100644
-index 0000000000..d2f1916594
+index 0000000000..c5da2f8ec3
 --- /dev/null
 +++ b/board/ni/zynq/sulfur-eeprom.c
-@@ -0,0 +1,166 @@
+@@ -0,0 +1,170 @@
 +/*
 + * (C) Copyright 2017 National Instruments Corp
 + *
@@ -865,13 +875,14 @@ index 0000000000..d2f1916594
 +	return "Unknown";
 +}
 +
-+int sulfur_probe_dboard(int dboard)
++int sulfur_probe_dboard(int dboard, int *rev)
 +{
 +	struct udevice *usrpio, *eeprom_chip;
 +	struct sulfur_dboard_eeprom eeprom;
 +	int err, i;
 +	u32 crc;
 +
++	*rev = -ENODEV;
 +	err = uclass_get_device_by_seq(UCLASS_I2C, dboard ? 707 : 706,
 +			&usrpio);
 +	if (err < 0)
@@ -893,6 +904,7 @@ index 0000000000..d2f1916594
 +	crc = crc32(0, (const u8*)&eeprom, sizeof(eeprom) - 4);
 +	if (htonl(crc) != eeprom.crc) {
 +		printf("Slot %u: Unitialized\n", dboard);
++		*rev = -EINVAL;
 +		return -EINVAL;
 +	}
 +
@@ -900,6 +912,8 @@ index 0000000000..d2f1916594
 +	       sulfur_get_dboard_name(htons(eeprom.pid)),
 +	       'A' + htons(eeprom.rev),
 +	       eeprom.serial);
++
++	*rev = htons(eeprom.rev);
 +
 +	return htons(eeprom.pid);
 +}
@@ -981,7 +995,7 @@ index 0000000000..d2f1916594
 +}
 diff --git a/board/ni/zynq/sulfur-eeprom.h b/board/ni/zynq/sulfur-eeprom.h
 new file mode 100644
-index 0000000000..fe49f2cddd
+index 0000000000..a9d491acd7
 --- /dev/null
 +++ b/board/ni/zynq/sulfur-eeprom.h
 @@ -0,0 +1,70 @@
@@ -1051,7 +1065,7 @@ index 0000000000..fe49f2cddd
 +} __attribute__((packed));
 +
 +int sulfur_probe_mboard(void);
-+int sulfur_probe_dboard(int dboard);
++int sulfur_probe_dboard(int dboard, int *rev);
 +int sulfur_read_ethaddr(unsigned char *ethaddr, int which);
 +
 +#endif /* NI_ZYNQ_SULFUR_EEPROM_H */
@@ -1481,5 +1495,5 @@ index 0000000000..78052da0f3
 +
 +#endif /* __CONFIG_NI_SULFUR_REV2_H */
 -- 
-2.15.0
+2.15.1
 

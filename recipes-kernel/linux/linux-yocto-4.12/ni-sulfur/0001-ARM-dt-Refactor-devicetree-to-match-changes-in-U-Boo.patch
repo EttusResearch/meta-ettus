@@ -1,0 +1,783 @@
+From 4592c2cf7b5d2af1088a6f4896d9949c62693534 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Wed, 13 Dec 2017 15:17:55 -0800
+Subject: [PATCH] ARM: dt: Refactor devicetree to match changes in U-Boot
+
+Now have multiple device-trees of form:
+
+- zynq-ni-$mboard-$dboard-$dboard_rev
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ arch/arm/boot/dts/Makefile                         |   9 +-
+ ...cat.dts => zynq-ni-sulfur-rev3-eiscat-rev1.dts} |   0
+ .../boot/dts/zynq-ni-sulfur-rev3-eiscat-rev2.dts   | 163 +++++++++++++++++++
+ ....dts => zynq-ni-sulfur-rev4-magnesium-rev2.dts} |   0
+ .../dts/zynq-ni-sulfur-rev4-magnesium-rev3.dts     | 179 +++++++++++++++++++++
+ .../dts/zynq-ni-sulfur-rev5-magnesium-rev2.dts     | 179 +++++++++++++++++++++
+ .../dts/zynq-ni-sulfur-rev5-magnesium-rev3.dts     | 179 +++++++++++++++++++++
+ 7 files changed, 707 insertions(+), 2 deletions(-)
+ rename arch/arm/boot/dts/{zynq-ni-eiscat.dts => zynq-ni-sulfur-rev3-eiscat-rev1.dts} (100%)
+ create mode 100644 arch/arm/boot/dts/zynq-ni-sulfur-rev3-eiscat-rev2.dts
+ rename arch/arm/boot/dts/{zynq-ni-magnesium.dts => zynq-ni-sulfur-rev4-magnesium-rev2.dts} (100%)
+ create mode 100644 arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev3.dts
+ create mode 100644 arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev2.dts
+ create mode 100644 arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev3.dts
+
+diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
+index 022bd0c17e51..93015c51dff5 100644
+--- a/arch/arm/boot/dts/Makefile
++++ b/arch/arm/boot/dts/Makefile
+@@ -986,10 +986,15 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
+ 	zynq-zed.dtb \
+ 	zynq-ni-sulfur-rev2.dtb \
+ 	zynq-ni-sulfur-rev3.dtb \
++	zynq-ni-sulfur-rev3.dtb \
++	zynq-ni-sulfur-rev3-eiscat-rev1.dtb \
++	zynq-ni-sulfur-rev3-eiscat-rev2.dtb \
+ 	zynq-ni-sulfur-rev4.dtb \
++	zynq-ni-sulfur-rev4-magnesium-rev2.dtb \
++	zynq-ni-sulfur-rev4-magnesium-rev3.dtb \
+ 	zynq-ni-sulfur-rev5.dtb \
+-	zynq-ni-eiscat.dtb \
+-	zynq-ni-magnesium.dtb \
++	zynq-ni-sulfur-rev5-magnesium-rev2.dtb \
++	zynq-ni-sulfur-rev5-magnesium-rev3.dtb \
+ 	zynq-zybo.dtb
+ dtb-$(CONFIG_MACH_ARMADA_370) += \
+ 	armada-370-db.dtb \
+diff --git a/arch/arm/boot/dts/zynq-ni-eiscat.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev3-eiscat-rev1.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-eiscat.dts
+rename to arch/arm/boot/dts/zynq-ni-sulfur-rev3-eiscat-rev1.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev3-eiscat-rev2.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev3-eiscat-rev2.dts
+new file mode 100644
+index 000000000000..14796e8cfa29
+--- /dev/null
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev3-eiscat-rev2.dts
+@@ -0,0 +1,163 @@
++/*
++ * National Instruments Ettus Research Project EISCAT SDR
++ *
++ * Copyright (c) 2017 National Instruments Corp.
++ *
++ * SPDX-License-Identifier: (GPL-2.0 OR X11)
++ */
++
++#include "zynq-ni-sulfur-rev3.dts"
++
++&usrpio_i2c0 {
++	db_temp0: hwmon@18 {
++		reg = <0x18>;
++		compatible = "lm95234";
++		#thermal-sensor-cells = <1>;
++	};
++};
++
++&usrpio_i2c1 {
++	db_temp1: hwmon@18 {
++		reg = <0x18>;
++		compatible = "lm95234";
++		#thermal-sensor-cells = <1>;
++	};
++};
++
++&fan0 {
++	cooling-min-state = <0>;
++	cooling-max-state = <13500>;
++};
++
++&fan1 {
++	cooling-min-state = <0>;
++	cooling-max-state = <13500>;
++};
++
++&thermal_zones {
++	eiscat-db0-zone {
++		polling-delay-passive = <1000>;
++		polling-delay = <1000>;
++
++		thermal-sensors = <&db_temp0 0>;
++
++		trips  {
++			db0_alert0: db0-alert0 {
++				temperature = <30000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db0_alert1: db0-alert1 {
++				temperature = <45000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db0_alert2: db0-alert2 {
++				temperature = <50000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "active";
++			};
++
++
++			db0_crit: db0-crit {
++				temperature = <55000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "critical";
++			};
++
++		};
++
++		cooling-maps {
++			map0 {
++				trip = <&db0_alert0>;
++				cooling-device = <&fan1 0 6000>;
++				contribution = <100>;
++			};
++
++			map1 {
++				trip = <&db0_alert1>;
++				cooling-device = <&fan1 6000 8000>;
++				contribution = <100>;
++			};
++
++			map2 {
++				trip = <&db0_alert2>;
++				cooling-device = <&fan1 8000 12500>;
++				contribution = <100>;
++			};
++
++			map3 {
++				trip = <&db0_crit>;
++				cooling-device = <&fan1 12500 13500>;
++				contribution = <100>;
++			};
++
++		};
++	};
++
++	eiscat-db1-zone {
++		polling-delay-passive = <1000>;
++		polling-delay = <1000>;
++
++		thermal-sensors = <&db_temp1 0>;
++
++		trips  {
++			db1_alert0: db1-alert0 {
++				temperature = <30000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db1_alert1: db1-alert1 {
++				temperature = <45000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db1_alert2: db1-alert2 {
++				temperature = <50000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "active";
++			};
++
++
++			db1_crit: db1-crit {
++				temperature = <55000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "critical";
++			};
++
++		};
++
++		cooling-maps {
++			map0 {
++				trip = <&db1_alert0>;
++				cooling-device = <&fan1 0 6000>;
++				contribution = <100>;
++			};
++
++			map1 {
++				trip = <&db1_alert1>;
++				cooling-device = <&fan1 6000 8000>;
++				contribution = <100>;
++			};
++
++			map2 {
++				trip = <&db1_alert2>;
++				cooling-device = <&fan1 8000 12500>;
++				contribution = <100>;
++			};
++
++			map3 {
++				trip = <&db1_crit>;
++				cooling-device = <&fan1 12500 13500>;
++				contribution = <100>;
++			};
++
++		};
++	};
++
++
++};
+diff --git a/arch/arm/boot/dts/zynq-ni-magnesium.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev2.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-magnesium.dts
+rename to arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev2.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev3.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev3.dts
+new file mode 100644
+index 000000000000..92445c1fc47c
+--- /dev/null
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev3.dts
+@@ -0,0 +1,179 @@
++/*
++ * National Instruments Ettus Research Project Magnesium SDR
++ *
++ * Copyright (c) 2017 National Instruments Corp.
++ *
++ * SPDX-License-Identifier: (GPL-2.0 OR X11)
++ */
++
++#include "zynq-ni-sulfur-rev4.dts"
++#include <dt-bindings/thermal/thermal.h>
++
++&usrpio_i2c0 {
++	db_temp0: hwmon@48 {
++		reg = <0x48>;
++		compatible = "lm75";
++		#thermal-sensor-cells = <1>;
++	};
++
++	gpio@20 {
++		compatible = "ti,tca6408";
++		reg = <0x20>;
++		gpio-controller;
++		#gpio-cells = <2>;
++	};
++
++};
++
++&usrpio_i2c1 {
++	db_temp1: hwmon@48 {
++		reg = <0x48>;
++		compatible = "lm75";
++		#thermal-sensor-cells = <1>;
++	};
++
++	gpio@20 {
++		compatible = "ti,tca6408";
++		reg = <0x20>;
++		gpio-controller;
++		#gpio-cells = <2>;
++	};
++};
++
++&fan0 {
++	cooling-min-state = <3300>;
++	cooling-max-state = <13500>;
++};
++
++&fan1 {
++	cooling-min-state = <3300>;
++	cooling-max-state = <13500>;
++};
++
++&thermal_zones {
++	magnesium-db0-zone {
++		polling-delay-passive = <1000>;
++		polling-delay = <1000>;
++
++		thermal-sensors = <&db_temp0 0>;
++
++		trips  {
++			db0_alert0: db0-alert0 {
++				temperature = <30000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db0_alert1: db0-alert1 {
++				temperature = <45000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db0_alert2: db0-alert2 {
++				temperature = <50000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "active";
++			};
++
++
++			db0_crit: db0-crit {
++				temperature = <55000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "critical";
++			};
++
++		};
++
++		cooling-maps {
++			map0 {
++				trip = <&db0_alert0>;
++				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
++				contribution = <100>;
++			};
++
++			map1 {
++				trip = <&db0_alert1>;
++				cooling-device = <&fan1 6000 8000>;
++				contribution = <100>;
++			};
++
++			map2 {
++				trip = <&db0_alert2>;
++				cooling-device = <&fan1 8000 12500>;
++				contribution = <100>;
++			};
++
++			map3 {
++				trip = <&db0_crit>;
++				cooling-device = <&fan1 12500 13500>;
++				contribution = <100>;
++			};
++
++		};
++	};
++
++	magnesium-db1-zone {
++		polling-delay-passive = <1000>;
++		polling-delay = <1000>;
++
++		thermal-sensors = <&db_temp1 0>;
++
++		trips  {
++			db1_alert0: db1-alert0 {
++				temperature = <30000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db1_alert1: db1-alert1 {
++				temperature = <45000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db1_alert2: db1-alert2 {
++				temperature = <50000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "active";
++			};
++
++
++			db1_crit: db1-crit {
++				temperature = <55000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "critical";
++			};
++
++		};
++
++		cooling-maps {
++			map0 {
++				trip = <&db1_alert0>;
++				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
++				contribution = <100>;
++			};
++
++			map1 {
++				trip = <&db1_alert1>;
++				cooling-device = <&fan1 6000 8000>;
++				contribution = <100>;
++			};
++
++			map2 {
++				trip = <&db1_alert2>;
++				cooling-device = <&fan1 8000 12500>;
++				contribution = <100>;
++			};
++
++			map3 {
++				trip = <&db1_crit>;
++				cooling-device = <&fan1 12500 13500>;
++				contribution = <100>;
++			};
++
++		};
++	};
++
++
++};
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev2.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev2.dts
+new file mode 100644
+index 000000000000..92445c1fc47c
+--- /dev/null
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev2.dts
+@@ -0,0 +1,179 @@
++/*
++ * National Instruments Ettus Research Project Magnesium SDR
++ *
++ * Copyright (c) 2017 National Instruments Corp.
++ *
++ * SPDX-License-Identifier: (GPL-2.0 OR X11)
++ */
++
++#include "zynq-ni-sulfur-rev4.dts"
++#include <dt-bindings/thermal/thermal.h>
++
++&usrpio_i2c0 {
++	db_temp0: hwmon@48 {
++		reg = <0x48>;
++		compatible = "lm75";
++		#thermal-sensor-cells = <1>;
++	};
++
++	gpio@20 {
++		compatible = "ti,tca6408";
++		reg = <0x20>;
++		gpio-controller;
++		#gpio-cells = <2>;
++	};
++
++};
++
++&usrpio_i2c1 {
++	db_temp1: hwmon@48 {
++		reg = <0x48>;
++		compatible = "lm75";
++		#thermal-sensor-cells = <1>;
++	};
++
++	gpio@20 {
++		compatible = "ti,tca6408";
++		reg = <0x20>;
++		gpio-controller;
++		#gpio-cells = <2>;
++	};
++};
++
++&fan0 {
++	cooling-min-state = <3300>;
++	cooling-max-state = <13500>;
++};
++
++&fan1 {
++	cooling-min-state = <3300>;
++	cooling-max-state = <13500>;
++};
++
++&thermal_zones {
++	magnesium-db0-zone {
++		polling-delay-passive = <1000>;
++		polling-delay = <1000>;
++
++		thermal-sensors = <&db_temp0 0>;
++
++		trips  {
++			db0_alert0: db0-alert0 {
++				temperature = <30000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db0_alert1: db0-alert1 {
++				temperature = <45000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db0_alert2: db0-alert2 {
++				temperature = <50000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "active";
++			};
++
++
++			db0_crit: db0-crit {
++				temperature = <55000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "critical";
++			};
++
++		};
++
++		cooling-maps {
++			map0 {
++				trip = <&db0_alert0>;
++				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
++				contribution = <100>;
++			};
++
++			map1 {
++				trip = <&db0_alert1>;
++				cooling-device = <&fan1 6000 8000>;
++				contribution = <100>;
++			};
++
++			map2 {
++				trip = <&db0_alert2>;
++				cooling-device = <&fan1 8000 12500>;
++				contribution = <100>;
++			};
++
++			map3 {
++				trip = <&db0_crit>;
++				cooling-device = <&fan1 12500 13500>;
++				contribution = <100>;
++			};
++
++		};
++	};
++
++	magnesium-db1-zone {
++		polling-delay-passive = <1000>;
++		polling-delay = <1000>;
++
++		thermal-sensors = <&db_temp1 0>;
++
++		trips  {
++			db1_alert0: db1-alert0 {
++				temperature = <30000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db1_alert1: db1-alert1 {
++				temperature = <45000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db1_alert2: db1-alert2 {
++				temperature = <50000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "active";
++			};
++
++
++			db1_crit: db1-crit {
++				temperature = <55000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "critical";
++			};
++
++		};
++
++		cooling-maps {
++			map0 {
++				trip = <&db1_alert0>;
++				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
++				contribution = <100>;
++			};
++
++			map1 {
++				trip = <&db1_alert1>;
++				cooling-device = <&fan1 6000 8000>;
++				contribution = <100>;
++			};
++
++			map2 {
++				trip = <&db1_alert2>;
++				cooling-device = <&fan1 8000 12500>;
++				contribution = <100>;
++			};
++
++			map3 {
++				trip = <&db1_crit>;
++				cooling-device = <&fan1 12500 13500>;
++				contribution = <100>;
++			};
++
++		};
++	};
++
++
++};
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev3.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev3.dts
+new file mode 100644
+index 000000000000..92445c1fc47c
+--- /dev/null
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev3.dts
+@@ -0,0 +1,179 @@
++/*
++ * National Instruments Ettus Research Project Magnesium SDR
++ *
++ * Copyright (c) 2017 National Instruments Corp.
++ *
++ * SPDX-License-Identifier: (GPL-2.0 OR X11)
++ */
++
++#include "zynq-ni-sulfur-rev4.dts"
++#include <dt-bindings/thermal/thermal.h>
++
++&usrpio_i2c0 {
++	db_temp0: hwmon@48 {
++		reg = <0x48>;
++		compatible = "lm75";
++		#thermal-sensor-cells = <1>;
++	};
++
++	gpio@20 {
++		compatible = "ti,tca6408";
++		reg = <0x20>;
++		gpio-controller;
++		#gpio-cells = <2>;
++	};
++
++};
++
++&usrpio_i2c1 {
++	db_temp1: hwmon@48 {
++		reg = <0x48>;
++		compatible = "lm75";
++		#thermal-sensor-cells = <1>;
++	};
++
++	gpio@20 {
++		compatible = "ti,tca6408";
++		reg = <0x20>;
++		gpio-controller;
++		#gpio-cells = <2>;
++	};
++};
++
++&fan0 {
++	cooling-min-state = <3300>;
++	cooling-max-state = <13500>;
++};
++
++&fan1 {
++	cooling-min-state = <3300>;
++	cooling-max-state = <13500>;
++};
++
++&thermal_zones {
++	magnesium-db0-zone {
++		polling-delay-passive = <1000>;
++		polling-delay = <1000>;
++
++		thermal-sensors = <&db_temp0 0>;
++
++		trips  {
++			db0_alert0: db0-alert0 {
++				temperature = <30000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db0_alert1: db0-alert1 {
++				temperature = <45000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db0_alert2: db0-alert2 {
++				temperature = <50000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "active";
++			};
++
++
++			db0_crit: db0-crit {
++				temperature = <55000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "critical";
++			};
++
++		};
++
++		cooling-maps {
++			map0 {
++				trip = <&db0_alert0>;
++				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
++				contribution = <100>;
++			};
++
++			map1 {
++				trip = <&db0_alert1>;
++				cooling-device = <&fan1 6000 8000>;
++				contribution = <100>;
++			};
++
++			map2 {
++				trip = <&db0_alert2>;
++				cooling-device = <&fan1 8000 12500>;
++				contribution = <100>;
++			};
++
++			map3 {
++				trip = <&db0_crit>;
++				cooling-device = <&fan1 12500 13500>;
++				contribution = <100>;
++			};
++
++		};
++	};
++
++	magnesium-db1-zone {
++		polling-delay-passive = <1000>;
++		polling-delay = <1000>;
++
++		thermal-sensors = <&db_temp1 0>;
++
++		trips  {
++			db1_alert0: db1-alert0 {
++				temperature = <30000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db1_alert1: db1-alert1 {
++				temperature = <45000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db1_alert2: db1-alert2 {
++				temperature = <50000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "active";
++			};
++
++
++			db1_crit: db1-crit {
++				temperature = <55000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "critical";
++			};
++
++		};
++
++		cooling-maps {
++			map0 {
++				trip = <&db1_alert0>;
++				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
++				contribution = <100>;
++			};
++
++			map1 {
++				trip = <&db1_alert1>;
++				cooling-device = <&fan1 6000 8000>;
++				contribution = <100>;
++			};
++
++			map2 {
++				trip = <&db1_alert2>;
++				cooling-device = <&fan1 8000 12500>;
++				contribution = <100>;
++			};
++
++			map3 {
++				trip = <&db1_crit>;
++				cooling-device = <&fan1 12500 13500>;
++				contribution = <100>;
++			};
++
++		};
++	};
++
++
++};
+-- 
+2.15.1
+
