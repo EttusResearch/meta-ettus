@@ -22,10 +22,10 @@ RDEPENDS_${PN} = "python3-netaddr \
                   dtc \
                  "
 
-PR = "r10"
+PR = "r11"
 PV = "0.1+gitr${SRCPV}"
 
-SRCREV = "a94419793b65db03539599e97a293e35b6c497b6"
+SRCREV = "7e8044b089fa81f4f181de8275df0b1a7e5ee9eb"
 
 SRC_URI = "git://git@github.com/EttusResearch/uhddev.git;protocol=ssh;branch=n3xx-master \
            file://usrp-hwd.service \
