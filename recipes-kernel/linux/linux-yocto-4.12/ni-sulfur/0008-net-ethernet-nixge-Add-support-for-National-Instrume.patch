@@ -14,8 +14,8 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  drivers/net/ethernet/Makefile    |    1 +
  drivers/net/ethernet/ni/Kconfig  |   27 +
  drivers/net/ethernet/ni/Makefile |    1 +
- drivers/net/ethernet/ni/nixge.c  | 1212 ++++++++++++++++++++++++++++++++++++++
- 5 files changed, 1242 insertions(+)
+ drivers/net/ethernet/ni/nixge.c  | 1221 ++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 1252 insertions(+)
  create mode 100644 drivers/net/ethernet/ni/Kconfig
  create mode 100644 drivers/net/ethernet/ni/Makefile
  create mode 100644 drivers/net/ethernet/ni/nixge.c
@@ -89,7 +89,7 @@ new file mode 100644
 index 000000000000..9959b70c3fca
 --- /dev/null
 +++ b/drivers/net/ethernet/ni/nixge.c
-@@ -0,0 +1,1212 @@
+@@ -0,0 +1,1221 @@
 +/*
 + * Copyright (c) 2016-2017, National Instruments Corp.
 + *
@@ -1222,19 +1222,21 @@ index 000000000000..9959b70c3fca
 +	err = nixge_mdio_setup(priv, pdev->dev.of_node);
 +	if (err) {
 +		netdev_err(ndev, "error registering mdio bus");
++		if (priv->mii_bus)
++			goto unregister_mdio;
 +		goto free_netdev;
 +	}
 +
 +	priv->phy_dev = phy_find_first(priv->mii_bus);
 +	if (!priv->phy_dev) {
 +		dev_err(&pdev->dev, "error finding a phy ...");
-+		goto free_netdev;
++		goto unregister_mdio;
 +	}
 +
 +	err = register_netdev(priv->ndev);
 +	if (err) {
 +		netdev_err(priv->ndev, "register_netdev() error (%i)\n", err);
-+		goto free_netdev;
++		goto unregister_mdio;
 +	}
 +
 +	err = phy_connect_direct(ndev, priv->phy_dev, &nixge_handle_link_change,
@@ -1253,13 +1255,16 @@ index 000000000000..9959b70c3fca
 +
 +	return 0;
 +
-+unregister_mdio:
++disc_phy:
 +	phy_disconnect(ndev->phydev);
++
++unregister_mdio:
 +	mdiobus_unregister(priv->mii_bus);
 +	mdiobus_free(priv->mii_bus);
 +
 +free_netdev:
 +	free_netdev(ndev);
++	platform_set_drvdata(pdev, NULL);
 +
 +	return err;
 +}
@@ -1267,17 +1272,21 @@ index 000000000000..9959b70c3fca
 +static int nixge_remove(struct platform_device *pdev)
 +{
 +	struct net_device *ndev = platform_get_drvdata(pdev);
-+	struct nixge_priv *priv = netdev_priv(ndev);
++	struct nixge_priv *priv;
 +
-+	if (ndev->phydev)
-+		phy_disconnect(ndev->phydev);
++	if (ndev) {
++ 		priv = netdev_priv(ndev);
 +
-+	mdiobus_unregister(priv->mii_bus);
-+	mdiobus_free(priv->mii_bus);
++		if (ndev->phydev)
++			phy_disconnect(ndev->phydev);
 +
-+	unregister_netdev(ndev);
++		mdiobus_unregister(priv->mii_bus);
++		mdiobus_free(priv->mii_bus);
 +
-+	free_netdev(ndev);
++		unregister_netdev(ndev);
++
++		free_netdev(ndev);
++	}
 +
 +	return 0;
 +}
