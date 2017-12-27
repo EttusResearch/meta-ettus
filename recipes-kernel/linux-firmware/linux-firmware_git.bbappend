@@ -13,8 +13,8 @@ SRC_URI_append_ni-sulfur = " file://ec-sulfur-rev3.bin \
                              http://orbitty.ni.corp.natinst.com:9090/sulfur-rev3-devel/n3xx-fpga-images/mvr/n3xx.dtbo;name=sulfur-fpga-overlay \
                            "
 
-SRC_URI[sulfur-fpga-image.md5sum] = "183587f7d0ee7d21c66f9419153a5951"
-SRC_URI[sulfur-fpga-image.sha256sum] = "0e595959b1fb0e7a36201a02c085ec1cc815dd8ea50955f248a62acb678dc35b"
+SRC_URI[sulfur-fpga-image.md5sum] = "bc4c63f227a297b440caf8bf8393d5c5"
+SRC_URI[sulfur-fpga-image.sha256sum] = "1d7c0e24b04f8f49c7bfc6a810facc5409744d219e41f80a7bef48d951ead51e"
 
 SRC_URI[sulfur-fpga-overlay.md5sum] = "dfb07c6400b5d3a45c657947a4171c68"
 SRC_URI[sulfur-fpga-overlay.sha256sum] = "fd526e6eddf4b822880db86e4a0ca7403ff2257ca8e68200d0cdcd9a4f539b8c"
