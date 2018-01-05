@@ -1,8 +1,0 @@
-[Unit]
-Description=USRP Hardware Daemon (MPM)
-
-[Service]
-ExecStart=/usr/bin/python3 /usr/bin/usrp_hwd.py
-
-[Install]
-WantedBy=multi-user.target

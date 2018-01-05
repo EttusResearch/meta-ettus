@@ -22,14 +22,10 @@ RDEPENDS_${PN} = "python3-netaddr \
                   dtc \
                  "
 
-PR = "r13"
+PR = "r14"
 PV = "0.1+gitr${SRCPV}"
 
-SRCREV = "7a588a564529a29389371b9990477c4dab8a1771"
-
-SRC_URI = "git://git@github.com/EttusResearch/uhddev.git;protocol=ssh;branch=n3xx-master \
-           file://usrp-hwd.service \
-          "
+include uhd-rev.inc
 
 inherit distutils3-base cmake python3-dir python3native systemd
 
@@ -39,13 +35,6 @@ EXTRA_OECMAKE_append = " -DCMAKE_SKIP_RPATH=ON -DMPM_PYTHON_VER=3"
 
 SYSTEMD_PACKAGES = "${@bb.utils.contains('DISTRO_FEATURES','systemd','${PN}','',d)}"
 SYSTEMD_SERVICE_${PN} = "${@bb.utils.contains('DISTRO_FEATURES','systemd','usrp-hwd.service','',d)}"
-
-do_install_append() {
-	if ${@bb.utils.contains('DISTRO_FEATURES','systemd','true','false',d)}; then
-		install -d ${D}${systemd_unitdir}/system
-		install -m 644 ${WORKDIR}/*.service ${D}/${systemd_unitdir}/system
-	fi
-}
 
 FILES_${PN}-dev += "${libdir}/libusrp-periphs.so"
 FILES_${PN}-dbg += "${bindir}/mpm_debug.py"
