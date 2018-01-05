@@ -7,18 +7,20 @@ SRC_URI_append_ni-sulfur = " file://ec-sulfur-rev3.bin \
                              file://ec-sulfur-rev5.bin \
                              file://ec-sulfur-rev5.RW.bin \
                              file://LICENSE.ec-sulfur \
-                             file://cpld-magnesium-revc.svf \
                              file://mykonos-m3.bin \
                              http://orbitty.ni.corp.natinst.com:9090/sulfur-rev3-devel/n3xx-fpga-images/mvr/n3xx.bin;name=sulfur-fpga-image \
                              http://orbitty.ni.corp.natinst.com:9090/sulfur-rev3-devel/n3xx-fpga-images/mvr/n3xx.dtbo;name=sulfur-fpga-overlay \
+                             http://orbitty.ni.corp.natinst.com:9090/sulfur-rev3-devel/n3xx-fpga-images/mvr/cpld-magnesium-revc.svf;name=magnesium-cpld-revc \
                            "
 
-SRC_URI[sulfur-fpga-image.md5sum] = "bc4c63f227a297b440caf8bf8393d5c5"
-SRC_URI[sulfur-fpga-image.sha256sum] = "1d7c0e24b04f8f49c7bfc6a810facc5409744d219e41f80a7bef48d951ead51e"
+SRC_URI[sulfur-fpga-image.md5sum] = "b0b425355bfd3659b986f583afa8d87b"
+SRC_URI[sulfur-fpga-image.sha256sum] = "8d84c4568302d77a3c8b70b57326d436df0068e49dba3e3e9a775fa18c480f06"
 
 SRC_URI[sulfur-fpga-overlay.md5sum] = "dfb07c6400b5d3a45c657947a4171c68"
 SRC_URI[sulfur-fpga-overlay.sha256sum] = "fd526e6eddf4b822880db86e4a0ca7403ff2257ca8e68200d0cdcd9a4f539b8c"
 
+SRC_URI[magnesium-cpld-revc.md5sum] = "2967d0c82b5f971fa20a928e368cbf13"
+SRC_URI[magnesium-cpld-revc.sha256sum] = "b08271b275c7d6cec628c683bde4d9af12ba645539acc9810586dc3812b8a05a"
 
 LICENSE += "& Firmware-ni-sulfur"
 LIC_FILES_CHKSUM += "file://${WORKDIR}/LICENSE.ec-sulfur;md5=72f855f00b364ec8bdc025e1a36b39c3"
