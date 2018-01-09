@@ -13,6 +13,7 @@ RDEPENDS_${PN} = "python3-netaddr \
                   python3-pyudev \
                   python3-gevent \
                   python3-systemd \
+                  python3-requests \
                   python3-mprpc \
                   python3-multiprocessing \
                   python3-mmap \
