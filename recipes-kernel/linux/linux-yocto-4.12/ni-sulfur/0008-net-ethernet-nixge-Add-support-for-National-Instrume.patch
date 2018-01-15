@@ -1,7 +1,7 @@
-From d75e086dcd3594815e26ee131b78efb943adf011 Mon Sep 17 00:00:00 2001
+From 6669503d3d2b271263529cfc5e3399628e22c424 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 28 Feb 2017 17:29:50 -0800
-Subject: [PATCH 08/35] net: ethernet: nixge: Add support for National
+Subject: [PATCH 08/39] net: ethernet: nixge: Add support for National
  Instruments XGE netdev
 
 Add support for the National Instruments XGE 1/10G network device.
@@ -14,8 +14,8 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  drivers/net/ethernet/Makefile    |    1 +
  drivers/net/ethernet/ni/Kconfig  |   27 +
  drivers/net/ethernet/ni/Makefile |    1 +
- drivers/net/ethernet/ni/nixge.c  | 1221 ++++++++++++++++++++++++++++++++++++++
- 5 files changed, 1252 insertions(+)
+ drivers/net/ethernet/ni/nixge.c  | 1295 ++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 1325 insertions(+)
  create mode 100644 drivers/net/ethernet/ni/Kconfig
  create mode 100644 drivers/net/ethernet/ni/Makefile
  create mode 100644 drivers/net/ethernet/ni/nixge.c
@@ -86,19 +86,18 @@ index 000000000000..99c664651c51
 +obj-$(CONFIG_NI_XGE_MANAGEMENT_ENET) += nixge.o
 diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
 new file mode 100644
-index 000000000000..9959b70c3fca
+index 000000000000..2dcfc7aa7dc2
 --- /dev/null
 +++ b/drivers/net/ethernet/ni/nixge.c
-@@ -0,0 +1,1221 @@
-+/*
+@@ -0,0 +1,1295 @@
++/* SPDX-License-Identifier: GPL-2.0
++ *
 + * Copyright (c) 2016-2017, National Instruments Corp.
 + *
 + * Network Driver for Ettus Research XGE MAC
 + *
 + * This is largely based on the Xilinx AXI Ethernet Driver,
 + * and uses the same DMA engine in the FPGA
-+ *
-+ * SPDX-License-Identifier: GPL-2.0
 + *
 + */
 +
@@ -229,7 +228,7 @@ index 000000000000..9959b70c3fca
 +
 +#define NIXGE_DEFAULT_RX_MEM	10000
 +
-+struct nixge_dma_bd {
++struct nixge_hw_dma_bd {
 +	u32 next;	/* Physical address of next buffer descriptor */
 +	u32 reserved1;
 +	u32 phys;
@@ -240,7 +239,7 @@ index 000000000000..9959b70c3fca
 +	u32 status;
 +	u32 app0;
 +	u32 app1;	/* TX start << 16 | insert */
-+	u32 app2;	/* TX csum seed */
++	u32 app2;
 +	u32 app3;
 +	u32 app4;
 +	u32 sw_id_offset;
@@ -248,8 +247,16 @@ index 000000000000..9959b70c3fca
 +	u32 reserved6;
 +};
 +
++struct nixge_tx_skb {
++	struct sk_buff *skb;
++	dma_addr_t mapping;
++	size_t size;
++	bool mapped_as_page;
++};
++
 +struct nixge_priv {
 +	struct net_device *ndev;
++	struct napi_struct napi;
 +	struct device *dev;
 +
 +	/* Connection to PHY device */
@@ -273,14 +280,14 @@ index 000000000000..9959b70c3fca
 +	int rx_irq;
 +	u32 phy_type;
 +
-+	u32 options;			/* Current options word */
 +	u32 last_link;
-+	u32 features;
 +
 +	/* Buffer descriptors */
-+	struct nixge_dma_bd *tx_bd_v;
++	struct nixge_hw_dma_bd *tx_bd_v;
++	struct nixge_tx_skb *tx_skb;
 +	dma_addr_t tx_bd_p;
-+	struct nixge_dma_bd *rx_bd_v;
++
++	struct nixge_hw_dma_bd *rx_bd_v;
 +	dma_addr_t rx_bd_p;
 +	u32 tx_bd_ci;
 +	u32 tx_bd_tail;
@@ -321,7 +328,7 @@ index 000000000000..9959b70c3fca
 +	readl_poll_timeout((priv)->dma_regs + (addr), (val), (cond), \
 +			   (sleep_us), (timeout_us))
 +
-+static void nixge_dma_bd_release(struct net_device *ndev)
++static void nixge_hw_dma_bd_release(struct net_device *ndev)
 +{
 +	int i;
 +	struct nixge_priv *priv = netdev_priv(ndev);
@@ -333,21 +340,23 @@ index 000000000000..9959b70c3fca
 +			      (priv->rx_bd_v[i].sw_id_offset));
 +	}
 +
-+	if (priv->rx_bd_v) {
++	if (priv->rx_bd_v)
 +		dma_free_coherent(ndev->dev.parent,
 +				  sizeof(*priv->rx_bd_v) * RX_BD_NUM,
 +				  priv->rx_bd_v,
 +				  priv->rx_bd_p);
-+	}
-+	if (priv->tx_bd_v) {
++
++	if (priv->tx_skb)
++		devm_kfree(ndev->dev.parent, priv->tx_skb);
++
++	if (priv->tx_bd_v)
 +		dma_free_coherent(ndev->dev.parent,
 +				  sizeof(*priv->tx_bd_v) * TX_BD_NUM,
 +				  priv->tx_bd_v,
 +				  priv->tx_bd_p);
-+	}
 +}
 +
-+static int nixge_dma_bd_init(struct net_device *ndev)
++static int nixge_hw_dma_bd_init(struct net_device *ndev)
 +{
 +	u32 cr;
 +	int i;
@@ -364,6 +373,11 @@ index 000000000000..9959b70c3fca
 +					  sizeof(*priv->tx_bd_v) * TX_BD_NUM,
 +					  &priv->tx_bd_p, GFP_KERNEL);
 +	if (!priv->tx_bd_v)
++		goto out;
++
++	priv->tx_skb = devm_kzalloc(ndev->dev.parent, sizeof(*priv->tx_skb) * TX_BD_NUM,
++				    GFP_KERNEL);
++	if (!priv->tx_skb)
 +		goto out;
 +
 +	priv->rx_bd_v = dma_zalloc_coherent(ndev->dev.parent,
@@ -442,7 +456,7 @@ index 000000000000..9959b70c3fca
 +
 +	return 0;
 +out:
-+	nixge_dma_bd_release(ndev);
++	nixge_hw_dma_bd_release(ndev);
 +	return -ENOMEM;
 +}
 +
@@ -475,7 +489,7 @@ index 000000000000..9959b70c3fca
 +	if ((ndev->mtu > NIXGE_MTU) && (ndev->mtu <= NIXGE_JUMBO_MTU))
 +		priv->max_frm_size = ndev->mtu + VLAN_ETH_HLEN + NIXGE_TRL_SIZE;
 +
-+	if (nixge_dma_bd_init(ndev))
++	if (nixge_hw_dma_bd_init(ndev))
 +		netdev_err(ndev, "%s: descriptor allocation failed\n",
 +			   __func__);
 +
@@ -486,42 +500,47 @@ index 000000000000..9959b70c3fca
 +{
 +	struct nixge_priv *priv = netdev_priv(ndev);
 +	struct phy_device *phydev = ndev->phydev;
-+	int status_change = 0;
 +
 +	if (phydev->link != priv->link || phydev->speed != priv->speed ||
 +	    phydev->duplex != priv->duplex) {
 +		priv->link = phydev->link;
 +		priv->speed = phydev->speed;
 +		priv->duplex = phydev->duplex;
-+		status_change = 1;
++		phy_print_status(phydev);
++	}
++}
++
++static void nixge_tx_skb_unmap(struct nixge_priv *priv, struct nixge_tx_skb *tx_skb)
++{
++	if (tx_skb->mapping) {
++		if (tx_skb->mapped_as_page)
++			dma_unmap_page(priv->ndev->dev.parent, tx_skb->mapping,
++				       tx_skb->size, DMA_TO_DEVICE);
++		else
++			dma_unmap_single(priv->ndev->dev.parent, tx_skb->mapping,
++					 tx_skb->size, DMA_TO_DEVICE);
++		tx_skb->mapping = 0;
 +	}
 +
-+	if (status_change)
-+		phy_print_status(phydev);
++	if (tx_skb->skb) {
++		dev_kfree_skb_any(tx_skb->skb);
++		tx_skb->skb = NULL;
++	}
 +}
 +
 +static void nixge_start_xmit_done(struct net_device *ndev)
 +{
-+	u32 size = 0;
-+	u32 packets = 0;
 +	struct nixge_priv *priv = netdev_priv(ndev);
-+	struct nixge_dma_bd *cur_p;
++	struct nixge_hw_dma_bd *cur_p;
 +	unsigned int status = 0;
++	u32 packets = 0;
++	u32 size = 0;
 +
 +	cur_p = &priv->tx_bd_v[priv->tx_bd_ci];
 +	status = cur_p->status;
 +
 +	while (status & XAXIDMA_BD_STS_COMPLETE_MASK) {
-+		dma_unmap_single(ndev->dev.parent, cur_p->phys,
-+				 (cur_p->cntrl & XAXIDMA_BD_CTRL_LENGTH_MASK),
-+				DMA_TO_DEVICE);
-+		if (cur_p->app4)
-+			dev_kfree_skb_irq((struct sk_buff *)cur_p->app4);
-+		/*cur_p->phys = 0;*/
-+		cur_p->app0 = 0;
-+		cur_p->app1 = 0;
-+		cur_p->app2 = 0;
-+		cur_p->app4 = 0;
++		nixge_tx_skb_unmap(priv, &priv->tx_skb[priv->tx_bd_ci]);
 +		cur_p->status = 0;
 +
 +		size += status & XAXIDMA_BD_STS_ACTUAL_LEN_MASK;
@@ -535,13 +554,15 @@ index 000000000000..9959b70c3fca
 +
 +	ndev->stats.tx_packets += packets;
 +	ndev->stats.tx_bytes += size;
-+	netif_wake_queue(ndev);
++
++	if (packets)
++		netif_wake_queue(ndev);
 +}
 +
-+static inline int nixge_check_tx_bd_space(struct nixge_priv *priv,
++static int nixge_check_tx_bd_space(struct nixge_priv *priv,
 +					  int num_frag)
 +{
-+	struct nixge_dma_bd *cur_p;
++	struct nixge_hw_dma_bd *cur_p;
 +
 +	cur_p = &priv->tx_bd_v[(priv->tx_bd_tail + num_frag) % TX_BD_NUM];
 +	if (cur_p->status & XAXIDMA_BD_STS_ALL_MASK)
@@ -551,15 +572,18 @@ index 000000000000..9959b70c3fca
 +
 +static int nixge_start_xmit(struct sk_buff *skb, struct net_device *ndev)
 +{
-+	u32 ii;
-+	u32 num_frag;
-+	skb_frag_t *frag;
-+	dma_addr_t tail_p;
 +	struct nixge_priv *priv = netdev_priv(ndev);
-+	struct nixge_dma_bd *cur_p;
++	struct nixge_hw_dma_bd *cur_p;
++	struct nixge_tx_skb *tx_skb;
++	dma_addr_t tail_p;
++	skb_frag_t *frag;
++	u32 num_frag;
++	u32 ii;
++
 +
 +	num_frag = skb_shinfo(skb)->nr_frags;
 +	cur_p = &priv->tx_bd_v[priv->tx_bd_tail];
++	tx_skb = &priv->tx_skb[priv->tx_bd_tail];
 +
 +	if (nixge_check_tx_bd_space(priv, num_frag)) {
 +		if (!netif_queue_stopped(ndev))
@@ -570,17 +594,34 @@ index 000000000000..9959b70c3fca
 +	cur_p->cntrl = skb_headlen(skb) | XAXIDMA_BD_CTRL_TXSOF_MASK;
 +	cur_p->phys = dma_map_single(ndev->dev.parent, skb->data,
 +				     skb_headlen(skb), DMA_TO_DEVICE);
++	/* FIXME: HERE */
++	if (dma_mapping_error(ndev->dev.parent, cur_p->phys))
++			goto dma_error;
++
++	tx_skb->skb = NULL;
++	tx_skb->mapping = cur_p->phys;
++	tx_skb->size = skb_headlen(skb);
++	tx_skb->mapped_as_page = false;
 +
 +	for (ii = 0; ii < num_frag; ii++) {
++		netdev_dbg(ndev, "num_frags = %lu\n", num_frag);
 +		++priv->tx_bd_tail;
 +		priv->tx_bd_tail %= TX_BD_NUM;
 +		cur_p = &priv->tx_bd_v[priv->tx_bd_tail];
++		tx_skb = &priv->tx_skb[priv->tx_bd_tail];
 +		frag = &skb_shinfo(skb)->frags[ii];
-+		cur_p->phys = dma_map_single(ndev->dev.parent,
-+					     skb_frag_address(frag),
-+					     skb_frag_size(frag),
-+					     DMA_TO_DEVICE);
++
++		cur_p->phys = skb_frag_dma_map(ndev->dev.parent, frag, 0,
++				skb_frag_size(frag), DMA_TO_DEVICE);
++		if (dma_mapping_error(ndev->dev.parent, cur_p->phys))
++				goto dma_error;
++
 +		cur_p->cntrl = skb_frag_size(frag);
++
++		tx_skb->skb = NULL;
++		tx_skb->mapping = cur_p->phys;
++		tx_skb->size = skb_frag_size(frag);
++		tx_skb->mapped_as_page = true;
 +	}
 +
 +	cur_p->cntrl |= XAXIDMA_BD_CTRL_TXEOF_MASK;
@@ -592,22 +633,25 @@ index 000000000000..9959b70c3fca
 +	++priv->tx_bd_tail;
 +	priv->tx_bd_tail %= TX_BD_NUM;
 +
++dma_error:
++drop:
 +	return NETDEV_TX_OK;
 +}
 +
-+static void nixge_recv(struct net_device *ndev)
++static int nixge_recv(struct net_device *ndev, int budget)
 +{
-+	u32 length;
-+	u32 size = 0;
-+	u32 packets = 0;
-+	dma_addr_t tail_p = 0;
 +	struct nixge_priv *priv = netdev_priv(ndev);
 +	struct sk_buff *skb, *new_skb;
-+	struct nixge_dma_bd *cur_p;
++	struct nixge_hw_dma_bd *cur_p;
++	dma_addr_t tail_p = 0;
++	u32 packets = 0;
++	u32 length = 0;
++	u32 size = 0;
 +
 +	cur_p = &priv->rx_bd_v[priv->rx_bd_ci];
 +
-+	while ((cur_p->status & XAXIDMA_BD_STS_COMPLETE_MASK)) {
++	while ((cur_p->status & XAXIDMA_BD_STS_COMPLETE_MASK &&
++		budget > packets)) {
 +		tail_p = priv->rx_bd_p
 +			+ sizeof(*priv->rx_bd_v) * priv->rx_bd_ci;
 +		skb = (struct sk_buff *)(cur_p->sw_id_offset);
@@ -630,14 +674,14 @@ index 000000000000..9959b70c3fca
 +		 */
 +		skb->ip_summed = CHECKSUM_NONE;
 +
-+		netif_rx(skb);
++		netif_receive_skb(skb);
 +
 +		size += length;
 +		packets++;
 +
 +		new_skb = netdev_alloc_skb_ip_align(ndev, priv->max_frm_size);
 +		if (!new_skb)
-+			return;
++			return packets;
 +
 +		cur_p->phys = dma_map_single(ndev->dev.parent, new_skb->data,
 +					     priv->max_frm_size,
@@ -660,6 +704,36 @@ index 000000000000..9959b70c3fca
 +
 +	if (tail_p)
 +		nixge_dma_write_reg(priv, XAXIDMA_RX_TDESC_OFFSET, tail_p);
++
++	return packets;
++}
++
++static int nixge_poll(struct napi_struct *napi, int budget)
++{
++	struct nixge_priv *priv = container_of(napi, struct nixge_priv, napi);
++	int work_done;
++	u32 status, cr;
++
++	work_done = 0;
++
++	work_done = nixge_recv(priv->ndev, budget);
++	if (work_done < budget) {
++		napi_complete_done(napi, work_done);
++		status = nixge_dma_read_reg(priv, XAXIDMA_RX_SR_OFFSET);
++
++		if (status & (XAXIDMA_IRQ_IOC_MASK | XAXIDMA_IRQ_DELAY_MASK)) {
++			/* If there's more, reschedule, but clear */
++			nixge_dma_write_reg(priv, XAXIDMA_RX_SR_OFFSET, status);
++			napi_reschedule(napi);
++		} else {
++			/* if not, turn on RX IRQs again ... */
++			cr = nixge_dma_read_reg(priv, XAXIDMA_RX_CR_OFFSET);
++			cr |= (XAXIDMA_IRQ_IOC_MASK | XAXIDMA_IRQ_DELAY_MASK);
++			nixge_dma_write_reg(priv, XAXIDMA_RX_CR_OFFSET, cr);
++		}
++	}
++
++	return work_done;
 +}
 +
 +static irqreturn_t nixge_tx_irq(int irq, void *_ndev)
@@ -675,8 +749,10 @@ index 000000000000..9959b70c3fca
 +		nixge_start_xmit_done(priv->ndev);
 +		goto out;
 +	}
-+	if (!(status & XAXIDMA_IRQ_ALL_MASK))
++	if (!(status & XAXIDMA_IRQ_ALL_MASK)) {
 +		netdev_err(ndev, "No interrupts asserted in Tx path\n");
++		return IRQ_NONE;
++	}
 +	if (status & XAXIDMA_IRQ_ERROR_MASK) {
 +		netdev_err(ndev, "DMA Tx error 0x%x\n", status);
 +		netdev_err(ndev, "Current BD is at: 0x%x\n",
@@ -710,12 +786,20 @@ index 000000000000..9959b70c3fca
 +
 +	status = nixge_dma_read_reg(priv, XAXIDMA_RX_SR_OFFSET);
 +	if (status & (XAXIDMA_IRQ_IOC_MASK | XAXIDMA_IRQ_DELAY_MASK)) {
++		/* Turn of IRQs because NAPI */
 +		nixge_dma_write_reg(priv, XAXIDMA_RX_SR_OFFSET, status);
-+		nixge_recv(priv->ndev);
++		cr = nixge_dma_read_reg(priv, XAXIDMA_RX_CR_OFFSET);
++		cr &= ~(XAXIDMA_IRQ_IOC_MASK | XAXIDMA_IRQ_DELAY_MASK);
++		nixge_dma_write_reg(priv, XAXIDMA_RX_CR_OFFSET, cr);
++
++		if (napi_schedule_prep(&priv->napi))
++			__napi_schedule(&priv->napi);
 +		goto out;
 +	}
-+	if (!(status & XAXIDMA_IRQ_ALL_MASK))
++	if (!(status & XAXIDMA_IRQ_ALL_MASK)) {
 +		netdev_err(ndev, "No interrupts asserted in Rx path\n");
++		return IRQ_NONE;
++	}
 +	if (status & XAXIDMA_IRQ_ERROR_MASK) {
 +		netdev_err(ndev, "DMA Rx error 0x%x\n", status);
 +		netdev_err(ndev, "Current BD is at: 0x%x\n",
@@ -745,20 +829,17 @@ index 000000000000..9959b70c3fca
 +	u32 cr, i;
 +	struct nixge_priv *lp = (struct nixge_priv *)data;
 +	struct net_device *ndev = lp->ndev;
-+	struct nixge_dma_bd *cur_p;
++	struct nixge_hw_dma_bd *cur_p;
++	struct nixge_tx_skb *tx_skb;
 +
 +	__nixge_device_reset(lp, XAXIDMA_TX_CR_OFFSET);
 +	__nixge_device_reset(lp, XAXIDMA_RX_CR_OFFSET);
 +
 +	for (i = 0; i < TX_BD_NUM; i++) {
 +		cur_p = &lp->tx_bd_v[i];
-+		if (cur_p->phys)
-+			dma_unmap_single(ndev->dev.parent, cur_p->phys,
-+					 (cur_p->cntrl &
-+					  XAXIDMA_BD_CTRL_LENGTH_MASK),
-+					 DMA_TO_DEVICE);
-+		if (cur_p->app4)
-+			dev_kfree_skb_irq((struct sk_buff *)cur_p->app4);
++		tx_skb = &lp->tx_skb[i];
++		nixge_tx_skb_unmap(lp, tx_skb);
++
 +		cur_p->phys = 0;
 +		cur_p->cntrl = 0;
 +		cur_p->status = 0;
@@ -849,6 +930,8 @@ index 000000000000..9959b70c3fca
 +	tasklet_init(&priv->dma_err_tasklet, nixge_dma_err_handler,
 +		     (unsigned long)priv);
 +
++	napi_enable(&priv->napi);
++
 +	/* Enable interrupts for Axi DMA Tx */
 +	ret = request_irq(priv->tx_irq, nixge_tx_irq, 0, ndev->name, ndev);
 +	if (ret)
@@ -857,6 +940,8 @@ index 000000000000..9959b70c3fca
 +	ret = request_irq(priv->rx_irq, nixge_rx_irq, 0, ndev->name, ndev);
 +	if (ret)
 +		goto err_rx_irq;
++
++	netif_start_queue(ndev);
 +
 +	return 0;
 +
@@ -874,6 +959,7 @@ index 000000000000..9959b70c3fca
 +	struct nixge_priv *priv = netdev_priv(ndev);
 +
 +	netif_stop_queue(ndev);
++	napi_disable(&priv->napi);
 +
 +	if (ndev->phydev)
 +		phy_stop(ndev->phydev);
@@ -890,7 +976,7 @@ index 000000000000..9959b70c3fca
 +	free_irq(priv->tx_irq, ndev);
 +	free_irq(priv->rx_irq, ndev);
 +
-+	nixge_dma_bd_release(ndev);
++	nixge_hw_dma_bd_release(ndev);
 +
 +	return 0;
 +}
@@ -1163,11 +1249,11 @@ index 000000000000..9959b70c3fca
 +
 +static int nixge_probe(struct platform_device *pdev)
 +{
-+	int err;
 +	struct nixge_priv *priv;
 +	struct net_device *ndev;
 +	struct resource *dmares;
 +	const char *mac_addr;
++	int err;
 +
 +	ndev = alloc_etherdev(sizeof(*priv));
 +	if (!ndev)
@@ -1194,6 +1280,8 @@ index 000000000000..9959b70c3fca
 +	priv->ndev = ndev;
 +	priv->dev = &pdev->dev;
 +	priv->rxmem = NIXGE_DEFAULT_RX_MEM;
++
++	netif_napi_add(ndev, &priv->napi, nixge_poll, 128);
 +
 +	dmares = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 +	priv->dma_regs = devm_ioremap_resource(&pdev->dev, dmares);
@@ -1222,21 +1310,19 @@ index 000000000000..9959b70c3fca
 +	err = nixge_mdio_setup(priv, pdev->dev.of_node);
 +	if (err) {
 +		netdev_err(ndev, "error registering mdio bus");
-+		if (priv->mii_bus)
-+			goto unregister_mdio;
 +		goto free_netdev;
 +	}
 +
 +	priv->phy_dev = phy_find_first(priv->mii_bus);
 +	if (!priv->phy_dev) {
 +		dev_err(&pdev->dev, "error finding a phy ...");
-+		goto unregister_mdio;
++		goto free_netdev;
 +	}
 +
 +	err = register_netdev(priv->ndev);
 +	if (err) {
 +		netdev_err(priv->ndev, "register_netdev() error (%i)\n", err);
-+		goto unregister_mdio;
++		goto free_netdev;
 +	}
 +
 +	err = phy_connect_direct(ndev, priv->phy_dev, &nixge_handle_link_change,
@@ -1246,25 +1332,17 @@ index 000000000000..9959b70c3fca
 +		goto unregister_mdio;
 +	}
 +
-+	/* not sure if this is the correct way of dealing with this ... */
-+	ndev->phydev->supported &= ~(SUPPORTED_Autoneg);
-+	ndev->phydev->advertising = ndev->phydev->supported;
-+	ndev->phydev->autoneg = AUTONEG_DISABLE;
-+
 +	phy_attached_info(ndev->phydev);
 +
 +	return 0;
 +
-+disc_phy:
-+	phy_disconnect(ndev->phydev);
-+
 +unregister_mdio:
++	phy_disconnect(ndev->phydev);
 +	mdiobus_unregister(priv->mii_bus);
 +	mdiobus_free(priv->mii_bus);
 +
 +free_netdev:
 +	free_netdev(ndev);
-+	platform_set_drvdata(pdev, NULL);
 +
 +	return err;
 +}
@@ -1272,21 +1350,17 @@ index 000000000000..9959b70c3fca
 +static int nixge_remove(struct platform_device *pdev)
 +{
 +	struct net_device *ndev = platform_get_drvdata(pdev);
-+	struct nixge_priv *priv;
++	struct nixge_priv *priv = netdev_priv(ndev);
 +
-+	if (ndev) {
-+ 		priv = netdev_priv(ndev);
++	if (ndev->phydev)
++		phy_disconnect(ndev->phydev);
 +
-+		if (ndev->phydev)
-+			phy_disconnect(ndev->phydev);
++	mdiobus_unregister(priv->mii_bus);
++	mdiobus_free(priv->mii_bus);
 +
-+		mdiobus_unregister(priv->mii_bus);
-+		mdiobus_free(priv->mii_bus);
++	unregister_netdev(ndev);
 +
-+		unregister_netdev(ndev);
-+
-+		free_netdev(ndev);
-+	}
++	free_netdev(ndev);
 +
 +	return 0;
 +}
@@ -1312,5 +1386,5 @@ index 000000000000..9959b70c3fca
 +MODULE_DESCRIPTION("National Instruments XGE Management MAC");
 +MODULE_AUTHOR("Moritz Fischer <mdf@kernel.org>");
 -- 
-2.14.2
+2.15.1
 
