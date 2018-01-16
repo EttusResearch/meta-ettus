@@ -12,7 +12,7 @@ RDEPENDS_liberio = "libudev"
 DEPENDS = "udev"
 
 SHRT_VER = "${@d.getVar('PV').split('.')[0]}.${@d.getVar('PV').split('.')[1]}"
-SRC_URI = "git://orbitty.ni.corp.natinst.com/vb2-test.git;rev=99cb1d5f7a5960a3ed4033374e32582bf16a965b"
+SRC_URI = "git://github.com/EttusResearch/liberio.git;rev=d0e8a603f5f4dddf29764fc0fc6f6f965de77b8a"
 
 FILES_${PN} = "${libdir}/lib*.so.* ${libdir}/lib*.la ${libdir}/liberio.pc"
 FILES_${PN}-dev += "${includedir}/liberio/"
