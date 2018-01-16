@@ -36,8 +36,7 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     fftwf-wisdom \
     uhd \
     uhd-examples \
-    eeprom-tools \
-    eeprom-tools-systemd \
+    eeprom-hostname-systemd \
     usrp-hwd \
     openocd \
     salt-minion \

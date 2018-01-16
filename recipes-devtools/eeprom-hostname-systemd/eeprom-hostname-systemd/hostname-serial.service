@@ -5,7 +5,7 @@ Before=avahi-daemon.service
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c "hostnamectl set-hostname ni-sulfur-`/usr/bin/eeprom-id | grep serial | sed -e 's/serial=//g'`"
+ExecStart=/sbin/usrp_hostname
 
 [Install]
 WantedBy=multi-user.target

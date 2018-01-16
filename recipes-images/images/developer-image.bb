@@ -43,8 +43,7 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     uhd \
     uhd-examples \
     python3-pip \
-    eeprom-tools \
-    eeprom-tools-systemd \
+    eeprom-hostname-systemd \
     usrp-hwd \
     openocd \
     salt-minion \
