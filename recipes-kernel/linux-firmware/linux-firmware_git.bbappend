@@ -13,8 +13,8 @@ SRC_URI_append_ni-sulfur = " file://ec-sulfur-rev3.bin \
                              http://orbitty.ni.corp.natinst.com:9090/sulfur-rev3-devel/n3xx-fpga-images/mvr/cpld-magnesium-revc.svf;name=magnesium-cpld-revc \
                            "
 
-SRC_URI[sulfur-fpga-image.md5sum] = "b0b425355bfd3659b986f583afa8d87b"
-SRC_URI[sulfur-fpga-image.sha256sum] = "8d84c4568302d77a3c8b70b57326d436df0068e49dba3e3e9a775fa18c480f06"
+SRC_URI[sulfur-fpga-image.md5sum] = "80230d188c19f59e931436ad7975675a"
+SRC_URI[sulfur-fpga-image.sha256sum] = "566ed9c32dcfa4f0a07a8a6ca934cda7ef3772101e36633da08b8e1452d2aab6"
 
 SRC_URI[sulfur-fpga-overlay.md5sum] = "dfb07c6400b5d3a45c657947a4171c68"
 SRC_URI[sulfur-fpga-overlay.sha256sum] = "fd526e6eddf4b822880db86e4a0ca7403ff2257ca8e68200d0cdcd9a4f539b8c"
