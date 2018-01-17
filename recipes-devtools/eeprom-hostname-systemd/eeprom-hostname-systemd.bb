@@ -3,7 +3,7 @@ DESCRIPTION = "Hostname utility for the Ettus Research Sulfur SDR"
 PV="0.10"
 
 LICENSE = "GPLv2"
-LIC_FILES_CHKSUM = "file://COPYING;md5=b234ee4d69f5fce4486a80fdaf4a4263"
+LIC_FILES_CHKSUM = "file://${WORKDIR}/COPYING;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 
 MACHINE_COMPATIBLE="ni-sulfur-rev3"
 
@@ -22,10 +22,6 @@ FILES_${PN} = "${base_libdir}/systemd/system/ \
                ${base_sbindir} \
               "
 RDEPENDS_${PN} = "bash usrp-hwd"
-
-do_configure_prepend() {
-        cp ${WORKDIR}/COPYING ${S}/COPYING
-}
 
 do_install_append() {
 	install -d ${D}${base_libdir}/systemd/system
