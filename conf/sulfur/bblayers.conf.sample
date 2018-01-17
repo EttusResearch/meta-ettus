@@ -1,6 +1,7 @@
 # LAYER_CONF_VERSION is increased each time build/conf/bblayers.conf
 # changes incompatibly
-LCONF_VERSION = "5"
+#
+LCONF_VERSION = "7"
 
 BBPATH = "${TOPDIR}"
 BBFILES ?= ""
@@ -8,17 +9,21 @@ BBFILES ?= ""
 BBLAYERS ?= " \
   ##COREBASE##/meta \
   ##COREBASE##/../meta-ettus \
-  ##COREBASE##/../meta-xilinx \
   ##COREBASE##/../meta-oe/meta-oe \
   ##COREBASE##/../meta-oe/meta-networking \
   ##COREBASE##/../meta-oe/meta-python \
   ##COREBASE##/../meta-oe/meta-filesystems \
   ##COREBASE##/../meta-oe/meta-perl \
+  ##COREBASE##/../meta-oe/meta-gnome \
   ##COREBASE##/../meta-qt4 \
   ##COREBASE##/../meta-oe/meta-webserver \
   ##COREBASE##/../meta-mender/meta-mender-core \
+  ##COREBASE##/../meta-mender-usrp \
   ##COREBASE##/../oe-meta-go \
   ##COREBASE##/../meta-security \
+  ##COREBASE##/../meta-security/meta-tpm \
   ##COREBASE##/../meta-sdr \
+  ##COREBASE##/../meta-oe/meta-xfce \
+  ##COREBASE##/../meta-oe/meta-multimedia \
+  ##COREBASE##/../meta-cloud-services/meta-openstack \
   "
-

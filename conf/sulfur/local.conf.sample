@@ -14,11 +14,18 @@
 DISTRO="Alchemy"
 
 INHERIT += "mender-full"
-MENDER_ARTIFACT_NAME = "foo"
+MENDER_ARTIFACT_NAME = "nightly"
 MENDER_STORAGE_DEVICE = "/dev/mmcblk0"
-MENDER_STORAGE_TOTAL_SIZE_MB = "7168"
+
+# We used to have 15280 here which worked with Apacer cards ...
+# The sandisk ones are smaller by about 87M, so back off 100M
+#MENDER_STORAGE_TOTAL_SIZE_MB = "15280"
+MENDER_STORAGE_TOTAL_SIZE_MB = "15180"
 IMAGE_ROOTFS_EXTRA_SPACE = "0"
-MENDER_SERVER_URL = "https://docker.mender.io:8080/"
+
+
+#FILESEXTRAPATHS_prepend_pn-mender := " ${TOPDIR}/../:"
+#SRC_URI_append_pn-mender = " file://server.crt"
 
 
 #
@@ -54,7 +61,7 @@ MENDER_SERVER_URL = "https://docker.mender.io:8080/"
 #
 # This sets the default machine to be ettus-e300 if no other machine is selected:
 # MACHINE ??= "ettus-e3xx-sg1"
-MACHINE ??= "sulfur"
+MACHINE ??= "ni-sulfur-rev5"
 
 #
 # Where to place downloads
@@ -144,9 +151,10 @@ MACHINE ??= "sulfur"
 # We default to enabling the debugging tweaks.
 
 EXTRA_IMAGE_FEATURES += " debug-tweaks "
-IMAGE_FSTYPES = "ext4 tar.gz"
+IMAGE_FSTYPES = "ext4"
 
 PACKAGECONFIG_pn-boost = "python"
+PACKAGECONFIG_pn-uhd = "e300 liberio"
 
 #
 # Additional image features
