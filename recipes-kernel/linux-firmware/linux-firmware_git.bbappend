@@ -8,9 +8,9 @@ SRC_URI_append_ni-sulfur = " file://ec-sulfur-rev3.bin \
                              file://ec-sulfur-rev5.RW.bin \
                              file://LICENSE.ec-sulfur \
                              file://mykonos-m3.bin \
-                             http://orbitty.ni.corp.natinst.com:9090/sulfur-rev3-devel/n3xx-fpga-images/mvr/n3xx.bin;name=sulfur-fpga-image \
-                             http://orbitty.ni.corp.natinst.com:9090/sulfur-rev3-devel/n3xx-fpga-images/mvr/n3xx.dtbo;name=sulfur-fpga-overlay \
-                             http://orbitty.ni.corp.natinst.com:9090/sulfur-rev3-devel/n3xx-fpga-images/mvr/cpld-magnesium-revc.svf;name=magnesium-cpld-revc \
+                             http://orbitty.ni.corp.natinst.com:9090/sulfur-rev3-devel/n3xx-fpga-images/mvr/rc27/n3xx.bin;name=sulfur-fpga-image \
+                             http://orbitty.ni.corp.natinst.com:9090/sulfur-rev3-devel/n3xx-fpga-images/mvr/rc27/n3xx.dtbo;name=sulfur-fpga-overlay \
+                             http://orbitty.ni.corp.natinst.com:9090/sulfur-rev3-devel/n3xx-fpga-images/mvr/rc27/cpld-magnesium-revc.svf;name=magnesium-cpld-revc \
                            "
 
 SRC_URI[sulfur-fpga-image.md5sum] = "80230d188c19f59e931436ad7975675a"
