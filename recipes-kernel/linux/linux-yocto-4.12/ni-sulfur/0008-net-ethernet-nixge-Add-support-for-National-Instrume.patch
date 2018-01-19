@@ -1,7 +1,7 @@
-From 6669503d3d2b271263529cfc5e3399628e22c424 Mon Sep 17 00:00:00 2001
+From 34237e011f75105a321e0da37e1876d300ca9963 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 28 Feb 2017 17:29:50 -0800
-Subject: [PATCH 08/39] net: ethernet: nixge: Add support for National
+Subject: [PATCH 08/41] net: ethernet: nixge: Add support for National
  Instruments XGE netdev
 
 Add support for the National Instruments XGE 1/10G network device.
@@ -14,8 +14,8 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  drivers/net/ethernet/Makefile    |    1 +
  drivers/net/ethernet/ni/Kconfig  |   27 +
  drivers/net/ethernet/ni/Makefile |    1 +
- drivers/net/ethernet/ni/nixge.c  | 1295 ++++++++++++++++++++++++++++++++++++++
- 5 files changed, 1325 insertions(+)
+ drivers/net/ethernet/ni/nixge.c  | 1320 ++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 1350 insertions(+)
  create mode 100644 drivers/net/ethernet/ni/Kconfig
  create mode 100644 drivers/net/ethernet/ni/Makefile
  create mode 100644 drivers/net/ethernet/ni/nixge.c
@@ -86,10 +86,10 @@ index 000000000000..99c664651c51
 +obj-$(CONFIG_NI_XGE_MANAGEMENT_ENET) += nixge.o
 diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
 new file mode 100644
-index 000000000000..2dcfc7aa7dc2
+index 000000000000..5705a510fc2a
 --- /dev/null
 +++ b/drivers/net/ethernet/ni/nixge.c
-@@ -0,0 +1,1295 @@
+@@ -0,0 +1,1320 @@
 +/* SPDX-License-Identifier: GPL-2.0
 + *
 + * Copyright (c) 2016-2017, National Instruments Corp.
@@ -222,11 +222,8 @@ index 000000000000..2dcfc7aa7dc2
 +#define NIXGE_JUMBO_MTU			9000 /* Max MTU of a jumbo Eth. frame */
 +
 +#define NIXGE_MAX_FRAME_SIZE	 (NIXGE_MTU + NIXGE_HDR_SIZE + NIXGE_TRL_SIZE)
-+#define NIXGE_MAX_VLAN_FRAME_SIZE  (NIXGE_MTU + VLAN_ETH_HLEN + NIXGE_TRL_SIZE)
 +#define NIXGE_MAX_JUMBO_FRAME_SIZE \
 +	(NIXGE_JUMBO_MTU + NIXGE_HDR_SIZE + NIXGE_TRL_SIZE)
-+
-+#define NIXGE_DEFAULT_RX_MEM	10000
 +
 +struct nixge_hw_dma_bd {
 +	u32 next;	/* Physical address of next buffer descriptor */
@@ -294,7 +291,6 @@ index 000000000000..2dcfc7aa7dc2
 +	u32 rx_bd_ci;
 +
 +	u32 max_frm_size;
-+	u32 rxmem;
 +
 +	u32 coalesce_count_rx;
 +	u32 coalesce_count_tx;
@@ -335,7 +331,7 @@ index 000000000000..2dcfc7aa7dc2
 +
 +	for (i = 0; i < RX_BD_NUM; i++) {
 +		dma_unmap_single(ndev->dev.parent, priv->rx_bd_v[i].phys,
-+				 priv->max_frm_size, DMA_FROM_DEVICE);
++				 NIXGE_MAX_JUMBO_FRAME_SIZE, DMA_FROM_DEVICE);
 +		dev_kfree_skb((struct sk_buff *)
 +			      (priv->rx_bd_v[i].sw_id_offset));
 +	}
@@ -375,7 +371,9 @@ index 000000000000..2dcfc7aa7dc2
 +	if (!priv->tx_bd_v)
 +		goto out;
 +
-+	priv->tx_skb = devm_kzalloc(ndev->dev.parent, sizeof(*priv->tx_skb) * TX_BD_NUM,
++	priv->tx_skb = devm_kzalloc(ndev->dev.parent,
++				    sizeof(*priv->tx_skb) *
++				    TX_BD_NUM,
 +				    GFP_KERNEL);
 +	if (!priv->tx_skb)
 +		goto out;
@@ -397,16 +395,17 @@ index 000000000000..2dcfc7aa7dc2
 +				      sizeof(*priv->rx_bd_v) *
 +				      ((i + 1) % RX_BD_NUM);
 +
-+		skb = netdev_alloc_skb_ip_align(ndev, priv->max_frm_size);
++		skb = netdev_alloc_skb_ip_align(ndev,
++						NIXGE_MAX_JUMBO_FRAME_SIZE);
 +		if (!skb)
 +			goto out;
 +
 +		priv->rx_bd_v[i].sw_id_offset = (u32)skb;
 +		priv->rx_bd_v[i].phys = dma_map_single(ndev->dev.parent,
 +						     skb->data,
-+						     priv->max_frm_size,
++						     NIXGE_MAX_JUMBO_FRAME_SIZE,
 +						     DMA_FROM_DEVICE);
-+		priv->rx_bd_v[i].cntrl = priv->max_frm_size;
++		priv->rx_bd_v[i].cntrl = NIXGE_MAX_JUMBO_FRAME_SIZE;
 +	}
 +
 +	/* Start updating the Rx channel control register */
@@ -484,10 +483,11 @@ index 000000000000..2dcfc7aa7dc2
 +	__nixge_device_reset(priv, XAXIDMA_TX_CR_OFFSET);
 +	__nixge_device_reset(priv, XAXIDMA_RX_CR_OFFSET);
 +
-+	priv->max_frm_size = NIXGE_MAX_VLAN_FRAME_SIZE;
++	priv->max_frm_size = NIXGE_MAX_JUMBO_FRAME_SIZE;
 +
 +	if ((ndev->mtu > NIXGE_MTU) && (ndev->mtu <= NIXGE_JUMBO_MTU))
-+		priv->max_frm_size = ndev->mtu + VLAN_ETH_HLEN + NIXGE_TRL_SIZE;
++		priv->max_frm_size = ndev->mtu +
++				     NIXGE_HDR_SIZE + NIXGE_TRL_SIZE;
 +
 +	if (nixge_hw_dma_bd_init(ndev))
 +		netdev_err(ndev, "%s: descriptor allocation failed\n",
@@ -510,14 +510,16 @@ index 000000000000..2dcfc7aa7dc2
 +	}
 +}
 +
-+static void nixge_tx_skb_unmap(struct nixge_priv *priv, struct nixge_tx_skb *tx_skb)
++static void nixge_tx_skb_unmap(struct nixge_priv *priv,
++			       struct nixge_tx_skb *tx_skb)
 +{
 +	if (tx_skb->mapping) {
 +		if (tx_skb->mapped_as_page)
 +			dma_unmap_page(priv->ndev->dev.parent, tx_skb->mapping,
 +				       tx_skb->size, DMA_TO_DEVICE);
 +		else
-+			dma_unmap_single(priv->ndev->dev.parent, tx_skb->mapping,
++			dma_unmap_single(priv->ndev->dev.parent,
++					 tx_skb->mapping,
 +					 tx_skb->size, DMA_TO_DEVICE);
 +		tx_skb->mapping = 0;
 +	}
@@ -532,15 +534,18 @@ index 000000000000..2dcfc7aa7dc2
 +{
 +	struct nixge_priv *priv = netdev_priv(ndev);
 +	struct nixge_hw_dma_bd *cur_p;
++	struct nixge_tx_skb *tx_skb;
 +	unsigned int status = 0;
 +	u32 packets = 0;
 +	u32 size = 0;
 +
 +	cur_p = &priv->tx_bd_v[priv->tx_bd_ci];
++	tx_skb = &priv->tx_skb[priv->tx_bd_ci];
++
 +	status = cur_p->status;
 +
 +	while (status & XAXIDMA_BD_STS_COMPLETE_MASK) {
-+		nixge_tx_skb_unmap(priv, &priv->tx_skb[priv->tx_bd_ci]);
++		nixge_tx_skb_unmap(priv, tx_skb);
 +		cur_p->status = 0;
 +
 +		size += status & XAXIDMA_BD_STS_ACTUAL_LEN_MASK;
@@ -549,6 +554,7 @@ index 000000000000..2dcfc7aa7dc2
 +		++priv->tx_bd_ci;
 +		priv->tx_bd_ci %= TX_BD_NUM;
 +		cur_p = &priv->tx_bd_v[priv->tx_bd_ci];
++		tx_skb = &priv->tx_skb[priv->tx_bd_ci];
 +		status = cur_p->status;
 +	}
 +
@@ -560,7 +566,7 @@ index 000000000000..2dcfc7aa7dc2
 +}
 +
 +static int nixge_check_tx_bd_space(struct nixge_priv *priv,
-+					  int num_frag)
++				   int num_frag)
 +{
 +	struct nixge_hw_dma_bd *cur_p;
 +
@@ -580,7 +586,6 @@ index 000000000000..2dcfc7aa7dc2
 +	u32 num_frag;
 +	u32 ii;
 +
-+
 +	num_frag = skb_shinfo(skb)->nr_frags;
 +	cur_p = &priv->tx_bd_v[priv->tx_bd_tail];
 +	tx_skb = &priv->tx_skb[priv->tx_bd_tail];
@@ -588,15 +593,18 @@ index 000000000000..2dcfc7aa7dc2
 +	if (nixge_check_tx_bd_space(priv, num_frag)) {
 +		if (!netif_queue_stopped(ndev))
 +			netif_stop_queue(ndev);
-+		return NETDEV_TX_BUSY;
++		return NETDEV_TX_OK;
 +	}
 +
-+	cur_p->cntrl = skb_headlen(skb) | XAXIDMA_BD_CTRL_TXSOF_MASK;
++	netdev_dbg(ndev, "Sending frame with linear length: %u and %u frags\n",
++		   skb_headlen(skb), num_frag);
++
 +	cur_p->phys = dma_map_single(ndev->dev.parent, skb->data,
 +				     skb_headlen(skb), DMA_TO_DEVICE);
-+	/* FIXME: HERE */
 +	if (dma_mapping_error(ndev->dev.parent, cur_p->phys))
-+			goto dma_error;
++		goto drop;
++
++	cur_p->cntrl = skb_headlen(skb) | XAXIDMA_BD_CTRL_TXSOF_MASK;
 +
 +	tx_skb->skb = NULL;
 +	tx_skb->mapping = cur_p->phys;
@@ -604,7 +612,6 @@ index 000000000000..2dcfc7aa7dc2
 +	tx_skb->mapped_as_page = false;
 +
 +	for (ii = 0; ii < num_frag; ii++) {
-+		netdev_dbg(ndev, "num_frags = %lu\n", num_frag);
 +		++priv->tx_bd_tail;
 +		priv->tx_bd_tail %= TX_BD_NUM;
 +		cur_p = &priv->tx_bd_v[priv->tx_bd_tail];
@@ -614,7 +621,7 @@ index 000000000000..2dcfc7aa7dc2
 +		cur_p->phys = skb_frag_dma_map(ndev->dev.parent, frag, 0,
 +				skb_frag_size(frag), DMA_TO_DEVICE);
 +		if (dma_mapping_error(ndev->dev.parent, cur_p->phys))
-+				goto dma_error;
++			goto frag_err;
 +
 +		cur_p->cntrl = skb_frag_size(frag);
 +
@@ -623,6 +630,9 @@ index 000000000000..2dcfc7aa7dc2
 +		tx_skb->size = skb_frag_size(frag);
 +		tx_skb->mapped_as_page = true;
 +	}
++
++	/* last buffer of the frame */
++	tx_skb->skb = skb;
 +
 +	cur_p->cntrl |= XAXIDMA_BD_CTRL_TXEOF_MASK;
 +	cur_p->app4 = (unsigned long)skb;
@@ -633,8 +643,25 @@ index 000000000000..2dcfc7aa7dc2
 +	++priv->tx_bd_tail;
 +	priv->tx_bd_tail %= TX_BD_NUM;
 +
-+dma_error:
++	return NETDEV_TX_OK;
++frag_err:
++	for (; ii > 0; ii--) {
++		if (priv->tx_bd_tail)
++			priv->tx_bd_tail--;
++		else
++			priv->tx_bd_tail = TX_BD_NUM - 1;
++
++		tx_skb = &priv->tx_skb[priv->tx_bd_tail];
++		nixge_tx_skb_unmap(priv, tx_skb);
++
++		cur_p = &priv->tx_bd_v[priv->tx_bd_tail];
++		cur_p->status = 0;
++	}
++	dma_unmap_single(priv->ndev->dev.parent,
++			 tx_skb->mapping,
++			 tx_skb->size, DMA_TO_DEVICE);
 +drop:
++	ndev->stats.tx_dropped++;
 +	return NETDEV_TX_OK;
 +}
 +
@@ -652,16 +679,17 @@ index 000000000000..2dcfc7aa7dc2
 +
 +	while ((cur_p->status & XAXIDMA_BD_STS_COMPLETE_MASK &&
 +		budget > packets)) {
-+		tail_p = priv->rx_bd_p
-+			+ sizeof(*priv->rx_bd_v) * priv->rx_bd_ci;
++		tail_p = priv->rx_bd_p + sizeof(*priv->rx_bd_v) *
++			 priv->rx_bd_ci;
++
 +		skb = (struct sk_buff *)(cur_p->sw_id_offset);
 +
-+		length = cur_p->status & 0x7fffff;
-+		if (length > priv->max_frm_size)
-+			length = priv->max_frm_size;
++		length = cur_p->status & XAXIDMA_BD_STS_ACTUAL_LEN_MASK;
++		if (length > NIXGE_MAX_JUMBO_FRAME_SIZE)
++			length = NIXGE_MAX_JUMBO_FRAME_SIZE;
 +
 +		dma_unmap_single(ndev->dev.parent, cur_p->phys,
-+				 priv->max_frm_size,
++				 NIXGE_MAX_JUMBO_FRAME_SIZE,
 +				 DMA_FROM_DEVICE);
 +
 +		skb_put(skb, length);
@@ -674,23 +702,24 @@ index 000000000000..2dcfc7aa7dc2
 +		 */
 +		skb->ip_summed = CHECKSUM_NONE;
 +
-+		netif_receive_skb(skb);
++		napi_gro_receive(&priv->napi, skb);
 +
 +		size += length;
 +		packets++;
 +
-+		new_skb = netdev_alloc_skb_ip_align(ndev, priv->max_frm_size);
++		new_skb = netdev_alloc_skb_ip_align(ndev,
++						    NIXGE_MAX_JUMBO_FRAME_SIZE);
 +		if (!new_skb)
 +			return packets;
 +
 +		cur_p->phys = dma_map_single(ndev->dev.parent, new_skb->data,
-+					     priv->max_frm_size,
++					     NIXGE_MAX_JUMBO_FRAME_SIZE,
 +					     DMA_FROM_DEVICE);
 +		if (dma_mapping_error(ndev->dev.parent, cur_p->phys)) {
 +			/* FIXME: bail out and clean up */
 +			netdev_err(ndev, "Failed to map ...\n");
 +		}
-+		cur_p->cntrl = priv->max_frm_size;
++		cur_p->cntrl = NIXGE_MAX_JUMBO_FRAME_SIZE;
 +		cur_p->status = 0;
 +		cur_p->sw_id_offset = (u32)new_skb;
 +
@@ -826,11 +855,10 @@ index 000000000000..2dcfc7aa7dc2
 +
 +static void nixge_dma_err_handler(unsigned long data)
 +{
-+	u32 cr, i;
 +	struct nixge_priv *lp = (struct nixge_priv *)data;
-+	struct net_device *ndev = lp->ndev;
 +	struct nixge_hw_dma_bd *cur_p;
 +	struct nixge_tx_skb *tx_skb;
++	u32 cr, i;
 +
 +	__nixge_device_reset(lp, XAXIDMA_TX_CR_OFFSET);
 +	__nixge_device_reset(lp, XAXIDMA_RX_CR_OFFSET);
@@ -955,8 +983,8 @@ index 000000000000..2dcfc7aa7dc2
 +
 +static int nixge_stop(struct net_device *ndev)
 +{
-+	u32 cr;
 +	struct nixge_priv *priv = netdev_priv(ndev);
++	u32 cr;
 +
 +	netif_stop_queue(ndev);
 +	napi_disable(&priv->napi);
@@ -983,13 +1011,11 @@ index 000000000000..2dcfc7aa7dc2
 +
 +static int nixge_change_mtu(struct net_device *ndev, int new_mtu)
 +{
-+	struct nixge_priv *priv = netdev_priv(ndev);
-+
 +	if (netif_running(ndev))
 +		return -EBUSY;
 +
-+	if ((new_mtu + VLAN_ETH_HLEN +
-+		NIXGE_TRL_SIZE) > priv->rxmem)
++	if ((new_mtu + NIXGE_HDR_SIZE + NIXGE_TRL_SIZE) >
++	     NIXGE_MAX_JUMBO_FRAME_SIZE)
 +		return -EINVAL;
 +
 +	ndev->mtu = new_mtu;
@@ -1279,7 +1305,6 @@ index 000000000000..2dcfc7aa7dc2
 +	priv = netdev_priv(ndev);
 +	priv->ndev = ndev;
 +	priv->dev = &pdev->dev;
-+	priv->rxmem = NIXGE_DEFAULT_RX_MEM;
 +
 +	netif_napi_add(ndev, &priv->napi, nixge_poll, 128);
 +

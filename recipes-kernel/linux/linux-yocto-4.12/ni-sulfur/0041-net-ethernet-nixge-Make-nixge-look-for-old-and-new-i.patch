@@ -1,0 +1,52 @@
+From 159564e26421b18f31c3808c318bb9797a957b0d Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Fri, 19 Jan 2018 12:22:32 -0800
+Subject: [PATCH 41/41] net: ethernet: nixge: Make nixge look for old and new
+ irq properties
+
+Upstream didn't like 'tx-irq' and 'rx-irq', so for now support both,
+while warning people to upgrade their devicetree files.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ drivers/net/ethernet/ni/nixge.c | 20 ++++++++++++++------
+ 1 file changed, 14 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
+index 5705a510fc2a..f1402a7bfff2 100644
+--- a/drivers/net/ethernet/ni/nixge.c
++++ b/drivers/net/ethernet/ni/nixge.c
+@@ -1225,16 +1225,24 @@ static int nixge_probe(struct platform_device *pdev)
+ 	priv->ctrl_regs = priv->dma_regs + NIXGE_REG_CTRL_OFFSET;
+ 	__nixge_hw_set_mac_address(ndev);
+ 
+-	priv->tx_irq = platform_get_irq_byname(pdev, "tx-irq");
++	priv->tx_irq = platform_get_irq_byname(pdev, "tx");
+ 	if (priv->tx_irq < 0) {
+-		netdev_err(ndev, "no tx irq available");
+-		return priv->tx_irq;
++		priv->tx_irq = platform_get_irq_byname(pdev, "tx-irq");
++		if (priv->tx_irq < 0) {
++			netdev_err(ndev, "no 'tx' or 'tx-irq' property available");
++			return priv->tx_irq;
++		}
++		dev_warn(&pdev->dev, "'tx-irq' property deprecated, use 'tx'");
+ 	}
+ 
+-	priv->rx_irq = platform_get_irq_byname(pdev, "rx-irq");
++	priv->rx_irq = platform_get_irq_byname(pdev, "rx");
+ 	if (priv->rx_irq < 0) {
+-		netdev_err(ndev, "no rx irq available");
+-		return priv->rx_irq;
++		priv->rx_irq = platform_get_irq_byname(pdev, "rx-irq");
++		if (priv->rx_irq < 0) {
++			netdev_err(ndev, "no 'rx' or 'rx-irq' property available");
++			return priv->tx_irq;
++		}
++		dev_warn(&pdev->dev, "'rx-irq' property deprecated, use 'rx'");
+ 	}
+ 
+ 	priv->coalesce_count_rx = XAXIDMA_DFT_RX_THRESHOLD;
+-- 
+2.15.1
+
