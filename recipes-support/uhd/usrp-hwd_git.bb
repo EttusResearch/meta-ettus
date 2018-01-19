@@ -24,7 +24,7 @@ RDEPENDS_${PN} = "python3-netaddr \
                  "
 
 PR = "r14"
-PV = "0.1+gitr${SRCPV}"
+PV = "0.10"
 
 include uhd-rev.inc
 
