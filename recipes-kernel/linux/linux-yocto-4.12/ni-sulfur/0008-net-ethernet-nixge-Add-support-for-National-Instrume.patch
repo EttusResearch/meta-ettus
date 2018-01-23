@@ -1,4 +1,4 @@
-From 34237e011f75105a321e0da37e1876d300ca9963 Mon Sep 17 00:00:00 2001
+From 6a803185c21f9762996f7689f6aa9d7778590c34 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 28 Feb 2017 17:29:50 -0800
 Subject: [PATCH 08/41] net: ethernet: nixge: Add support for National
@@ -14,8 +14,8 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  drivers/net/ethernet/Makefile    |    1 +
  drivers/net/ethernet/ni/Kconfig  |   27 +
  drivers/net/ethernet/ni/Makefile |    1 +
- drivers/net/ethernet/ni/nixge.c  | 1320 ++++++++++++++++++++++++++++++++++++++
- 5 files changed, 1350 insertions(+)
+ drivers/net/ethernet/ni/nixge.c  | 1322 ++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 1352 insertions(+)
  create mode 100644 drivers/net/ethernet/ni/Kconfig
  create mode 100644 drivers/net/ethernet/ni/Makefile
  create mode 100644 drivers/net/ethernet/ni/nixge.c
@@ -86,10 +86,10 @@ index 000000000000..99c664651c51
 +obj-$(CONFIG_NI_XGE_MANAGEMENT_ENET) += nixge.o
 diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
 new file mode 100644
-index 000000000000..5705a510fc2a
+index 000000000000..8bece9b744fd
 --- /dev/null
 +++ b/drivers/net/ethernet/ni/nixge.c
-@@ -0,0 +1,1320 @@
+@@ -0,0 +1,1322 @@
 +/* SPDX-License-Identifier: GPL-2.0
 + *
 + * Copyright (c) 2016-2017, National Instruments Corp.
@@ -1285,7 +1285,6 @@ index 000000000000..5705a510fc2a
 +	if (!ndev)
 +		return -ENOMEM;
 +
-+	platform_set_drvdata(pdev, ndev);
 +	SET_NETDEV_DEV(ndev, &pdev->dev);
 +
 +	ndev->features = NETIF_F_SG;
@@ -1341,51 +1340,54 @@ index 000000000000..5705a510fc2a
 +	priv->phy_dev = phy_find_first(priv->mii_bus);
 +	if (!priv->phy_dev) {
 +		dev_err(&pdev->dev, "error finding a phy ...");
-+		goto free_netdev;
++		goto unregister_mdio;
 +	}
 +
 +	err = register_netdev(priv->ndev);
 +	if (err) {
 +		netdev_err(priv->ndev, "register_netdev() error (%i)\n", err);
-+		goto free_netdev;
++		goto unregister_mdio;
 +	}
 +
 +	err = phy_connect_direct(ndev, priv->phy_dev, &nixge_handle_link_change,
 +				 priv->phy_interface);
 +	if (err) {
 +		netdev_err(priv->ndev, "failed to attach to phy ...");
-+		goto unregister_mdio;
++		goto unreg_netdev;
 +	}
 +
++	platform_set_drvdata(pdev, ndev);
 +	phy_attached_info(ndev->phydev);
 +
 +	return 0;
 +
++unreg_netdev:
++	unregister_netdev(ndev);
 +unregister_mdio:
-+	phy_disconnect(ndev->phydev);
 +	mdiobus_unregister(priv->mii_bus);
 +	mdiobus_free(priv->mii_bus);
-+
 +free_netdev:
 +	free_netdev(ndev);
-+
 +	return err;
 +}
 +
 +static int nixge_remove(struct platform_device *pdev)
 +{
-+	struct net_device *ndev = platform_get_drvdata(pdev);
-+	struct nixge_priv *priv = netdev_priv(ndev);
++	struct net_device *ndev;
++	struct nixge_priv *priv;
 +
-+	if (ndev->phydev)
++	ndev = platform_get_drvdata(pdev);
++	if (ndev) {
++		priv = netdev_priv(ndev);
 +		phy_disconnect(ndev->phydev);
 +
-+	mdiobus_unregister(priv->mii_bus);
-+	mdiobus_free(priv->mii_bus);
++		mdiobus_unregister(priv->mii_bus);
++		mdiobus_free(priv->mii_bus);
 +
-+	unregister_netdev(ndev);
++		unregister_netdev(ndev);
 +
-+	free_netdev(ndev);
++		free_netdev(ndev);
++	}
 +
 +	return 0;
 +}
@@ -1411,5 +1413,5 @@ index 000000000000..5705a510fc2a
 +MODULE_DESCRIPTION("National Instruments XGE Management MAC");
 +MODULE_AUTHOR("Moritz Fischer <mdf@kernel.org>");
 -- 
-2.15.1
+2.16.1
 
