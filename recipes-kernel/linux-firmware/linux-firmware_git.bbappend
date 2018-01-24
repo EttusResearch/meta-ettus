@@ -7,20 +7,18 @@ SRC_URI_append_ni-sulfur = " file://ec-sulfur-rev3.bin \
                              file://ec-sulfur-rev5.bin \
                              file://ec-sulfur-rev5.RW.bin \
                              file://LICENSE.ec-sulfur \
+                             file://fpga_bit_to_bin.py \
                              file://mykonos-m3.bin \
-                             http://orbitty.ni.corp.natinst.com:9090/sulfur-rev3-devel/n3xx-fpga-images/mvr/rc27/n3xx.bin;name=sulfur-fpga-image \
-                             http://orbitty.ni.corp.natinst.com:9090/sulfur-rev3-devel/n3xx-fpga-images/mvr/rc27/n3xx.dtbo;name=sulfur-fpga-overlay \
-                             http://orbitty.ni.corp.natinst.com:9090/sulfur-rev3-devel/n3xx-fpga-images/mvr/rc27/cpld-magnesium-revc.svf;name=magnesium-cpld-revc \
+                             http://files.ettus.com/binaries/cache/n3xx/fpga-6bea23d/n3xx_n310_fpga_default.zip;name=sulfur-fpga \
+                             http://files.ettus.com/binaries/cache/n3xx/fpga-6bea23d/n3xx_n310_cpld_default.zip;name=magnesium-cpld \
                            "
 
-SRC_URI[sulfur-fpga-image.md5sum] = "80230d188c19f59e931436ad7975675a"
-SRC_URI[sulfur-fpga-image.sha256sum] = "566ed9c32dcfa4f0a07a8a6ca934cda7ef3772101e36633da08b8e1452d2aab6"
 
-SRC_URI[sulfur-fpga-overlay.md5sum] = "dfb07c6400b5d3a45c657947a4171c68"
-SRC_URI[sulfur-fpga-overlay.sha256sum] = "fd526e6eddf4b822880db86e4a0ca7403ff2257ca8e68200d0cdcd9a4f539b8c"
+SRC_URI[sulfur-fpga.md5sum] = "eeb6de76982807df980d3820c177787c"
+SRC_URI[sulfur-fpga.sha256sum] = "0373ebcefd07c02097c5a6075feaf4022eaf40c9f89727ad3e904b37e6898ef8"
 
-SRC_URI[magnesium-cpld-revc.md5sum] = "2967d0c82b5f971fa20a928e368cbf13"
-SRC_URI[magnesium-cpld-revc.sha256sum] = "b08271b275c7d6cec628c683bde4d9af12ba645539acc9810586dc3812b8a05a"
+SRC_URI[magnesium-cpld.md5sum] = "8971b73135bd91eee3ceba7ab7c856a5"
+SRC_URI[magnesium-cpld.sha256sum] = "ef128dcd265ee8615b673021d4ee84c39357012ffe8b28c8ad7f893f9dcb94cb"
 
 LICENSE += "& Firmware-ni-sulfur"
 LIC_FILES_CHKSUM += "file://${WORKDIR}/LICENSE.ec-sulfur;md5=72f855f00b364ec8bdc025e1a36b39c3"
@@ -48,6 +46,7 @@ FILES_${PN}-ni-sulfur = "/lib/firmware/ni/ec-sulfur-rev3.bin \
                          /lib/firmware/ni/ec-sulfur-rev5.RW.bin \
                         "
 RDEPENDS_${PN}-ni-sulfur += "${PN}-ni-sulfur-license"
+DEPENDS += "dtc-native python-native"
 
 # The CPLD image is GPL2 or X11 licensed
 FILES_${PN}-ni-magnesium = " \
@@ -56,6 +55,11 @@ FILES_${PN}-ni-magnesium = " \
 
 LICENSE_${PN}-ni-magnesium = "Firmware-GPLv2"
 RDEPENDS_${PN}-ni-magnesium += "${PN}-gplv2-license"
+
+do_compile_append_ni-sulfur() {
+    dtc -@ -o ${WORKDIR}/n3xx.dtbo ${WORKDIR}/usrp_n310_fpga_XG.dts
+    python ${WORKDIR}/fpga_bit_to_bin.py -f ${WORKDIR}/usrp_n310_fpga_XG.bit ${WORKDIR}/n3xx.bin
+}
 
 do_install_append_ni-sulfur() {
     install -D -m 0644 ${WORKDIR}/ec-sulfur-rev3.bin ${D}/lib/firmware/ni/ec-sulfur-rev3.bin
@@ -67,7 +71,7 @@ do_install_append_ni-sulfur() {
 
     install -m 0644 ${WORKDIR}/LICENSE.ec-sulfur ${D}/lib/firmware/ni/LICENSE.ec-sulfur
 
-    install -m 0644 ${WORKDIR}/cpld-magnesium-revc.svf ${D}/lib/firmware/ni/cpld-magnesium-revc.svf
+    install -m 0644 ${WORKDIR}/usrp_n310_mg_cpld.svf ${D}/lib/firmware/ni/cpld-magnesium-revc.svf
     install -D -m 0644 ${WORKDIR}/mykonos-m3.bin ${D}/lib/firmware/adi/mykonos-m3.bin
 
     install -m 0644 ${WORKDIR}/n3xx.bin ${D}/lib/firmware/n3xx.bin
