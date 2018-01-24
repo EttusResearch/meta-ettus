@@ -39,3 +39,4 @@ patch 0035-configs-Add-ni_sulfur_defconfig.patch
 patch 0001-power-reset-gpio-poweroff-Wait-8000ms-instead-of-300.patch
 patch 0001-ARM-dt-Add-devicetree-files-for-Rhodium-Rev0-SDR.patch
 patch 0041-net-ethernet-nixge-Make-nixge-look-for-old-and-new-i.patch
+patch 0042-net-ethernet-nixge-Add-hooks-for-ethtool.patch

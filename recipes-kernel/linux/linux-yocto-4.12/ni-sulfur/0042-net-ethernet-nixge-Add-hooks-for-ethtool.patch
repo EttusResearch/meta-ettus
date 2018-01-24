@@ -1,0 +1,87 @@
+From a72309395d1fcd4250e6f0e39ce0dfdb1d298c8c Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Wed, 24 Jan 2018 14:22:18 -0800
+Subject: [PATCH 42/42] net: ethernet: nixge: Add hooks for ethtool
+
+Add hooks for ethtool's identify feature.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ drivers/net/ethernet/ni/nixge.c | 45 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 45 insertions(+)
+
+diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
+index ff6822bbd486..d28978c8ec6b 100644
+--- a/drivers/net/ethernet/ni/nixge.c
++++ b/drivers/net/ethernet/ni/nixge.c
+@@ -101,11 +101,18 @@
+ #define XAXIDMA_BD_MINIMUM_ALIGNMENT	0x40
+ 
+ #define NIXGE_REG_CTRL_OFFSET	0x4000
++#define NIXGE_REG_INFO		0x00
++#define NIXGE_REG_MAC_CTL	0x04
++#define NIXGE_REG_PHY_CTL	0x08
++#define NIXGE_REG_LED_CTL	0x0c
+ #define NIXGE_REG_MDIO_DATA	0x10
+ #define NIXGE_REG_MDIO_ADDR	0x14
+ #define NIXGE_REG_MDIO_OP	0x18
+ #define NIXGE_REG_MDIO_CTRL	0x1c
+ 
++#define NIXGE_ID_LED_CTL_EN	BIT(0)
++#define NIXGE_ID_LED_CTL_VAL	BIT(1)
++
+ #define NIXGE_MDIO_CLAUSE45	BIT(12)
+ #define NIXGE_MDIO_CLAUSE22	0
+ #define NIXGE_MDIO_OP(n)     (((n) & 0x3) << 10)
+@@ -1029,10 +1036,48 @@ static int nixge_ethtools_set_coalesce(struct net_device *ndev,
+ 	return 0;
+ }
+ 
++static int nixge_ethtools_set_phys_id(struct net_device *ndev,
++				      enum ethtool_phys_id_state state)
++{
++	struct nixge_priv *priv = netdev_priv(ndev);
++	u32 ctrl;
++
++	ctrl = nixge_ctrl_read_reg(priv, NIXGE_REG_LED_CTL);
++	switch (state) {
++	case ETHTOOL_ID_ACTIVE:
++		ctrl |= NIXGE_ID_LED_CTL_EN;
++		/* Enable identification LED override*/
++		nixge_ctrl_write_reg(priv, NIXGE_REG_LED_CTL, ctrl);
++		return 2;
++
++	case ETHTOOL_ID_ON:
++		ctrl |= NIXGE_ID_LED_CTL_VAL;
++		nixge_ctrl_write_reg(priv, NIXGE_REG_LED_CTL, ctrl);
++		break;
++
++	case ETHTOOL_ID_OFF:
++		ctrl &= ~NIXGE_ID_LED_CTL_VAL;
++		nixge_ctrl_write_reg(priv, NIXGE_REG_LED_CTL, ctrl);
++		break;
++
++	case ETHTOOL_ID_INACTIVE:
++		/* Restore LED settings */
++		ctrl &= ~NIXGE_ID_LED_CTL_EN;
++		nixge_ctrl_write_reg(priv, NIXGE_REG_LED_CTL, ctrl);
++		break;
++	}
++
++	return 0;
++}
++
+ static const struct ethtool_ops nixge_ethtool_ops = {
+ 	.get_drvinfo    = nixge_ethtools_get_drvinfo,
+ 	.get_coalesce   = nixge_ethtools_get_coalesce,
+ 	.set_coalesce   = nixge_ethtools_set_coalesce,
++	.set_phys_id    = nixge_ethtools_set_phys_id,
++	.get_link_ksettings     = phy_ethtool_get_link_ksettings,
++	.set_link_ksettings     = phy_ethtool_set_link_ksettings,
++	.get_link		= ethtool_op_get_link,
+ };
+ 
+ static int nixge_mdio_read(struct mii_bus *bus, int phy_id, int reg)
+-- 
+2.16.1
+
