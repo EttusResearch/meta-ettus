@@ -189,7 +189,7 @@ index 000000000000..549e72dc195e
 +				       sizeof(rpm), &rpm);
 +	switch (rpm) {
 +	case EC_FAN_SPEED_STALLED:
-+		*state = 0L;
++		rpm = 0L;
 +		break;
 +	case EC_FAN_SPEED_NOT_PRESENT:
 +		return -ENODEV;
