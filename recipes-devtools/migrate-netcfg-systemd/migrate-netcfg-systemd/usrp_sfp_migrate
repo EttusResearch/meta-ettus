@@ -1,0 +1,22 @@
+#!/bin/bash
+
+CFGDIR=/data/network
+
+if [ -f ${CFGDIR}/sfp0.network ]; then
+	echo 'File for sfp0 already exists'
+else
+	echo 'Migrating file for eth1->sfp0'
+	if [ -f ${CFGDIR}/eth1.network ]; then
+		cp ${CFGDIR}/eth1.network ${CFGDIR}/sfp0.network
+		sed -i -e 's/eth1/sfp0/g' ${CFGDIR}/sfp0.network
+	fi
+fi
+if [ -f ${CFGDIR}/sfp1.network ]; then
+	echo 'File for sfp1 already exists'
+else
+	echo 'Migrating file for eth2->sfp1'
+	if [ -f ${CFGDIR}/eth2.network ]; then
+		cp ${CFGDIR}/eth2.network ${CFGDIR}/sfp1.network
+		sed -i -e 's/eth2/sfp1/g' ${CFGDIR}/sfp1.network
+	fi
+fi

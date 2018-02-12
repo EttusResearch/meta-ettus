@@ -1,0 +1,17 @@
+[Unit]
+Description="Migrate network configuration"
+DefaultDependencies=no
+After=systemd-remount-fs.service systemd-tmpfiles-setup.service tmp.mount
+Before=sysinit.target
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/usrp_sfp_migrate
+ExecStartPost=/bin/systemctl disable sfp-migrate.service
+StandardOutput=syslog
+RemainAfterExit=No
+
+[Install]
+WantedBy=basic.target
+WantedBy=sysinit.target
+

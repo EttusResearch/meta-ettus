@@ -51,6 +51,7 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     tpm-tools \
     overlay-script \
     ethtool \
+    migrate-netcfg-systemd \
     "
 
 inherit core-image image-buildinfo
