@@ -52,6 +52,7 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     overlay-script \
     ethtool \
     migrate-netcfg-systemd \
+    tzdata \
     "
 
 inherit core-image image-buildinfo
