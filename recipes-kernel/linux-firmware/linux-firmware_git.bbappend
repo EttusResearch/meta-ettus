@@ -9,13 +9,13 @@ SRC_URI_append_ni-sulfur = " file://ec-sulfur-rev3.bin \
                              file://LICENSE.ec-sulfur \
                              file://fpga_bit_to_bin.py \
                              file://mykonos-m3.bin \
-                             http://files.ettus.com/binaries/cache/n3xx/fpga-30cc152/n3xx_n310_fpga_default.zip;name=sulfur-fpga \
+                             http://files.ettus.com/binaries/cache/n3xx/fpga-76daf66/n3xx_n310_fpga_default.zip;name=sulfur-fpga \
                              http://files.ettus.com/binaries/cache/n3xx/fpga-6bea23d/n3xx_n310_cpld_default.zip;name=magnesium-cpld \
                            "
 
 
-SRC_URI[sulfur-fpga.md5sum] = "23747ecb79b7462d1eb8de260335b7ac"
-SRC_URI[sulfur-fpga.sha256sum] = "ca5667287913f37fe77480b9d309b102d525ff904b4ccfb70455d4ce93595d2c"
+SRC_URI[sulfur-fpga.md5sum] = "478a4883f3b97df3617ab0ef9ff5623d"
+SRC_URI[sulfur-fpga.sha256sum] = "6d74d9846ec191bb28902be2a21358c6b3190b6b4dd94220e9d8e696fba60e9f"
 
 SRC_URI[magnesium-cpld.md5sum] = "8971b73135bd91eee3ceba7ab7c856a5"
 SRC_URI[magnesium-cpld.sha256sum] = "ef128dcd265ee8615b673021d4ee84c39357012ffe8b28c8ad7f893f9dcb94cb"
