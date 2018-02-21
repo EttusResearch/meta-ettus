@@ -112,7 +112,7 @@ index 000000000000..168700d470bd
 +
 +
 +			db0_crit: db0-crit {
-+				temperature = <55000>; /* millicelsius */
++				temperature = <85000>; /* millicelsius */
 +				hysteresis = <2000>;    /* millicelsius */
 +				type = "critical";
 +			};
@@ -174,7 +174,7 @@ index 000000000000..168700d470bd
 +
 +
 +			db1_crit: db1-crit {
-+				temperature = <55000>; /* millicelsius */
++				temperature = <85000>; /* millicelsius */
 +				hysteresis = <2000>;    /* millicelsius */
 +				type = "critical";
 +			};
