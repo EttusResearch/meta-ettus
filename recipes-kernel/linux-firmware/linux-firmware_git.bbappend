@@ -44,6 +44,8 @@ FILES_${PN}-ni-sulfur = "/lib/firmware/ni/ec-sulfur-rev3.bin \
                          /lib/firmware/ni/ec-sulfur-rev4.RW.bin \
                          /lib/firmware/ni/ec-sulfur-rev5.bin \
                          /lib/firmware/ni/ec-sulfur-rev5.RW.bin \
+                         /lib/firmware/ni/ec-phosphorus-rev1.bin \
+                         /lib/firmware/ni/ec-phosphorus-rev1.RW.bin \
                         "
 RDEPENDS_${PN}-ni-sulfur += "${PN}-ni-sulfur-license"
 DEPENDS += "dtc-native python-native"
@@ -61,6 +63,7 @@ do_compile_append_ni-sulfur() {
     python ${WORKDIR}/fpga_bit_to_bin.py -f ${WORKDIR}/usrp_n310_fpga_XG.bit ${WORKDIR}/n3xx.bin
 }
 
+
 do_install_append_ni-sulfur() {
     install -D -m 0644 ${WORKDIR}/ec-sulfur-rev3.bin ${D}/lib/firmware/ni/ec-sulfur-rev3.bin
     install -m 0644 ${WORKDIR}/ec-sulfur-rev3.RW.bin ${D}/lib/firmware/ni/ec-sulfur-rev3.RW.bin
@@ -68,6 +71,10 @@ do_install_append_ni-sulfur() {
     install -m 0644 ${WORKDIR}/ec-sulfur-rev4.RW.bin ${D}/lib/firmware/ni/ec-sulfur-rev4.RW.bin
     install -D -m 0644 ${WORKDIR}/ec-sulfur-rev5.bin ${D}/lib/firmware/ni/ec-sulfur-rev5.bin
     install -m 0644 ${WORKDIR}/ec-sulfur-rev5.RW.bin ${D}/lib/firmware/ni/ec-sulfur-rev5.RW.bin
+
+    # Phosphorus and Sulfur run the same firmware, since it's small install it twice ...
+    install -D -m 0644 ${WORKDIR}/ec-sulfur-rev5.bin ${D}/lib/firmware/ni/ec-phosphorus-rev1.bin
+    install -m 0644 ${WORKDIR}/ec-sulfur-rev5.RW.bin ${D}/lib/firmware/ni/ec-phosphorus-rev1.RW.bin
 
     install -m 0644 ${WORKDIR}/LICENSE.ec-sulfur ${D}/lib/firmware/ni/LICENSE.ec-sulfur
 
