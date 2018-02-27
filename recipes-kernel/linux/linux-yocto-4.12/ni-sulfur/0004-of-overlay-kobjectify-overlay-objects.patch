@@ -1,7 +1,7 @@
 From 27f03a36dccb352fb96554fa0cb0cf16799a957c Mon Sep 17 00:00:00 2001
 From: Pantelis Antoniou <pantelis.antoniou@konsulko.com>
 Date: Sun, 15 Mar 2015 20:39:36 +0200
-Subject: [PATCH 04/41] of: overlay: kobjectify overlay objects
+Subject: [PATCH 04/42] of: overlay: kobjectify overlay objects
 
 We are going to need the overlays to appear on sysfs with runtime
 global properties (like master enable) so turn them into kobjects.

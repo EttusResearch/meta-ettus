@@ -1,7 +1,7 @@
 From c72a3b956698bb41f38c6e3acacb324a0fae31b1 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <mdf@kernel.org>
 Date: Mon, 17 Apr 2017 15:25:47 -0700
-Subject: [PATCH 16/41] rtc: ds1374: Add trickle charger device tree binding
+Subject: [PATCH 16/42] rtc: ds1374: Add trickle charger device tree binding
 
 Introduce a device tree binding for specifying the trickle charger
 configuration for ds1374. This is based on the code for ds13390.

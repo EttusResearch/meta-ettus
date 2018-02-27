@@ -1,7 +1,7 @@
 From 32dbe79474d67e6d0d0dcacf31a43dd6ef2a4346 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 11 Dec 2017 17:14:43 +0000
-Subject: [PATCH 36/41] ARM: dt: Add NI Projects Sulfur Rev5 Devicetree
+Subject: [PATCH 36/42] ARM: dt: Add NI Projects Sulfur Rev5 Devicetree
 
 This adds the NI Projects Sulfur Rev5 devicetree
 

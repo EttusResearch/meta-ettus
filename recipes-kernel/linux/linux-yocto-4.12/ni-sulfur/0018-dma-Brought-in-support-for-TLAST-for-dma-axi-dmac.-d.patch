@@ -1,7 +1,7 @@
 From 5b79e09d0819b83ca44aa575dd2963389412b537 Mon Sep 17 00:00:00 2001
 From: Alex Williams <alex.williams@ni.com>
 Date: Wed, 24 May 2017 14:45:51 -0700
-Subject: [PATCH 18/41] dma: Brought in support for TLAST for dma-axi-dmac.
+Subject: [PATCH 18/42] dma: Brought in support for TLAST for dma-axi-dmac.
  dma: Support shared IRQs in dma-axi-dmac.
 
 ---

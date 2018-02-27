@@ -1,7 +1,7 @@
 From e45869d2a113cbe54fab6b012940891fff979991 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Thu, 30 Mar 2017 17:51:09 -0700
-Subject: [PATCH 10/41] ARM: dts: iio_hwmon to zynq dt
+Subject: [PATCH 10/42] ARM: dts: iio_hwmon to zynq dt
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---

@@ -1,7 +1,7 @@
 From 5fa126b09e9c88c474e515a389fe3bef9efabf4c Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 15 Jan 2018 15:16:38 -0800
-Subject: [PATCH 39/41] ARM: dt: Add devicetree files for Rhodium Rev0 SDR
+Subject: [PATCH 39/42] ARM: dt: Add devicetree files for Rhodium Rev0 SDR
 
 Add devicetree files for Rhodium Rev0 SDR thermal zones.
 

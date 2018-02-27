@@ -1,7 +1,7 @@
 From b9e58882c0c7cee0027f21e2190bdb6e757438fd Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Wed, 24 Jan 2018 14:22:18 -0800
-Subject: [PATCH 41/41] net: ethernet: nixge: Add hooks for ethtool
+Subject: [PATCH 41/42] net: ethernet: nixge: Add hooks for ethtool
 
 Add hooks for ethtool's identify feature.
 

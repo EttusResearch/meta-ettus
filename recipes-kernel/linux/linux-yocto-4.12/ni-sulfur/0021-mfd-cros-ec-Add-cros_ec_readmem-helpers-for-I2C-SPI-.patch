@@ -1,7 +1,7 @@
 From 1b4bea457bf7f9617414d62c3587f4b5ced7f8bb Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <mdf@kernel.org>
 Date: Mon, 8 May 2017 12:32:03 -0700
-Subject: [PATCH 21/41] mfd: cros-ec: Add cros_ec_readmem() helpers for I2C/SPI
+Subject: [PATCH 21/42] mfd: cros-ec: Add cros_ec_readmem() helpers for I2C/SPI
  based ECs
 
 Add cros_ec_readmem() based helpers for I2C/SPI based ECs.

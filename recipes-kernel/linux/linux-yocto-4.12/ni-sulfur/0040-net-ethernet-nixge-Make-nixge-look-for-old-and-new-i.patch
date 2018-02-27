@@ -1,7 +1,7 @@
 From 9470eb908571eb22876fb5952e2e7bd3f3db7ca3 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Fri, 19 Jan 2018 12:22:32 -0800
-Subject: [PATCH 40/41] net: ethernet: nixge: Make nixge look for old and new
+Subject: [PATCH 40/42] net: ethernet: nixge: Make nixge look for old and new
  irq properties
 
 Upstream didn't like 'tx-irq' and 'rx-irq', so for now support both,

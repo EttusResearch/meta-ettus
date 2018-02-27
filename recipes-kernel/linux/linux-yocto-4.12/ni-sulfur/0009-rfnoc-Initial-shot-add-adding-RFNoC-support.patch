@@ -1,7 +1,7 @@
 From b72ff67c9bb61358a5ca469babce55100ed0aeca Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Fri, 10 Mar 2017 16:37:08 -0800
-Subject: [PATCH 09/41] rfnoc: Initial shot add adding RFNoC support
+Subject: [PATCH 09/42] rfnoc: Initial shot add adding RFNoC support
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---

@@ -1,7 +1,7 @@
 From 4852c6ee8815e7f1ed084d05c77dd993aa143ce3 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 11 Jul 2017 10:11:25 -0700
-Subject: [PATCH 22/41] thermal: cros-ec-thermal: Add thermal driver for
+Subject: [PATCH 22/42] thermal: cros-ec-thermal: Add thermal driver for
  cros-ec
 
 This adds a thermal framework driver for the chromium-ec

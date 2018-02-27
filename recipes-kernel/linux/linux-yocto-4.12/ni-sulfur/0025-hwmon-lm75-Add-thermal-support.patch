@@ -1,7 +1,7 @@
 From c2b11bde8c4870cb5d9b6650f703596e6e2a9420 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 11 Jul 2017 10:16:08 -0700
-Subject: [PATCH 25/41] hwmon: lm75: Add thermal support
+Subject: [PATCH 25/42] hwmon: lm75: Add thermal support
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---

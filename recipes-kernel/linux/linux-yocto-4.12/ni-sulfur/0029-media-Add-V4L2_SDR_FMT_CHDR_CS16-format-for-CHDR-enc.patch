@@ -1,7 +1,7 @@
 From fa114ed3789437e198f10afb993e90c7a7bf5eeb Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Fri, 4 Aug 2017 14:15:56 -0700
-Subject: [PATCH 29/41] media: Add V4L2_SDR_FMT_CHDR_CS16 format for CHDR
+Subject: [PATCH 29/42] media: Add V4L2_SDR_FMT_CHDR_CS16 format for CHDR
  encoded samples
 
 This adds the format definitions for V4L2_SDR_FMT_CHDR_CS16 encoded

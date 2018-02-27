@@ -1,7 +1,7 @@
 From e21bbb141e54e28687ca2a6c4f24b2bdafdec188 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Wed, 13 Dec 2017 15:17:55 -0800
-Subject: [PATCH 37/41] ARM: dt: Refactor devicetree to match changes in U-Boot
+Subject: [PATCH 37/42] ARM: dt: Refactor devicetree to match changes in U-Boot
 
 Now have multiple device-trees of form:
 

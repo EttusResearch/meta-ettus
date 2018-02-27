@@ -1,7 +1,7 @@
 From d8a043f0cc8e05e350172844ed109e30b1e779ec Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 11 Jul 2017 10:14:33 -0700
-Subject: [PATCH 23/41] ARM: dts: Add cros-ec-thermal devicenode
+Subject: [PATCH 23/42] ARM: dts: Add cros-ec-thermal devicenode
 
 This adds the cros-ec-thermal devicetree node.
 
