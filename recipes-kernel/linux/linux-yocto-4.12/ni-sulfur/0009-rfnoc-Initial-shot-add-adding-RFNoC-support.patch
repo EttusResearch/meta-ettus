@@ -1,7 +1,7 @@
-From 5f42a5565b4c6fe0b15ca5e03953087e39992034 Mon Sep 17 00:00:00 2001
+From b72ff67c9bb61358a5ca469babce55100ed0aeca Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Fri, 10 Mar 2017 16:37:08 -0800
-Subject: [PATCH 09/35] rfnoc: Initial shot add adding RFNoC support
+Subject: [PATCH 09/41] rfnoc: Initial shot add adding RFNoC support
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
@@ -9,7 +9,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  drivers/Makefile                          |   1 +
  drivers/rfnoc/Kconfig                     |  22 ++
  drivers/rfnoc/Makefile                    |   6 +
- drivers/rfnoc/rfnoc-crossbar-platform.c   | 219 +++++++++++++
+ drivers/rfnoc/rfnoc-crossbar-platform.c   | 218 +++++++++++++
  drivers/rfnoc/rfnoc-crossbar.c            | 497 ++++++++++++++++++++++++++++++
  include/linux/rfnoc/rfnoc-crossbar.h      |  62 ++++
  include/uapi/linux/rfnoc/rfnoc-crossbar.h |  30 ++
@@ -86,7 +86,7 @@ index 000000000000..1f963fc5e1c2
 +obj-$(CONFIG_RFNOC_CROSSBAR)		+= rfnoc-crossbar.o rfnoc-crossbar-platform.o
 diff --git a/drivers/rfnoc/rfnoc-crossbar-platform.c b/drivers/rfnoc/rfnoc-crossbar-platform.c
 new file mode 100644
-index 000000000000..87bd33fbc478
+index 000000000000..d5656df8757a
 --- /dev/null
 +++ b/drivers/rfnoc/rfnoc-crossbar-platform.c
 @@ -0,0 +1,218 @@
@@ -308,7 +308,6 @@ index 000000000000..87bd33fbc478
 +
 +MODULE_AUTHOR("Moritz Fischer <mdf@kernel.org>");
 +MODULE_DESCRIPTION("RFNoC Crossbar");
-+MODULE_LICENSE("GPL v2");
 diff --git a/drivers/rfnoc/rfnoc-crossbar.c b/drivers/rfnoc/rfnoc-crossbar.c
 new file mode 100644
 index 000000000000..98e5a846b79c
@@ -917,5 +916,5 @@ index 000000000000..3ad543afad5a
 +
 +#endif /* _UAPI_LINUX_RFNOC_CROSSBAR_H */
 -- 
-2.14.2
+2.16.1
 

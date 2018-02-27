@@ -1,7 +1,7 @@
-From 2c7ebaac9de90843d46594a21bd9eac2cd265e41 Mon Sep 17 00:00:00 2001
+From 3fabd423a4f427402fcb72c364926edd6be7921c Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Fri, 3 Nov 2017 11:08:11 -0700
-Subject: [PATCH 35/35] configs: Add ni_sulfur_defconfig
+Subject: [PATCH 35/41] configs: Add ni_sulfur_defconfig
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
@@ -497,5 +497,5 @@ index 000000000000..02df1cf9a5f2
 +CONFIG_CRYPTO_TEA=m
 +CONFIG_CRYPTO_TWOFISH=m
 -- 
-2.14.2
+2.16.1
 

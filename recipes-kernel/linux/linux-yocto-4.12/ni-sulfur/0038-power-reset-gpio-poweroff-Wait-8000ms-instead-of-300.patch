@@ -1,7 +1,8 @@
-From 87b417562e4846da144f75e7a74bd867f5a27b3d Mon Sep 17 00:00:00 2001
+From c2fdd840092f73a8e48af6bc153fc122160f33d9 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Wed, 20 Dec 2017 10:47:33 -0800
-Subject: [PATCH] power: reset: gpio-poweroff: Wait 8000ms instead of 3000ms
+Subject: [PATCH 38/41] power: reset: gpio-poweroff: Wait 8000ms instead of
+ 3000ms
 
 This is required to accomodate for longer timeouts.
 
@@ -24,5 +25,5 @@ index be3d81ff51cc..8bb0ade422dd 100644
  	WARN_ON(1);
  }
 -- 
-2.15.1
+2.16.1
 

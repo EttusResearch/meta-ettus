@@ -1,7 +1,7 @@
-From c2004ad2fe1f43dd8ea1952149239d1739a803f1 Mon Sep 17 00:00:00 2001
+From 4852c6ee8815e7f1ed084d05c77dd993aa143ce3 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 11 Jul 2017 10:11:25 -0700
-Subject: [PATCH 22/35] thermal: cros-ec-thermal: Add thermal driver for
+Subject: [PATCH 22/41] thermal: cros-ec-thermal: Add thermal driver for
  cros-ec
 
 This adds a thermal framework driver for the chromium-ec
@@ -48,7 +48,7 @@ index 094d7039981c..471bea0deb34 100644
  obj-$(CONFIG_ARMADA_THERMAL)	+= armada_thermal.o
 diff --git a/drivers/thermal/cros-ec-thermal.c b/drivers/thermal/cros-ec-thermal.c
 new file mode 100644
-index 000000000000..549e72dc195e
+index 000000000000..f546a7633644
 --- /dev/null
 +++ b/drivers/thermal/cros-ec-thermal.c
 @@ -0,0 +1,322 @@
@@ -391,5 +391,5 @@ index c93e7e0300ef..25899cd6d098 100644
  #define EC_CMD_PWM_GET_KEYBOARD_BACKLIGHT 0x22
  
 -- 
-2.14.2
+2.16.1
 

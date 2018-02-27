@@ -1,7 +1,7 @@
-From db30500814b0f03f8a865134d01080551c575540 Mon Sep 17 00:00:00 2001
+From 1c73aa304cc192a06fcbe45d9f595a9219050703 Mon Sep 17 00:00:00 2001
 From: Alex Williams <alex.williams@ni.com>
 Date: Wed, 24 May 2017 14:48:34 -0700
-Subject: [PATCH 19/35] usrp: Added support for USRP DMA device.
+Subject: [PATCH 19/41] usrp: Added support for USRP DMA device.
 
 Signed-off-by: Alex Williams <alex.williams@ni.com>
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
@@ -1224,5 +1224,5 @@ index 000000000000..28096a30f697
 +
 +#endif /* USRP_H */
 -- 
-2.14.2
+2.16.1
 

@@ -1,7 +1,7 @@
-From 159564e26421b18f31c3808c318bb9797a957b0d Mon Sep 17 00:00:00 2001
+From 9470eb908571eb22876fb5952e2e7bd3f3db7ca3 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Fri, 19 Jan 2018 12:22:32 -0800
-Subject: [PATCH 41/41] net: ethernet: nixge: Make nixge look for old and new
+Subject: [PATCH 40/41] net: ethernet: nixge: Make nixge look for old and new
  irq properties
 
 Upstream didn't like 'tx-irq' and 'rx-irq', so for now support both,
@@ -13,10 +13,10 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  1 file changed, 14 insertions(+), 6 deletions(-)
 
 diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
-index 5705a510fc2a..f1402a7bfff2 100644
+index 8bece9b744fd..ff6822bbd486 100644
 --- a/drivers/net/ethernet/ni/nixge.c
 +++ b/drivers/net/ethernet/ni/nixge.c
-@@ -1225,16 +1225,24 @@ static int nixge_probe(struct platform_device *pdev)
+@@ -1224,16 +1224,24 @@ static int nixge_probe(struct platform_device *pdev)
  	priv->ctrl_regs = priv->dma_regs + NIXGE_REG_CTRL_OFFSET;
  	__nixge_hw_set_mac_address(ndev);
  
@@ -48,5 +48,5 @@ index 5705a510fc2a..f1402a7bfff2 100644
  
  	priv->coalesce_count_rx = XAXIDMA_DFT_RX_THRESHOLD;
 -- 
-2.15.1
+2.16.1
 

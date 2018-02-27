@@ -1,7 +1,7 @@
-From 4592c2cf7b5d2af1088a6f4896d9949c62693534 Mon Sep 17 00:00:00 2001
+From e21bbb141e54e28687ca2a6c4f24b2bdafdec188 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Wed, 13 Dec 2017 15:17:55 -0800
-Subject: [PATCH] ARM: dt: Refactor devicetree to match changes in U-Boot
+Subject: [PATCH 37/41] ARM: dt: Refactor devicetree to match changes in U-Boot
 
 Now have multiple device-trees of form:
 
@@ -225,7 +225,7 @@ rename from arch/arm/boot/dts/zynq-ni-magnesium.dts
 rename to arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev2.dts
 diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev3.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev3.dts
 new file mode 100644
-index 000000000000..92445c1fc47c
+index 000000000000..e92cd0a2028c
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev3.dts
 @@ -0,0 +1,179 @@
@@ -410,7 +410,7 @@ index 000000000000..92445c1fc47c
 +};
 diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev2.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev2.dts
 new file mode 100644
-index 000000000000..92445c1fc47c
+index 000000000000..e92cd0a2028c
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev2.dts
 @@ -0,0 +1,179 @@
@@ -595,7 +595,7 @@ index 000000000000..92445c1fc47c
 +};
 diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev3.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev3.dts
 new file mode 100644
-index 000000000000..92445c1fc47c
+index 000000000000..e92cd0a2028c
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev3.dts
 @@ -0,0 +1,179 @@
@@ -779,5 +779,5 @@ index 000000000000..92445c1fc47c
 +
 +};
 -- 
-2.15.1
+2.16.1
 

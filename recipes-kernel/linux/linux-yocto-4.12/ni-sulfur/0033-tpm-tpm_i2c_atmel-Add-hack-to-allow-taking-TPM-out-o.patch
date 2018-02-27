@@ -1,7 +1,7 @@
-From 0b965f5edbb9cd815fdbdc068eb877b05152f443 Mon Sep 17 00:00:00 2001
+From aaad94c717e912462bccffb0dd2d85e2a0b4cfc5 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 17 Oct 2017 10:08:03 -0700
-Subject: [PATCH 33/35] tpm: tpm_i2c_atmel: Add hack to allow taking TPM out of
+Subject: [PATCH 33/41] tpm: tpm_i2c_atmel: Add hack to allow taking TPM out of
  reset
 
 This takes the TPM out of reset.
@@ -42,5 +42,5 @@ index 95ce2e9ccdc6..2fd457116bf9 100644
  		return -ENODEV;
  
 -- 
-2.14.2
+2.16.1
 

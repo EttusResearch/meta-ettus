@@ -1,7 +1,7 @@
-From b556ae8265ab60a0f518129db484438652c3c7b8 Mon Sep 17 00:00:00 2001
+From 530104873100b01087ea40da9ff251c88bed8efe Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 11 Jul 2017 14:16:21 -0700
-Subject: [PATCH 27/35] ARM: dts: Adding NI Project Magnesium SDR devicetree
+Subject: [PATCH 27/41] ARM: dts: Adding NI Project Magnesium SDR devicetree
 
 This adds the devicetree for NI Project Magnesium SDR.
 
@@ -30,7 +30,7 @@ index 5fd046232be3..6796dffa6002 100644
  	armada-370-db.dtb \
 diff --git a/arch/arm/boot/dts/zynq-ni-magnesium.dts b/arch/arm/boot/dts/zynq-ni-magnesium.dts
 new file mode 100644
-index 000000000000..92445c1fc47c
+index 000000000000..e92cd0a2028c
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-ni-magnesium.dts
 @@ -0,0 +1,179 @@
@@ -246,5 +246,5 @@ index 000000000000..b4109ae23e96
 +	};
 +};
 -- 
-2.14.2
+2.16.1
 

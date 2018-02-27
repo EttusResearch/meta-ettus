@@ -1,7 +1,7 @@
-From 5fb6ca5283258508ff66300a1e01e140c842525f Mon Sep 17 00:00:00 2001
+From 5fa126b09e9c88c474e515a389fe3bef9efabf4c Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 15 Jan 2018 15:16:38 -0800
-Subject: [PATCH] ARM: dt: Add devicetree files for Rhodium Rev0 SDR
+Subject: [PATCH 39/41] ARM: dt: Add devicetree files for Rhodium Rev0 SDR
 
 Add devicetree files for Rhodium Rev0 SDR thermal zones.
 
@@ -31,7 +31,7 @@ index 93015c51dff5..a235c065c16e 100644
  	armada-370-db.dtb \
 diff --git a/arch/arm/boot/dts/ni-rhodium-rev0-thermal.dts b/arch/arm/boot/dts/ni-rhodium-rev0-thermal.dts
 new file mode 100644
-index 000000000000..168700d470bd
+index 000000000000..194e9edbb095
 --- /dev/null
 +++ b/arch/arm/boot/dts/ni-rhodium-rev0-thermal.dts
 @@ -0,0 +1,176 @@
@@ -213,7 +213,7 @@ index 000000000000..168700d470bd
 +};
 diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev4-rhodium-rev0.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev4-rhodium-rev0.dts
 new file mode 100644
-index 000000000000..4e2709aa0f39
+index 000000000000..1ed7945f038d
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev4-rhodium-rev0.dts
 @@ -0,0 +1,12 @@
@@ -231,7 +231,7 @@ index 000000000000..4e2709aa0f39
 +
 diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev5-rhodium-rev0.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-rhodium-rev0.dts
 new file mode 100644
-index 000000000000..2fb5c2d3b620
+index 000000000000..548f4f1315f2
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-rhodium-rev0.dts
 @@ -0,0 +1,11 @@
@@ -247,5 +247,5 @@ index 000000000000..2fb5c2d3b620
 +#include <dt-bindings/thermal/thermal.h>
 +#include "ni-rhodium-rev0-thermal.dts"
 -- 
-2.15.1
+2.16.1
 

@@ -1,7 +1,7 @@
-From c8e872892ce75c79803c917ec3f880e435545d95 Mon Sep 17 00:00:00 2001
+From 1b4bea457bf7f9617414d62c3587f4b5ced7f8bb Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <mdf@kernel.org>
 Date: Mon, 8 May 2017 12:32:03 -0700
-Subject: [PATCH 21/35] mfd: cros-ec: Add cros_ec_readmem() helpers for I2C/SPI
+Subject: [PATCH 21/41] mfd: cros-ec: Add cros_ec_readmem() helpers for I2C/SPI
  based ECs
 
 Add cros_ec_readmem() based helpers for I2C/SPI based ECs.
@@ -150,5 +150,5 @@ index c9714072e224..8f90bd611d34 100644
  	ec_dev->din_size = EC_MSG_PREAMBLE_COUNT +
  			   sizeof(struct ec_host_response) +
 -- 
-2.14.2
+2.16.1
 

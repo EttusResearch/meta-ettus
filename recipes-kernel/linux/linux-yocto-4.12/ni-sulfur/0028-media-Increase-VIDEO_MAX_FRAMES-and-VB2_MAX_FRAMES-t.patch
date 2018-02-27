@@ -1,7 +1,7 @@
-From c7bcf3ce24ed4bd919a05609b3f8412032efbb7d Mon Sep 17 00:00:00 2001
+From 6a4583369aa8aa0e0e3682efcaee54ca758b6c9f Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 1 Aug 2017 12:00:41 -0700
-Subject: [PATCH 28/35] media: Increase VIDEO_MAX_FRAMES and VB2_MAX_FRAMES to
+Subject: [PATCH 28/41] media: Increase VIDEO_MAX_FRAMES and VB2_MAX_FRAMES to
  128
 
 Upstream-Status: Inappropriate, since affects all v4l2 devices.
@@ -39,5 +39,5 @@ index 2b8feb86d09e..d2027b1ad501 100644
  
  /*
 -- 
-2.14.2
+2.16.1
 

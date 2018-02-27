@@ -1,7 +1,7 @@
-From 2ac5a82bab6fc2cd4ff27f8b03bd5a661a5ecf76 Mon Sep 17 00:00:00 2001
+From 4d8e69f50e90c30302f70b9f7b4e3ddcc7fee9ae Mon Sep 17 00:00:00 2001
 From: Florian Fainelli <f.fainelli@gmail.com>
 Date: Fri, 17 Feb 2017 16:07:34 -0800
-Subject: [PATCH 34/35] net: phy: Check phydev->drv
+Subject: [PATCH 34/41] net: phy: Check phydev->drv
 
 There are number of function calls, originating from user-space,
 typically through the Ethernet driver that can make us crash by
@@ -33,5 +33,5 @@ index 2d239f966c83..9f862cd4d2e6 100644
  	adv &= ~phydev->eee_broken_modes;
  
 -- 
-2.14.2
+2.16.1
 

@@ -1,7 +1,7 @@
-From 76a0f525564dfbbbd6eb22d6dedba68f7fc65ef9 Mon Sep 17 00:00:00 2001
+From fe03809e55251b3927ebbc4032c86fcbcc4f7965 Mon Sep 17 00:00:00 2001
 From: Florian Fainelli <f.fainelli@gmail.com>
 Date: Wed, 8 Feb 2017 19:05:26 -0800
-Subject: [PATCH 32/35] net: phy: Fix PHY module checks and NULL deref in
+Subject: [PATCH 32/41] net: phy: Fix PHY module checks and NULL deref in
  phy_attach_direct()
 
 The Generic PHY drivers gets assigned after we checked that the current
@@ -63,5 +63,5 @@ index b16280c4c03a..8bda7b942ec6 100644
  		module_put(bus->owner);
  }
 -- 
-2.14.2
+2.16.1
 

@@ -1,7 +1,7 @@
-From 2f463bbb434ecc0f388dd93bb0c1e4aef9f7ffa7 Mon Sep 17 00:00:00 2001
+From 9085be9a8daee9b07b65015d736dcb7502b6b9c5 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Fri, 31 Mar 2017 15:32:42 -0700
-Subject: [PATCH 12/35] net: macb: Take a shot at implementing NVMEM eth addr
+Subject: [PATCH 12/41] net: macb: Take a shot at implementing NVMEM eth addr
  retrieval
 
 This is still a work in progress.
@@ -72,5 +72,5 @@ index 91f7492623d3..698a5cefb972 100644
  	/* Power up the PHY if there is a GPIO reset */
  	phy_node =  of_get_next_available_child(np, NULL);
 -- 
-2.14.2
+2.16.1
 

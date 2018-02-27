@@ -1,4 +1,3 @@
-
 patch 0001-gitignore-Ignore-DTB-files.patch
 patch 0002-OF-DT-Overlay-configfs-interface-v7.patch
 patch 0003-vsprintf-Add-p-extension-pOF-for-device-tree.patch
@@ -33,10 +32,10 @@ patch 0031-net-phy-Fix-lack-of-reference-count-on-PHY-driver.patch
 patch 0032-net-phy-Fix-PHY-module-checks-and-NULL-deref-in-phy_.patch
 patch 0033-tpm-tpm_i2c_atmel-Add-hack-to-allow-taking-TPM-out-o.patch
 patch 0034-net-phy-Check-phydev-drv.patch
-patch 0001-ARM-dt-Add-NI-Projects-Sulfur-Rev5-Devicetree.patch
-patch 0001-ARM-dt-Refactor-devicetree-to-match-changes-in-U-Boo.patch
 patch 0035-configs-Add-ni_sulfur_defconfig.patch
-patch 0001-power-reset-gpio-poweroff-Wait-8000ms-instead-of-300.patch
-patch 0001-ARM-dt-Add-devicetree-files-for-Rhodium-Rev0-SDR.patch
-patch 0041-net-ethernet-nixge-Make-nixge-look-for-old-and-new-i.patch
-patch 0042-net-ethernet-nixge-Add-hooks-for-ethtool.patch
+patch 0036-ARM-dt-Add-NI-Projects-Sulfur-Rev5-Devicetree.patch
+patch 0037-ARM-dt-Refactor-devicetree-to-match-changes-in-U-Boo.patch
+patch 0038-power-reset-gpio-poweroff-Wait-8000ms-instead-of-300.patch
+patch 0039-ARM-dt-Add-devicetree-files-for-Rhodium-Rev0-SDR.patch
+patch 0040-net-ethernet-nixge-Make-nixge-look-for-old-and-new-i.patch
+patch 0041-net-ethernet-nixge-Add-hooks-for-ethtool.patch
