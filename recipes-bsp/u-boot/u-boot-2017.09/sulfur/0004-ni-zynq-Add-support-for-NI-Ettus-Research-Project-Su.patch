@@ -102,7 +102,7 @@ index 0000000000..14ff122a6e
 +#include "zynq-7000.dtsi"
 +
 +/ {
-+	model = "NI Ettus Research Project Sulfur SDR Rev3";
++	model = "NI Ettus Research Project Sulfur/Phosphorus SDR";
 +	compatible = "ettus,zynq-sulfur-rev3", "xlnx,zynq-7000";
 +
 +	aliases {
