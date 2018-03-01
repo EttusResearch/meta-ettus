@@ -7,13 +7,17 @@ SRC_URI_append_ni-sulfur = " file://ec-sulfur-rev3.bin \
                              file://LICENSE.ec-sulfur \
                              file://fpga_bit_to_bin.py \
                              file://mykonos-m3.bin \
-                             http://files.ettus.com/binaries/cache/n3xx/fpga-76daf66/n3xx_n310_fpga_default.zip;name=sulfur-fpga \
+                             http://files.ettus.com/binaries/cache/n3xx/fpga-437c916/n3xx_n310_fpga_default.zip;name=sulfur-fpga \
+                             http://files.ettus.com/binaries/cache/n3xx/fpga-437c916/n3xx_n300_fpga_default.zip;name=phosphorus-fpga \
                              http://files.ettus.com/binaries/cache/n3xx/fpga-6bea23d/n3xx_n310_cpld_default.zip;name=magnesium-cpld \
                            "
 
 
-SRC_URI[sulfur-fpga.md5sum] = "478a4883f3b97df3617ab0ef9ff5623d"
-SRC_URI[sulfur-fpga.sha256sum] = "6d74d9846ec191bb28902be2a21358c6b3190b6b4dd94220e9d8e696fba60e9f"
+SRC_URI[sulfur-fpga.md5sum] = "8922521ad78045e1729b88b2e0c7f4cb"
+SRC_URI[sulfur-fpga.sha256sum] = "d8e3d891b6ac97163086023982e0e6d3555dc79e216b2414c37fd15e65fc8399"
+
+SRC_URI[phosphorus-fpga.md5sum] = "4a9957cc0ef4f20ad8ce736d7a18538e"
+SRC_URI[phosphorus-fpga.sha256sum] = "1aaf49c4fe0bcd6581d74ec67a901d4970d8410ccd19c42c7d63fb3e08938395"
 
 SRC_URI[magnesium-cpld.md5sum] = "8971b73135bd91eee3ceba7ab7c856a5"
 SRC_URI[magnesium-cpld.sha256sum] = "ef128dcd265ee8615b673021d4ee84c39357012ffe8b28c8ad7f893f9dcb94cb"
@@ -29,6 +33,7 @@ PACKAGES =+ " \
     ${PN}-ni-sulfur \
     ${PN}-ni-magnesium \
     ${PN}-ni-sulfur-fpga \
+    ${PN}-ni-phosphorus-fpga \
     ${PN}-adi-mykonos \
     "
 
@@ -57,10 +62,12 @@ LICENSE_${PN}-ni-magnesium = "Firmware-GPLv2"
 RDEPENDS_${PN}-ni-magnesium += "${PN}-gplv2-license"
 
 do_compile_append_ni-sulfur() {
-    dtc -@ -o ${WORKDIR}/n3xx.dtbo ${WORKDIR}/usrp_n310_fpga_XG.dts
-    python ${WORKDIR}/fpga_bit_to_bin.py -f ${WORKDIR}/usrp_n310_fpga_XG.bit ${WORKDIR}/n3xx.bin
-}
+    dtc -@ -o ${WORKDIR}/n310.dtbo ${WORKDIR}/usrp_n310_fpga_XG.dts
+    python ${WORKDIR}/fpga_bit_to_bin.py -f ${WORKDIR}/usrp_n310_fpga_XG.bit ${WORKDIR}/n310.bin
 
+    dtc -@ -o ${WORKDIR}/n300.dtbo ${WORKDIR}/usrp_n300_fpga_XG.dts
+    python ${WORKDIR}/fpga_bit_to_bin.py -f ${WORKDIR}/usrp_n300_fpga_XG.bit ${WORKDIR}/n300.bin
+}
 
 do_install_append_ni-sulfur() {
 
@@ -85,8 +92,11 @@ do_install_append_ni-sulfur() {
 
     install -D -m 0644 ${WORKDIR}/mykonos-m3.bin ${D}/lib/firmware/adi/mykonos-m3.bin
 
-    install -m 0644 ${WORKDIR}/n3xx.bin ${D}/lib/firmware/n3xx.bin
-    install -m 0644 ${WORKDIR}/n3xx.dtbo ${D}/lib/firmware/n3xx.dtbo
+    install -m 0644 ${WORKDIR}/n310.bin ${D}/lib/firmware/n310.bin
+    install -m 0644 ${WORKDIR}/n310.dtbo ${D}/lib/firmware/n310.dtbo
+
+    install -m 0644 ${WORKDIR}/n300.bin ${D}/lib/firmware/n300.bin
+    install -m 0644 ${WORKDIR}/n300.dtbo ${D}/lib/firmware/n300.dtbo
 }
 
 FILES_${PN}-adi-mykonos = " \
@@ -95,9 +105,17 @@ FILES_${PN}-adi-mykonos = " \
 LICENSE_${PN}-adi-mykonos = "CLOSED"
 
 FILES_${PN}-ni-sulfur-fpga = " \
-                              /lib/firmware/n3xx.bin \
-                              /lib/firmware/n3xx.dtbo \
+                              /lib/firmware/n310.bin \
+                              /lib/firmware/n310.dtbo \
                              "
 
 LICENSE_${PN}-ni-sulfur-fpga = "Firmware-GPLv2"
 RDEPENDS_${PN}-ni-sulfur-fpga += "${PN}-gplv2-license"
+
+FILES_${PN}-ni-phosphorus-fpga = " \
+                              /lib/firmware/n300.bin \
+                              /lib/firmware/n300.dtbo \
+                             "
+
+LICENSE_${PN}-ni-phosphorus-fpga = "Firmware-GPLv2"
+RDEPENDS_${PN}-ni-phosphorus-fpga += "${PN}-gplv2-license"
