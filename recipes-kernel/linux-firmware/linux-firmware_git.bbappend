@@ -80,6 +80,9 @@ do_install_append_ni-sulfur() {
     install -m 0644 ${WORKDIR}/LICENSE.ec-sulfur ${D}/lib/firmware/ni/LICENSE.ec-sulfur
 
     install -m 0644 ${WORKDIR}/usrp_n310_mg_cpld.svf ${D}/lib/firmware/ni/cpld-magnesium-revc.svf
+    # This workaround ultimately should go away once the .svf is generated correctly
+    sed -i -e 's/FREQUENCY 1.80E+07/FREQUENCY 1.00E+07/g' ${D}/lib/firmware/ni/cpld-magnesium-revc.svf
+
     install -D -m 0644 ${WORKDIR}/mykonos-m3.bin ${D}/lib/firmware/adi/mykonos-m3.bin
 
     install -m 0644 ${WORKDIR}/n3xx.bin ${D}/lib/firmware/n3xx.bin
