@@ -9,13 +9,13 @@ Add Phosphorus devicetree files to kernel build.
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
  arch/arm/boot/dts/Makefile                         |   3 +
- .../dts/zynq-ni-phosphorus-rev1-magnesium-rev2.dts | 100 +++++++++++++++++++++
- .../dts/zynq-ni-phosphorus-rev1-magnesium-rev3.dts | 100 +++++++++++++++++++++
- arch/arm/boot/dts/zynq-ni-phosphorus-rev1.dts      |  11 +++
+ .../dts/zynq-ni-phosphorus-rev4-magnesium-rev2.dts | 100 +++++++++++++++++++++
+ .../dts/zynq-ni-phosphorus-rev4-magnesium-rev3.dts | 100 +++++++++++++++++++++
+ arch/arm/boot/dts/zynq-ni-phosphorus-rev4.dts      |  11 +++
  4 files changed, 214 insertions(+)
- create mode 100644 arch/arm/boot/dts/zynq-ni-phosphorus-rev1-magnesium-rev2.dts
- create mode 100644 arch/arm/boot/dts/zynq-ni-phosphorus-rev1-magnesium-rev3.dts
- create mode 100644 arch/arm/boot/dts/zynq-ni-phosphorus-rev1.dts
+ create mode 100644 arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev2.dts
+ create mode 100644 arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev3.dts
+ create mode 100644 arch/arm/boot/dts/zynq-ni-phosphorus-rev4.dts
 
 diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
 index a235c065c16e..0e67de5b6873 100644
@@ -25,17 +25,17 @@ index a235c065c16e..0e67de5b6873 100644
  	zynq-ni-sulfur-rev5-magnesium-rev3.dtb \
  	zynq-ni-sulfur-rev4-rhodium-rev0.dtb \
  	zynq-ni-sulfur-rev5-rhodium-rev0.dtb \
-+	zynq-ni-phosphorus-rev1.dtb \
-+	zynq-ni-phosphorus-rev1-magnesium-rev2.dtb \
-+	zynq-ni-phosphorus-rev1-magnesium-rev3.dtb \
++	zynq-ni-phosphorus-rev4.dtb \
++	zynq-ni-phosphorus-rev4-magnesium-rev2.dtb \
++	zynq-ni-phosphorus-rev4-magnesium-rev3.dtb \
  	zynq-zybo.dtb
  dtb-$(CONFIG_MACH_ARMADA_370) += \
  	armada-370-db.dtb \
-diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev1-magnesium-rev2.dts b/arch/arm/boot/dts/zynq-ni-phosphorus-rev1-magnesium-rev2.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev2.dts b/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev2.dts
 new file mode 100644
 index 000000000000..81ac2553d7c3
 --- /dev/null
-+++ b/arch/arm/boot/dts/zynq-ni-phosphorus-rev1-magnesium-rev2.dts
++++ b/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev2.dts
 @@ -0,0 +1,100 @@
 +// SPDX-License-Identifier: (GPL-2.0 OR X11)
 +/*
@@ -45,7 +45,7 @@ index 000000000000..81ac2553d7c3
 + *
 + */
 +
-+#include "zynq-ni-phosphorus-rev1.dts"
++#include "zynq-ni-phosphorus-rev4.dts"
 +#include <dt-bindings/thermal/thermal.h>
 +
 +&usrpio_i2c0 {
@@ -137,11 +137,11 @@ index 000000000000..81ac2553d7c3
 +		};
 +	};
 +};
-diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev1-magnesium-rev3.dts b/arch/arm/boot/dts/zynq-ni-phosphorus-rev1-magnesium-rev3.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev3.dts b/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev3.dts
 new file mode 100644
 index 000000000000..81ac2553d7c3
 --- /dev/null
-+++ b/arch/arm/boot/dts/zynq-ni-phosphorus-rev1-magnesium-rev3.dts
++++ b/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev3.dts
 @@ -0,0 +1,100 @@
 +// SPDX-License-Identifier: (GPL-2.0 OR X11)
 +/*
@@ -151,7 +151,7 @@ index 000000000000..81ac2553d7c3
 + *
 + */
 +
-+#include "zynq-ni-phosphorus-rev1.dts"
++#include "zynq-ni-phosphorus-rev4.dts"
 +#include <dt-bindings/thermal/thermal.h>
 +
 +&usrpio_i2c0 {
@@ -243,11 +243,11 @@ index 000000000000..81ac2553d7c3
 +		};
 +	};
 +};
-diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev1.dts b/arch/arm/boot/dts/zynq-ni-phosphorus-rev1.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev4.dts b/arch/arm/boot/dts/zynq-ni-phosphorus-rev4.dts
 new file mode 100644
 index 000000000000..cfb80264b262
 --- /dev/null
-+++ b/arch/arm/boot/dts/zynq-ni-phosphorus-rev1.dts
++++ b/arch/arm/boot/dts/zynq-ni-phosphorus-rev4.dts
 @@ -0,0 +1,11 @@
 +// SPDX-License-Identifier: (GPL-2.0 OR X11)
 +/*
