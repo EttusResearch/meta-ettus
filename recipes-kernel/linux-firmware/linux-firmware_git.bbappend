@@ -47,8 +47,8 @@ FILES_${PN}-ni-sulfur = "/lib/firmware/ni/ec-sulfur-rev3.bin \
                          /lib/firmware/ni/ec-sulfur-rev4.RW.bin \
                          /lib/firmware/ni/ec-sulfur-rev5.bin \
                          /lib/firmware/ni/ec-sulfur-rev5.RW.bin \
-                         /lib/firmware/ni/ec-phosphorus-rev1.bin \
-                         /lib/firmware/ni/ec-phosphorus-rev1.RW.bin \
+                         /lib/firmware/ni/ec-phosphorus-rev4.bin \
+                         /lib/firmware/ni/ec-phosphorus-rev4.RW.bin \
                         "
 RDEPENDS_${PN}-ni-sulfur += "${PN}-ni-sulfur-license"
 DEPENDS += "dtc-native python-native"
