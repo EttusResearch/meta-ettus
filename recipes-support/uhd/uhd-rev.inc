@@ -1,3 +1,3 @@
-SRCREV = "e2a6b2e077d37ae2c339b8eef9eea464222b4a4e"
-SRC_URI = "git://github.com/EttusResearch/uhd;branch=master \
+SRCREV = "e93cd7fc1afa446ce7ba72b64d0cd7c56381fa33"
+SRC_URI = "git://github.com/EttusResearch/uhd;branch=maint \
            "
