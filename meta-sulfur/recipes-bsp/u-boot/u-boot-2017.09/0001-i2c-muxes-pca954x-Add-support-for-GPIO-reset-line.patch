@@ -1,0 +1,93 @@
+From e6803064d981ebf19697c2b4db851369131cc0f0 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Tue, 12 Sep 2017 06:46:59 -0700
+Subject: [PATCH 1/6] i2c: muxes: pca954x: Add support for GPIO reset line
+
+This commit adds support for GPIO reset lines matching the
+common linux "reset-gpios" devicetree binding.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+Reviewed-by: Heiko Schocher <hs@denx.de>
+Reviewed-by: Simon Glass <sjg@chromium.org>
+---
+ drivers/i2c/muxes/pca954x.c | 40 +++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 39 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/i2c/muxes/pca954x.c b/drivers/i2c/muxes/pca954x.c
+index 383f72f552..01ca1ff48d 100644
+--- a/drivers/i2c/muxes/pca954x.c
++++ b/drivers/i2c/muxes/pca954x.c
+@@ -1,5 +1,6 @@
+ /*
+  * Copyright (C) 2015 - 2016 Xilinx, Inc.
++ * Copyright (C) 2017 National Instruments Corp
+  * Written by Michal Simek
+  *
+  * SPDX-License-Identifier:	GPL-2.0+
+@@ -9,7 +10,8 @@
+ #include <dm.h>
+ #include <errno.h>
+ #include <i2c.h>
+-#include <asm/gpio.h>
++
++#include <asm-generic/gpio.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+@@ -30,6 +32,7 @@ struct chip_desc {
+ struct pca954x_priv {
+ 	u32 addr; /* I2C mux address */
+ 	u32 width; /* I2C mux width - number of busses */
++	struct gpio_desc gpio_mux_reset;
+ };
+ 
+ static const struct chip_desc chips[] = {
+@@ -105,10 +108,45 @@ static int pca954x_ofdata_to_platdata(struct udevice *dev)
+ 	return 0;
+ }
+ 
++static int pca954x_probe(struct udevice *dev)
++{
++	if (IS_ENABLED(CONFIG_DM_GPIO)) {
++		struct pca954x_priv *priv = dev_get_priv(dev);
++		int err;
++
++		err = gpio_request_by_name(dev, "reset-gpios", 0,
++				&priv->gpio_mux_reset, GPIOD_IS_OUT);
++
++		/* it's optional so only bail if we get a real error */
++		if (err && (err != -ENOENT))
++			return err;
++
++		/* dm will take care of polarity */
++		if (dm_gpio_is_valid(&priv->gpio_mux_reset))
++			dm_gpio_set_value(&priv->gpio_mux_reset, 0);
++	}
++
++	return 0;
++}
++
++static int pca954x_remove(struct udevice *dev)
++{
++	if (IS_ENABLED(CONFIG_DM_GPIO)) {
++		struct pca954x_priv *priv = dev_get_priv(dev);
++
++		if (dm_gpio_is_valid(&priv->gpio_mux_reset))
++			dm_gpio_free(dev, &priv->gpio_mux_reset);
++	}
++
++	return 0;
++}
++
+ U_BOOT_DRIVER(pca954x) = {
+ 	.name = "pca954x",
+ 	.id = UCLASS_I2C_MUX,
+ 	.of_match = pca954x_ids,
++	.probe = pca954x_probe,
++	.remove = pca954x_remove,
+ 	.ops = &pca954x_ops,
+ 	.ofdata_to_platdata = pca954x_ofdata_to_platdata,
+ 	.priv_auto_alloc_size = sizeof(struct pca954x_priv),
+-- 
+2.15.0
+

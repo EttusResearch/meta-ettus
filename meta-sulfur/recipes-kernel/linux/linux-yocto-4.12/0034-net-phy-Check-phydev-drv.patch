@@ -1,0 +1,37 @@
+From 4d8e69f50e90c30302f70b9f7b4e3ddcc7fee9ae Mon Sep 17 00:00:00 2001
+From: Florian Fainelli <f.fainelli@gmail.com>
+Date: Fri, 17 Feb 2017 16:07:34 -0800
+Subject: [PATCH 34/42] net: phy: Check phydev->drv
+
+There are number of function calls, originating from user-space,
+typically through the Ethernet driver that can make us crash by
+dereferencing phydev->drv which will be NULL once we unbind the driver
+from the PHY.
+
+There are still functional issues that prevent an unbind then rebind to
+work, but these will be addressed separately.
+
+Suggested-by: Russell King <rmk+kernel@armlinux.org.uk>
+Signed-off-by: Florian Fainelli <f.fainelli@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/phy/phy.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/net/phy/phy.c b/drivers/net/phy/phy.c
+index 2d239f966c83..9f862cd4d2e6 100644
+--- a/drivers/net/phy/phy.c
++++ b/drivers/net/phy/phy.c
+@@ -1412,6 +1412,9 @@ int phy_ethtool_set_eee(struct phy_device *phydev, struct ethtool_eee *data)
+ 
+ 	adv = ethtool_adv_to_mmd_eee_adv_t(data->advertised) & cap;
+ 
++	if (!phydev->drv)
++		return -EIO;
++
+ 	/* Mask prohibited EEE modes */
+ 	adv &= ~phydev->eee_broken_modes;
+ 
+-- 
+2.16.1
+

@@ -1,0 +1,44 @@
+From c20fcd62324de6ee853a46fbce5943178a5c36da Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Thu, 18 May 2017 12:45:12 -0700
+Subject: [PATCH 5/6] ni: sulfur-rev3: Added swsync feature
+
+This adds the entries for conditional software sync to the default
+environment.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ include/configs/ni_sulfur_rev3.h | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/include/configs/ni_sulfur_rev3.h b/include/configs/ni_sulfur_rev3.h
+index d3114959b9..88cb535748 100644
+--- a/include/configs/ni_sulfur_rev3.h
++++ b/include/configs/ni_sulfur_rev3.h
+@@ -14,12 +14,22 @@
+ #undef CONFIG_EXTRA_ENV_SETTINGS
+ #define CONFIG_EXTRA_ENV_SETTINGS	\
+ 	"fit_image=fit.itb\0"		\
++	"variant=sulfur-rev3\0"	\
++	"mboard=sulfur-rev3\0"	\
++	"ec_disable_swsync=0\0"		\
++	"ec_image=ec-sulfur-rev3.RW.bin\0" \
++	"expand_ec_image=setenv ec_image lib/firmware/ni/ec-${mboard}.RW.bin\0" \
+ 	"bootargs=root=/dev/mmcblk0p2 rw rootwait uio_pdrv_genirq.of_id=usrp-uio\0" \
+ 	"load_addr=0x2000000\0"		\
+ 	"fit_size=0x800000\0"           \
+ 	"fdt_high=0x20000000\0"         \
+ 	"initrd_high=0x20000000\0"      \
+-	"sdboot=echo Copying FIT from SD to RAM... && " \
++	"sdboot=if test ${ec_disable_swsync} = 0; then " \
++			"echo Copying MCU FW from SD to RAM... && " \
++			"run expand_ec_image; " \
++			"load mmc 0 ${load_addr} ${ec_image} && " \
++			"crosec swsync ${load_addr} ${filesize}; fi;" \
++		"echo Copying FIT from SD to RAM... && " \
+ 		"load mmc 0 ${load_addr} ${fit_image} && " \
+ 		"bootm ${load_addr}\0" \
+ 	"jtagboot=echo TFTPing FIT to RAM... && " \
+-- 
+2.15.0
+

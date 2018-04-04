@@ -1,0 +1,26 @@
+From dd9eef3d0ec00eafa3317d96233c99a52386c58f Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Mon, 12 Dec 2016 09:10:58 -0800
+Subject: [PATCH 06/42] Keep zynq_gpio running all the time
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ drivers/gpio/gpio-zynq.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/gpio/gpio-zynq.c b/drivers/gpio/gpio-zynq.c
+index 6b4d10d6e10f..feac78ef3648 100644
+--- a/drivers/gpio/gpio-zynq.c
++++ b/drivers/gpio/gpio-zynq.c
+@@ -754,7 +754,7 @@ static int zynq_gpio_probe(struct platform_device *pdev)
+ 	gpiochip_set_chained_irqchip(chip, &zynq_gpio_edge_irqchip, gpio->irq,
+ 				     zynq_gpio_irqhandler);
+ 
+-	pm_runtime_put(&pdev->dev);
++	//pm_runtime_put(&pdev->dev);
+ 
+ 	return 0;
+ 
+-- 
+2.16.1
+

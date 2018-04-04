@@ -1,0 +1,75 @@
+From 9388f4d5997e1f6f756a14fd082130ff785c427d Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Mon, 10 Apr 2017 15:15:27 -0700
+Subject: [PATCH 14/42] net: phy: Fix the case where state machine gets stuck
+ in FORCING
+
+Fixes issue where phy statemachine gets stuck in FORCING state
+on a C45 PHY.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ drivers/net/phy/phy.c        | 12 +++++++++---
+ drivers/net/phy/phy_device.c |  3 ++-
+ include/linux/phy.h          |  1 +
+ 3 files changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/phy/phy.c b/drivers/net/phy/phy.c
+index eebb0e1c70ff..2d239f966c83 100644
+--- a/drivers/net/phy/phy.c
++++ b/drivers/net/phy/phy.c
+@@ -1111,9 +1111,15 @@ void phy_state_machine(struct work_struct *work)
+ 		}
+ 		break;
+ 	case PHY_FORCING:
+-		err = genphy_update_link(phydev);
+-		if (err)
+-			break;
++		if (!phydev->is_c45) {
++			err = genphy_update_link(phydev);
++			if (err)
++				break;
++		} else {
++			err = gen10g_read_status(phydev);
++			if (err)
++				break;
++		}
+ 
+ 		if (phydev->link) {
+ 			phydev->state = PHY_RUNNING;
+diff --git a/drivers/net/phy/phy_device.c b/drivers/net/phy/phy_device.c
+index 1219eeab69d1..995836db428f 100644
+--- a/drivers/net/phy/phy_device.c
++++ b/drivers/net/phy/phy_device.c
+@@ -1481,7 +1481,7 @@ int genphy_read_status(struct phy_device *phydev)
+ }
+ EXPORT_SYMBOL(genphy_read_status);
+ 
+-static int gen10g_read_status(struct phy_device *phydev)
++int gen10g_read_status(struct phy_device *phydev)
+ {
+ 	int devad, reg;
+ 	u32 mmd_mask = phydev->c45_ids.devices_in_package;
+@@ -1507,6 +1507,7 @@ static int gen10g_read_status(struct phy_device *phydev)
+ 
+ 	return 0;
+ }
++EXPORT_SYMBOL(gen10g_read_status);
+ 
+ /**
+  * genphy_soft_reset - software reset the PHY via BMCR_RESET bit
+diff --git a/include/linux/phy.h b/include/linux/phy.h
+index e76e4adbc7c7..f42659df8ee7 100644
+--- a/include/linux/phy.h
++++ b/include/linux/phy.h
+@@ -823,6 +823,7 @@ int genphy_config_aneg(struct phy_device *phydev);
+ int genphy_aneg_done(struct phy_device *phydev);
+ int genphy_update_link(struct phy_device *phydev);
+ int genphy_read_status(struct phy_device *phydev);
++int gen10g_read_status(struct phy_device *phydev);
+ int genphy_suspend(struct phy_device *phydev);
+ int genphy_resume(struct phy_device *phydev);
+ int genphy_soft_reset(struct phy_device *phydev);
+-- 
+2.16.1
+

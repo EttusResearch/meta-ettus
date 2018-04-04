@@ -1,0 +1,29 @@
+From c2fdd840092f73a8e48af6bc153fc122160f33d9 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Wed, 20 Dec 2017 10:47:33 -0800
+Subject: [PATCH 38/42] power: reset: gpio-poweroff: Wait 8000ms instead of
+ 3000ms
+
+This is required to accomodate for longer timeouts.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ drivers/power/reset/gpio-poweroff.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/power/reset/gpio-poweroff.c b/drivers/power/reset/gpio-poweroff.c
+index be3d81ff51cc..8bb0ade422dd 100644
+--- a/drivers/power/reset/gpio-poweroff.c
++++ b/drivers/power/reset/gpio-poweroff.c
+@@ -40,7 +40,7 @@ static void gpio_poweroff_do_poweroff(void)
+ 	gpiod_set_value(reset_gpio, 1);
+ 
+ 	/* give it some time */
+-	mdelay(3000);
++	mdelay(8000);
+ 
+ 	WARN_ON(1);
+ }
+-- 
+2.16.1
+
