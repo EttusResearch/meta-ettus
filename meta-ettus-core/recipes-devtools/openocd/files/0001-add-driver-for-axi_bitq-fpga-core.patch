@@ -1,0 +1,759 @@
+From 4d02080714a15d97d8b711b591d628bb4ae1b7d4 Mon Sep 17 00:00:00 2001
+From: Alex Williams <alex.williams@ni.com>
+Date: Mon, 22 Jan 2018 08:49:10 -0800
+Subject: [PATCH] Add driver for axi_bitq FPGA core
+
+---
+ configure.ac                 |  19 ++
+ src/jtag/drivers/Makefile.am |   3 +
+ src/jtag/drivers/axi_bitq.c  | 648 +++++++++++++++++++++++++++++++++++++++++++
+ src/jtag/interfaces.c        |   6 +
+ 4 files changed, 676 insertions(+)
+ create mode 100644 src/jtag/drivers/axi_bitq.c
+
+diff --git a/configure.ac b/configure.ac
+index 562ec5a7..1a0fd16b 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -326,6 +326,10 @@ AC_ARG_ENABLE([sysfsgpio],
+   AS_HELP_STRING([--enable-sysfsgpio], [Enable building support for programming driven via sysfs gpios.]),
+   [build_sysfsgpio=$enableval], [build_sysfsgpio=no])
+ 
++AC_ARG_ENABLE([axi_bitq],
++  AS_HELP_STRING([--enable-axi_bitq], [Enable building support for programming via the axi_bitq FPGA core.]),
++  [build_axi_bitq=$enableval], [build_axi_bitq=no])
++
+ AS_CASE([$host_os],
+   [linux*], [],
+   [
+@@ -334,6 +338,14 @@ AS_CASE([$host_os],
+     ])
+ ])
+ 
++AS_CASE([$host_os],
++  [linux*], [],
++  [
++    AS_IF([test "x$build_axi_bitq" = "xyes"], [
++      AC_MSG_ERROR([axi_bitq is only available on linux])
++    ])
++])
++
+ AC_ARG_ENABLE([minidriver_dummy],
+   AS_HELP_STRING([--enable-minidriver-dummy], [Enable the dummy minidriver.]),
+   [build_minidriver_dummy=$enableval], [build_minidriver_dummy=no])
+@@ -591,6 +603,12 @@ AS_IF([test "x$build_sysfsgpio" = "xyes"], [
+   AC_DEFINE([BUILD_SYSFSGPIO], [0], [0 if you don't want SysfsGPIO driver.])
+ ])
+ 
++AS_IF([test "x$build_axi_bitq" = "xyes"], [
++  AC_DEFINE([BUILD_AXIBITQ], [1], [1 if you want the axi_bitq driver.])
++], [
++  AC_DEFINE([BUILD_AXIBITQ], [0], [0 if you don't want axi_bitq driver.])
++])
++
+ AS_IF([test "x$build_target64" = "xyes"], [
+   AC_DEFINE([BUILD_TARGET64], [1], [1 if you want 64-bit addresses.])
+ ], [
+@@ -707,6 +725,7 @@ AM_CONDITIONAL([OOCD_TRACE], [test "x$build_oocd_trace" = "xyes"])
+ AM_CONDITIONAL([REMOTE_BITBANG], [test "x$build_remote_bitbang" = "xyes"])
+ AM_CONDITIONAL([BUSPIRATE], [test "x$build_buspirate" = "xyes"])
+ AM_CONDITIONAL([SYSFSGPIO], [test "x$build_sysfsgpio" = "xyes"])
++AM_CONDITIONAL([AXIBITQ], [test "x$build_axi_bitq" = "xyes"])
+ AM_CONDITIONAL([USE_LIBUSB0], [test "x$use_libusb0" = "xyes"])
+ AM_CONDITIONAL([USE_LIBUSB1], [test "x$use_libusb1" = "xyes"])
+ AM_CONDITIONAL([IS_CYGWIN], [test "x$is_cygwin" = "xyes"])
+diff --git a/src/jtag/drivers/Makefile.am b/src/jtag/drivers/Makefile.am
+index 3e5974da..6260d99d 100644
+--- a/src/jtag/drivers/Makefile.am
++++ b/src/jtag/drivers/Makefile.am
+@@ -98,6 +98,9 @@ endif
+ if PRESTO
+ DRIVERFILES += %D%/presto.c
+ endif
++if AXIBITQ
++DRIVERFILES += %D%/axi_bitq.c
++endif
+ if USBPROG
+ DRIVERFILES += %D%/usbprog.c
+ endif
+diff --git a/src/jtag/drivers/axi_bitq.c b/src/jtag/drivers/axi_bitq.c
+new file mode 100644
+index 00000000..3cf78da0
+--- /dev/null
++++ b/src/jtag/drivers/axi_bitq.c
+@@ -0,0 +1,648 @@
++/***************************************************************************
++ *   Copyright (C) 2018 by Ettus Research                                  *
++ *   Copyright (C) 2007 by Pavel Chromy                                    *
++ *   chromy@asix.cz                                                        *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
++ ***************************************************************************/
++
++/**
++ * @file
++ * Holds driver for axi_bitq programmer from Ettus Research
++ */
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++
++#if IS_CYGWIN == 1
++#include "windows.h"
++#endif
++
++#include <jtag/interface.h>
++#include <helper/time_support.h>
++
++#include <unistd.h>
++#include <fcntl.h>
++#include <sys/mman.h>
++
++/* -------------------------------------------------------------------------- */
++#define AXI_BITQ_TDI_REG 0x0
++#define AXI_BITQ_TMS_REG 0x4
++#define AXI_BITQ_CTL_REG 0x8
++#define AXI_BITQ_TDO_REG 0xC
++
++#define AXI_BITQ_PRESCALAR_OFFSET 0
++#define AXI_BITQ_PRESCALAR_MASK   0x1F
++#define AXI_BITQ_LEN_OFFSET 8
++#define AXI_BITQ_LEN_MASK   0x1F
++#define AXI_BITQ_RST   (1 << 31)
++#define AXI_BITQ_READY (1 << 31)
++
++struct axi_bitq {
++	int uio_fd;
++	int clk_hz;
++	volatile void *uio_regs;
++	int retval;
++
++
++	int tck_cnt;
++	uint32_t tdi_buf;
++	uint32_t tms_buf;
++
++	uint32_t tdo_buf;
++	int tdo_cnt;
++
++	int jtag_speed;
++};
++
++static struct axi_bitq axi_bitq_state;
++static struct axi_bitq *axi_bitq = &axi_bitq_state;
++
++static int axi_bitq_uio_id = -1;
++static int axi_bitq_clk_hz = -1;
++
++static void axi_bitq_write(uint8_t offset, uint32_t data)
++{
++	*((volatile uint32_t *) (axi_bitq->uio_regs + offset)) = data;
++}
++
++static void axi_bitq_read(uint8_t offset, uint32_t *data)
++{
++	*data = *((volatile uint32_t *) (axi_bitq->uio_regs + offset));
++}
++
++static int axi_bitq_dev_reset(void)
++{
++	uint32_t ctrl_reg;
++	axi_bitq_write(AXI_BITQ_CTL_REG, AXI_BITQ_RST);
++	axi_bitq_read(AXI_BITQ_CTL_REG, &ctrl_reg);
++	if (ctrl_reg & AXI_BITQ_READY) {
++		return ERROR_OK;
++	}
++	return ERROR_JTAG_DEVICE_ERROR;
++}
++
++static int axi_bitq_commit(void)
++{
++	if (axi_bitq->tck_cnt == 0)
++		return 0;
++
++	axi_bitq_write(AXI_BITQ_TDI_REG, axi_bitq->tdi_buf);
++	axi_bitq_write(AXI_BITQ_TMS_REG, axi_bitq->tms_buf);
++	uint32_t ctrl = ((axi_bitq->jtag_speed & AXI_BITQ_PRESCALAR_MASK) << AXI_BITQ_PRESCALAR_OFFSET) |
++	               (((axi_bitq->tck_cnt-1) & AXI_BITQ_LEN_MASK) << AXI_BITQ_LEN_OFFSET);
++	axi_bitq_write(AXI_BITQ_CTL_REG, ctrl);
++	do {
++		axi_bitq_read(AXI_BITQ_CTL_REG, &ctrl);
++	} while ((ctrl & AXI_BITQ_READY) == 0);
++
++	axi_bitq_read(AXI_BITQ_TDO_REG, &axi_bitq->tdo_buf);
++
++	axi_bitq->tdo_cnt = axi_bitq->tck_cnt;
++	axi_bitq->tck_cnt = 0;
++
++	/* Reset buffers */
++	axi_bitq->tdi_buf = 0;
++	axi_bitq->tms_buf = 0;
++
++	return axi_bitq->tdo_cnt;
++}
++
++static int axi_bitq_out(int tms, int tdi)
++{
++	int shift = axi_bitq->tck_cnt;
++
++	axi_bitq->tms_buf |= (tms & 0x1) << shift;
++	axi_bitq->tdi_buf |= (tdi & 0x1) << shift;
++	axi_bitq->tck_cnt++;
++	if (axi_bitq->tck_cnt == 32) {
++		return axi_bitq_commit();
++	}
++
++	return 0;
++}
++
++static int axi_bitq_in(uint8_t *buf, int index)
++{
++	int bits = axi_bitq->tdo_cnt;
++	uint32_t tdo = axi_bitq->tdo_buf;
++	if (bits <= 0) {
++		return 0;
++	}
++
++	if (index >= 8) {
++		LOG_ERROR("BUG: Bad index");
++		return -1;
++	}
++
++	while (bits) {
++		uint8_t shift = (bits > 8) ? 8 - index : bits - index;
++		int mask = ((1 << shift) - 1) & 0xff;
++		uint8_t val = tdo & mask;
++
++		*buf &= ~(mask << index);
++		*buf |= (val << index);
++
++		tdo >>= shift;
++		index += shift;
++		if (index == 8) {
++			buf++;
++			index = 0;
++		} else if (index > 8) {
++			LOG_ERROR("BUG: Shift too big");
++		}
++		bits -= shift;
++	}
++	bits = axi_bitq->tdo_cnt;
++	axi_bitq->tdo_cnt = 0;
++	return bits;
++}
++
++static int axi_bitq_trst(void)
++{
++	/* 5 TCK with TMS held high */
++	if (axi_bitq_commit())
++		LOG_ERROR("Dropped tdo bits during reset...");
++	axi_bitq_out(1, 1);
++	axi_bitq_out(1, 1);
++	axi_bitq_out(1, 1);
++	axi_bitq_out(1, 1);
++	axi_bitq_out(1, 1);
++	axi_bitq_commit();
++	return ERROR_OK;
++}
++
++static int axi_bitq_reset(int trst, int srst)
++{
++	axi_bitq_commit();
++	if (trst || srst) {
++		axi_bitq_trst();
++	}
++
++	return ERROR_OK;
++}
++
++/* initialization */
++static int axi_bitq_open_uio(int uio_id)
++{
++	char fname[64];
++
++	LOG_DEBUG("searching for axi_bitq using uio number");
++
++	/* Open device */
++	snprintf(fname, sizeof(fname), "/dev/uio%d", uio_id);
++	axi_bitq->uio_fd = open(fname, O_RDWR);
++	if (axi_bitq->uio_fd < 0) {
++		LOG_ERROR("Error opening %s", fname);
++		return ERROR_JTAG_DEVICE_ERROR;
++	}
++	axi_bitq->uio_regs = mmap(NULL, 0x1000, PROT_READ|PROT_WRITE,
++	                          MAP_SHARED, axi_bitq->uio_fd, 0);
++	if (axi_bitq->uio_regs == MAP_FAILED) {
++		LOG_ERROR("Error mapping registers for %s", fname);
++		perror("Could not map uio");
++		close(axi_bitq->uio_fd);
++		return ERROR_JTAG_DEVICE_ERROR;
++	}
++
++	/* Reset device */
++	return axi_bitq_dev_reset();
++}
++
++static int axi_bitq_open(int uio_id, int clk_hz)
++{
++	if (uio_id < 0 || clk_hz < 0)
++		return ERROR_COMMAND_SYNTAX_ERROR;
++
++	axi_bitq->tck_cnt = 0;
++	axi_bitq->tdo_cnt = 0;
++	axi_bitq->jtag_speed = 0;
++	axi_bitq->clk_hz = clk_hz;
++
++	return axi_bitq_open_uio(uio_id);
++}
++
++static int axi_bitq_close(void)
++{
++
++	int result = ERROR_OK;
++	if (axi_bitq->uio_regs) {
++		axi_bitq_dev_reset();
++		munmap((void *) axi_bitq->uio_regs, 0x1000);
++	}
++
++	if (axi_bitq->uio_fd >= 0) {
++		close(axi_bitq->uio_fd);
++	}
++
++	return result;
++}
++
++/* -------------------------------------------------------------------------- */
++
++/* JTAG interface */
++static void axi_bitq_stableclocks(int num_cycles);
++
++static void axi_bitq_end_state(tap_state_t state)
++{
++	if (tap_is_state_stable(state))
++		tap_set_end_state(state);
++	else {
++		LOG_ERROR("BUG: %i is not a valid end state", state);
++		exit(-1);
++	}
++}
++
++static void axi_bitq_state_move(int skip)
++{
++	int i = 0, tms = 0;
++	uint8_t tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
++	int tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
++
++	for (i = skip; i < tms_count; i++) {
++		tms = (tms_scan >> i) & 1;
++		axi_bitq_out(tms, 0);
++	}
++	axi_bitq_commit();
++
++	tap_set_state(tap_get_end_state());
++}
++
++/**
++ * Clock a bunch of TMS (or SWDIO) transitions, to change the JTAG
++ * (or SWD) state machine.
++ */
++static int axi_bitq_execute_tms(struct jtag_command *cmd)
++{
++	unsigned num_bits = cmd->cmd.tms->num_bits;
++	const uint8_t *bits = cmd->cmd.tms->bits;
++
++	DEBUG_JTAG_IO("TMS: %d bits", num_bits);
++
++	int tms = 0;
++	for (unsigned i = 0; i < num_bits; i++) {
++		tms = ((bits[i/8] >> (i % 8)) & 1);
++		axi_bitq_out(tms, 0);
++	}
++	axi_bitq_commit();
++
++	return ERROR_OK;
++}
++
++static void axi_bitq_path_move(struct pathmove_command *cmd)
++{
++	int num_states = cmd->num_states;
++	int state_count;
++	int tms = 0;
++
++	state_count = 0;
++	while (num_states) {
++		if (tap_state_transition(tap_get_state(), false) == cmd->path[state_count])
++			tms = 0;
++		else if (tap_state_transition(tap_get_state(), true) == cmd->path[state_count])
++			tms = 1;
++		else {
++			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition",
++				tap_state_name(tap_get_state()),
++				tap_state_name(cmd->path[state_count]));
++			exit(-1);
++		}
++
++		axi_bitq_out(tms, 0);
++
++		tap_set_state(cmd->path[state_count]);
++		state_count++;
++		num_states--;
++	}
++
++	axi_bitq_commit();
++
++	tap_set_end_state(tap_get_state());
++}
++
++static void axi_bitq_runtest(int num_cycles)
++{
++	int i;
++
++	tap_state_t saved_end_state = tap_get_end_state();
++
++	/* only do a state_move when we're not already in IDLE */
++	if (tap_get_state() != TAP_IDLE) {
++		axi_bitq_end_state(TAP_IDLE);
++		axi_bitq_state_move(0);
++	}
++
++	/* execute num_cycles */
++	for (i = 0; i < num_cycles; i++) {
++		axi_bitq_out(0, 0);
++	}
++	axi_bitq_commit();
++
++	/* finish in end_state */
++	axi_bitq_end_state(saved_end_state);
++	if (tap_get_state() != tap_get_end_state())
++		axi_bitq_state_move(0);
++}
++
++static void axi_bitq_stableclocks(int num_cycles)
++{
++	int tms = (tap_get_state() == TAP_RESET ? 1 : 0);
++	int i;
++
++	/* send num_cycles clocks onto the cable */
++	for (i = 0; i < num_cycles; i++) {
++		axi_bitq_out(tms, 0);
++	}
++	axi_bitq_commit();
++}
++
++static void axi_bitq_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size)
++{
++	tap_state_t saved_end_state = tap_get_end_state();
++	int bit_cnt;
++
++	if (!((!ir_scan &&
++			(tap_get_state() == TAP_DRSHIFT)) ||
++			(ir_scan && (tap_get_state() == TAP_IRSHIFT)))) {
++		if (ir_scan)
++			axi_bitq_end_state(TAP_IRSHIFT);
++		else
++			axi_bitq_end_state(TAP_DRSHIFT);
++
++		axi_bitq_state_move(0);
++		axi_bitq_end_state(saved_end_state);
++	}
++	if (type == SCAN_IN) {
++		LOG_DEBUG("Scanning IN %d bits", scan_size);
++	} else if (type == SCAN_OUT) {
++		LOG_DEBUG("Scanning OUT %d bits", scan_size);
++	} else if (type == SCAN_IO) {
++		LOG_DEBUG("Scanning INOUT %d bits", scan_size);
++	}
++
++	axi_bitq_commit();
++	int rd_ptr = 0;
++	for (bit_cnt = 0; bit_cnt < scan_size; bit_cnt++) {
++		int tms = (bit_cnt == scan_size-1) ? 1 : 0;
++		int tdi;
++		int bytec = bit_cnt/8;
++		int bcval = 1 << (bit_cnt % 8);
++
++		/* if we're just reading the scan, but don't care about the output
++		 * default to outputting 'low', this also makes valgrind traces more readable,
++		 * as it removes the dependency on an uninitialised value
++		 */
++		tdi = 0;
++		if ((type != SCAN_IN) && (buffer[bytec] & bcval))
++			tdi = 1;
++
++		int xferred = axi_bitq_out(tms, tdi);
++
++		if (type != SCAN_OUT && xferred > 0) {
++			int rdbytec = rd_ptr / 8;
++			int rdshift = rd_ptr % 8;
++			rd_ptr += axi_bitq_in(&buffer[rdbytec], rdshift);
++		}
++	}
++	int xferred = axi_bitq_commit();
++	if (xferred > 0 && type != SCAN_OUT) {
++		int rdbytec = rd_ptr / 8;
++		int rdshift = rd_ptr % 8;
++		rd_ptr += axi_bitq_in(&buffer[rdbytec], rdshift);
++	}
++
++	if (tap_get_state() != tap_get_end_state()) {
++		/* we *KNOW* the above loop transitioned out of
++		 * the shift state, so we skip the first state
++		 * and move directly to the end state.
++		 */
++		axi_bitq_state_move(1);
++	}
++}
++
++int axi_bitq_execute_queue(void)
++{
++	struct jtag_command *cmd = jtag_command_queue;	/* currently processed command */
++	int scan_size;
++	enum scan_type type;
++	uint8_t *buffer;
++	int retval;
++
++	if (axi_bitq_uio_id < 0) {
++		LOG_ERROR("BUG: axi_bitq interface called, but not yet initialized");
++		exit(-1);
++	}
++
++	/* return ERROR_OK, unless a jtag_read_buffer returns a failed check
++	 * that wasn't handled by a caller-provided error handler
++	 */
++	retval = ERROR_OK;
++
++	while (cmd) {
++		switch (cmd->type) {
++			case JTAG_RESET:
++#ifdef _DEBUG_JTAG_IO_
++				LOG_DEBUG("reset trst: %i srst %i",
++				cmd->cmd.reset->trst,
++				cmd->cmd.reset->srst);
++#endif
++				if ((cmd->cmd.reset->trst == 1) ||
++						(cmd->cmd.reset->srst && (jtag_get_reset_config() & RESET_SRST_PULLS_TRST)))
++					tap_set_state(TAP_RESET);
++				axi_bitq_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
++				break;
++			case JTAG_RUNTEST:
++#ifdef _DEBUG_JTAG_IO_
++				LOG_DEBUG("runtest %i cycles, end in %s",
++						cmd->cmd.runtest->num_cycles,
++						tap_state_name(cmd->cmd.runtest->end_state));
++#endif
++				axi_bitq_end_state(cmd->cmd.runtest->end_state);
++				axi_bitq_runtest(cmd->cmd.runtest->num_cycles);
++				break;
++
++			case JTAG_STABLECLOCKS:
++#ifdef _DEBUG_JTAG_IO_
++				LOG_DEBUG("stableclocks %i cycles",
++						cmd->cmd.stableclocks->num_cycles);
++#endif
++				/* this is only allowed while in a stable state.  A check for a stable
++				 * state was done in jtag_add_clocks()
++				 */
++				axi_bitq_stableclocks(cmd->cmd.stableclocks->num_cycles);
++				break;
++
++			case JTAG_TLR_RESET:
++#ifdef _DEBUG_JTAG_IO_
++				LOG_DEBUG("statemove end in %s",
++						tap_state_name(cmd->cmd.statemove->end_state));
++#endif
++				axi_bitq_end_state(cmd->cmd.statemove->end_state);
++				axi_bitq_state_move(0);
++				break;
++			case JTAG_PATHMOVE:
++#ifdef _DEBUG_JTAG_IO_
++				LOG_DEBUG("pathmove: %i states, end in %s",
++						cmd->cmd.pathmove->num_states,
++						tap_state_name(cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]));
++#endif
++				axi_bitq_path_move(cmd->cmd.pathmove);
++				break;
++			case JTAG_SCAN:
++#ifdef _DEBUG_JTAG_IO_
++				LOG_DEBUG("%s scan end in %s",
++						(cmd->cmd.scan->ir_scan) ? "IR" : "DR",
++					tap_state_name(cmd->cmd.scan->end_state));
++#endif
++				axi_bitq_end_state(cmd->cmd.scan->end_state);
++				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
++				type = jtag_scan_type(cmd->cmd.scan);
++				axi_bitq_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size);
++				if (jtag_read_buffer(buffer, cmd->cmd.scan) != ERROR_OK)
++					retval = ERROR_JTAG_QUEUE_FAILED;
++				if (buffer)
++					free(buffer);
++				break;
++			case JTAG_SLEEP:
++#ifdef _DEBUG_JTAG_IO_
++				LOG_DEBUG("sleep %" PRIi32, cmd->cmd.sleep->us);
++#endif
++				jtag_sleep(cmd->cmd.sleep->us);
++				break;
++			case JTAG_TMS:
++				retval = axi_bitq_execute_tms(cmd);
++				break;
++			default:
++				LOG_ERROR("BUG: unknown JTAG command type encountered");
++				exit(-1);
++		}
++		cmd = cmd->next;
++	}
++
++	return retval;
++}
++
++
++/* -------------------------------------------------------------------------- */
++
++/* -------------------------------------------------------------------------- */
++
++static int axi_bitq_adapter_khz(int khz, int *jtag_speed)
++{
++	if (khz < 0) {
++		*jtag_speed = 0;
++		return ERROR_COMMAND_SYNTAX_ERROR;
++	}
++
++	if (khz >= (axi_bitq->clk_hz / 2000))
++		*jtag_speed = 0;
++	else
++		*jtag_speed = (axi_bitq->clk_hz/khz/2000-1);
++
++	return 0;
++}
++
++static int axi_bitq_jtag_speed_div(int speed, int *khz)
++{
++	if ((speed < 0) || (speed > 255)) {
++		*khz = 0;
++		return ERROR_COMMAND_SYNTAX_ERROR;
++	}
++
++	*khz = axi_bitq->clk_hz/(speed+1)/2000;
++
++	return 0;
++}
++
++static int axi_bitq_jtag_speed(int speed)
++{
++	int khz;
++
++	if (axi_bitq_jtag_speed_div(speed, &khz))
++		return ERROR_COMMAND_SYNTAX_ERROR;
++
++	axi_bitq->jtag_speed = speed;
++
++	LOG_INFO("setting speed to %d, max. TCK freq. is %d kHz", speed, axi_bitq->clk_hz/2000/(speed+1));
++
++	return 0;
++}
++
++COMMAND_HANDLER(axi_bitq_handle_config_command)
++{
++	axi_bitq_clk_hz = 40000000; // Default to 40 MHz
++
++	switch (CMD_ARGC) {
++	case 2:
++		axi_bitq_clk_hz = strtol(CMD_ARGV[1], NULL, 0);
++		axi_bitq_uio_id = strtol(CMD_ARGV[0], NULL, 0);
++		break;
++	case 1:
++		axi_bitq_uio_id = strtol(CMD_ARGV[0], NULL, 0);
++		break;
++	default:
++		return ERROR_COMMAND_SYNTAX_ERROR;
++	}
++
++	return ERROR_OK;
++}
++
++static const struct command_registration axi_bitq_command_handlers[] = {
++	{
++		.name = "axi_bitq_config",
++		.handler = axi_bitq_handle_config_command,
++		.mode = COMMAND_CONFIG,
++		.help = "Configure UIO ID number of axi_bitq device.",
++		.usage = "uio_id [axi_clk_rate]",
++	},
++	COMMAND_REGISTRATION_DONE
++};
++
++static int axi_bitq_jtag_init(void)
++{
++	if (axi_bitq_open(axi_bitq_uio_id, axi_bitq_clk_hz) != ERROR_OK) {
++		axi_bitq_close();
++		if (axi_bitq_uio_id >= 0)
++			LOG_ERROR("Cannot open axi_bitq, uio ID %d", axi_bitq_uio_id);
++		else
++			LOG_ERROR("Cannot open axi_bitq");
++		return ERROR_JTAG_INIT_FAILED;
++	}
++	LOG_INFO("axi_bitq open, uio ID %d, axi_clk_hz %d", axi_bitq->uio_fd, axi_bitq->clk_hz);
++
++	return ERROR_OK;
++}
++
++static int axi_bitq_jtag_quit(void)
++{
++	axi_bitq_close();
++	LOG_INFO("axi_bitq closed");
++
++	return ERROR_OK;
++}
++
++static const char * const axi_bitq_transports[] = { "jtag", NULL };
++
++struct jtag_interface axi_bitq_interface = {
++	.name = "axi_bitq",
++	.commands = axi_bitq_command_handlers,
++	.transports = axi_bitq_transports,
++
++	.execute_queue = axi_bitq_execute_queue,
++	.speed = axi_bitq_jtag_speed,
++	.khz = axi_bitq_adapter_khz,
++	.speed_div = axi_bitq_jtag_speed_div,
++	.init = axi_bitq_jtag_init,
++	.quit = axi_bitq_jtag_quit,
++};
+diff --git a/src/jtag/interfaces.c b/src/jtag/interfaces.c
+index 174c63a3..928bda3d 100644
+--- a/src/jtag/interfaces.c
++++ b/src/jtag/interfaces.c
+@@ -75,6 +75,9 @@ extern struct jtag_interface gw16012_interface;
+ #if BUILD_PRESTO
+ extern struct jtag_interface presto_interface;
+ #endif
++#if BUILD_AXIBITQ == 1
++extern struct jtag_interface axi_bitq_interface;
++#endif
+ #if BUILD_USBPROG == 1
+ extern struct jtag_interface usbprog_interface;
+ #endif
+@@ -174,6 +177,9 @@ struct jtag_interface *jtag_interfaces[] = {
+ #if BUILD_PRESTO
+ 		&presto_interface,
+ #endif
++#if BUILD_AXIBITQ == 1
++		&axi_bitq_interface,
++#endif
+ #if BUILD_USBPROG == 1
+ 		&usbprog_interface,
+ #endif
+-- 
+2.14.3
+
