@@ -1,0 +1,72 @@
+From 12f7bd104bd33eefa450fb5d4eb2da1630975056 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Tue, 7 Nov 2017 12:13:36 -0800
+Subject: [PATCH 2/2] ni: zynq: Mender.io support for NI Ettus Research Neon
+ Rev1 SDR
+
+This involves adding bootcount in environment, as well as modifying
+the default bootconfiguration to run ${mender_setup} first.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ configs/ni_neon_rev1_defconfig |  2 +-
+ include/configs/ni_neon_rev1.h | 17 +++++++----------
+ 2 files changed, 8 insertions(+), 11 deletions(-)
+
+diff --git a/configs/ni_neon_rev1_defconfig b/configs/ni_neon_rev1_defconfig
+index dba3bf5243..33c0f967b3 100644
+--- a/configs/ni_neon_rev1_defconfig
++++ b/configs/ni_neon_rev1_defconfig
+@@ -8,7 +8,7 @@ CONFIG_DEFAULT_DEVICE_TREE="zynq-ni-neon-rev1"
+ CONFIG_DEBUG_UART=y
+ CONFIG_FIT=y
+ CONFIG_FIT_SIGNATURE=y
+-CONFIG_SYS_EXTRA_OPTIONS="ENV_IS_IN_MMC"
++CONFIG_SYS_EXTRA_OPTIONS="BOOTCOUNT_LIMIT,BOOTCOUNT_ENV,ENV_IS_IN_MMC"
+ CONFIG_BOOTDELAY=0
+ # CONFIG_DISPLAY_CPUINFO is not set
+ CONFIG_SPL=y
+diff --git a/include/configs/ni_neon_rev1.h b/include/configs/ni_neon_rev1.h
+index bac81211bd..3a81d4b740 100644
+--- a/include/configs/ni_neon_rev1.h
++++ b/include/configs/ni_neon_rev1.h
+@@ -11,29 +11,26 @@
+ 
+ #include <configs/zynq-common.h>
+ 
+-#define CONFIG_SYS_MMC_ENV_DEV 0
+-#define CONFIG_ENV_SECT_SIZE           CONFIG_ENV_SIZE
+-#define CONFIG_ENV_OFFSET              0xE0000
+-
+ #undef CONFIG_EXTRA_ENV_SETTINGS
+ #define CONFIG_EXTRA_ENV_SETTINGS	\
+-	"fit_image=fit.itb\0"		\
++	"fit_image=boot/fitImage\0"	\
+ 	"mboard=neon-rev1\0"	\
+ 	"ec_disable_swsync=0\0"		\
+-	"ec_image=ec-neon-rev1.RW.bin\0" \
++	"ec_image=lib/firmware/ni/ec-neon-rev1.RW.bin\0"	\
+ 	"expand_ec_image=setenv ec_image lib/firmware/ni/ec-${mboard}.RW.bin\0" \
+-	"bootargs=root=/dev/mmcblk0p2 rw rootwait uio_pdrv_genirq.of_id=usrp-uio\0" \
++	"bootargs=root=${mender_kernel_root} rw rootwait uio_pdrv_genirq.of_id=usrp-uio\0" \
+ 	"load_addr=0x2000000\0"		\
+ 	"fit_size=0x800000\0"           \
+ 	"fdt_high=0x20000000\0"         \
+ 	"initrd_high=0x20000000\0"      \
+-	"sdboot=if test ${ec_disable_swsync} = 0; then "\
++	"sdboot=run mender_setup; " \
++		"if test ${ec_disable_swsync} = 0; then "\
+ 			"echo Copying MCU FW from SD to RAM... && " \
+ 			"run expand_ec_image; " \
+-			"load mmc 0 ${load_addr} ${ec_image} && " \
++			"ext4load ${mender_uboot_root} ${load_addr} ${ec_image} && " \
+ 			"crosec swsync ${load_addr} ${filesize}; fi;" \
+ 		"echo Copying FIT from SD to RAM... && " \
+-		"load mmc 0 ${load_addr} ${fit_image} && " \
++		"ext4load ${mender_uboot_root} ${load_addr} ${fit_image} && " \
+ 		"bootm ${load_addr}#conf@zynq-ni-${mboard}.dtb\0" \
+ 	"jtagboot=echo TFTPing FIT to RAM... && " \
+ 		"tftpboot ${load_addr} ${fit_image} && " \
+-- 
+2.17.0
+
