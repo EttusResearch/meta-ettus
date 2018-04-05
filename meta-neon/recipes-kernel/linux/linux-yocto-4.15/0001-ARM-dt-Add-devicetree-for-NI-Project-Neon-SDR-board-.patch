@@ -1,0 +1,259 @@
+From f718edf671f574c66d44bae33a8b6a29b1923756 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Tue, 3 Apr 2018 10:09:59 -0700
+Subject: [PATCH] ARM: dt: Add devicetree for NI Project Neon SDR board
+ revision 1
+
+Add devicetree for NI Project Neon SDR board Revision 1
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ arch/arm/boot/dts/Makefile              |   1 +
+ arch/arm/boot/dts/zynq-ni-neon-rev1.dts | 223 ++++++++++++++++++++++++++++++++
+ 2 files changed, 224 insertions(+)
+ create mode 100644 arch/arm/boot/dts/zynq-ni-neon-rev1.dts
+
+diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
+index d0381e9caf21..b599487d2594 100644
+--- a/arch/arm/boot/dts/Makefile
++++ b/arch/arm/boot/dts/Makefile
+@@ -1037,6 +1037,7 @@ dtb-$(CONFIG_ARCH_VT8500) += \
+ 	wm8850-w70v2.dtb
+ dtb-$(CONFIG_ARCH_ZYNQ) += \
+ 	zynq-microzed.dtb \
++	zynq-ni-neon-rev1.dtb \
+ 	zynq-parallella.dtb \
+ 	zynq-zc702.dtb \
+ 	zynq-zc706.dtb \
+diff --git a/arch/arm/boot/dts/zynq-ni-neon-rev1.dts b/arch/arm/boot/dts/zynq-ni-neon-rev1.dts
+new file mode 100644
+index 000000000000..a3e5c96980a6
+--- /dev/null
++++ b/arch/arm/boot/dts/zynq-ni-neon-rev1.dts
+@@ -0,0 +1,223 @@
++// SPDX-License-Identifier: (GPL-2.0 OR X11)
++/*
++ * National Instruments Ettus Research Project Neon Rev1
++ *
++ * Copyright (c) 2018 National Instruments Corp.
++ *
++ */
++
++/dts-v1/;
++
++#include <dt-bindings/input/input.h>
++#include <dt-bindings/interrupt-controller/irq.h>
++#include <dt-bindings/gpio/gpio.h>
++#include "zynq-7000.dtsi"
++
++/ {
++	model = "NI Ettus Research Project Neon SDR";
++	compatible = "ettus,zynq-neon-rev1", "xlnx,zynq-7000";
++
++	aliases {
++		ethernet0 = &gem0;
++		serial0 = &uart0;
++		serial1 = &uart1;
++		spi0 = &spi0;
++		i2c0 = &i2c0;
++		i2c1 = &i2c1;
++		i2c2 = &tun;
++	};
++
++	memory {
++		device_type = "memory";
++		reg = <0x0 0x40000000>;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	gpio-keys {
++		compatible = "gpio-keys";
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		power-button {
++			label = "Power Button";
++			linux,code = <KEY_POWER>;
++			gpios = <&gpio0 1 GPIO_ACTIVE_HIGH>;
++		};
++	};
++
++	gpio-poweroff {
++		compatible = "gpio-poweroff";
++		gpios = <&gpio0 2 GPIO_ACTIVE_LOW>;
++	};
++
++	usb_phy0: phy0 {
++		compatible = "usb-nop-xceiv";
++		#phy-cells = <0>;
++		reset-gpios = <&gpio0 4 GPIO_ACTIVE_LOW>;
++	};
++
++};
++
++&cpu0 {
++	operating-points = <1000000 1000000>;
++};
++
++&sdhci0 {
++	status = "okay";
++};
++
++&uart0 {
++	status = "okay";
++};
++
++&uart1 {
++	status = "okay";
++};
++
++/* we use the ARM global timer */
++&ttc0 {
++	status = "disabled";
++};
++
++/* we use the ARM global timer */
++&ttc1 {
++	status = "disabled";
++};
++
++&i2c1 {
++	status = "okay";
++	clock-frequency = <400000>;
++
++	rtc0: rtc@68 {
++		compatible = "dallas,ds1374";
++		reg = <0x68>;
++		reset-on-timeout;
++		trickle-resistor-ohms = <250>;
++		trickle-diode-disable;
++		timeout-sec = <10>;
++	};
++
++	tpm: tpm@29 {
++		compatible = "atmel,at97sc3205t", "atmel,at97sc3204t";
++		reg = <0x29>;
++		reset-gpios = <&gpio0 5 GPIO_ACTIVE_LOW>;
++	};
++
++	mpu9250@69 {
++		compatible = "invensense,mpu9250";
++		reg = <0x69>;
++		interrupt-parent = <&gpio0>;
++		interrupts = <50 IRQ_TYPE_EDGE_RISING>;
++		/* TOOO: Check edge vs level interrupt */
++	};
++};
++
++&i2c0 {
++	status = "okay";
++	clock-frequency = <400000>;
++
++	embedded-controller@1e {
++		status = "okay";
++		reg = <0x1e>;
++		compatible = "ni,embedded-controller-i2c",
++			     "google,cros-ec-i2c";
++		interrupts = <0 IRQ_TYPE_EDGE_FALLING>;
++		interrupt-parent = <&gpio0>;
++		google,has-vbc-nvram;
++
++		wakeup-source;
++
++		tun: i2c-tunnel {
++			compatible = "google,cros-ec-i2c-tunnel";
++			#address-cells = <1>;
++			#size-cells = <0>;
++			google,remote-bus = <0>;
++			clock-frequency = <100000>;
++
++			eeprom@50 {
++				compatible = "at24,24c02";
++				reg = <0x50>;
++				#address-cells = <1>;
++				#size-cells = <0>;
++				read-only;
++
++				eth0_addr: eth-addr@24 {
++					reg = <0x24 0x6>;
++				};
++
++				eth1_addr: eth-addr@2c {
++					reg = <0x2c 0x6>;
++				};
++			};
++		};
++	};
++};
++
++&gpio0 {
++	status = "okay";
++};
++
++&clkc {
++	ps-clk-frequency = <33333333>;
++	fclk-enable = <0xf>;
++};
++
++/* Disabled, because runtime instantiation of cs-gpio property
++ * does not work if driver is instantiated
++ */
++&spi0 {
++	status = "disabled";
++};
++
++/* Disabled, because runtime instantiation of cs-gpio property
++ * does not work if driver is instantiated
++ */
++&spi1 {
++	status = "disabled";
++};
++
++&gem0 {
++	status = "okay";
++	phy-mode = "rgmii-id";
++	phy-handle = <&ethernet_phy0>;
++
++	nvmem-cells = <&eth0_addr>;
++	nvmem-cell-names = "mac-address";
++
++	ethernet_phy0: ethernet-phy@4 {
++		reg = <4>;
++		reset-gpios = <&gpio0 3 GPIO_ACTIVE_LOW>;
++
++               rxc-skew-ps = <1080>;
++               rxdv-skew-ps = <420>;
++
++               rxd0-skew-ps = <420>;
++               rxd1-skew-ps = <420>;
++               rxd2-skew-ps = <420>;
++               rxd3-skew-ps = <420>;
++
++               txd0-skew-ps = <0>;
++               txd1-skew-ps = <0>;
++               txd2-skew-ps = <0>;
++               txd3-skew-ps = <0>;
++
++               txc-skew-ps = <1860>;
++               txen-skew-ps = <0>;
++	};
++};
++
++&usb0 {
++	status = "okay";
++	dr_mode = "host";
++	usb-phy = <&usb_phy0>;
++};
++
++&amba {
++	ocm: sram@fffc0000 {
++		compatible = "mmio-sram";
++		reg = <0xfffc0000 0x10000>;
++	};
++};
+-- 
+2.16.2
+
