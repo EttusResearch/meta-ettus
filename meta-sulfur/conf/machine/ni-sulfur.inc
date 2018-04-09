@@ -30,3 +30,5 @@ MACHINE_EXTRA_RRECOMMENDS = " \
                              linux-firmware-ni-magnesium \
                              linux-firmware-adi-mykonos \
                             "
+
+IMAGE_INSTALL_append_ni-sulfur = " kernel-image"
