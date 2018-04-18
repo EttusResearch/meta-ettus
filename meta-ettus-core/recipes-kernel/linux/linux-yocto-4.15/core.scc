@@ -1,1 +1,3 @@
+patch 0001-v7-OF-DT-Overlay-configfs-interface.patch
+patch 0001-kbuild-Enable-DT-symbols.patch
 patch 0002-net-ethernet-nixge-Add-support-for-National-Instr.patch
