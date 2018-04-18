@@ -1,9 +1,10 @@
 FILESEXTRAPATHS_prepend := "${THISDIR}/linux-yocto-4.15:"
 
 SRC_URI_append_ni-neon = " \
-		file://defconfig \
-		file://neon.scc \
-		"
+                         file://defconfig \
+                         file://neon.scc \
+                         file://neon.cfg \
+                         "
 
 COMPATIBLE_MACHINE_ni-neon = "ni-neon-rev1"
 
