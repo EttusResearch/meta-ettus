@@ -46,8 +46,12 @@ FILES_${PN}-ni-sulfur = "/lib/firmware/ni/ec-sulfur-rev3.bin \
                          /lib/firmware/ni/ec-sulfur-rev4.RW.bin \
                          /lib/firmware/ni/ec-sulfur-rev5.bin \
                          /lib/firmware/ni/ec-sulfur-rev5.RW.bin \
+                         /lib/firmware/ni/ec-sulfur-rev6.bin \
+                         /lib/firmware/ni/ec-sulfur-rev6.RW.bin \
                          /lib/firmware/ni/ec-phosphorus-rev4.bin \
                          /lib/firmware/ni/ec-phosphorus-rev4.RW.bin \
+                         /lib/firmware/ni/ec-phosphorus-rev6.bin \
+                         /lib/firmware/ni/ec-phosphorus-rev6.RW.bin \
                         "
 RDEPENDS_${PN}-ni-sulfur += "${PN}-ni-sulfur-license"
 DEPENDS += "dtc-native python-native"
@@ -80,8 +84,14 @@ do_install_append_ni-sulfur() {
     ln -sf ec-sulfur-rev5.bin ${D}/lib/firmware/ni/ec-sulfur-rev4.bin
     ln -sf ec-sulfur-rev5.RW.bin ${D}/lib/firmware/ni/ec-sulfur-rev4.RW.bin
 
+    ln -sf ec-sulfur-rev5.bin ${D}/lib/firmware/ni/ec-sulfur-rev6.bin
+    ln -sf ec-sulfur-rev5.RW.bin ${D}/lib/firmware/ni/ec-sulfur-rev6.RW.bin
+
     ln -sf ec-sulfur-rev5.bin ${D}/lib/firmware/ni/ec-phosphorus-rev4.bin
     ln -sf ec-sulfur-rev5.RW.bin ${D}/lib/firmware/ni/ec-phosphorus-rev4.RW.bin
+
+    ln -sf ec-sulfur-rev5.bin ${D}/lib/firmware/ni/ec-phosphorus-rev6.bin
+    ln -sf ec-sulfur-rev5.RW.bin ${D}/lib/firmware/ni/ec-phosphorus-rev6.RW.bin
 
     install -m 0644 ${WORKDIR}/LICENSE.ec-sulfur ${D}/lib/firmware/ni/LICENSE.ec-sulfur
 
