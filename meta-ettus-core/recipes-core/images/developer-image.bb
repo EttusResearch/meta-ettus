@@ -32,6 +32,7 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     htop \
     glib-2.0 \
     orc \
+    overlay-script \
     libudev \
     iperf3 \
     openssh-sftp \
@@ -52,7 +53,6 @@ CORE_IMAGE_EXTRA_INSTALL = "\
 #usrp-hwd
 #openocd
 #salt-minion
-#overlay-script
 
 inherit core-image image-buildinfo
 
