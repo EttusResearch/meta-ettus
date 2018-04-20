@@ -41,6 +41,7 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     uhd-examples \
     python3-pip \
     ethtool \
+    sshfs-fuse \
     tzdata \
     trousers \
     tpm-tools \
@@ -52,7 +53,6 @@ CORE_IMAGE_EXTRA_INSTALL = "\
 #openocd
 #salt-minion
 #overlay-script
-#sshfs-fuse
 
 inherit core-image image-buildinfo
 

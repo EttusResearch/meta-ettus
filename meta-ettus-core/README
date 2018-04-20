@@ -9,7 +9,7 @@ Dependencies
   branch: master
 
   URI: git//git.openembedded.org/meta-openembedded
-  layers: meta-oe
+  layers: meta-oe meta-filesystems
   branch: master
 
   URI: git//git.openembedded.org/openembedded-core
