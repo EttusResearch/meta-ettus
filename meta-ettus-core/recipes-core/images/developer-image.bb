@@ -31,6 +31,7 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     python-numpy \
     htop \
     glib-2.0 \
+    mpmd \
     orc \
     overlay-script \
     libudev \
@@ -50,7 +51,6 @@ CORE_IMAGE_EXTRA_INSTALL = "\
 
 #eeprom-hostname-systemd
 #migrate-netcfg-systemd
-#usrp-hwd
 #openocd
 #salt-minion
 
