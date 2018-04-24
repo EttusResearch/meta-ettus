@@ -9,20 +9,20 @@ Revision 2 SDR board.
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
- arch/arm/dts/Makefile                            |   1 +
- arch/arm/dts/zynq-ni-sulfur-rev2-uboot.dtsi      |  16 ++
- arch/arm/dts/zynq-ni-sulfur-rev2.dts             | 276 ++++++++++++++++++++
- board/ni/zynq/MAINTAINERS                        |   6 +
- board/ni/zynq/Makefile                           |  10 +
- board/ni/zynq/board.c                            | 266 +++++++++++++++++++
- board/ni/zynq/ps7_init_common.c                  | 118 +++++++++
- board/ni/zynq/ps7_init_gpl.h                     |  35 +++
- board/ni/zynq/sulfur-eeprom.c                    | 170 ++++++++++++
- board/ni/zynq/sulfur-eeprom.h                    |  70 +++++
- board/ni/zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c | 313 +++++++++++++++++++++++
- configs/ni_sulfur_rev2_defconfig                 |  61 +++++
- include/configs/ni_sulfur_rev2.h                 |  33 +++
- 13 files changed, 1375 insertions(+)
+ arch/arm/dts/Makefile                         |   1 +
+ arch/arm/dts/zynq-ni-sulfur-rev2-uboot.dtsi   |  16 +
+ arch/arm/dts/zynq-ni-sulfur-rev2.dts          | 276 +++++++++++++++
+ board/ni/zynq/MAINTAINERS                     |   6 +
+ board/ni/zynq/Makefile                        |  10 +
+ board/ni/zynq/board.c                         | 268 +++++++++++++++
+ board/ni/zynq/ps7_init_common.c               | 118 +++++++
+ board/ni/zynq/ps7_init_gpl.h                  |  35 ++
+ board/ni/zynq/sulfur-eeprom.c                 | 170 ++++++++++
+ board/ni/zynq/sulfur-eeprom.h                 |  70 ++++
+ .../zynq/zynq-ni-sulfur-rev2/ps7_init_gpl.c   | 313 ++++++++++++++++++
+ configs/ni_sulfur_rev2_defconfig              |  61 ++++
+ include/configs/ni_sulfur_rev2.h              |  33 ++
+ 13 files changed, 1377 insertions(+)
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev2-uboot.dtsi
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev2.dts
  create mode 100644 board/ni/zynq/MAINTAINERS
@@ -382,10 +382,10 @@ index 0000000000..b8a55978cd
 +obj-$(CONFIG_SPL_BUILD) += $(hw-platform-y)/ps7_init_gpl.o ps7_init_common.o
 diff --git a/board/ni/zynq/board.c b/board/ni/zynq/board.c
 new file mode 100644
-index 0000000000..711c758cc2
+index 0000000000..6f340a9526
 --- /dev/null
 +++ b/board/ni/zynq/board.c
-@@ -0,0 +1,266 @@
+@@ -0,0 +1,268 @@
 +/*
 + * (C) Copyright 2012 Michal Simek <monstr@monstr.eu>
 + *
@@ -530,7 +530,9 @@ index 0000000000..711c758cc2
 +		/* not supported combo x != y */
 +		if (x != y)
 +			return -ENOTSUPP;
-+
++	/* if x is not matching but valid, return */
++	} else if (x > 0) {
++			return -ENOTSUPP;
 +	/* else try the opposite */
 +	} else if (y > 0) {
 +		return legit_combo(y, x, compare);
