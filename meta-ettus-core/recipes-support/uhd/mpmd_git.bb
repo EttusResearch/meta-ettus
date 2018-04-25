@@ -17,6 +17,7 @@ RDEPENDS_${PN} = "python3-netaddr \
                   python3-mprpc \
                   python3-multiprocessing \
                   python3-mmap \
+                  python3-fcntl \
                   python3-six \
                   python3-pyroute2 \
                   udev \
