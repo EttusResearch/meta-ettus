@@ -1,0 +1,117 @@
+From 340d3a70666a41f3967678dd4301d5a685aa5aad Mon Sep 17 00:00:00 2001
+From: Mike Looijmans <mike.looijmans@topic.nl>
+Date: Thu, 29 Mar 2018 07:29:48 +0200
+Subject: [PATCH 1/2] of_net: Implement of_get_nvmem_mac_address helper
+
+It's common practice to store MAC addresses for network interfaces into
+nvmem devices. However the code to actually do this in the kernel lacks,
+so this patch adds of_get_nvmem_mac_address() for drivers to obtain the
+address from an nvmem cell provider.
+
+This is particulary useful on devices where the ethernet interface cannot
+be configured by the bootloader, for example because it's in an FPGA.
+
+Signed-off-by: Mike Looijmans <mike.looijmans@topic.nl>
+Reviewed-by: Florian Fainelli <f.fainelli@gmail.com>
+Reviewed-by: Andrew Lunn <andrew@lunn.ch>
+---
+ .../devicetree/bindings/net/ethernet.txt      |  2 +
+ drivers/of/of_net.c                           | 40 +++++++++++++++++++
+ include/linux/of_net.h                        |  6 +++
+ 3 files changed, 48 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/net/ethernet.txt b/Documentation/devicetree/bindings/net/ethernet.txt
+index 2974e63ba311..cfc376bc977a 100644
+--- a/Documentation/devicetree/bindings/net/ethernet.txt
++++ b/Documentation/devicetree/bindings/net/ethernet.txt
+@@ -10,6 +10,8 @@ Documentation/devicetree/bindings/phy/phy-bindings.txt.
+   the boot program; should be used in cases where the MAC address assigned to
+   the device by the boot program is different from the "local-mac-address"
+   property;
++- nvmem-cells: phandle, reference to an nvmem node for the MAC address;
++- nvmem-cell-names: string, should be "mac-address" if nvmem is to be used;
+ - max-speed: number, specifies maximum speed in Mbit/s supported by the device;
+ - max-frame-size: number, maximum transfer unit (IEEE defined MTU), rather than
+   the maximum frame size (there's contradiction in the Devicetree
+diff --git a/drivers/of/of_net.c b/drivers/of/of_net.c
+index d820f3edd431..53189d4022a6 100644
+--- a/drivers/of/of_net.c
++++ b/drivers/of/of_net.c
+@@ -7,6 +7,7 @@
+  */
+ #include <linux/etherdevice.h>
+ #include <linux/kernel.h>
++#include <linux/nvmem-consumer.h>
+ #include <linux/of_net.h>
+ #include <linux/phy.h>
+ #include <linux/export.h>
+@@ -80,3 +81,42 @@ const void *of_get_mac_address(struct device_node *np)
+ 	return of_get_mac_addr(np, "address");
+ }
+ EXPORT_SYMBOL(of_get_mac_address);
++
++/**
++ * Obtain the MAC address from an nvmem provider named 'mac-address' through
++ * device tree.
++ * On success, copies the new address into memory pointed to by addr and
++ * returns 0. Returns a negative error code otherwise.
++ * @np:		Device tree node containing the nvmem-cells phandle
++ * @addr:	Pointer to receive the MAC address using ether_addr_copy()
++ */
++int of_get_nvmem_mac_address(struct device_node *np, void *addr)
++{
++	struct nvmem_cell *cell;
++	const void *mac;
++	size_t len;
++	int ret;
++
++	cell = of_nvmem_cell_get(np, "mac-address");
++	if (IS_ERR(cell))
++		return PTR_ERR(cell);
++
++	mac = nvmem_cell_read(cell, &len);
++
++	nvmem_cell_put(cell);
++
++	if (IS_ERR(mac))
++		return PTR_ERR(mac);
++
++	if (len < ETH_ALEN || !is_valid_ether_addr(mac)) {
++		ret = -EINVAL;
++	} else {
++		ether_addr_copy(addr, mac);
++		ret = 0;
++	}
++
++	kfree(mac);
++
++	return ret;
++}
++EXPORT_SYMBOL(of_get_nvmem_mac_address);
+diff --git a/include/linux/of_net.h b/include/linux/of_net.h
+index 9cd72aab76fe..90d81ee9e6a0 100644
+--- a/include/linux/of_net.h
++++ b/include/linux/of_net.h
+@@ -13,6 +13,7 @@
+ struct net_device;
+ extern int of_get_phy_mode(struct device_node *np);
+ extern const void *of_get_mac_address(struct device_node *np);
++extern int of_get_nvmem_mac_address(struct device_node *np, void *addr);
+ extern struct net_device *of_find_net_device_by_node(struct device_node *np);
+ #else
+ static inline int of_get_phy_mode(struct device_node *np)
+@@ -25,6 +26,11 @@ static inline const void *of_get_mac_address(struct device_node *np)
+ 	return NULL;
+ }
+ 
++static inline int of_get_nvmem_mac_address(struct device_node *np, void *addr)
++{
++	return -ENODEV;
++}
++
+ static inline struct net_device *of_find_net_device_by_node(struct device_node *np)
+ {
+ 	return NULL;
+-- 
+2.17.0
+

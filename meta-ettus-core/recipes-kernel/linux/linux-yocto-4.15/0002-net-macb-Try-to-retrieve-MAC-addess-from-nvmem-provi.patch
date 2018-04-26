@@ -1,0 +1,42 @@
+From 5cea3e30cc82e7139c539dcd8a447717121c290c Mon Sep 17 00:00:00 2001
+From: Mike Looijmans <mike.looijmans@topic.nl>
+Date: Thu, 29 Mar 2018 07:29:49 +0200
+Subject: [PATCH 2/2] net: macb: Try to retrieve MAC addess from nvmem provider
+
+Call of_get_nvmem_mac_address() to fetch the MAC address from an nvmem
+cell, if one is provided in the device tree. This allows the address to
+be stored in an I2C EEPROM device for example.
+
+Signed-off-by: Mike Looijmans <mike.looijmans@topic.nl>
+Acked-by: Nicolas Ferre <nicolas.ferre@microchip.com>
+---
+ drivers/net/ethernet/cadence/macb_main.c | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/ethernet/cadence/macb_main.c b/drivers/net/ethernet/cadence/macb_main.c
+index 72a67f74b97b..47dc10b94c0e 100644
+--- a/drivers/net/ethernet/cadence/macb_main.c
++++ b/drivers/net/ethernet/cadence/macb_main.c
+@@ -3495,10 +3495,16 @@ static int macb_probe(struct platform_device *pdev)
+ 		dev->max_mtu = ETH_DATA_LEN;
+ 
+ 	mac = of_get_mac_address(np);
+-	if (mac)
++	if (mac) {
+ 		ether_addr_copy(bp->dev->dev_addr, mac);
+-	else
+-		macb_get_hwaddr(bp);
++	} else {
++		err = of_get_nvmem_mac_address(np, bp->dev->dev_addr);
++		if (err) {
++			if (err == -EPROBE_DEFER)
++				goto err_out_free_netdev;
++			macb_get_hwaddr(bp);
++		}
++	}
+ 
+ 	/* Power up the PHY if there is a GPIO reset */
+ 	phy_node =  of_get_next_available_child(np, NULL);
+-- 
+2.17.0
+
