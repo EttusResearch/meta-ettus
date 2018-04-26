@@ -5,3 +5,4 @@ patch 0001-net-nixge-Work-around-broken-PHY-autoneg.patch
 patch 0001-misc-eeprom-Set-io_limit-to-16-to-avoid-overflowing.patch
 patch 0001-of_net-Implement-of_get_nvmem_mac_address-helper.patch
 patch 0002-net-macb-Try-to-retrieve-MAC-addess-from-nvmem-provi.patch
+patch 0001-dmaengine-axi-dmac-Request-IRQ-with-IRQF_SHARED.patch
