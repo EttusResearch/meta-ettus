@@ -1,11 +1,11 @@
-FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+FILESEXTRAPATHS_prepend_ni-sulfur := "${THISDIR}/files:"
 
 SRC_URI_append_ni-sulfur = " file://system.conf \
                              file://eth.network \
                              file://70-sfp-net.rules \
                            "
 
-FILES_${PN}_append += " \
+FILES_${PN}_append_ni-sulfur = " \
     ${sysconfdir}/udev/rules.d/70-sfp-net.rules \
 "
 
