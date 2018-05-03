@@ -66,11 +66,11 @@ LICENSE_${PN}-ni-magnesium = "Firmware-GPLv2"
 RDEPENDS_${PN}-ni-magnesium += "${PN}-gplv2-license"
 
 do_compile_append_ni-sulfur() {
-    dtc -@ -o ${WORKDIR}/n310.dtbo ${WORKDIR}/usrp_n310_fpga_XG.dts
-    python ${WORKDIR}/fpga_bit_to_bin.py -f ${WORKDIR}/usrp_n310_fpga_XG.bit ${WORKDIR}/n310.bin
+    dtc -@ -o ${WORKDIR}/n310.dtbo ${WORKDIR}/usrp_n310_fpga_HG.dts
+    python ${WORKDIR}/fpga_bit_to_bin.py -f ${WORKDIR}/usrp_n310_fpga_HG.bit ${WORKDIR}/n310.bin
 
-    dtc -@ -o ${WORKDIR}/n300.dtbo ${WORKDIR}/usrp_n300_fpga_XG.dts
-    python ${WORKDIR}/fpga_bit_to_bin.py -f ${WORKDIR}/usrp_n300_fpga_XG.bit ${WORKDIR}/n300.bin
+    dtc -@ -o ${WORKDIR}/n300.dtbo ${WORKDIR}/usrp_n300_fpga_HG.dts
+    python ${WORKDIR}/fpga_bit_to_bin.py -f ${WORKDIR}/usrp_n300_fpga_HG.bit ${WORKDIR}/n300.bin
 }
 
 do_install_append_ni-sulfur() {
