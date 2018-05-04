@@ -1,8 +1,8 @@
-FILESEXTRAPATHS_prepend := "${THISDIR}/u-boot-2017.09:"
+FILESEXTRAPATHS_prepend_ni-sulfur := "${THISDIR}/u-boot-2017.09:"
 
-SPL_BINARY = "boot.bin"
-UBOOT_SUFFIX = "img"
-UBOOT_BINARY = "u-boot.${UBOOT_SUFFIX}"
+SPL_BINARY_ni-sulfur = "boot.bin"
+UBOOT_SUFFIX_ni-sulfur = "img"
+UBOOT_BINARY_ni-sulfur = "u-boot.${UBOOT_SUFFIX}"
 
 SRC_URI_prepend_ni-sulfur = " \
     file://0001-i2c-muxes-pca954x-Add-support-for-GPIO-reset-line.patch \
