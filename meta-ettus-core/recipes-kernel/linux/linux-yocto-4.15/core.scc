@@ -2,6 +2,8 @@ patch 0001-v7-OF-DT-Overlay-configfs-interface.patch
 patch 0001-kbuild-Enable-DT-symbols.patch
 patch 0002-net-ethernet-nixge-Add-support-for-National-Instr.patch
 patch 0001-net-nixge-Work-around-broken-PHY-autoneg.patch
+patch 0001-net-nixge-Fix-error-path-for-obtaining-mac-address.patch
+patch 0002-net-nixge-Address-compiler-warnings-about-signedness.patch
 patch 0001-misc-eeprom-Set-io_limit-to-16-to-avoid-overflowing.patch
 patch 0001-of_net-Implement-of_get_nvmem_mac_address-helper.patch
 patch 0002-net-macb-Try-to-retrieve-MAC-addess-from-nvmem-provi.patch

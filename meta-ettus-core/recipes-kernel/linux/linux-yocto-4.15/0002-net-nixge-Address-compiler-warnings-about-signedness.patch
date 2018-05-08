@@ -1,0 +1,46 @@
+From a637e317f349b3db797e0dd520a1ad707dd89325 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <mdf@kernel.org>
+Date: Fri, 4 May 2018 10:10:53 -0700
+Subject: [PATCH 2/2] net: nixge: Address compiler warnings about signedness
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Fixes the following warnings:
+warning: pointer targets in passing argument 1 of
+‘is_valid_ether_addr’ differ in signedness [-Wpointer-sign]
+  if (mac_addr && is_valid_ether_addr(mac_addr)) {
+                                      ^~~~~~~~
+expected ‘const u8 * {aka const unsigned char *}’ but argument
+is of type ‘const char *’
+ static inline bool is_valid_ether_addr(const u8 *addr)
+                    ^~~~~~~~~~~~~~~~~~~
+warning: pointer targets in passing argument 2 of
+‘ether_addr_copy’ differ in signedness [-Wpointer-sign]
+   ether_addr_copy(ndev->dev_addr, mac_addr);
+                                   ^~~~~~~~
+expected ‘const u8 * {aka const unsigned char *}’ but argument
+is of type ‘const char *’
+ static inline void ether_addr_copy(u8 *dst, const u8 *src)
+
+Signed-off-by: Moritz Fischer <mdf@kernel.org>
+---
+ drivers/net/ethernet/ni/nixge.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
+index c41fea9253e3..b092894dd128 100644
+--- a/drivers/net/ethernet/ni/nixge.c
++++ b/drivers/net/ethernet/ni/nixge.c
+@@ -1183,7 +1183,7 @@ static int nixge_probe(struct platform_device *pdev)
+ 	struct nixge_priv *priv;
+ 	struct net_device *ndev;
+ 	struct resource *dmares;
+-	const char *mac_addr;
++	const u8 *mac_addr;
+ 	int err;
+ 
+ 	ndev = alloc_etherdev(sizeof(*priv));
+-- 
+2.17.0
+
