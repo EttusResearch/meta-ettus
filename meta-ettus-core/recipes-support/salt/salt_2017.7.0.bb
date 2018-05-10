@@ -16,6 +16,7 @@ PACKAGECONFIG[tcp] = ",,python3-pycrypto"
 SRC_URI = "https://files.pythonhosted.org/packages/source/s/${PN}/${PN}-${PV}.tar.gz \
            file://minion \
            file://salt-minion \
+           file://salt-minion.service \
            file://salt-common.bash_completion \
            file://salt-common.logrotate \
            file://salt-api \
@@ -68,6 +69,9 @@ do_install_append() {
         install -m 0644 ${WORKDIR}/roster ${D}${sysconfdir}/${PN}/roster
         install -d ${D}${sysconfdir}/${PN}/cloud.conf.d ${D}${sysconfdir}/${PN}/cloud.profiles.d ${D}${sysconfdir}/${PN}/cloud.providers.d
 
+        install -d ${D}${base_libdir}/systemd/system
+        install -m 0644 ${WORKDIR}/salt-minion.service ${D}${base_libdir}/systemd/system/
+
         install -d ${D}${PYTHON_SITEPACKAGES_DIR}/${PN}-tests/
         cp -r ${S}/tests/ ${D}${PYTHON_SITEPACKAGES_DIR}/${PN}-tests/
 }
@@ -92,7 +96,13 @@ RDEPENDS_${PN}-minion += "${@bb.utils.contains('PACKAGECONFIG', 'zeromq', 'pytho
 RDEPENDS_${PN}-minion += "${@bb.utils.contains('PACKAGECONFIG', 'tcp', 'python3-pycrypto', '',d)}"
 RRECOMMENDS_${PN}-minion_append_x64 = "dmidecode"
 RSUGGESTS_${PN}-minion = "python3-augeas"
-CONFFILES_${PN}-minion = "${sysconfdir}/${PN}/minion ${sysconfdir}/init.d/${PN}-minion"
+CONFFILES_${PN}-minion = "${sysconfdir}/${PN}/minion \
+                          ${sysconfdir}/init.d/${PN}-minion \
+                          ${base_libdir} \
+                          ${base_libdir}/systemd \
+                          ${base_libdir}/systemd/system \
+                          ${base_libdir}/systemd/system/salt-minion.service \
+                         "
 FILES_${PN}-minion = "${bindir}/${PN}-minion ${sysconfdir}/${PN}/minion.d/ ${CONFFILES_${PN}-minion} ${bindir}/${PN}-proxy"
 INITSCRIPT_NAME_${PN}-minion = "${PN}-minion"
 INITSCRIPT_PARAMS_${PN}-minion = "defaults"
@@ -161,3 +171,7 @@ RDEPENDS_${PN}-tests = "${PN}-common python-pytest-salt python3-tests python3-im
 FILES_${PN}-tests = "${PYTHON_SITEPACKAGES_DIR}/salt-tests/tests/"
 
 FILES_${PN}-bash-completion = "${sysconfdir}/bash_completion.d/${PN}-common"
+
+inherit systemd
+
+SYSTEMD_SERVICE_${PN}-minion = "salt-minion.service"
