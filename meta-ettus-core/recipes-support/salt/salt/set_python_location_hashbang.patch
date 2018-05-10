@@ -1,0 +1,107 @@
+Upstream-Status: Pending
+
+# The Salt SysV scripts require that the process name of the salt
+# components have the form "salt-<component>".
+# The current python shebangs on the salt components scripts spwans
+# processes that are generically named python. Changed shebang so
+# process names will be identifiable by the init scripts.
+
+diff -Naur a/scripts/salt-api b/scripts/salt-api
+--- a/scripts/salt-api	2015-04-08 16:48:01.912294278 -0500
++++ b/scripts/salt-api	2015-04-08 16:49:03.336483297 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/python
+ 
+ # Import salt libs
+ from salt.scripts import salt_api
+diff -Naur a/scripts/salt-call b/scripts/salt-call
+--- a/scripts/salt-call	2015-04-08 16:48:01.912294278 -0500
++++ b/scripts/salt-call	2015-04-08 16:49:11.360507977 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/python
+ '''
+ Directly call a salt command in the modules, does not require a running salt
+ minion to run.
+diff -Naur a/scripts/salt-cloud b/scripts/salt-cloud
+--- a/scripts/salt-cloud	2015-04-08 16:48:01.912294278 -0500
++++ b/scripts/salt-cloud	2015-04-08 16:49:20.612536436 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/python
+ '''
+ Publish commands to the salt system from the command line on the master.
+ '''
+diff -Naur a/scripts/salt-cp b/scripts/salt-cp
+--- a/scripts/salt-cp	2015-04-08 16:48:01.912294278 -0500
++++ b/scripts/salt-cp	2015-04-08 16:49:30.132565723 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/python
+ '''
+ Publish commands to the salt system from the command line on the master.
+ '''
+diff -Naur a/scripts/salt-key b/scripts/salt-key
+--- a/scripts/salt-key	2015-04-08 16:48:01.912294278 -0500
++++ b/scripts/salt-key	2015-04-08 16:49:39.912595801 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/python
+ '''
+ Manage the authentication keys with salt-key
+ '''
+diff -Naur a/scripts/salt-master b/scripts/salt-master
+--- a/scripts/salt-master	2015-04-08 16:48:01.912294278 -0500
++++ b/scripts/salt-master	2015-04-08 16:49:50.224627508 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/python
+ '''
+ Start the salt-master
+ '''
+diff -Naur a/scripts/salt-minion b/scripts/salt-minion
+--- a/scripts/salt-minion	2015-04-08 16:48:01.912294278 -0500
++++ b/scripts/salt-minion	2015-04-08 16:49:57.808650832 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/python
+ '''
+ This script is used to kick off a salt minion daemon
+ '''
+diff -Naur a/scripts/salt-run b/scripts/salt-run
+--- a/scripts/salt-run	2015-04-08 16:48:01.912294278 -0500
++++ b/scripts/salt-run	2015-04-08 16:50:06.588677825 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/python
+ '''
+ Execute a salt convenience routine
+ '''
+diff -Naur a/scripts/salt-ssh b/scripts/salt-ssh
+--- a/scripts/salt-ssh	2015-04-08 16:48:01.912294278 -0500
++++ b/scripts/salt-ssh	2015-04-08 16:50:13.680699631 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/python
+ '''
+ Execute the salt ssh system
+ '''
+diff -Naur a/scripts/salt-syndic b/scripts/salt-syndic
+--- a/scripts/salt-syndic	2015-04-08 16:48:01.912294278 -0500
++++ b/scripts/salt-syndic	2015-04-08 16:50:20.892721803 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/python
+ '''
+ This script is used to kick off a salt syndic daemon
+ '''
+diff -Naur a/scripts/salt-unity b/scripts/salt-unity
+--- a/scripts/salt-unity	2015-04-08 16:48:01.912294278 -0500
++++ b/scripts/salt-unity	2015-04-08 16:50:35.968768142 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python2
++#!/usr/bin/python2
+ 
+ # Import python libs
+ import sys
