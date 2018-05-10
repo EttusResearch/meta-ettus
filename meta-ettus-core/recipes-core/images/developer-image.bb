@@ -23,12 +23,6 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     boost \
     cmake \
     gsl \
-    python \
-    python-mako \
-    python-modules \
-    python-argparse \
-    python-distutils \
-    python-numpy \
     htop \
     glib-2.0 \
     mpmd \
@@ -47,12 +41,12 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     tzdata \
     trousers \
     tpm-tools \
+    salt-minion \
     "
 
 #eeprom-hostname-systemd
 #migrate-netcfg-systemd
 #openocd
-#salt-minion
 
 inherit core-image image-buildinfo
 
