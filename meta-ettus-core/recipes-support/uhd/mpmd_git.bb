@@ -35,7 +35,7 @@ inherit distutils3-base cmake python3-dir python3native systemd
 
 S = "${WORKDIR}/git/mpm"
 
-EXTRA_OECMAKE_append = " -DCMAKE_SKIP_RPATH=ON -DMPM_PYTHON_VER=3"
+EXTRA_OECMAKE_append = " -DCMAKE_SKIP_RPATH=ON"
 
 SYSTEMD_PACKAGES = "${@bb.utils.contains('DISTRO_FEATURES','systemd','${PN}','',d)}"
 SYSTEMD_SERVICE_${PN} = "${@bb.utils.contains('DISTRO_FEATURES','systemd','usrp-hwd.service','',d)}"
