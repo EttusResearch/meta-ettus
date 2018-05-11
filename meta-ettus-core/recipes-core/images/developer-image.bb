@@ -30,6 +30,7 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     overlay-script \
     libudev \
     iperf3 \
+    openocd \
     openssh-sftp \
     openssh-sftp-server \
     fftwf-wisdom \
@@ -46,7 +47,6 @@ CORE_IMAGE_EXTRA_INSTALL = "\
 
 #eeprom-hostname-systemd
 #migrate-netcfg-systemd
-#openocd
 
 inherit core-image image-buildinfo
 
