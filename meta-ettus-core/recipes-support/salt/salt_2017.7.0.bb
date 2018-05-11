@@ -14,6 +14,7 @@ PACKAGECONFIG[zeromq] = ",,python3-pyzmq python3-pycrypto,"
 PACKAGECONFIG[tcp] = ",,python3-pycrypto"
 
 SRC_URI = "https://files.pythonhosted.org/packages/source/s/${PN}/${PN}-${PV}.tar.gz \
+           file://set_python_location_hashbang.patch \
            file://minion \
            file://salt-minion \
            file://salt-minion.service \
