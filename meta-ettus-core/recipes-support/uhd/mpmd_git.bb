@@ -41,5 +41,13 @@ EXTRA_OECMAKE_append = " -DCMAKE_SKIP_RPATH=ON -DMPM_DEVICE=${MPM_DEVICE}"
 SYSTEMD_PACKAGES = "${@bb.utils.contains('DISTRO_FEATURES','systemd','${PN}','',d)}"
 SYSTEMD_SERVICE_${PN} = "${@bb.utils.contains('DISTRO_FEATURES','systemd','usrp-hwd.service','',d)}"
 
+PACKAGES =+ "${PN}-tools"
+
 FILES_${PN}-dev += "${libdir}/libusrp-periphs.so"
 FILES_${PN}-dbg += "${bindir}/mpm_debug.py"
+FILES_${PN}-tools += "\
+                     ${bindir}/eeprom-init \
+                     ${bindir}/eeprom-blank \
+                     ${bindir}/eeprom-dump \
+                     ${bindir}/eeprom-set-flags \
+                     "
