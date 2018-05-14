@@ -23,7 +23,6 @@ MACHINE_EXTRA_RRECOMMENDS = " \
                              kernel-modules \
                              gpsd \
                              gpsd-gpsctl \
-                             gps-utils \
                              gpsd-machine-conf \
                              kernel-image \
                              linux-firmware-ni-sulfur \
