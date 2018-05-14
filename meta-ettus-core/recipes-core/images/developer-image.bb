@@ -50,5 +50,3 @@ CORE_IMAGE_EXTRA_INSTALL = "\
 #migrate-netcfg-systemd
 
 inherit core-image image-buildinfo
-
-#MENDER_DATA_PART_DIR_append = "${DEPLOY_DIR_IMAGE}/persist"
