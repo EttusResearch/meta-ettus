@@ -3,11 +3,11 @@ HOMEPAGE = "http://www.ettus.com"
 LICENSE = "GPLv3+"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=8255adf1069294c928e0e18b01a16282"
 
-DEPENDS = "git-native python-mako-native boost \
-           ncurses udev python-requests"
-RDEPENDS_${PN} += "python-requests"
+DEPENDS = "git-native python3-mako-native boost \
+           ncurses udev python3-requests"
+RDEPENDS_${PN} += "python3-requests"
 
-inherit cmake pythonnative
+inherit cmake python3native
 
 PACKAGES =+ "${PN}-tests ${PN}-examples ${PN}-e1xx"
 
