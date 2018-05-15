@@ -1,0 +1,3 @@
+if [ "$2" = "ACTIVATE" ];then
+    stty -F /dev/ttyPS1 38400
+fi
