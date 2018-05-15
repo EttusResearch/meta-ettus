@@ -1,0 +1,169 @@
+From a4088ede89268ca3a908c7677564a4610fa8454b Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Mon, 14 May 2018 17:12:34 -0700
+Subject: [PATCH] ni: zynq: n3xx-eeprom: Add support for version 2 EEPROMs
+
+Add support for version 2 EEPROMs that have two more fields,
+dt-compat and ec-compat, that allow us to bump devicetree
+and ec firmware version independent of the revision of the
+board.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ board/ni/zynq/n3xx-eeprom.c | 49 ++++++++++++++++++++++++-------------
+ board/ni/zynq/n3xx-eeprom.h | 18 ++++++++++----
+ 2 files changed, 45 insertions(+), 22 deletions(-)
+
+diff --git a/board/ni/zynq/n3xx-eeprom.c b/board/ni/zynq/n3xx-eeprom.c
+index dd75b841b5..07a50832fd 100644
+--- a/board/ni/zynq/n3xx-eeprom.c
++++ b/board/ni/zynq/n3xx-eeprom.c
+@@ -102,20 +102,25 @@ int n3xx_probe_dboard(int dboard, int *rev)
+ 	}
+ 
+ 	crc = crc32(0, (const u8*)&eeprom, sizeof(eeprom) - 4);
+-	if (htonl(crc) != eeprom.crc) {
++	if (ntohl(crc) != eeprom.crc) {
+ 		printf("Slot %u: Unitialized\n", dboard);
+ 		*rev = -EINVAL;
+ 		return -EINVAL;
+ 	}
+ 
+-	printf("Slot %u: %s Rev %c s/n: %s\n", dboard,
+-	       n3xx_get_dboard_name(htons(eeprom.pid)),
+-	       'A' + htons(eeprom.rev),
+-	       eeprom.serial);
+-
+-	*rev = htons(eeprom.rev);
++	if (ntohl(eeprom.version == 1)) {
++		printf("Slot %u: %s Rev %c s/n: %s\n", dboard,
++		       n3xx_get_dboard_name(ntohs(eeprom.pid)),
++		       'A' + ntohs(eeprom.rev.v1_rev), eeprom.serial);
++		*rev = ntohs(eeprom.rev.v1_rev);
++	} else {
++		printf("Slot %u: %s Rev %c s/n: %s\n", dboard,
++		       n3xx_get_dboard_name(ntohs(eeprom.pid)),
++		       'A' + eeprom.rev.v2_rev.rev, eeprom.serial);
++		*rev = eeprom.rev.v2_rev.dt_compat;
++	}
+ 
+-	return htons(eeprom.pid);
++	return ntohs(eeprom.pid);
+ }
+ 
+ int n3xx_probe_mboard(void)
+@@ -123,6 +128,7 @@ int n3xx_probe_mboard(void)
+ 	struct udevice *i2c_tun, *eeprom_chip;
+ 	struct n3xx_mboard_eeprom eeprom;
+ 	char base_fdt[128];
++	char ec_compat_buf[8];
+ 	int err, i;
+ 	u32 crc;
+ 
+@@ -142,25 +148,34 @@ int n3xx_probe_mboard(void)
+ 	}
+ 
+ 	crc = crc32(0, (const u8*)&eeprom, sizeof(eeprom) - 4);
+-	if (htonl(crc) != eeprom.crc) {
++	if (ntohl(crc) != eeprom.crc) {
+ 		printf("%s: CRC for eeprom doesn't match! %08x vs %08x\n",
+-		       __func__, htonl(crc), eeprom.crc);
++		       __func__, ntohl(crc), eeprom.crc);
+ 		return -EINVAL;
+ 	}
+ 
+-	err = n3xx_match(htons(eeprom.pid));
++	err = n3xx_match(ntohs(eeprom.pid));
+ 	if (err)
+ 		return err;
+ 
+ 	/* store mboard in environment, not n3xx_get_mboard_dtb defaults to 'sulfur' */
+-	snprintf(base_fdt, 128, "%s-rev%u", n3xx_get_mboard_dtb(htons(eeprom.pid)), htons(eeprom.rev)+1);
++	if (ntohl(eeprom.version) == 1) {
++		printf("Found version 1 EEPROM, looking at actual revision\n");
++		snprintf(base_fdt, 128, "%s-rev%u", n3xx_get_mboard_dtb(ntohs(eeprom.pid)), ntohs(eeprom.rev)+1);
++		snprintf(ec_compat_buf, 8, "%u", ntohs(eeprom.rev) + 1);
++	} else  {
++		printf("Found version %u EEPROM, looking at dt_compat revision\n", ntohl(eeprom.version));
++		snprintf(base_fdt, 128, "%s-rev%u", n3xx_get_mboard_dtb(ntohs(eeprom.pid)), ntohs(eeprom.dt_compat));
++		snprintf(ec_compat_buf, 8, "%u", ntohs(eeprom.ec_compat));
++	}
+ 	env_set("mboard", base_fdt);
++	env_set("ec_compat", ec_compat_buf);
+ 
+ 	printf("NI Ettus Research Project %s SDR Rev %c s/n %s \n",
+-			n3xx_get_mboard_name(htons(eeprom.pid)),
+-			'A' + htons(eeprom.rev),
++			n3xx_get_mboard_name(ntohs(eeprom.pid)),
++			'A' + ntohs(eeprom.rev),
+ 			eeprom.serial);
+-	return htons(eeprom.rev);
++	return ntohs(eeprom.rev);
+ }
+ 
+ int n3xx_read_ethaddr(unsigned char *ethaddr, int which)
+@@ -186,9 +201,9 @@ int n3xx_read_ethaddr(unsigned char *ethaddr, int which)
+ 	}
+ 
+ 	crc = crc32(0, (const u8*)&eeprom, sizeof(eeprom) - 4);
+-	if (htonl(crc) != eeprom.crc) {
++	if (ntohl(crc) != eeprom.crc) {
+ 		printf("%s: CRC for eeprom doesn't match! %08x vs %08x\n",
+-		       __func__, htonl(crc), eeprom.crc);
++		       __func__, ntohl(crc), eeprom.crc);
+ 		return -EINVAL;
+ 	}
+ 
+diff --git a/board/ni/zynq/n3xx-eeprom.h b/board/ni/zynq/n3xx-eeprom.h
+index d1259af079..8ed971f36e 100644
+--- a/board/ni/zynq/n3xx-eeprom.h
++++ b/board/ni/zynq/n3xx-eeprom.h
+@@ -21,9 +21,9 @@
+  * @rev: Revision Number (zero based)
+  * @serial: (Non zero terminated) String containing the serial number
+  * @eth_addr0: Contains ethernet address for eth0
+- * @__pad0: Padding
++ * @dt_compat: Devicetree version this board is compatible with (only valid if version >= 2)
+  * @eth_addr1: Contains ethernet address for eth1
+- * @__pad1: Padding
++ * @ec_compat: EC Firmware version this board is compatible with (only valid if version >= 2)
+  * @eth_addr2: Contains ethernet address for eth2
+  * @__pad2: Padding
+  * @crc: Contains checksum over the entire struct minus the crc member
+@@ -36,14 +36,19 @@ struct n3xx_mboard_eeprom {
+ 	u16 rev;
+ 	u8 serial[8];
+ 	u8 eth_addr0[ETH_ALEN];
+-	u8 __pad_0[2];
++	u16 dt_compat;
+ 	u8 eth_addr1[ETH_ALEN];
+-	u8 __pad_1[2];
++	u16 ec_compat;
+ 	u8 eth_addr2[ETH_ALEN];
+ 	u8 __pad_2[2];
+ 	u32 crc;
+ } __attribute__((packed));
+ 
++struct db_rev {
++	u8 rev;
++	u8 dt_compat;
++} __attribute__((packed));
++
+ /**
+  * n3xx_dboard_eeprom - The memory map of the USRP Sulfur SDR EEPROM
+  *
+@@ -58,7 +63,10 @@ struct n3xx_dboard_eeprom {
+ 	u32 magic;
+ 	u32 version;
+ 	u16 pid;
+-	u16 rev;
++	union rev {
++		u16 v1_rev;
++		struct db_rev v2_rev;
++	} rev;
+ 	u8 serial[8];
+ 	u32 crc;
+ } __attribute__((packed));
+-- 
+2.17.0
+

@@ -11,4 +11,5 @@ SRC_URI_prepend_ni-sulfur = " \
     file://0004-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
     file://0005-ni-sulfur-rev3-Added-swsync-feature.patch \
     file://0001-ni-zynq-Add-support-for-Project-Phosphorus.patch \
+    file://0001-ni-zynq-n3xx-eeprom-Add-support-for-version-2-EEPROM.patch \
     "
