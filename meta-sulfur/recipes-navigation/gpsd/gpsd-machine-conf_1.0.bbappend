@@ -17,7 +17,7 @@ COMPATIBLE_MACHINE = "ni-sulfur-rev6|ni-sulfur-rev5|ni-sulfur-rev4|ni-sulfur-rev
 
 RREPLACES_${PN} += "gpsd-conf"
 
-do_install() {
+do_install_ni-sulfur() {
     install -d ${D}/${sysconfdir}/default
     install -m 0644 ${WORKDIR}/gpsd-machine ${D}/${sysconfdir}/default/gpsd.machine
     install -d ${D}${sysconfdir}/gpsd/
