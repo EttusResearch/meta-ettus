@@ -1,5 +1,5 @@
 # current maint doesn't build if OCTOCLOCK is built in ...
-EXTRA_OECMAKE_append_ni-sulfur = " -DMPM_DEVICE=n3xx -DENABLE_OCTOCLOCK=OFF"
+EXTRA_OECMAKE_append_ni-sulfur = " -DENABLE_OCTOCLOCK=OFF"
 
 # build maint for now, since FPGA images are tailored to that
 PV_ni-sulfur = "3.11.0.1"
