@@ -26,6 +26,7 @@ MACHINE_EXTRA_RRECOMMENDS = " \
                              gps-utils \
                              gpsd-machine-conf \
                              kernel-image \
+                             linux-firmware-ni-neon \
                             "
 
 IMAGE_INSTALL_append_ni-neon = " kernel-image"
