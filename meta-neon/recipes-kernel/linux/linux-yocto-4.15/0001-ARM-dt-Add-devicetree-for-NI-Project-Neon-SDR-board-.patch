@@ -136,7 +136,7 @@ index 000000000000..a3e5c96980a6
 +	tpm: tpm@29 {
 +		compatible = "atmel,at97sc3205t", "atmel,at97sc3204t";
 +		reg = <0x29>;
-+		reset-gpios = <&gpio0 5 GPIO_ACTIVE_LOW>;
++		reset-gpios = <&gpio0 6 GPIO_ACTIVE_LOW>;
 +	};
 +
 +	mpu9250@69 {
