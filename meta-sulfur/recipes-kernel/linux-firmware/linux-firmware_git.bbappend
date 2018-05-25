@@ -54,7 +54,7 @@ FILES_${PN}-ni-sulfur = "/lib/firmware/ni/ec-sulfur-rev3.bin \
                          /lib/firmware/ni/ec-phosphorus-rev6.RW.bin \
                         "
 RDEPENDS_${PN}-ni-sulfur += "${PN}-ni-sulfur-license"
-DEPENDS += "dtc-native python-native"
+DEPENDS += "dtc-native python3-native"
 
 # The CPLD image is GPL2 or X11 licensed
 FILES_${PN}-ni-magnesium = " \
@@ -66,10 +66,10 @@ RDEPENDS_${PN}-ni-magnesium += "${PN}-gplv2-license"
 
 do_compile_append_ni-sulfur() {
     dtc -@ -o ${WORKDIR}/n310.dtbo ${WORKDIR}/usrp_n310_fpga_HG.dts
-    python ${WORKDIR}/fpga_bit_to_bin.py -f ${WORKDIR}/usrp_n310_fpga_HG.bit ${WORKDIR}/n310.bin
+    python3 ${WORKDIR}/fpga_bit_to_bin.py -f ${WORKDIR}/usrp_n310_fpga_HG.bit ${WORKDIR}/n310.bin
 
     dtc -@ -o ${WORKDIR}/n300.dtbo ${WORKDIR}/usrp_n300_fpga_HG.dts
-    python ${WORKDIR}/fpga_bit_to_bin.py -f ${WORKDIR}/usrp_n300_fpga_HG.bit ${WORKDIR}/n300.bin
+    python3 ${WORKDIR}/fpga_bit_to_bin.py -f ${WORKDIR}/usrp_n300_fpga_HG.bit ${WORKDIR}/n300.bin
 }
 
 do_install_append_ni-sulfur() {
