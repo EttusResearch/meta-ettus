@@ -21,8 +21,8 @@ SRC_URI[phosphorus-fpga.sha256sum] = "76f7f85ed76706f1db8ef998317205bdb7c5b0a7f2
 SRC_URI[magnesium-cpld.md5sum] = "8971b73135bd91eee3ceba7ab7c856a5"
 SRC_URI[magnesium-cpld.sha256sum] = "ef128dcd265ee8615b673021d4ee84c39357012ffe8b28c8ad7f893f9dcb94cb"
 
-LICENSE += "& Firmware-ni-sulfur"
-LIC_FILES_CHKSUM += "file://${WORKDIR}/LICENSE.ec-sulfur;md5=72f855f00b364ec8bdc025e1a36b39c3"
+LICENSE_append_ni-sulfur = "& Firmware-ni-sulfur"
+LIC_FILES_CHKSUM_append_ni-sulfur = "file://${WORKDIR}/LICENSE.ec-sulfur;md5=72f855f00b364ec8bdc025e1a36b39c3"
 
 NO_GENERIC_LICENSE[Firmware-ni-sulfur] = "${WORKDIR}/LICENSE.ec-sulfur"
 LICENSE_${PN}-ni-sulfur = "Firmware-ni-sulfur"
