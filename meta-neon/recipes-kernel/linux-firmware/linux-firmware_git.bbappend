@@ -7,8 +7,8 @@ SRC_URI_append_ni-neon = " file://ec-neon-rev1.RW.bin \
 SRC_URI[neon-fpga.md5sum] = "46ac1fe80d7c8e8cf242ef0189f6bcbe"
 SRC_URI[neon-fpga.sha256sum] = "82e5af3742245f1f8ea5dd334b1ceb7920e3c31306d86b0dbf31bedd696879c4"
 
-LICENSE += "& Firmware-ni-neon"
-LIC_FILES_CHKSUM += "file://${WORKDIR}/LICENSE.ec-neon;md5=72f855f00b364ec8bdc025e1a36b39c3"
+LICENSE_append = "& Firmware-ni-neon"
+LIC_FILES_CHKSUM_append = "file://${WORKDIR}/LICENSE.ec-neon;md5=72f855f00b364ec8bdc025e1a36b39c3"
 
 NO_GENERIC_LICENSE[Firmware-ni-neon] = "${WORKDIR}/LICENSE.ec-neon"
 LICENSE_${PN}-ni-neon = "Firmware-ni-neon"
