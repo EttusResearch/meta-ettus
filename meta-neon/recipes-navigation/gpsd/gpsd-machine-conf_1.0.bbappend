@@ -13,7 +13,7 @@ ALTERNATIVE_${PN}_ni-neon = "gpsd-defaults"
 ALTERNATIVE_LINK_NAME[gpsd-defaults] = "${sysconfdir}/default/gpsd"
 ALTERNATIVE_TARGET[gpsd-defaults] = "${sysconfdir}/default/gpsd.machine"
 ALTERNATIVE_PRIORITY[gpsd-defaults] = "100"
-COMPATIBLE_MACHINE = "ni-neon-rev1"
+COMPATIBLE_MACHINE_ni-neon = "ni-neon-rev1|ni-neon-rev2"
 
 RREPLACES_${PN} += "gpsd-conf"
 

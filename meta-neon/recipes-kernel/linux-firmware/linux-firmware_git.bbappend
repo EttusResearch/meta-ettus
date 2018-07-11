@@ -1,6 +1,7 @@
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
 SRC_URI_append_ni-neon = " file://ec-neon-rev1.RW.bin \
+                           file://ec-neon-rev2.RW.bin \
                            file://LICENSE.ec-neon \
                            http://files.ettus.com/binaries/cache/e3xx/fpga-abdc445a/e3xx_e320_fpga_default-gabdc445a.zip;name=neon-fpga \
                          "
@@ -24,6 +25,7 @@ FILES_${PN}-ni-neon-license = " \
                         /lib/firmware/ni/LICENSE.ec-neon \
                         "
 FILES_${PN}-ni-neon = "/lib/firmware/ni/ec-neon-rev1.RW.bin \
+                       /lib/firmware/ni/ec-neon-rev2.RW.bin \
                       "
 RDEPENDS_${PN}-ni-neon += "${PN}-ni-neon-license"
 DEPENDS += "dtc-native python3-native"
@@ -37,8 +39,8 @@ do_compile_append_ni-neon() {
 }
 
 do_install_append_ni-neon() {
-
     install -D -m 0644 ${WORKDIR}/ec-neon-rev1.RW.bin ${D}/lib/firmware/ni/ec-neon-rev1.RW.bin
+    install -D -m 0644 ${WORKDIR}/ec-neon-rev2.RW.bin ${D}/lib/firmware/ni/ec-neon-rev2.RW.bin
 
     install -m 0644 ${WORKDIR}/LICENSE.ec-neon ${D}/lib/firmware/ni/LICENSE.ec-neon
 

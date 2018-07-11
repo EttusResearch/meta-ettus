@@ -6,6 +6,6 @@ SRC_URI_append_ni-neon = " \
                          file://neon.cfg \
                          "
 
-COMPATIBLE_MACHINE_ni-neon = "ni-neon-rev1"
+COMPATIBLE_MACHINE_ni-neon = "ni-neon-rev1|ni-neon-rev2"
 
 KCONFIG_MODE ?= "--alldefconfig"

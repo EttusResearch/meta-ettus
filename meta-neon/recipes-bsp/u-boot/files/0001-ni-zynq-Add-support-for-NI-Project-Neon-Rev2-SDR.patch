@@ -1,0 +1,1355 @@
+From 0baa32a68794b924d5e21e744e9a51661a3b473d Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Wed, 4 Apr 2018 16:26:27 -0700
+Subject: [PATCH] ni: zynq: Add support for NI Project Neon Rev2 SDR
+
+Add support for second revision of NI Project Neon SDR board.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ arch/arm/dts/zynq-ni-neon-rev2-uboot.dtsi      |  34 +++
+ arch/arm/dts/zynq-ni-neon-rev2.dts             | 217 ++++++++++++++++++
+ board/ni/zynq/MAINTAINERS                      |   6 +
+ board/ni/zynq/Makefile                         |  10 +
+ board/ni/zynq/board.c                          | 203 ++++++++++++++++
+ board/ni/zynq/neon-eeprom.c                    | 155 +++++++++++++
+ board/ni/zynq/neon-eeprom.h                    |  48 ++++
+ board/ni/zynq/ps7_init_common.c                | 118 ++++++++++
+ board/ni/zynq/ps7_init_gpl.h                   |  35 +++
+ board/ni/zynq/zynq-ni-neon-rev2/ps7_init_gpl.c | 306 +++++++++++++++++++++++++
+ configs/ni_neon_rev2_defconfig                 |  64 ++++++
+ include/configs/ni_neon_rev2.h                 |  49 ++++
+ 12 files changed, 1245 insertions(+)
+ create mode 100644 arch/arm/dts/zynq-ni-neon-rev2-uboot.dtsi
+ create mode 100644 arch/arm/dts/zynq-ni-neon-rev2.dts
+ create mode 100644 board/ni/zynq/MAINTAINERS
+ create mode 100644 board/ni/zynq/Makefile
+ create mode 100644 board/ni/zynq/board.c
+ create mode 100644 board/ni/zynq/neon-eeprom.c
+ create mode 100644 board/ni/zynq/neon-eeprom.h
+ create mode 100644 board/ni/zynq/ps7_init_common.c
+ create mode 100644 board/ni/zynq/ps7_init_gpl.h
+ create mode 100644 board/ni/zynq/zynq-ni-neon-rev2/ps7_init_gpl.c
+ create mode 100644 configs/ni_neon_rev2_defconfig
+ create mode 100644 include/configs/ni_neon_rev2.h
+
+diff --git a/arch/arm/dts/zynq-ni-neon-rev2-uboot.dtsi b/arch/arm/dts/zynq-ni-neon-rev2-uboot.dtsi
+new file mode 100644
+index 0000000000..30f908caee
+--- /dev/null
++++ b/arch/arm/dts/zynq-ni-neon-rev2-uboot.dtsi
+@@ -0,0 +1,34 @@
++//SPDX-License-Identifier:	GPL-2.0+
++/*
++ * U-Boot addition to handle Sulfur Rev2 pins
++ *
++ * (C) Copyright 2016 National Instruments Corp
++ *
++ */
++
++#include <dt-bindings/gpio/gpio.h>
++
++&gpio0 {
++	u-boot,dm-pre-reloc;
++
++	sys_pwron_33 {
++		gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
++	};
++};
++
++&uart0 {
++	u-boot,dm-pre-reloc;
++};
++
++&uart1 {
++	u-boot,dm-pre-reloc;
++};
++
++
++&sdhci0 {
++	u-boot,dm-pre-reloc;
++};
++
++&nvmem0 {
++	u-boot,i2c-offset-len = <2>;
++};
+diff --git a/arch/arm/dts/zynq-ni-neon-rev2.dts b/arch/arm/dts/zynq-ni-neon-rev2.dts
+new file mode 100644
+index 0000000000..3872fe5264
+--- /dev/null
++++ b/arch/arm/dts/zynq-ni-neon-rev2.dts
+@@ -0,0 +1,217 @@
++// SPDX-License-Identifier: (GPL-2.0 OR X11)
++/*
++ * National Instruments Ettus Research Project Neon Rev2
++ *
++ * Copyright (c) 2018 National Instruments Corp.
++ *
++ */
++
++/dts-v1/;
++
++#include <dt-bindings/input/input.h>
++#include <dt-bindings/interrupt-controller/irq.h>
++#include <dt-bindings/gpio/gpio.h>
++#include "zynq-7000.dtsi"
++
++/ {
++	model = "NI Ettus Research Project NEON SDR";
++	compatible = "ettus,zynq-neon-rev2", "xlnx,zynq-7000";
++
++	aliases {
++		ethernet0 = &gem0;
++		gpio0 = &gpio0;
++		serial0 = &uart0;
++		serial1 = &uart1;
++		spi0 = &spi0;
++		i2c0 = &i2c0;
++		i2c1 = &i2c1;
++		i2c2 = &tun;
++	};
++
++	memory {
++		device_type = "memory";
++		reg = <0x0 0x40000000>;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	gpio-keys {
++		compatible = "gpio-keys";
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		power-button {
++			label = "Power Button";
++			linux,code = <KEY_POWER>;
++			gpios = <&gpio0 1 GPIO_ACTIVE_HIGH>;
++		};
++	};
++
++	gpio-poweroff {
++		compatible = "gpio-poweroff";
++		gpios = <&gpio0 2 GPIO_ACTIVE_LOW>;
++	};
++
++	usb_phy0: phy0 {
++		compatible = "usb-nop-xceiv";
++		#phy-cells = <0>;
++		reset-gpios = <&gpio0 4 GPIO_ACTIVE_LOW>;
++	};
++
++};
++
++&cpu0 {
++	operating-points = <1000000 1000000>;
++};
++
++&sdhci0 {
++	status = "okay";
++};
++
++&uart0 {
++	status = "okay";
++};
++
++&uart1 {
++	status = "okay";
++};
++
++/* we use the ARM global timer */
++&ttc0 {
++	status = "disabled";
++};
++
++/* we use the ARM global timer */
++&ttc1 {
++	status = "disabled";
++};
++
++&i2c1 {
++	status = "okay";
++	clock-frequency = <400000>;
++
++	rtc0: rtc@68 {
++		compatible = "dallas,ds1374";
++		reg = <0x68>;
++		reset-on-timeout;
++		trickle-resistor-ohms = <250>;
++		trickle-diode-disable;
++		timeout-sec = <10>;
++	};
++
++	tpm: tpm@29 {
++		compatible = "atmel,at97sc3205t", "atmel,at97sc3204t";
++		reg = <0x29>;
++		reset-gpios = <&gpio0 5 GPIO_ACTIVE_LOW>;
++	};
++
++	mpu9250@69 {
++		compatible = "invensense,mpu9250";
++		reg = <0x69>;
++		interrupt-parent = <&gpio0>;
++		interrupts = <50 IRQ_TYPE_EDGE_RISING>;
++		/* TOOO: Check edge vs level interrupt */
++	};
++};
++
++&i2c0 {
++	status = "okay";
++	clock-frequency = <400000>;
++
++	embedded-controller@1e {
++		reg = <0x1e>;
++		compatible = "ni,embedded-controller-i2c",
++			     "google,cros-ec-i2c";
++		interrupts = <0 IRQ_TYPE_EDGE_FALLING>;
++		interrupt-parent = <&gpio0>;
++		google,has-vbc-nvram;
++
++		wakeup-source;
++
++		tun: i2c-tunnel {
++			compatible = "google,cros-ec-i2c-tunnel";
++			#address-cells = <1>;
++			#size-cells = <0>;
++			google,remote-bus = <0>;
++			clock-frequency = <100000>;
++
++			nvmem0: eeprom@50 {
++				compatible = "at24,24c02";
++				reg = <0x50>;
++				#address-cells = <1>;
++				#size-cells = <0>;
++				read-only;
++
++				eth0_addr: eth-addr@24 {
++					reg = <0x24 0x6>;
++				};
++
++				eth1_addr: eth-addr@2c {
++					reg = <0x2c 0x6>;
++				};
++			};
++		};
++	};
++};
++
++&gpio0 {
++	status = "okay";
++};
++
++&clkc {
++	ps-clk-frequency = <33333333>;
++	fclk-enable = <0xf>;
++};
++
++/* Disabled, because runtime instantiation of cs-gpio property
++ * does not work if driver is instantiated
++ */
++&spi0 {
++	status = "disabled";
++};
++
++/* Disabled, because runtime instantiation of cs-gpio property
++ * does not work if driver is instantiated
++ */
++&spi1 {
++	status = "disabled";
++};
++
++&gem0 {
++	status = "okay";
++	phy-mode = "rgmii-id";
++	phy-handle = <&ethernet_phy0>;
++
++	nvmem-cells = <&eth0_addr>;
++	nvmem-cell-names = "address";
++
++	ethernet_phy0: ethernet-phy@4 {
++		reg = <4>;
++		reset-gpios = <&gpio0 3 GPIO_ACTIVE_LOW>;
++	};
++};
++
++&usb0 {
++	status = "okay";
++	dr_mode = "host";
++	usb-phy = <&usb_phy0>;
++};
++
++&amba {
++	fpga_region0: fpga-region@40000000 {
++		compatible = "fpga-region";
++		fpga-mgr = <&devcfg>;
++		#address-cells = <0x1>;
++		#size-cells = <0x1>;
++		ranges;
++	};
++
++	ocm: sram@fffc0000 {
++		compatible = "mmio-sram";
++		reg = <0xfffc0000 0x10000>;
++	};
++};
++
++#include "zynq-ni-neon-rev2-uboot.dtsi"
+diff --git a/board/ni/zynq/MAINTAINERS b/board/ni/zynq/MAINTAINERS
+new file mode 100644
+index 0000000000..3edb51aab3
+--- /dev/null
++++ b/board/ni/zynq/MAINTAINERS
+@@ -0,0 +1,6 @@
++TOPIC BOARD
++M:	Moritz Fischer <moritz@ettus.com>
++S:	Maintained
++F:	board/ni/zynq/
++F:	include/configs/ni_*.h
++F:	configs/ni_*_defconfig
+diff --git a/board/ni/zynq/Makefile b/board/ni/zynq/Makefile
+new file mode 100644
+index 0000000000..1ff3e377a0
+--- /dev/null
++++ b/board/ni/zynq/Makefile
+@@ -0,0 +1,10 @@
++#
++# SPDX-License-Identifier:	GPL-2.0+
++#
++
++obj-y	:= board.o neon-eeprom.o
++
++# Remove quotes
++hw-platform-y :=$(shell echo $(CONFIG_DEFAULT_DEVICE_TREE))
++
++obj-$(CONFIG_SPL_BUILD) += $(hw-platform-y)/ps7_init_gpl.o ps7_init_common.o
+diff --git a/board/ni/zynq/board.c b/board/ni/zynq/board.c
+new file mode 100644
+index 0000000000..061ee84d81
+--- /dev/null
++++ b/board/ni/zynq/board.c
+@@ -0,0 +1,203 @@
++/*
++ * (C) Copyright 2012 Michal Simek <monstr@monstr.eu>
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#include <common.h>
++#include <fdtdec.h>
++#include <fpga.h>
++#include <mmc.h>
++#include <dm.h>
++#include <asm/gpio.h>
++#include <zynqpl.h>
++#include <asm/arch/hardware.h>
++#include <asm/arch/sys_proto.h>
++
++#include "neon-eeprom.h"
++#include <i2c.h>
++
++DECLARE_GLOBAL_DATA_PTR;
++
++#if (defined(CONFIG_FPGA) && !defined(CONFIG_SPL_BUILD)) || \
++    (defined(CONFIG_SPL_FPGA_SUPPORT) && defined(CONFIG_SPL_BUILD))
++static xilinx_desc fpga;
++
++/* It can be done differently */
++static xilinx_desc fpga007s = XILINX_XC7Z007S_DESC(0x7);
++static xilinx_desc fpga010 = XILINX_XC7Z010_DESC(0x10);
++static xilinx_desc fpga012s = XILINX_XC7Z012S_DESC(0x12);
++static xilinx_desc fpga014s = XILINX_XC7Z014S_DESC(0x14);
++static xilinx_desc fpga015 = XILINX_XC7Z015_DESC(0x15);
++static xilinx_desc fpga020 = XILINX_XC7Z020_DESC(0x20);
++static xilinx_desc fpga030 = XILINX_XC7Z030_DESC(0x30);
++static xilinx_desc fpga035 = XILINX_XC7Z035_DESC(0x35);
++static xilinx_desc fpga045 = XILINX_XC7Z045_DESC(0x45);
++static xilinx_desc fpga100 = XILINX_XC7Z100_DESC(0x100);
++#endif
++
++enum board_power_type {
++	BOARD_POWER_TYPE_ON,
++	BOARD_POWER_TYPE_OFF, };
++
++#if (!defined(CONFIG_SPL_BUILD))
++int board_power(enum board_power_type type)
++{
++	struct gpio_desc sys_pwron_33;
++	struct udevice *zynq_gpio;
++	const void *blob = gd->fdt_blob;
++	int node, ret;
++
++	ret = uclass_get_device_by_seq(UCLASS_GPIO, 0, &zynq_gpio);
++	if (ret < 0) {
++		printf("Failed to find GPIO controller node. Check device tree\n");
++		return 0;
++	}
++
++	node = fdt_subnode_offset(blob, dev_of_offset(zynq_gpio), "sys_pwron_33");
++
++	ret = gpio_request_by_name_nodev(offset_to_ofnode(node), "gpios", 0,
++					 &sys_pwron_33, 0);
++	if (ret < 0) {
++		printf("Failed to request 'sys_pwron_33' gpio.\n");
++		return ret;
++	}
++
++
++	if (type == BOARD_POWER_TYPE_OFF) {
++		dm_gpio_set_dir_flags(&sys_pwron_33, GPIOD_IS_OUT);
++	} else {
++		dm_gpio_set_dir_flags(&sys_pwron_33,
++				      GPIOD_IS_OUT | GPIOD_IS_OUT_ACTIVE);
++	}
++
++	return 0;
++}
++#endif
++
++int board_init(void)
++{
++#if (defined(CONFIG_FPGA) && !defined(CONFIG_SPL_BUILD)) || \
++    (defined(CONFIG_SPL_FPGA_SUPPORT) && defined(CONFIG_SPL_BUILD))
++	u32 idcode;
++
++	idcode = zynq_slcr_get_idcode();
++
++	switch (idcode) {
++	case XILINX_ZYNQ_7007S:
++		fpga = fpga007s;
++		break;
++	case XILINX_ZYNQ_7010:
++		fpga = fpga010;
++		break;
++	case XILINX_ZYNQ_7012S:
++		fpga = fpga012s;
++		break;
++	case XILINX_ZYNQ_7014S:
++		fpga = fpga014s;
++		break;
++	case XILINX_ZYNQ_7015:
++		fpga = fpga015;
++		break;
++	case XILINX_ZYNQ_7020:
++		fpga = fpga020;
++		break;
++	case XILINX_ZYNQ_7030:
++		fpga = fpga030;
++		break;
++	case XILINX_ZYNQ_7035:
++		fpga = fpga035;
++		break;
++	case XILINX_ZYNQ_7045:
++		fpga = fpga045;
++		break;
++	case XILINX_ZYNQ_7100:
++		fpga = fpga100;
++		break;
++	}
++#endif
++
++#if (defined(CONFIG_FPGA) && !defined(CONFIG_SPL_BUILD)) || \
++    (defined(CONFIG_SPL_FPGA_SUPPORT) && defined(CONFIG_SPL_BUILD))
++	fpga_init();
++	fpga_add(fpga_xilinx, &fpga);
++#endif
++
++	return 0;
++}
++
++int board_late_init(void)
++{
++	switch ((zynq_slcr_get_boot_mode()) & ZYNQ_BM_MASK) {
++	case ZYNQ_BM_QSPI:
++		env_set("modeboot", "qspiboot");
++		break;
++	case ZYNQ_BM_NAND:
++		env_set("modeboot", "nandboot");
++		break;
++	case ZYNQ_BM_NOR:
++		env_set("modeboot", "norboot");
++		break;
++	case ZYNQ_BM_SD:
++		env_set("modeboot", "sdboot");
++		break;
++	case ZYNQ_BM_JTAG:
++		env_set("modeboot", "jtagboot");
++		break;
++	default:
++		env_set("modeboot", "");
++		break;
++	}
++
++#if (!defined(CONFIG_SPL_BUILD))
++	board_power(BOARD_POWER_TYPE_ON);
++#endif
++
++	/* zero is a legit mboard revision */
++	neon_probe_mboard();
++
++	return 0;
++}
++
++int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
++{
++#if defined(CONFIG_ZYNQ_GEM_EEPROM_ADDR) && \
++    defined(CONFIG_ZYNQ_GEM_I2C_MAC_OFFSET)
++	if (eeprom_read(CONFIG_ZYNQ_GEM_EEPROM_ADDR,
++			CONFIG_ZYNQ_GEM_I2C_MAC_OFFSET,
++			ethaddr, 6))
++		printf("I2C EEPROM MAC address read failed\n");
++#endif
++
++	neon_read_ethaddr(ethaddr, 0);
++
++	return 0;
++}
++
++#if !defined(CONFIG_SYS_SDRAM_BASE) && !defined(CONFIG_SYS_SDRAM_SIZE)
++int dram_init_banksize(void)
++{
++	fdtdec_setup_memory_banksize();
++
++	return 0;
++}
++
++int dram_init(void)
++{
++	if (fdtdec_setup_memory_size() != 0)
++		return -EINVAL;
++
++	zynq_ddrc_init();
++
++	return 0;
++}
++#else
++int dram_init(void)
++{
++	gd->ram_size = CONFIG_SYS_SDRAM_SIZE;
++
++	zynq_ddrc_init();
++
++	return 0;
++}
++#endif
+diff --git a/board/ni/zynq/neon-eeprom.c b/board/ni/zynq/neon-eeprom.c
+new file mode 100644
+index 0000000000..5271dc577e
+--- /dev/null
++++ b/board/ni/zynq/neon-eeprom.c
+@@ -0,0 +1,155 @@
++/*
++ * (C) Copyright 2017 National Instruments Corp
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#include <common.h>
++#include "neon-eeprom.h"
++#include <dm.h>
++#include <i2c.h>
++
++DECLARE_GLOBAL_DATA_PTR;
++
++struct neon_xboard_match {
++	u16 pid;
++	const char *name;
++	const char *dtb;
++};
++
++static const struct neon_xboard_match mb_match[] = {
++	{ .pid = 0xe320, .name = "Neon", .dtb = "neon" },
++	{},
++};
++
++static const char *neon_get_mboard_name(u16 pid)
++{
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(mb_match); i++)
++		if (pid == mb_match[i].pid)
++			return mb_match[i].name;
++
++	return "Unknown";
++}
++
++static const char *neon_get_mboard_dtb(u16 pid)
++{
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(mb_match); i++)
++		if (pid == mb_match[i].pid)
++			return mb_match[i].dtb;
++
++	return "unsupported";
++}
++
++static int neon_match(u16 pid)
++{
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(mb_match); i++) {
++		if (pid == mb_match[i].pid)
++			return 0;
++	}
++
++	return -ENOTSUPP;
++}
++
++int neon_probe_mboard(void)
++{
++	struct udevice *i2c_tun, *eeprom_chip;
++	struct neon_mboard_eeprom eeprom;
++	char base_fdt[128];
++	char ec_compat_buf[8];
++	int err, i;
++	u32 crc;
++
++	err = uclass_get_device_by_seq(UCLASS_I2C, 2, &i2c_tun);
++	if (err < 0) {
++		printf("Failed to get i2c \n");
++		return err;
++	}
++
++	err = dm_i2c_probe(i2c_tun, 0x50, 0, &eeprom_chip);
++	if (err < 0) {
++		printf("Failed to probe EEPROM \n");
++		return err;
++	}
++
++	for (i = 0; i < sizeof(eeprom); i++) {
++		err = dm_i2c_reg_read(eeprom_chip, i);
++		if (err < 0)
++			break;
++		*(((u8*)(&eeprom)) + i) = err & 0xff;
++	}
++
++	crc = crc32(0, (const u8*)&eeprom, sizeof(eeprom) - 4);
++	if (ntohl(crc) != eeprom.crc) {
++		printf("%s: CRC for eeprom doesn't match! %08x vs %08x\n",
++		       __func__, ntohl(crc), eeprom.crc);
++		return -EINVAL;
++	}
++
++	err = neon_match(ntohs(eeprom.pid));
++	if (err)
++		return err;
++
++	if (ntohl(eeprom.version == 1)) {
++		printf("Found version 1 EEPROM, looking at actual revision\n");
++		snprintf(base_fdt, 128, "%s-rev%u", neon_get_mboard_dtb(ntohs(eeprom.pid)), ntohs(eeprom.rev)+1);
++		snprintf(ec_compat_buf, 8, "%u", ntohs(eeprom.rev)+1);
++	} else {
++		printf("Found version %u EEPROM, looking at dt_compat revision\n",
++		       ntohl(eeprom.version));
++		snprintf(base_fdt, 128, "%s-rev%u", neon_get_mboard_dtb(ntohs(eeprom.pid)), ntohs(eeprom.dt_compat)+1);
++		snprintf(ec_compat_buf, 8, "%u", ntohs(eeprom.ec_compat)+1);
++	}
++	env_set("mboard", base_fdt);
++	env_set("ec_compat", ec_compat_buf);
++
++	printf("NI Ettus Research Project %s SDR Rev %c s/n %s \n",
++			neon_get_mboard_name(ntohs(eeprom.pid)),
++			'A' + ntohs(eeprom.rev),
++			eeprom.serial);
++	return ntohs(eeprom.rev);
++}
++
++int neon_read_ethaddr(unsigned char *ethaddr, int which)
++{
++	struct udevice *i2c_tun, *eeprom_chip;
++	struct neon_mboard_eeprom eeprom;
++	int err, i;
++	u32 crc;
++
++	err = uclass_get_device_by_seq(UCLASS_I2C, 20, &i2c_tun);
++	if (err < 0)
++		return err;
++
++	err = dm_i2c_probe(i2c_tun, 0x50, 0, &eeprom_chip);
++	if (err < 0)
++		return err;
++
++	for (i = 0; i < sizeof(eeprom); i++) {
++		err = dm_i2c_reg_read(eeprom_chip, i);
++		if (err < 0)
++			break;
++		*(((u8*)(&eeprom)) + i) = err & 0xff;
++	}
++
++	crc = crc32(0, (const u8*)&eeprom, sizeof(eeprom) - 4);
++	if (ntohl(crc) != eeprom.crc) {
++		printf("%s: CRC for eeprom doesn't match! %08x vs %08x\n",
++		       __func__, ntohl(crc), eeprom.crc);
++		return -EINVAL;
++	}
++
++	if (which == 0)
++		memcpy(ethaddr, &eeprom.eth_addr0, ETH_ALEN);
++	else if (which == 1)
++		memcpy(ethaddr, &eeprom.eth_addr1, ETH_ALEN);
++	else
++		return -EINVAL;
++
++	return 0;
++}
+diff --git a/board/ni/zynq/neon-eeprom.h b/board/ni/zynq/neon-eeprom.h
+new file mode 100644
+index 0000000000..d90ab40d47
+--- /dev/null
++++ b/board/ni/zynq/neon-eeprom.h
+@@ -0,0 +1,48 @@
++/*
++ * NI Ettus Research Neon EEPROM helpers
++ *
++ * Copyright (c) 2017 National Instruments Corp
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#ifndef NI_ZYNQ_NEON_EEPROM_H
++#define NI_ZYNQ_NEON_EEPROM_H
++
++#define ETH_ALEN 6
++
++/**
++ * neon_mboard_eeprom - The memory map of the USRP Neon SDR EEPROM
++ *
++ * @magic: Magic constant to indicate that one is looking at a MB eeprom
++ * @version: Data layout version
++ * @mcu_flags: Flags for the EC
++ * @pid: Product Identifier
++ * @rev: Revision Number (zero based)
++ * @serial: (Non zero terminated) String containing the serial number
++ * @eth_addr0: Contains ethernet address for eth0
++ * @dt_compat: Contains Devicetree equivalent compat number
++ * @eth_addr1: Contains ethernet address for eth1
++ * @ec_compat: Contains EC Firmware equivalent compat number
++ * @__pad1: Padding
++ * @crc: Contains checksum over the entire struct minus the crc member
++ */
++struct neon_mboard_eeprom {
++	u32 magic;
++	u32 version;
++	u32 mcu_flags[4];
++	u16 pid;
++	u16 rev;
++	u8 serial[8];
++	u8 eth_addr0[ETH_ALEN];
++	u16 dt_compat;
++	u8 eth_addr1[ETH_ALEN];
++	u16 ec_compat;
++	u8 __pad_1[2 + ETH_ALEN];
++	u32 crc;
++} __attribute__((packed));
++
++int neon_probe_mboard(void);
++int neon_read_ethaddr(unsigned char *ethaddr, int which);
++
++#endif /* NI_ZYNQ_NEON_EEPROM_H */
+diff --git a/board/ni/zynq/ps7_init_common.c b/board/ni/zynq/ps7_init_common.c
+new file mode 100644
+index 0000000000..7c6ae52d66
+--- /dev/null
++++ b/board/ni/zynq/ps7_init_common.c
+@@ -0,0 +1,118 @@
++/*
++ * (c) Copyright 2010-2014 Xilinx, Inc. All rights reserved.
++ * (c) Copyright 2016 Topic Embedded Products.
++ * (c) Copyright 2016 National Instruments Corp.
++ *
++ * SPDX-License-Identifier:	GPL-2.0
++ */
++
++#include "ps7_init_gpl.h"
++#include <asm/io.h>
++
++/* For delay calculation using global registers*/
++#define SCU_GLOBAL_TIMER_COUNT_L32	0xF8F00200
++#define SCU_GLOBAL_TIMER_COUNT_U32	0xF8F00204
++#define SCU_GLOBAL_TIMER_CONTROL	0xF8F00208
++#define SCU_GLOBAL_TIMER_AUTO_INC	0xF8F00218
++#define APU_FREQ  800000000
++
++#define PS7_MASK_POLL_TIME 100000000
++
++/* IO accessors. No memory barriers desired. */
++static inline void iowrite(unsigned long val, unsigned long addr)
++{
++	__raw_writel(val, addr);
++}
++
++static inline unsigned long ioread(unsigned long addr)
++{
++	return __raw_readl(addr);
++}
++
++/* start timer */
++static void perf_start_clock(void)
++{
++	iowrite((1 << 0) | /* Timer Enable */
++		(1 << 3) | /* Auto-increment */
++		(0 << 8), /* Pre-scale */
++		SCU_GLOBAL_TIMER_CONTROL);
++}
++
++/* Compute mask for given delay in miliseconds*/
++static int get_number_of_cycles_for_delay(unsigned int delay)
++{
++	return (APU_FREQ / (2 * 1000)) * delay;
++}
++
++/* stop timer */
++static void perf_disable_clock(void)
++{
++	iowrite(0, SCU_GLOBAL_TIMER_CONTROL);
++}
++
++/* stop timer and reset timer count regs */
++static void perf_reset_clock(void)
++{
++	perf_disable_clock();
++	iowrite(0, SCU_GLOBAL_TIMER_COUNT_L32);
++	iowrite(0, SCU_GLOBAL_TIMER_COUNT_U32);
++}
++
++static void perf_reset_and_start_timer(void)
++{
++	perf_reset_clock();
++	perf_start_clock();
++}
++
++int ps7_config(unsigned long *ps7_config_init)
++{
++	unsigned long *ptr = ps7_config_init;
++	unsigned long opcode;
++	unsigned long addr;
++	unsigned long val;
++	unsigned long mask;
++	unsigned int numargs;
++	int i;
++	int delay;
++
++	for (;;) {
++		opcode = ptr[0];
++		if (opcode == OPCODE_EXIT)
++			return PS7_INIT_SUCCESS;
++		addr = (opcode & OPCODE_ADDRESS_MASK);
++
++		switch (opcode & ~OPCODE_ADDRESS_MASK) {
++		case OPCODE_MASKWRITE:
++			numargs = 3;
++			mask = ptr[1];
++			val = ptr[2];
++			iowrite((ioread(addr) & ~mask) | (val & mask), addr);
++			break;
++
++		case OPCODE_MASKPOLL:
++			numargs = 2;
++			mask = ptr[1];
++			i = 0;
++			while (!(ioread(addr) & mask)) {
++				if (i == PS7_MASK_POLL_TIME)
++					return PS7_INIT_TIMEOUT;
++				i++;
++			}
++			break;
++
++		case OPCODE_MASKDELAY:
++			numargs = 2;
++			mask = ptr[1];
++			delay = get_number_of_cycles_for_delay(mask);
++			perf_reset_and_start_timer();
++			while (ioread(addr) < delay)
++				;
++			break;
++
++		default:
++			return PS7_INIT_CORRUPT;
++		}
++
++		ptr += numargs;
++	}
++}
+diff --git a/board/ni/zynq/ps7_init_gpl.h b/board/ni/zynq/ps7_init_gpl.h
+new file mode 100644
+index 0000000000..e728cb296a
+--- /dev/null
++++ b/board/ni/zynq/ps7_init_gpl.h
+@@ -0,0 +1,35 @@
++/*
++ * (c) Copyright 2010-2014 Xilinx, Inc. All rights reserved.
++ * (c) Copyright 2016 Topic Embedded Products.
++ * (c) Copyright 2017 National Instruments Corp.
++ *
++ * SPDX-License-Identifier:	GPL-2.0
++ */
++
++#define OPCODE_EXIT       0U
++#define OPCODE_MASKWRITE  0U
++#define OPCODE_MASKPOLL   1U
++#define OPCODE_MASKDELAY  2U
++#define OPCODE_ADDRESS_MASK (~3U)
++
++/* Sentinel */
++#define EMIT_EXIT()                     OPCODE_EXIT
++/* Opcode is in lower 2 bits of address, address is always 4-byte aligned */
++#define EMIT_MASKWRITE(addr, mask, val) OPCODE_MASKWRITE | addr, mask, val
++#define EMIT_MASKPOLL(addr, mask)       OPCODE_MASKPOLL | addr, mask
++#define EMIT_MASKDELAY(addr, mask)      OPCODE_MASKDELAY | addr, mask
++
++/* Returns codes of ps7_init* */
++#define PS7_INIT_SUCCESS   (0)
++#define PS7_INIT_CORRUPT   (1)
++#define PS7_INIT_TIMEOUT   (2)
++#define PS7_POLL_FAILED_DDR_INIT (3)
++#define PS7_POLL_FAILED_DMA      (4)
++#define PS7_POLL_FAILED_PLL      (5)
++
++/* Called by spl.c */
++int ps7_init(void);
++int ps7_post_config(void);
++
++/* Defined in ps7_init_common.c */
++int ps7_config(unsigned long *ps7_config_init);
+diff --git a/board/ni/zynq/zynq-ni-neon-rev2/ps7_init_gpl.c b/board/ni/zynq/zynq-ni-neon-rev2/ps7_init_gpl.c
+new file mode 100644
+index 0000000000..a556d6850f
+--- /dev/null
++++ b/board/ni/zynq/zynq-ni-neon-rev2/ps7_init_gpl.c
+@@ -0,0 +1,306 @@
++/*
++ * (c) Copyright 2010-2014 Xilinx, Inc. All rights reserved.
++ * (c) Copyright 2018 National Instruments Corp.
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#include "../ps7_init_gpl.h"
++
++unsigned long ps7_pll_init_data_3_0[] = {
++	EMIT_MASKWRITE(0XF8000008, 0x0000FFFFU, 0x0000DF0DU),
++	EMIT_MASKWRITE(0XF8000110, 0x003FFFF0U, 0x000FA240U),
++	EMIT_MASKWRITE(0XF8000100, 0x0007F000U, 0x0003C000U),
++	EMIT_MASKWRITE(0XF8000100, 0x00000010U, 0x00000010U),
++	EMIT_MASKWRITE(0XF8000100, 0x00000001U, 0x00000001U),
++	EMIT_MASKWRITE(0XF8000100, 0x00000001U, 0x00000000U),
++	EMIT_MASKPOLL(0XF800010C, 0x00000001U),
++	EMIT_MASKWRITE(0XF8000100, 0x00000010U, 0x00000000U),
++	EMIT_MASKWRITE(0XF8000120, 0x1F003F30U, 0x1F000200U),
++	EMIT_MASKWRITE(0XF8000114, 0x003FFFF0U, 0x0012C220U),
++	EMIT_MASKWRITE(0XF8000104, 0x0007F000U, 0x00020000U),
++	EMIT_MASKWRITE(0XF8000104, 0x00000010U, 0x00000010U),
++	EMIT_MASKWRITE(0XF8000104, 0x00000001U, 0x00000001U),
++	EMIT_MASKWRITE(0XF8000104, 0x00000001U, 0x00000000U),
++	EMIT_MASKPOLL(0XF800010C, 0x00000002U),
++	EMIT_MASKWRITE(0XF8000104, 0x00000010U, 0x00000000U),
++	EMIT_MASKWRITE(0XF8000124, 0xFFF00003U, 0x0C200003U),
++	EMIT_MASKWRITE(0XF8000118, 0x003FFFF0U, 0x000FA240U),
++	EMIT_MASKWRITE(0XF8000108, 0x0007F000U, 0x0003C000U),
++	EMIT_MASKWRITE(0XF8000108, 0x00000010U, 0x00000010U),
++	EMIT_MASKWRITE(0XF8000108, 0x00000001U, 0x00000001U),
++	EMIT_MASKWRITE(0XF8000108, 0x00000001U, 0x00000000U),
++	EMIT_MASKPOLL(0XF800010C, 0x00000004U),
++	EMIT_MASKWRITE(0XF8000108, 0x00000010U, 0x00000000U),
++	EMIT_MASKWRITE(0XF8000004, 0x0000FFFFU, 0x0000767BU),
++	EMIT_EXIT(),
++};
++
++unsigned long ps7_clock_init_data_3_0[] = {
++	EMIT_MASKWRITE(0XF8000008, 0x0000FFFFU, 0x0000DF0DU),
++	EMIT_MASKWRITE(0XF8000128, 0x03F03F01U, 0x00700F01U),
++	EMIT_MASKWRITE(0XF8000138, 0x00000011U, 0x00000001U),
++	EMIT_MASKWRITE(0XF8000140, 0x03F03F71U, 0x00101001U),
++	EMIT_MASKWRITE(0XF8000150, 0x00003F33U, 0x00001401U),
++	EMIT_MASKWRITE(0XF8000154, 0x00003F33U, 0x00001403U),
++	EMIT_MASKWRITE(0XF8000158, 0x00003F33U, 0x00000C03U),
++	EMIT_MASKWRITE(0XF8000168, 0x00003F31U, 0x00000A01U),
++	EMIT_MASKWRITE(0XF8000170, 0x03F03F30U, 0x00400500U),
++	EMIT_MASKWRITE(0XF8000180, 0x03F03F30U, 0x00500A00U),
++	EMIT_MASKWRITE(0XF8000190, 0x03F03F30U, 0x00300400U),
++	EMIT_MASKWRITE(0XF80001A0, 0x03F03F30U, 0x00200500U),
++	EMIT_MASKWRITE(0XF80001C4, 0x00000001U, 0x00000001U),
++	EMIT_MASKWRITE(0XF800012C, 0x01FFCCCDU, 0x017CC44DU),
++	EMIT_MASKWRITE(0XF8000004, 0x0000FFFFU, 0x0000767BU),
++	EMIT_EXIT(),
++};
++
++unsigned long ps7_ddr_init_data_3_0[] = {
++	EMIT_MASKWRITE(0XF8006000, 0x0001FFFFU, 0x00000080U),
++	EMIT_MASKWRITE(0XF8006004, 0x0007FFFFU, 0x00001081U),
++	EMIT_MASKWRITE(0XF8006008, 0x03FFFFFFU, 0x03C0780FU),
++	EMIT_MASKWRITE(0XF800600C, 0x03FFFFFFU, 0x02001001U),
++	EMIT_MASKWRITE(0XF8006010, 0x03FFFFFFU, 0x00014001U),
++	EMIT_MASKWRITE(0XF8006014, 0x001FFFFFU, 0x0004281AU),
++	EMIT_MASKWRITE(0XF8006018, 0xF7FFFFFFU, 0x44E458D2U),
++	EMIT_MASKWRITE(0XF800601C, 0xFFFFFFFFU, 0x720238E5U),
++	EMIT_MASKWRITE(0XF8006020, 0x7FDFFFFCU, 0x270872D0U),
++	EMIT_MASKWRITE(0XF8006024, 0x0FFFFFC3U, 0x00000000U),
++	EMIT_MASKWRITE(0XF8006028, 0x00003FFFU, 0x00002007U),
++	EMIT_MASKWRITE(0XF800602C, 0xFFFFFFFFU, 0x00000008U),
++	EMIT_MASKWRITE(0XF8006030, 0xFFFFFFFFU, 0x00040930U),
++	EMIT_MASKWRITE(0XF8006034, 0x13FF3FFFU, 0x000116D4U),
++	EMIT_MASKWRITE(0XF8006038, 0x00000003U, 0x00000000U),
++	EMIT_MASKWRITE(0XF800603C, 0x000FFFFFU, 0x00000777U),
++	EMIT_MASKWRITE(0XF8006040, 0xFFFFFFFFU, 0xFFF00000U),
++	EMIT_MASKWRITE(0XF8006044, 0x0FFFFFFFU, 0x0F666666U),
++	EMIT_MASKWRITE(0XF8006048, 0x0003F03FU, 0x0003C008U),
++	EMIT_MASKWRITE(0XF8006050, 0xFF0F8FFFU, 0x77010800U),
++	EMIT_MASKWRITE(0XF8006058, 0x00010000U, 0x00000000U),
++	EMIT_MASKWRITE(0XF800605C, 0x0000FFFFU, 0x00005003U),
++	EMIT_MASKWRITE(0XF8006060, 0x000017FFU, 0x0000003EU),
++	EMIT_MASKWRITE(0XF8006064, 0x00021FE0U, 0x00020000U),
++	EMIT_MASKWRITE(0XF8006068, 0x03FFFFFFU, 0x00284141U),
++	EMIT_MASKWRITE(0XF800606C, 0x0000FFFFU, 0x00001610U),
++	EMIT_MASKWRITE(0XF8006078, 0x03FFFFFFU, 0x00466111U),
++	EMIT_MASKWRITE(0XF800607C, 0x000FFFFFU, 0x00032222U),
++	EMIT_MASKWRITE(0XF80060A4, 0xFFFFFFFFU, 0x10200802U),
++	EMIT_MASKWRITE(0XF80060A8, 0x0FFFFFFFU, 0x0690CB73U),
++	EMIT_MASKWRITE(0XF80060AC, 0x000001FFU, 0x000001FEU),
++	EMIT_MASKWRITE(0XF80060B0, 0x1FFFFFFFU, 0x1CFFFFFFU),
++	EMIT_MASKWRITE(0XF80060B4, 0x00000200U, 0x00000200U),
++	EMIT_MASKWRITE(0XF80060B8, 0x01FFFFFFU, 0x00200066U),
++	EMIT_MASKWRITE(0XF80060C4, 0x00000003U, 0x00000000U),
++	EMIT_MASKWRITE(0XF80060C8, 0x000000FFU, 0x00000000U),
++	EMIT_MASKWRITE(0XF80060DC, 0x00000001U, 0x00000000U),
++	EMIT_MASKWRITE(0XF80060F0, 0x0000FFFFU, 0x00000000U),
++	EMIT_MASKWRITE(0XF80060F4, 0x0000000FU, 0x00000008U),
++	EMIT_MASKWRITE(0XF8006114, 0x000000FFU, 0x00000000U),
++	EMIT_MASKWRITE(0XF8006118, 0x7FFFFFCFU, 0x40000001U),
++	EMIT_MASKWRITE(0XF800611C, 0x7FFFFFCFU, 0x40000001U),
++	EMIT_MASKWRITE(0XF8006120, 0x7FFFFFCFU, 0x40000001U),
++	EMIT_MASKWRITE(0XF8006124, 0x7FFFFFCFU, 0x40000001U),
++	EMIT_MASKWRITE(0XF800612C, 0x000FFFFFU, 0x0001E807U),
++	EMIT_MASKWRITE(0XF8006130, 0x000FFFFFU, 0x0001EC05U),
++	EMIT_MASKWRITE(0XF8006134, 0x000FFFFFU, 0x0001EC05U),
++	EMIT_MASKWRITE(0XF8006138, 0x000FFFFFU, 0x0001E001U),
++	EMIT_MASKWRITE(0XF8006140, 0x000FFFFFU, 0x00000035U),
++	EMIT_MASKWRITE(0XF8006144, 0x000FFFFFU, 0x00000035U),
++	EMIT_MASKWRITE(0XF8006148, 0x000FFFFFU, 0x00000035U),
++	EMIT_MASKWRITE(0XF800614C, 0x000FFFFFU, 0x00000035U),
++	EMIT_MASKWRITE(0XF8006154, 0x000FFFFFU, 0x00000087U),
++	EMIT_MASKWRITE(0XF8006158, 0x000FFFFFU, 0x00000085U),
++	EMIT_MASKWRITE(0XF800615C, 0x000FFFFFU, 0x00000085U),
++	EMIT_MASKWRITE(0XF8006160, 0x000FFFFFU, 0x00000081U),
++	EMIT_MASKWRITE(0XF8006168, 0x001FFFFFU, 0x000000CFU),
++	EMIT_MASKWRITE(0XF800616C, 0x001FFFFFU, 0x000000D0U),
++	EMIT_MASKWRITE(0XF8006170, 0x001FFFFFU, 0x000000D0U),
++	EMIT_MASKWRITE(0XF8006174, 0x001FFFFFU, 0x000000CDU),
++	EMIT_MASKWRITE(0XF800617C, 0x000FFFFFU, 0x000000C7U),
++	EMIT_MASKWRITE(0XF8006180, 0x000FFFFFU, 0x000000C5U),
++	EMIT_MASKWRITE(0XF8006184, 0x000FFFFFU, 0x000000C5U),
++	EMIT_MASKWRITE(0XF8006188, 0x000FFFFFU, 0x000000C1U),
++	EMIT_MASKWRITE(0XF8006190, 0x6FFFFEFEU, 0x00040080U),
++	EMIT_MASKWRITE(0XF8006194, 0x000FFFFFU, 0x0001FC82U),
++	EMIT_MASKWRITE(0XF8006204, 0xFFFFFFFFU, 0x00000000U),
++	EMIT_MASKWRITE(0XF8006208, 0x000703FFU, 0x000003FFU),
++	EMIT_MASKWRITE(0XF800620C, 0x000703FFU, 0x000003FFU),
++	EMIT_MASKWRITE(0XF8006210, 0x000703FFU, 0x000003FFU),
++	EMIT_MASKWRITE(0XF8006214, 0x000703FFU, 0x000003FFU),
++	EMIT_MASKWRITE(0XF8006218, 0x000F03FFU, 0x000003FFU),
++	EMIT_MASKWRITE(0XF800621C, 0x000F03FFU, 0x000003FFU),
++	EMIT_MASKWRITE(0XF8006220, 0x000F03FFU, 0x000003FFU),
++	EMIT_MASKWRITE(0XF8006224, 0x000F03FFU, 0x000003FFU),
++	EMIT_MASKWRITE(0XF80062A8, 0x00000FF5U, 0x00000000U),
++	EMIT_MASKWRITE(0XF80062AC, 0xFFFFFFFFU, 0x00000000U),
++	EMIT_MASKWRITE(0XF80062B0, 0x003FFFFFU, 0x00005125U),
++	EMIT_MASKWRITE(0XF80062B4, 0x0003FFFFU, 0x000012A8U),
++	EMIT_MASKPOLL(0XF8000B74, 0x00002000U),
++	EMIT_MASKWRITE(0XF8006000, 0x0001FFFFU, 0x00000081U),
++	EMIT_MASKPOLL(0XF8006054, 0x00000007U),
++	EMIT_EXIT(),
++};
++
++unsigned long ps7_mio_init_data_3_0[] = {
++	EMIT_MASKWRITE(0XF8000008, 0x0000FFFFU, 0x0000DF0DU),
++	EMIT_MASKWRITE(0XF8000B40, 0x00000FFFU, 0x00000600U),
++	EMIT_MASKWRITE(0XF8000B44, 0x00000FFFU, 0x00000600U),
++	EMIT_MASKWRITE(0XF8000B48, 0x00000FFFU, 0x00000672U),
++	EMIT_MASKWRITE(0XF8000B4C, 0x00000FFFU, 0x00000672U),
++	EMIT_MASKWRITE(0XF8000B50, 0x00000FFFU, 0x00000674U),
++	EMIT_MASKWRITE(0XF8000B54, 0x00000FFFU, 0x00000674U),
++	EMIT_MASKWRITE(0XF8000B58, 0x00000FFFU, 0x00000600U),
++	EMIT_MASKWRITE(0XF8000B5C, 0xFFFFFFFFU, 0x0018C61CU),
++	EMIT_MASKWRITE(0XF8000B60, 0xFFFFFFFFU, 0x00F9861CU),
++	EMIT_MASKWRITE(0XF8000B64, 0xFFFFFFFFU, 0x00F9861CU),
++	EMIT_MASKWRITE(0XF8000B68, 0xFFFFFFFFU, 0x00F9861CU),
++	EMIT_MASKWRITE(0XF8000B6C, 0x00007FFFU, 0x00000260U),
++	EMIT_MASKWRITE(0XF8000B70, 0x00000001U, 0x00000001U),
++	EMIT_MASKWRITE(0XF8000B70, 0x00000021U, 0x00000020U),
++	EMIT_MASKWRITE(0XF8000B70, 0x07FEFFFFU, 0x00000823U),
++	EMIT_MASKWRITE(0XF8000700, 0x00003FFFU, 0x00001600U),
++	EMIT_MASKWRITE(0XF8000704, 0x00003FFFU, 0x00001600U),
++	EMIT_MASKWRITE(0XF8000708, 0x00003FFFU, 0x00000600U),
++	EMIT_MASKWRITE(0XF800070C, 0x00003FFFU, 0x00000600U),
++	EMIT_MASKWRITE(0XF8000710, 0x00003FFFU, 0x00000600U),
++	EMIT_MASKWRITE(0XF8000714, 0x00003FFFU, 0x00000600U),
++	EMIT_MASKWRITE(0XF8000718, 0x00003FFFU, 0x00000600U),
++	EMIT_MASKWRITE(0XF800071C, 0x00003FFFU, 0x00000600U),
++	EMIT_MASKWRITE(0XF8000720, 0x00003FFFU, 0x000006E0U),
++	EMIT_MASKWRITE(0XF8000724, 0x00003FFFU, 0x000016E1U),
++	EMIT_MASKWRITE(0XF8000728, 0x00003FFFU, 0x00001661U),
++	EMIT_MASKWRITE(0XF800072C, 0x00003FFFU, 0x00001660U),
++	EMIT_MASKWRITE(0XF8000730, 0x00003FFFU, 0x00001661U),
++	EMIT_MASKWRITE(0XF8000734, 0x00003FFFU, 0x00001661U),
++	EMIT_MASKWRITE(0XF8000738, 0x00003FFFU, 0x00001640U),
++	EMIT_MASKWRITE(0XF800073C, 0x00003FFFU, 0x00001640U),
++	EMIT_MASKWRITE(0XF8000740, 0x00003FFFU, 0x00000302U),
++	EMIT_MASKWRITE(0XF8000744, 0x00003FFFU, 0x00000302U),
++	EMIT_MASKWRITE(0XF8000748, 0x00003FFFU, 0x00000302U),
++	EMIT_MASKWRITE(0XF800074C, 0x00003FFFU, 0x00000302U),
++	EMIT_MASKWRITE(0XF8000750, 0x00003FFFU, 0x00000302U),
++	EMIT_MASKWRITE(0XF8000754, 0x00003FFFU, 0x00000302U),
++	EMIT_MASKWRITE(0XF8000758, 0x00003FFFU, 0x00000303U),
++	EMIT_MASKWRITE(0XF800075C, 0x00003FFFU, 0x00000303U),
++	EMIT_MASKWRITE(0XF8000760, 0x00003FFFU, 0x00000303U),
++	EMIT_MASKWRITE(0XF8000764, 0x00003FFFU, 0x00000303U),
++	EMIT_MASKWRITE(0XF8000768, 0x00003FFFU, 0x00000303U),
++	EMIT_MASKWRITE(0XF800076C, 0x00003FFFU, 0x00000303U),
++	EMIT_MASKWRITE(0XF8000770, 0x00003FFFU, 0x00001204U),
++	EMIT_MASKWRITE(0XF8000774, 0x00003FFFU, 0x00001205U),
++	EMIT_MASKWRITE(0XF8000778, 0x00003FFFU, 0x00001204U),
++	EMIT_MASKWRITE(0XF800077C, 0x00003FFFU, 0x00001205U),
++	EMIT_MASKWRITE(0XF8000780, 0x00003FFFU, 0x00001204U),
++	EMIT_MASKWRITE(0XF8000784, 0x00003FFFU, 0x00001204U),
++	EMIT_MASKWRITE(0XF8000788, 0x00003FFFU, 0x00001204U),
++	EMIT_MASKWRITE(0XF800078C, 0x00003FFFU, 0x00001204U),
++	EMIT_MASKWRITE(0XF8000790, 0x00003FFFU, 0x00001205U),
++	EMIT_MASKWRITE(0XF8000794, 0x00003FFFU, 0x00001204U),
++	EMIT_MASKWRITE(0XF8000798, 0x00003FFFU, 0x00001204U),
++	EMIT_MASKWRITE(0XF800079C, 0x00003FFFU, 0x00001204U),
++	EMIT_MASKWRITE(0XF80007A0, 0x00003FFFU, 0x00001280U),
++	EMIT_MASKWRITE(0XF80007A4, 0x00003FFFU, 0x00001280U),
++	EMIT_MASKWRITE(0XF80007A8, 0x00003FFFU, 0x00001280U),
++	EMIT_MASKWRITE(0XF80007AC, 0x00003FFFU, 0x00001280U),
++	EMIT_MASKWRITE(0XF80007B0, 0x00003FFFU, 0x00001280U),
++	EMIT_MASKWRITE(0XF80007B4, 0x00003FFFU, 0x00001280U),
++	EMIT_MASKWRITE(0XF80007B8, 0x00003FFFU, 0x000012E1U),
++	EMIT_MASKWRITE(0XF80007BC, 0x00003FFFU, 0x000012E0U),
++	EMIT_MASKWRITE(0XF80007C0, 0x00003FFFU, 0x00001240U),
++	EMIT_MASKWRITE(0XF80007C4, 0x00003FFFU, 0x00001240U),
++	EMIT_MASKWRITE(0XF80007C8, 0x00003FFFU, 0x00001200U),
++	EMIT_MASKWRITE(0XF80007CC, 0x00003FFFU, 0x00001200U),
++	EMIT_MASKWRITE(0XF80007D0, 0x00003FFFU, 0x00001280U),
++	EMIT_MASKWRITE(0XF80007D4, 0x00003FFFU, 0x00001280U),
++	EMIT_MASKWRITE(0XF8000830, 0x003F003FU, 0x00380037U),
++	EMIT_MASKWRITE(0XF8000004, 0x0000FFFFU, 0x0000767BU),
++	EMIT_EXIT(),
++};
++
++unsigned long ps7_peripherals_init_data_3_0[] = {
++	EMIT_MASKWRITE(0XF8000008, 0x0000FFFFU, 0x0000DF0DU),
++	EMIT_MASKWRITE(0XF8000B48, 0x00000180U, 0x00000180U),
++	EMIT_MASKWRITE(0XF8000B4C, 0x00000180U, 0x00000180U),
++	EMIT_MASKWRITE(0XF8000B50, 0x00000180U, 0x00000180U),
++	EMIT_MASKWRITE(0XF8000B54, 0x00000180U, 0x00000180U),
++	EMIT_MASKWRITE(0XF8000004, 0x0000FFFFU, 0x0000767BU),
++	EMIT_MASKWRITE(0XE0001034, 0x000000FFU, 0x00000006U),
++	EMIT_MASKWRITE(0XE0001018, 0x0000FFFFU, 0x0000007CU),
++	EMIT_MASKWRITE(0XE0001000, 0x000001FFU, 0x00000017U),
++	EMIT_MASKWRITE(0XE0001004, 0x000003FFU, 0x00000020U),
++	EMIT_MASKWRITE(0XE0000034, 0x000000FFU, 0x00000006U),
++	EMIT_MASKWRITE(0XE0000018, 0x0000FFFFU, 0x0000007CU),
++	EMIT_MASKWRITE(0XE0000000, 0x000001FFU, 0x00000017U),
++	EMIT_MASKWRITE(0XE0000004, 0x000003FFU, 0x00000020U),
++	EMIT_MASKWRITE(0XE000D000, 0x00080000U, 0x00080000U),
++	EMIT_MASKWRITE(0XF8007000, 0x20000000U, 0x00000000U),
++	EMIT_MASKWRITE(0XE000A204, 0xFFFFFFFFU, 0x00000018U),
++	EMIT_MASKWRITE(0XE000A000, 0xFFFFFFFFU, 0xFFEF0010U),
++	EMIT_MASKWRITE(0XE000A208, 0xFFFFFFFFU, 0x00000018U),
++	EMIT_MASKWRITE(0XE000A000, 0xFFFFFFFFU, 0xFFEF0000U),
++	EMIT_MASKDELAY(0XF8F00200, 1),
++	EMIT_MASKWRITE(0XE000A000, 0xFFFFFFFFU, 0xFFEF0010U),
++	EMIT_MASKDELAY(0XF8F00200, 1),
++	EMIT_MASKWRITE(0XE000A204, 0xFFFFFFFFU, 0x00000018U),
++	EMIT_MASKWRITE(0XE000A000, 0xFFFFFFFFU, 0xFFF70008U),
++	EMIT_MASKWRITE(0XE000A208, 0xFFFFFFFFU, 0x00000018U),
++	EMIT_MASKWRITE(0XE000A000, 0xFFFFFFFFU, 0xFFF70000U),
++	EMIT_MASKDELAY(0XF8F00200, 1),
++	EMIT_MASKWRITE(0XE000A000, 0xFFFFFFFFU, 0xFFF70008U),
++	EMIT_MASKDELAY(0XF8F00200, 1),
++	EMIT_MASKDELAY(0XF8F00200, 1),
++	EMIT_MASKDELAY(0XF8F00200, 1),
++	EMIT_EXIT(),
++};
++
++unsigned long ps7_post_config_3_0[] = {
++	EMIT_MASKWRITE(0XF8000008, 0x0000FFFFU ,0x0000DF0DU),
++	EMIT_MASKWRITE(0XF8000900, 0x0000000FU ,0x0000000FU),
++	EMIT_MASKWRITE(0XF8000240, 0xFFFFFFFFU ,0x00000000U),
++	EMIT_MASKWRITE(0XF8000004, 0x0000FFFFU ,0x0000767BU),
++	EMIT_EXIT(),
++};
++
++unsigned long ps7_debug_3_0[] = {
++	EMIT_MASKWRITE(0XF8898FB0, 0xFFFFFFFFU, 0xC5ACCE55U),
++	EMIT_MASKWRITE(0XF8899FB0, 0xFFFFFFFFU, 0xC5ACCE55U),
++	EMIT_MASKWRITE(0XF8809FB0, 0xFFFFFFFFU, 0xC5ACCE55U),
++	EMIT_EXIT(),
++};
++
++int ps7_post_config(void)
++{
++	return ps7_config(ps7_post_config_3_0);
++}
++
++int ps7_init(void)
++{
++	int ret;
++
++	/* MIO init */
++	ret = ps7_config(ps7_mio_init_data_3_0);
++	if (ret != PS7_INIT_SUCCESS)
++		return ret;
++
++	/* PLL init */
++	ret = ps7_config(ps7_pll_init_data_3_0);
++	if (ret != PS7_INIT_SUCCESS)
++		return ret;
++
++	/* Clock init */
++	ret = ps7_config(ps7_clock_init_data_3_0);
++	if (ret != PS7_INIT_SUCCESS)
++		return ret;
++
++	/* DDR init */
++	ret = ps7_config(ps7_ddr_init_data_3_0);
++	if (ret != PS7_INIT_SUCCESS)
++		return ret;
++
++	/* Peripherals init */
++	ret = ps7_config(ps7_peripherals_init_data_3_0);
++	if (ret != PS7_INIT_SUCCESS)
++		return ret;
++
++	return PS7_INIT_SUCCESS;
++}
+diff --git a/configs/ni_neon_rev2_defconfig b/configs/ni_neon_rev2_defconfig
+new file mode 100644
+index 0000000000..996146b466
+--- /dev/null
++++ b/configs/ni_neon_rev2_defconfig
+@@ -0,0 +1,64 @@
++CONFIG_ARM=y
++CONFIG_SYS_VENDOR="ni"
++CONFIG_SYS_CONFIG_NAME="ni_neon_rev2"
++CONFIG_ARCH_ZYNQ=y
++CONFIG_SYS_TEXT_BASE=0x4000000
++CONFIG_SPL_STACK_R_ADDR=0x200000
++CONFIG_DEFAULT_DEVICE_TREE="zynq-ni-neon-rev2"
++CONFIG_DEBUG_UART=y
++CONFIG_FIT=y
++CONFIG_FIT_SIGNATURE=y
++CONFIG_BOOTDELAY=0
++# CONFIG_DISPLAY_CPUINFO is not set
++CONFIG_SPL=y
++CONFIG_SPL_STACK_R=y
++CONFIG_HUSH_PARSER=y
++CONFIG_SYS_PROMPT="ni-sulfur-uboot> "
++CONFIG_AUTOBOOT_KEYED=y
++CONFIG_AUTOBOOT_PROMPT="Automatic boot in %ds...\nEnter 'noautoboot' to enter prompt without timeout\n"
++CONFIG_AUTOBOOT_STOP_STR="noautoboot"
++CONFIG_CMD_THOR_DOWNLOAD=y
++CONFIG_CMD_DFU=y
++# CONFIG_CMD_FLASH is not set
++CONFIG_CMD_GPIO=y
++CONFIG_CMD_I2C=y
++CONFIG_CMD_MMC=y
++CONFIG_CMD_MII=y
++CONFIG_CMD_USB=y
++# CONFIG_CMD_SETEXPR is not set
++# CONFIG_CMD_NET is not set
++# CONFIG_CMD_NFS is not set
++CONFIG_CMD_CACHE=y
++CONFIG_CMD_EXT4=y
++CONFIG_CMD_FAT=y
++CONFIG_CMD_FS_GENERIC=y
++CONFIG_SPL_DM_SEQ_ALIAS=y
++CONFIG_DFU_RAM=y
++CONFIG_DM_I2C=y
++CONFIG_I2C_CROS_EC_TUNNEL=y
++CONFIG_SYS_I2C_CADENCE=y
++CONFIG_I2C_MUX=y
++CONFIG_I2C_MUX_PCA954x=y
++CONFIG_MISC=y
++CONFIG_CROS_EC=y
++CONFIG_CROS_EC_I2C=y
++CONFIG_I2C_EEPROM=y
++CONFIG_MMC_SDHCI=y
++CONFIG_MMC_SDHCI_ZYNQ=y
++CONFIG_ZYNQ_GEM=y
++CONFIG_DEBUG_UART_ZYNQ=y
++CONFIG_DEBUG_UART_BASE=0xe0000000
++CONFIG_DEBUG_UART_CLOCK=100000000
++CONFIG_ZYNQ_SERIAL=y
++CONFIG_USB=y
++CONFIG_USB_EHCI_HCD=y
++CONFIG_USB_ULPI_VIEWPORT=y
++CONFIG_USB_ULPI=y
++CONFIG_USB_STORAGE=y
++CONFIG_USB_GADGET=y
++CONFIG_USB_GADGET_MANUFACTURER="Xilinx"
++CONFIG_USB_GADGET_VENDOR_NUM=0x03FD
++CONFIG_USB_GADGET_PRODUCT_NUM=0x0300
++CONFIG_CI_UDC=y
++CONFIG_USB_GADGET_DOWNLOAD=y
++CONFIG_ENV_IS_IN_MMC=y
+diff --git a/include/configs/ni_neon_rev2.h b/include/configs/ni_neon_rev2.h
+new file mode 100644
+index 0000000000..643b9015c6
+--- /dev/null
++++ b/include/configs/ni_neon_rev2.h
+@@ -0,0 +1,49 @@
++/* SPDX-License-Identifier: GPL-2.0
++ *
++ * (C) Copyright 2016,2017 National Instruments Corp
++ *
++ * Configuration settings for the NI Project Neon Rev2 SDR board
++ * See zynq-common.h for Zynq common configs
++ *
++ */
++#ifndef __CONFIG_NI_NEON_REV2_H
++#define __CONFIG_NI_NEON_REV2_H
++
++#include <configs/zynq-common.h>
++
++#define CONFIG_SYS_MMC_ENV_DEV 0
++#define CONFIG_ENV_SECT_SIZE           CONFIG_ENV_SIZE
++#define CONFIG_ENV_OFFSET              0xE0000
++
++#undef CONFIG_EXTRA_ENV_SETTINGS
++#define CONFIG_EXTRA_ENV_SETTINGS	\
++	"fit_image=fit.itb\0"		\
++	"ec_compat=2\0"		\
++	"mboard=neon-rev2\0"	\
++	"ec_disable_swsync=0\0"		\
++	"ec_image=lib/firmware/ni/ec-neon-rev2.RW.bin\0"	\
++	"expand_ec_image=setenv ec_image lib/firmware/ni/ec-neon-rev${ec_compat}.RW.bin\0" \
++	"bootargs=root=/dev/mmcblk0p2 rw rootwait uio_pdrv_genirq.of_id=usrp-uio\0" \
++	"load_addr=0x2000000\0"		\
++	"fit_size=0x800000\0"           \
++	"fdt_high=0x20000000\0"         \
++	"initrd_high=0x20000000\0"      \
++	"sdboot=if test ${ec_disable_swsync} = 0; then "\
++			"echo Copying MCU FW from SD to RAM... && " \
++			"run expand_ec_image; " \
++			"load mmc 0 ${load_addr} ${ec_image} && " \
++			"crosec swsync ${load_addr} ${filesize}; fi;" \
++		"echo Copying FIT from SD to RAM... && " \
++		"load mmc 0 ${load_addr} ${fit_image} && " \
++		"bootm ${load_addr}#conf@zynq-ni-${mboard}.dtb\0" \
++	"jtagboot=echo TFTPing FIT to RAM... && " \
++		"tftpboot ${load_addr} ${fit_image} && " \
++		"bootm ${load_addr}#conf@zynq-ni-${mboard}.dtb\0" \
++	"usbboot=if usb start; then " \
++			"echo Copying FIT from USB to RAM... && " \
++			"load usb 0 ${load_addr} ${fit_image} && " \
++			"bootm ${load_addr}; fi\0" \
++		DFU_ALT_INFO
++
++
++#endif /* __CONFIG_NI_NEON_REV2_H */
+-- 
+2.14.3
+
