@@ -12,6 +12,4 @@ FILES_${PN}_append_ni-neon = " \
 
 do_install_append_ni-neon() {
     install -m 0755 ${WORKDIR}/70-sfp-net.rules ${D}/${sysconfdir}/udev/rules.d/
-    install -m 0755 ${WORKDIR}/eth0.network ${D}${sysconfdir}/systemd/network/
-    install -m 0755 ${WORKDIR}/sfp0.network ${D}${sysconfdir}/systemd/network/
 }
