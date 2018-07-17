@@ -1,8 +1,8 @@
-From 6cee3f96e654fd257fd1fe7348db65288a3a5e06 Mon Sep 17 00:00:00 2001
-From: Moritz Fischer <moritz.fischer@ettus.com>
-Date: Tue, 7 Nov 2017 12:13:36 -0800
 Subject: [PATCH] ni: zynq: Mender.io support for NI Ettus Research Sulfur Rev3
  SDR
+From 65d8b982655a11bfcf32f35a25b7cdaafd3762a7 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz@ettus.com>
+Date: Mon, 16 Jul 2018 23:56:53 +0000
 
 This involves adding bootcount in environment, as well as modifying
 the default bootconfiguration to run ${mender_setup} first.
@@ -10,7 +10,7 @@ the default bootconfiguration to run ${mender_setup} first.
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
  configs/ni_sulfur_rev3_defconfig |  2 +-
- include/configs/ni_sulfur_rev3.h | 18 ++++++++--------
+ include/configs/ni_sulfur_rev3.h | 18 ++++++++----------
  2 files changed, 9 insertions(+), 11 deletions(-)
 
 diff --git a/configs/ni_sulfur_rev3_defconfig b/configs/ni_sulfur_rev3_defconfig
@@ -27,10 +27,10 @@ index 9c3dddb9d3..fe44a334eb 100644
  # CONFIG_DISPLAY_CPUINFO is not set
  CONFIG_SPL=y
 diff --git a/include/configs/ni_sulfur_rev3.h b/include/configs/ni_sulfur_rev3.h
-index 5a066226bc..50372a7879 100644
+index dd403c7d57..3cd9641683 100644
 --- a/include/configs/ni_sulfur_rev3.h
 +++ b/include/configs/ni_sulfur_rev3.h
-@@ -10,31 +10,29 @@
+@@ -10,33 +10,31 @@
  #define __CONFIG_NI_SULFUR_REV3_H
  
  #include <configs/zynq-common.h>
@@ -42,13 +42,15 @@ index 5a066226bc..50372a7879 100644
  #define CONFIG_EXTRA_ENV_SETTINGS	\
 -	"fit_image=fit.itb\0"		\
 +	"fit_image=boot/fitImage\0"	\
+ 	"ec_compat=4\0"	\
+ 	"ec_mboard=sulfur\0"	\
  	"variant=sulfur-rev3\0"	\
  	"mboard=sulfur-rev3\0"	\
  	"ec_disable_swsync=0\0"		\
 -	"ec_image=ec-sulfur-rev3.RW.bin\0" \
-+	"ec_image=lib/firmware/ni/ec-sulfur-rev3.RW.bin\0"	\
- 	"expand_ec_image=setenv ec_image lib/firmware/ni/ec-${mboard}.RW.bin\0" \
 -	"bootargs=root=/dev/mmcblk0p2 rw rootwait uio_pdrv_genirq.of_id=usrp-uio\0" \
++	"ec_image=lib/firmware/ni/ec-sulfur-rev3.RW.bin\0"	\
+ 	"expand_ec_image=setenv ec_image lib/firmware/ni/ec-${ec_mboard}-rev${ec_compat}.RW.bin\0" \
 +	"bootargs=root=${mender_kernel_root} rw rootwait uio_pdrv_genirq.of_id=usrp-uio\0" \
  	"load_addr=0x2000000\0"		\
  	"fit_size=0x800000\0"           \

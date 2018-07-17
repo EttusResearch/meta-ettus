@@ -8,23 +8,25 @@ environment.
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
- include/configs/ni_sulfur_rev3.h | 12 +++++++++++-
- 1 file changed, 11 insertions(+), 1 deletion(-)
+ include/configs/ni_sulfur_rev3.h | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
 
 diff --git a/include/configs/ni_sulfur_rev3.h b/include/configs/ni_sulfur_rev3.h
 index d3114959b9..88cb535748 100644
 --- a/include/configs/ni_sulfur_rev3.h
 +++ b/include/configs/ni_sulfur_rev3.h
-@@ -14,12 +14,22 @@
+@@ -17,12 +17,24 @@
  #undef CONFIG_EXTRA_ENV_SETTINGS
  #define CONFIG_EXTRA_ENV_SETTINGS	\
  	"fit_image=fit.itb\0"		\
++	"ec_compat=4\0"	\
++	"ec_mboard=sulfur\0"	\
 +	"variant=sulfur-rev3\0"	\
 +	"mboard=sulfur-rev3\0"	\
 +	"ec_disable_swsync=0\0"		\
 +	"ec_image=ec-sulfur-rev3.RW.bin\0" \
-+	"expand_ec_image=setenv ec_image lib/firmware/ni/ec-${mboard}.RW.bin\0" \
  	"bootargs=root=/dev/mmcblk0p2 rw rootwait uio_pdrv_genirq.of_id=usrp-uio\0" \
++	"expand_ec_image=setenv ec_image lib/firmware/ni/ec-${ec_mboard}-rev${ec_compat}.RW.bin\0" \
  	"load_addr=0x2000000\0"		\
  	"fit_size=0x800000\0"           \
  	"fdt_high=0x20000000\0"         \

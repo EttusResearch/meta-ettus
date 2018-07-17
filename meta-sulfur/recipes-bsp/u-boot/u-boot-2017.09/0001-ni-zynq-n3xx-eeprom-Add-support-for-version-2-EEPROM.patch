@@ -1,4 +1,4 @@
-From a4088ede89268ca3a908c7677564a4610fa8454b Mon Sep 17 00:00:00 2001
+From 3a8e2ad9487352d0d7e6a72029e990799853ebe0 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 14 May 2018 17:12:34 -0700
 Subject: [PATCH] ni: zynq: n3xx-eeprom: Add support for version 2 EEPROMs
@@ -10,12 +10,12 @@ board.
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
- board/ni/zynq/n3xx-eeprom.c | 49 ++++++++++++++++++++++++-------------
- board/ni/zynq/n3xx-eeprom.h | 18 ++++++++++----
- 2 files changed, 45 insertions(+), 22 deletions(-)
+ board/ni/zynq/n3xx-eeprom.c | 50 ++++++++++++++++++++++++++++++---------------
+ board/ni/zynq/n3xx-eeprom.h | 18 +++++++++++-----
+ 2 files changed, 46 insertions(+), 22 deletions(-)
 
 diff --git a/board/ni/zynq/n3xx-eeprom.c b/board/ni/zynq/n3xx-eeprom.c
-index dd75b841b5..07a50832fd 100644
+index dd75b841b5..abf28ff294 100644
 --- a/board/ni/zynq/n3xx-eeprom.c
 +++ b/board/ni/zynq/n3xx-eeprom.c
 @@ -102,20 +102,25 @@ int n3xx_probe_dboard(int dboard, int *rev)
@@ -60,7 +60,7 @@ index dd75b841b5..07a50832fd 100644
  	int err, i;
  	u32 crc;
  
-@@ -142,25 +148,34 @@ int n3xx_probe_mboard(void)
+@@ -142,25 +148,35 @@ int n3xx_probe_mboard(void)
  	}
  
  	crc = crc32(0, (const u8*)&eeprom, sizeof(eeprom) - 4);
@@ -90,6 +90,7 @@ index dd75b841b5..07a50832fd 100644
 +	}
  	env_set("mboard", base_fdt);
 +	env_set("ec_compat", ec_compat_buf);
++	env_set("ec_mboard", n3xx_get_mboard_dtb(ntohs(eeprom.pid)));
  
  	printf("NI Ettus Research Project %s SDR Rev %c s/n %s \n",
 -			n3xx_get_mboard_name(htons(eeprom.pid)),
@@ -102,7 +103,7 @@ index dd75b841b5..07a50832fd 100644
  }
  
  int n3xx_read_ethaddr(unsigned char *ethaddr, int which)
-@@ -186,9 +201,9 @@ int n3xx_read_ethaddr(unsigned char *ethaddr, int which)
+@@ -186,9 +202,9 @@ int n3xx_read_ethaddr(unsigned char *ethaddr, int which)
  	}
  
  	crc = crc32(0, (const u8*)&eeprom, sizeof(eeprom) - 4);
