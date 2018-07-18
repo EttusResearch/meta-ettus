@@ -1,7 +1,7 @@
-From c20fcd62324de6ee853a46fbce5943178a5c36da Mon Sep 17 00:00:00 2001
+From ab9d4922096f0eba3d6bb7b4a563786cf2e570ec Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Thu, 18 May 2017 12:45:12 -0700
-Subject: [PATCH 5/6] ni: sulfur-rev3: Added swsync feature
+Subject: [PATCH 6/7] ni: sulfur-rev3: Added swsync feature
 
 This adds the entries for conditional software sync to the default
 environment.
@@ -12,7 +12,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  1 file changed, 13 insertions(+), 1 deletion(-)
 
 diff --git a/include/configs/ni_sulfur_rev3.h b/include/configs/ni_sulfur_rev3.h
-index d3114959b9..88cb535748 100644
+index abbfb74272..483414daa8 100644
 --- a/include/configs/ni_sulfur_rev3.h
 +++ b/include/configs/ni_sulfur_rev3.h
 @@ -17,12 +17,24 @@
@@ -42,5 +42,5 @@ index d3114959b9..88cb535748 100644
  		"bootm ${load_addr}\0" \
  	"jtagboot=echo TFTPing FIT to RAM... && " \
 -- 
-2.15.0
+2.18.0
 

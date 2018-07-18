@@ -1,7 +1,7 @@
-From 3a8e2ad9487352d0d7e6a72029e990799853ebe0 Mon Sep 17 00:00:00 2001
+From 6a30c729f79c4d9601e4d22e4bc90f571f310cf5 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 14 May 2018 17:12:34 -0700
-Subject: [PATCH] ni: zynq: n3xx-eeprom: Add support for version 2 EEPROMs
+Subject: [PATCH 5/7] ni: zynq: n3xx-eeprom: Add support for version 2 EEPROMs
 
 Add support for version 2 EEPROMs that have two more fields,
 dt-compat and ec-compat, that allow us to bump devicetree
@@ -10,8 +10,8 @@ board.
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
- board/ni/zynq/n3xx-eeprom.c | 50 ++++++++++++++++++++++++++++++---------------
- board/ni/zynq/n3xx-eeprom.h | 18 +++++++++++-----
+ board/ni/zynq/n3xx-eeprom.c | 50 ++++++++++++++++++++++++-------------
+ board/ni/zynq/n3xx-eeprom.h | 18 +++++++++----
  2 files changed, 46 insertions(+), 22 deletions(-)
 
 diff --git a/board/ni/zynq/n3xx-eeprom.c b/board/ni/zynq/n3xx-eeprom.c
@@ -166,5 +166,5 @@ index d1259af079..8ed971f36e 100644
  	u32 crc;
  } __attribute__((packed));
 -- 
-2.17.0
+2.18.0
 

@@ -1,7 +1,7 @@
-From 9c184cc54a8563348d79a7773bdf05d831ca6493 Mon Sep 17 00:00:00 2001
+From 58cf97a71cfd0faa7c22bfefb6122ea674a7e5cd Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 7 Nov 2017 11:51:56 -0800
-Subject: [PATCH 3/6] ni: zynq: Add support for NI Ettus Research Project
+Subject: [PATCH 2/7] ni: zynq: Add support for NI Ettus Research Project
  Sulfur Rev2 SDR
 
 Add support for second revision of NI Ettus Research Project Sulfur
@@ -37,17 +37,17 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  create mode 100644 include/configs/ni_sulfur_rev2.h
 
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
-index 762429c463..bf47896f69 100644
+index a895c70284..04a9e66d94 100644
 --- a/arch/arm/dts/Makefile
 +++ b/arch/arm/dts/Makefile
-@@ -127,6 +127,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb \
- 	zynq-zed.dtb \
- 	zynq-zybo.dtb \
+@@ -131,6 +131,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
+ 	zynq-cc108.dtb \
+ 	zynq-cse-qspi-single.dtb \
  	zynq-microzed.dtb \
 +	zynq-ni-sulfur-rev2.dtb \
  	zynq-picozed.dtb \
+ 	zynq-syzygy-hub.dtb \
  	zynq-topic-miami.dtb \
- 	zynq-topic-miamilite.dtb \
 diff --git a/arch/arm/dts/zynq-ni-sulfur-rev2-uboot.dtsi b/arch/arm/dts/zynq-ni-sulfur-rev2-uboot.dtsi
 new file mode 100644
 index 0000000000..28344c57c3
@@ -821,7 +821,7 @@ index 0000000000..e728cb296a
 +int ps7_config(unsigned long *ps7_config_init);
 diff --git a/board/ni/zynq/sulfur-eeprom.c b/board/ni/zynq/sulfur-eeprom.c
 new file mode 100644
-index 0000000000..c5da2f8ec3
+index 0000000000..a5ae89f8c7
 --- /dev/null
 +++ b/board/ni/zynq/sulfur-eeprom.c
 @@ -0,0 +1,170 @@
@@ -1459,7 +1459,7 @@ index 0000000000..e3f6ff828d
 +CONFIG_G_DNL_PRODUCT_NUM=0x0300
 diff --git a/include/configs/ni_sulfur_rev2.h b/include/configs/ni_sulfur_rev2.h
 new file mode 100644
-index 0000000000..78052da0f3
+index 0000000000..3a60251bda
 --- /dev/null
 +++ b/include/configs/ni_sulfur_rev2.h
 @@ -0,0 +1,33 @@
@@ -1497,5 +1497,5 @@ index 0000000000..78052da0f3
 +
 +#endif /* __CONFIG_NI_SULFUR_REV2_H */
 -- 
-2.15.1
+2.18.0
 

@@ -1,20 +1,20 @@
-From f3b28e9857eb31a9025f8db1f0bf90cf28d96551 Mon Sep 17 00:00:00 2001
+From c38ff8de4317d65439085ed876a6fd3e8df234cb Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 27 Feb 2018 14:12:30 -0800
-Subject: [PATCH] ni: zynq: Add support for Project Phosphorus
+Subject: [PATCH 4/7] ni: zynq: Add support for Project Phosphorus
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
- board/ni/zynq/Makefile                           |  2 +-
- board/ni/zynq/board.c                            | 71 ++++++++++++------------
- board/ni/zynq/{sulfur-eeprom.c => n3xx-eeprom.c} | 70 +++++++++++++++++------
- board/ni/zynq/{sulfur-eeprom.h => n3xx-eeprom.h} | 22 ++++----
+ board/ni/zynq/Makefile                        |  2 +-
+ board/ni/zynq/board.c                         | 71 ++++++++++---------
+ .../zynq/{sulfur-eeprom.c => n3xx-eeprom.c}   | 70 +++++++++++++-----
+ .../zynq/{sulfur-eeprom.h => n3xx-eeprom.h}   | 22 +++---
  4 files changed, 100 insertions(+), 65 deletions(-)
  rename board/ni/zynq/{sulfur-eeprom.c => n3xx-eeprom.c} (65%)
  rename board/ni/zynq/{sulfur-eeprom.h => n3xx-eeprom.h} (73%)
 
 diff --git a/board/ni/zynq/Makefile b/board/ni/zynq/Makefile
-index b8a5597..191bbd3 100644
+index b8a55978cd..191bbd35c3 100644
 --- a/board/ni/zynq/Makefile
 +++ b/board/ni/zynq/Makefile
 @@ -2,7 +2,7 @@
@@ -27,7 +27,7 @@ index b8a5597..191bbd3 100644
  # Remove quotes
  hw-platform-y :=$(shell echo $(CONFIG_DEFAULT_DEVICE_TREE))
 diff --git a/board/ni/zynq/board.c b/board/ni/zynq/board.c
-index 711c758..65272f3 100644
+index 6f340a9526..4c1f793db9 100644
 --- a/board/ni/zynq/board.c
 +++ b/board/ni/zynq/board.c
 @@ -14,7 +14,7 @@
@@ -39,7 +39,7 @@ index 711c758..65272f3 100644
  #include <i2c.h>
  
  DECLARE_GLOBAL_DATA_PTR;
-@@ -156,7 +156,6 @@ int board_late_init(void)
+@@ -158,7 +158,6 @@ int board_late_init(void)
  {
  	int slot0, slot1, slot0_rev, slot1_rev;
  	char dboard[128];
@@ -47,7 +47,7 @@ index 711c758..65272f3 100644
  	int rev;
  
  	switch ((zynq_slcr_get_boot_mode()) & ZYNQ_BM_MASK) {
-@@ -184,41 +183,43 @@ int board_late_init(void)
+@@ -186,41 +185,43 @@ int board_late_init(void)
  	board_power(BOARD_POWER_TYPE_ON);
  #endif
  
@@ -123,7 +123,7 @@ index 711c758..65272f3 100644
  	return 0;
  }
  
-@@ -232,7 +233,7 @@ int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
+@@ -234,7 +235,7 @@ int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
  		printf("I2C EEPROM MAC address read failed\n");
  #endif
  
@@ -136,7 +136,7 @@ diff --git a/board/ni/zynq/sulfur-eeprom.c b/board/ni/zynq/n3xx-eeprom.c
 similarity index 65%
 rename from board/ni/zynq/sulfur-eeprom.c
 rename to board/ni/zynq/n3xx-eeprom.c
-index c5da2f8..f159d59 100644
+index a5ae89f8c7..dd75b841b5 100644
 --- a/board/ni/zynq/sulfur-eeprom.c
 +++ b/board/ni/zynq/n3xx-eeprom.c
 @@ -5,30 +5,32 @@
@@ -282,7 +282,7 @@ diff --git a/board/ni/zynq/sulfur-eeprom.h b/board/ni/zynq/n3xx-eeprom.h
 similarity index 73%
 rename from board/ni/zynq/sulfur-eeprom.h
 rename to board/ni/zynq/n3xx-eeprom.h
-index a9d491a..d1259af 100644
+index a9d491acd7..d1259af079 100644
 --- a/board/ni/zynq/sulfur-eeprom.h
 +++ b/board/ni/zynq/n3xx-eeprom.h
 @@ -1,18 +1,18 @@
@@ -349,5 +349,5 @@ index a9d491a..d1259af 100644
 -#endif /* NI_ZYNQ_SULFUR_EEPROM_H */
 +#endif /* NI_ZYNQ_N3XX_EEPROM_H */
 -- 
-2.9.3
+2.18.0
 

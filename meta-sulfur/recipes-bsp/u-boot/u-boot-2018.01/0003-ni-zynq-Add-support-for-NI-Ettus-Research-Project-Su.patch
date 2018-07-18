@@ -1,7 +1,7 @@
-From 726355e01ffdb36e63c9894b2be29029f6b6918a Mon Sep 17 00:00:00 2001
+From 8fc822590d7b36d5fe6e7449bd5c333a068e9c00 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 7 Nov 2017 11:51:19 -0800
-Subject: [PATCH 4/6] ni: zynq: Add support for NI Ettus Research Project
+Subject: [PATCH 3/7] ni: zynq: Add support for NI Ettus Research Project
  Sulfur Rev3 SDR
 
 Add support for second revision of NI Ettus Research Project Sulfur
@@ -9,13 +9,13 @@ Revision 3 SDR board.
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
- arch/arm/dts/Makefile                            |   1 +
- arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi      |  39 +++
- arch/arm/dts/zynq-ni-sulfur-rev3.dts             | 238 ++++++++++++++++++
- board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c | 307 +++++++++++++++++++++++
- configs/ni_sulfur_rev3_defconfig                 |  61 +++++
- include/configs/ni_sulfur_rev3.h                 |  38 +++
- 6 files changed, 681 insertions(+)
+ arch/arm/dts/Makefile                         |   1 +
+ arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi   |  39 +++
+ arch/arm/dts/zynq-ni-sulfur-rev3.dts          | 238 ++++++++++++++
+ .../zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c   | 307 ++++++++++++++++++
+ configs/ni_sulfur_rev3_defconfig              |  67 ++++
+ include/configs/ni_sulfur_rev3.h              |  38 +++
+ 6 files changed, 690 insertions(+)
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi
  create mode 100644 arch/arm/dts/zynq-ni-sulfur-rev3.dts
  create mode 100644 board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c
@@ -23,17 +23,17 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  create mode 100644 include/configs/ni_sulfur_rev3.h
 
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
-index bf47896f69..0cb21054dd 100644
+index 04a9e66d94..56009fe3c0 100644
 --- a/arch/arm/dts/Makefile
 +++ b/arch/arm/dts/Makefile
-@@ -128,6 +128,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb \
- 	zynq-zybo.dtb \
+@@ -132,6 +132,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
+ 	zynq-cse-qspi-single.dtb \
  	zynq-microzed.dtb \
  	zynq-ni-sulfur-rev2.dtb \
 +	zynq-ni-sulfur-rev3.dtb \
  	zynq-picozed.dtb \
+ 	zynq-syzygy-hub.dtb \
  	zynq-topic-miami.dtb \
- 	zynq-topic-miamilite.dtb \
 diff --git a/arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi b/arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi
 new file mode 100644
 index 0000000000..3d7d5ba7d5
@@ -81,7 +81,7 @@ index 0000000000..3d7d5ba7d5
 +};
 diff --git a/arch/arm/dts/zynq-ni-sulfur-rev3.dts b/arch/arm/dts/zynq-ni-sulfur-rev3.dts
 new file mode 100644
-index 0000000000..14ff122a6e
+index 0000000000..8e3f5a42cc
 --- /dev/null
 +++ b/arch/arm/dts/zynq-ni-sulfur-rev3.dts
 @@ -0,0 +1,238 @@
@@ -325,7 +325,7 @@ index 0000000000..14ff122a6e
 +#include "zynq-ni-sulfur-rev3-uboot.dtsi"
 diff --git a/board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c b/board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c
 new file mode 100644
-index 0000000000..56a866b39f
+index 0000000000..f2df37aa35
 --- /dev/null
 +++ b/board/ni/zynq/zynq-ni-sulfur-rev3/ps7_init_gpl.c
 @@ -0,0 +1,307 @@
@@ -638,26 +638,27 @@ index 0000000000..56a866b39f
 +}
 diff --git a/configs/ni_sulfur_rev3_defconfig b/configs/ni_sulfur_rev3_defconfig
 new file mode 100644
-index 0000000000..bcf43e55e7
+index 0000000000..7d01c0d4b7
 --- /dev/null
 +++ b/configs/ni_sulfur_rev3_defconfig
-@@ -0,0 +1,64 @@
+@@ -0,0 +1,67 @@
 +CONFIG_ARM=y
 +CONFIG_SYS_VENDOR="ni"
 +CONFIG_SYS_CONFIG_NAME="ni_sulfur_rev3"
 +CONFIG_ARCH_ZYNQ=y
 +CONFIG_SYS_TEXT_BASE=0x4000000
 +CONFIG_DEFAULT_DEVICE_TREE="zynq-ni-sulfur-rev3"
++CONFIG_SPL_STACK_R_ADDR=0x200000
 +CONFIG_DEBUG_UART=y
 +CONFIG_FIT=y
 +CONFIG_FIT_SIGNATURE=y
-+CONFIG_SYS_EXTRA_OPTIONS="ENV_IS_IN_MMC"
++CONFIG_ENV_IS_IN_MMC=y
 +CONFIG_BOOTDELAY=0
 +# CONFIG_DISPLAY_CPUINFO is not set
 +CONFIG_SPL=y
++CONFIG_SPL_STACK_R=y
 +CONFIG_HUSH_PARSER=y
 +CONFIG_SYS_PROMPT="ni-sulfur-uboot> "
-+# CONFIG_CMD_IMLS is not set
 +CONFIG_CMD_THOR_DOWNLOAD=y
 +CONFIG_CMD_DFU=y
 +# CONFIG_CMD_FLASH is not set
@@ -689,26 +690,28 @@ index 0000000000..bcf43e55e7
 +CONFIG_SPI_FLASH_BAR=y
 +CONFIG_SPI_FLASH_STMICRO=y
 +# CONFIG_SPI_FLASH_USE_4K_SECTORS is not set
++CONFIG_ZYNQ_GEM=y
 +CONFIG_DEBUG_UART_ZYNQ=y
 +CONFIG_DEBUG_UART_BASE=0xe0000000
 +CONFIG_DEBUG_UART_CLOCK=100000000
++CONFIG_ZYNQ_SERIAL=y
 +CONFIG_USB=y
 +CONFIG_USB_EHCI_HCD=y
 +CONFIG_USB_ULPI_VIEWPORT=y
 +CONFIG_USB_ULPI=y
 +CONFIG_USB_STORAGE=y
 +CONFIG_USB_GADGET=y
++CONFIG_USB_GADGET_MANUFACTURER="Xilinx"
++CONFIG_USB_GADGET_VENDOR_NUM=0x03FD
++CONFIG_USB_GADGET_PRODUCT_NUM=0x0300
 +CONFIG_CI_UDC=y
 +CONFIG_USB_GADGET_DOWNLOAD=y
-+CONFIG_G_DNL_MANUFACTURER="Xilinx"
-+CONFIG_G_DNL_VENDOR_NUM=0x03fd
-+CONFIG_G_DNL_PRODUCT_NUM=0x0300
 +CONFIG_AUTOBOOT_KEYED=y
 +CONFIG_AUTOBOOT_PROMPT="Automatic boot in %ds...\nEnter 'noautoboot' to enter prompt without timeout\n"
 +CONFIG_AUTOBOOT_STOP_STR="noautoboot"
 diff --git a/include/configs/ni_sulfur_rev3.h b/include/configs/ni_sulfur_rev3.h
 new file mode 100644
-index 0000000000..d3114959b9
+index 0000000000..abbfb74272
 --- /dev/null
 +++ b/include/configs/ni_sulfur_rev3.h
 @@ -0,0 +1,38 @@
@@ -751,5 +754,5 @@ index 0000000000..d3114959b9
 +
 +#endif /* __CONFIG_NI_SULFUR_REV3_H */
 -- 
-2.15.0
+2.18.0
 
