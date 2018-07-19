@@ -1,4 +1,5 @@
 # build maint for now, since FPGA images are tailored to that
+PR_ni-sulfur = "r0"
 PV_ni-sulfur = "3.11.0.1"
 SRC_URI_ni-sulfur = "git://github.com/EttusResearch/uhd.git;branch=maint \
                     "
