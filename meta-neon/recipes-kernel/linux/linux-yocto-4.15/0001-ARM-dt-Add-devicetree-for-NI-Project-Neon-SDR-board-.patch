@@ -9,7 +9,7 @@ Add devicetree for NI Project Neon SDR board Revision 1
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
  arch/arm/boot/dts/Makefile              |   1 +
- arch/arm/boot/dts/zynq-ni-neon-rev1.dts | 223 ++++++++++++++++++++++++++++++++
+ arch/arm/boot/dts/zynq-ni-neon-rev1.dts | 226 ++++++++++++++++++++++++++++++++
  2 files changed, 224 insertions(+)
  create mode 100644 arch/arm/boot/dts/zynq-ni-neon-rev1.dts
 
@@ -30,7 +30,7 @@ new file mode 100644
 index 000000000000..a3e5c96980a6
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-ni-neon-rev1.dts
-@@ -0,0 +1,223 @@
+@@ -0,0 +1,226 @@
 +// SPDX-License-Identifier: (GPL-2.0 OR X11)
 +/*
 + * National Instruments Ettus Research Project Neon Rev1
@@ -162,6 +162,9 @@ index 000000000000..a3e5c96980a6
 +		google,has-vbc-nvram;
 +
 +		wakeup-source;
++               thermal: thermal {
++                       compatible = "google,cros-ec-thermal";
++               };
 +
 +		tun: i2c-tunnel {
 +			compatible = "google,cros-ec-i2c-tunnel";

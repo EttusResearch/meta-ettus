@@ -1,2 +1,5 @@
 patch 0001-ARM-dt-Add-devicetree-for-NI-Project-Neon-SDR-board-.patch
 patch 0033-tpm-tpm_i2c_atmel-Add-hack-to-allow-taking-TPM-out-o.patch
+patch 0007-mfd-cros-ec-Add-cros_ec_readmem-helpers-for-I2C-SPI-.patch
+patch 0001-thermal-cros-ec-thermal-Add-thermal-driver-for-chrom.patch
+patch 0002-mfd-cros_ec-Fix-struct-definition-to-work-with-upstr.patch
