@@ -5,9 +5,9 @@ PV="0.10"
 LICENSE = "GPLv2"
 LIC_FILES_CHKSUM = "file://${WORKDIR}/COPYING;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 
-PR="r0"
+PR="r1"
 
-MACHINE_COMPATIBLE="ni-neon"
+COMPATIBLE_MACHINE = "ni-neon"
 
 inherit systemd
 SYSTEMD_PACKAGES = "${PN}"
