@@ -3,7 +3,7 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 ALLOW_EMPTY_${PN} = "1"
 
 PR = "r0"
-PV = "3.13.0.0"
+PV = "3.13.0.2"
 
 SRC_URI  = " \
     file://LICENSE.md \
