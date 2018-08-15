@@ -44,8 +44,6 @@ case $_requested_device in
 		MACHINE="ni-sulfur-rev6-mender"
 		INHERIT += "mender-full"
 		MENDER_ARTIFACT_NAME = "$_artifact_name"
-		MENDER_STORAGE_DEVICE = "/dev/mmcblk0"
-		MENDER_STORAGE_TOTAL_SIZE_MB = "4096"
 		IMAGE_ROOTFS_EXTRA_SPACE = "0"
 		_EOF_
 		_bb_layers="\
@@ -68,8 +66,6 @@ case $_requested_device in
 		MACHINE="ni-neon-rev2-mender"
 		INHERIT += "mender-full"
 		MENDER_ARTIFACT_NAME = "$_artifact_name"
-		MENDER_STORAGE_DEVICE = "/dev/mmcblk0"
-		MENDER_STORAGE_TOTAL_SIZE_MB = "4096"
 		IMAGE_ROOTFS_EXTRA_SPACE = "0"
 		_EOF_
 		_bb_layers="\
