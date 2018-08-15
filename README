@@ -7,6 +7,7 @@ Supported devices
 =================
 
   - NI USRP N310/N300 series (meta-sulfur)
+  - NI USRP E320 series (meta-neon)
   - NI USRP E310/E312/E313 (meta-e31x, work in progress, boots but not functional)
 
 
@@ -21,6 +22,15 @@ The repository is split into several sublayers to allow for greater modularity.
   meta-ettus-core:
 
     Contains common core recipes, such as the developer-image
+
+  meta-neon:
+
+    Contains E320 BSP. Defines machines such as ni-neon-rev1, ni-neon-rev2, etc.
+
+  meta-mender-neon:
+
+    Contains changes for E320 mender.io integration.
+    Defines new machines ni-neon-rev2-mender to build with mender.io integration.
 
   meta-sulfur:
 
