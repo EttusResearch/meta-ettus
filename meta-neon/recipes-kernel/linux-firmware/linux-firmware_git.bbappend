@@ -27,6 +27,7 @@ FILES_${PN}-ni-neon-license = " \
                         "
 FILES_${PN}-ni-neon = "/lib/firmware/ni/ec-neon-rev1.RW.bin \
                        /lib/firmware/ni/ec-neon-rev2.RW.bin \
+                       /lib/firmware/ni/ec-neon-rev3.RW.bin \
                       "
 RDEPENDS_${PN}-ni-neon += "${PN}-ni-neon-license"
 DEPENDS += "dtc-native python3-native"
@@ -39,6 +40,7 @@ do_compile_append() {
 do_install_append() {
     install -D -m 0644 ${WORKDIR}/ec-neon-rev1.RW.bin ${D}/lib/firmware/ni/ec-neon-rev1.RW.bin
     install -D -m 0644 ${WORKDIR}/ec-neon-rev2.RW.bin ${D}/lib/firmware/ni/ec-neon-rev2.RW.bin
+    install -D -m 0644 ${WORKDIR}/ec-neon-rev3.RW.bin ${D}/lib/firmware/ni/ec-neon-rev3.RW.bin
 
     install -m 0644 ${WORKDIR}/LICENSE.ec-neon ${D}/lib/firmware/ni/LICENSE.ec-neon
 
