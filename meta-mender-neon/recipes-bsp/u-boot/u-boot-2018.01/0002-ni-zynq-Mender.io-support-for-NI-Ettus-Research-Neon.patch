@@ -46,7 +46,7 @@ index 643b9015c6..2033f7c88a 100644
 -	"fit_image=fit.itb\0"		\
 +	"fit_image=boot/fitImage\0"	\
  	"ec_compat=2\0"		\
- 	"mboard=neon-rev2\0"	\
+	"mboard=neon-rev1\0"	\
  	"ec_disable_swsync=0\0"		\
  	"ec_image=lib/firmware/ni/ec-neon-rev2.RW.bin\0"	\
  	"expand_ec_image=setenv ec_image lib/firmware/ni/ec-neon-rev${ec_compat}.RW.bin\0" \
