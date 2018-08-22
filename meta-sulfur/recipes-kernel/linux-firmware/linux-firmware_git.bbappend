@@ -1,16 +1,16 @@
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
-SRC_URI_append_ni-sulfur = " file://ec-sulfur-rev3.bin \
-                             file://ec-sulfur-rev3.RW.bin \
-                             file://ec-sulfur-rev5.bin \
-                             file://ec-sulfur-rev5.RW.bin \
-                             file://LICENSE.ec-sulfur \
-                             file://mykonos-m3.bin \
-                             http://files.ettus.com/binaries/cache/n3xx/fpga-1107862/n3xx_n310_fpga_default-g1107862.zip;name=sulfur-fpga \
-                             http://files.ettus.com/binaries/cache/n3xx/fpga-1107862/n3xx_n300_fpga_default-g1107862.zip;name=phosphorus-fpga \
-                             http://files.ettus.com/binaries/cache/n3xx/fpga-6bea23d/n3xx_n310_cpld_default.zip;name=magnesium-cpld \
-                           "
+SRC_URI_append = " file://ec-sulfur-rev3.bin \
+                   file://ec-sulfur-rev3.RW.bin \
+                   file://ec-sulfur-rev5.bin \
+                   file://ec-sulfur-rev5.RW.bin \
+                   file://LICENSE.ec-sulfur \
+                   file://mykonos-m3.bin \
+                   http://files.ettus.com/binaries/cache/n3xx/fpga-1107862/n3xx_n310_fpga_default-g1107862.zip;name=sulfur-fpga \
+                   http://files.ettus.com/binaries/cache/n3xx/fpga-1107862/n3xx_n300_fpga_default-g1107862.zip;name=phosphorus-fpga \
+                   http://files.ettus.com/binaries/cache/n3xx/fpga-6bea23d/n3xx_n310_cpld_default.zip;name=magnesium-cpld \
+                 "
 
 
 SRC_URI[sulfur-fpga.md5sum] = "51a9fcf2161dfd12682c17d7bd467af3"
@@ -22,8 +22,8 @@ SRC_URI[phosphorus-fpga.sha256sum] = "1e7ae1429825811531149f87f82dfcbc06cf63e1fc
 SRC_URI[magnesium-cpld.md5sum] = "8971b73135bd91eee3ceba7ab7c856a5"
 SRC_URI[magnesium-cpld.sha256sum] = "ef128dcd265ee8615b673021d4ee84c39357012ffe8b28c8ad7f893f9dcb94cb"
 
-LICENSE_append_ni-sulfur = "& Firmware-ni-sulfur"
-LIC_FILES_CHKSUM_append_ni-sulfur = "file://${WORKDIR}/LICENSE.ec-sulfur;md5=72f855f00b364ec8bdc025e1a36b39c3"
+LICENSE_append = "& Firmware-ni-sulfur"
+LIC_FILES_CHKSUM_append = "file://${WORKDIR}/LICENSE.ec-sulfur;md5=72f855f00b364ec8bdc025e1a36b39c3"
 
 NO_GENERIC_LICENSE[Firmware-ni-sulfur] = "${WORKDIR}/LICENSE.ec-sulfur"
 LICENSE_${PN}-ni-sulfur = "Firmware-ni-sulfur"
@@ -65,7 +65,7 @@ FILES_${PN}-ni-magnesium = " \
 LICENSE_${PN}-ni-magnesium = "Firmware-GPLv2"
 RDEPENDS_${PN}-ni-magnesium += "${PN}-gplv2-license"
 
-do_compile_append_ni-sulfur() {
+do_compile_append() {
     dtc -@ -o ${WORKDIR}/n310.dtbo ${WORKDIR}/usrp_n310_fpga_HG.dts
     python3 ${WORKDIR}/fpga_bit_to_bin.py -f ${WORKDIR}/usrp_n310_fpga_HG.bit ${WORKDIR}/n310.bin
 
@@ -73,7 +73,7 @@ do_compile_append_ni-sulfur() {
     python3 ${WORKDIR}/fpga_bit_to_bin.py -f ${WORKDIR}/usrp_n300_fpga_HG.bit ${WORKDIR}/n300.bin
 }
 
-do_install_append_ni-sulfur() {
+do_install_append() {
 
     # For now they all run the same firmware, so symlinks will do ...
     install -D -m 0644 ${WORKDIR}/ec-sulfur-rev3.bin ${D}/lib/firmware/ni/ec-sulfur-rev3.bin
