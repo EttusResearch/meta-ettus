@@ -1246,7 +1246,7 @@ index 0000000000..996146b466
 +CONFIG_SPL=y
 +CONFIG_SPL_STACK_R=y
 +CONFIG_HUSH_PARSER=y
-+CONFIG_SYS_PROMPT="ni-sulfur-uboot> "
++CONFIG_SYS_PROMPT="ni-neon-uboot> "
 +CONFIG_AUTOBOOT_KEYED=y
 +CONFIG_AUTOBOOT_PROMPT="Automatic boot in %ds...\nEnter 'noautoboot' to enter prompt without timeout\n"
 +CONFIG_AUTOBOOT_STOP_STR="noautoboot"
