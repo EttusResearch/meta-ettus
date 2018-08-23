@@ -41,7 +41,7 @@ case $_requested_device in
 		read -d '' _auto_conf_edits <<- _EOF_
 		$_header
 		DISTRO ?= "Alchemy"
-		MACHINE="ni-sulfur-rev6-mender"
+		MACHINE ?= "ni-sulfur-rev6-mender"
 		INHERIT += "mender-full"
 		MENDER_ARTIFACT_NAME = "$_artifact_name"
 		IMAGE_ROOTFS_EXTRA_SPACE = "0"
@@ -63,7 +63,7 @@ case $_requested_device in
 		read -d '' _auto_conf_edits <<- _EOF_
 		$_header
 		DISTRO ?= "Alchemy"
-		MACHINE="ni-neon-rev2-mender"
+		MACHINE ?= "ni-neon-rev2-mender"
 		INHERIT += "mender-full"
 		MENDER_ARTIFACT_NAME = "$_artifact_name"
 		IMAGE_ROOTFS_EXTRA_SPACE = "0"
