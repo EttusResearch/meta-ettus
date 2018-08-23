@@ -12,3 +12,4 @@ patch 0001-scatterlist-introduce-sg_nents_for_dma-helper.patch
 patch 0002-dma-axi-dmac-Split-too-large-segments.patch
 patch 0003-drivers-dma-dma-axi-dmac-Enable-TLAST-handling.patch
 
+patch 0001-net-phy-Make-genphy-actually-use-genphy_soft_reset.patch
