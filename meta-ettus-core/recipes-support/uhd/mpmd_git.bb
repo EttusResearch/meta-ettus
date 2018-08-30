@@ -29,7 +29,7 @@ PV = "3.13.0.2"
 SRC_URI = "git://github.com/EttusResearch/uhd.git;branch=UHD-3.13 \
           "
 
-SRCREV = "0ddc19e5c50388ef3f3cc3f377f33b56f15ca232"
+SRCREV = "78745bda5de0beed0411c4b1baf3783d84090024"
 
 inherit distutils3-base cmake python3-dir python3native systemd
 
