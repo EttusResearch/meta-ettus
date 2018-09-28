@@ -14,8 +14,8 @@ if [[ $# -eq 0 ]]; then
 	echo "Arguments:"
 	echo "- device_type: The name of the device that is being targeted (e.g. 'n3xx')"
 	echo "- artifact_name: The artifact name that gets stored on the filesystem (e.g. 'v3.13.0.2')"
-	echo "- src_dir: The directory in which the layers are stored (defaults to the home directory)"
-	echo "- build_dir: The directory in which builds happen (defaults to ~/build)"
+	echo "- src_dir: The directory in which the layers are stored (defaults to the \$HOME directory)"
+	echo "- build_dir: The directory in which builds happen (defaults to \$HOME/build)"
 	exit 0
 fi
 
@@ -92,7 +92,7 @@ echo "Using device type: $_requested_device"
 echo "Using build directory: $_build_dir"
 echo "Using artifact name: $_artifact_name"
 
-source $HOME/oe-core/oe-init-build-env $_build_dir bitbake
+source $_src_dir/oe-core/oe-init-build-env $_build_dir $_src_dir/bitbake
 
 echo "Adding layers..."
 for bb_layer in $_bb_layers
