@@ -22,6 +22,8 @@ if [[ $# -eq 0 ]]; then
 	echo "Arguments:"
 	echo "- device_type: The name of the device that is being targeted (e.g. 'n3xx')"
 	echo "- artifact_name: The artifact name that gets stored on the filesystem (e.g. 'v3.13.0.2')"
+	echo "- src_dir: The directory in which the layers are stored (defaults to the \$HOME directory)"
+	echo "- build_dir: The directory in which builds happen (defaults to \$HOME/build)"
 	exit 0
 fi
 
@@ -30,7 +32,15 @@ _artifact_name="git"
 if [[ $# -ge 2 ]]; then
 	_artifact_name=$2
 fi
+_src_dir=$HOME
+if [[ $# -ge 3 ]]; then
+	_src_dir=$3
+fi
 
+_build_dir=$_src_dir/build
+if [[ $# -ge 4 ]]; then
+	_build_dir=$4
+fi
 case $_requested_device in
 	"n3xx")
 		echo "Building N3x0 image..."
@@ -55,7 +65,7 @@ case $_requested_device in
 esac
 
 echo "Sourcing environment..."
-source $SETUP_ENV_SH $_requested_device $_artifact_name
+source $SETUP_ENV_SH $_requested_device $_artifact_name $_src_dir $_build_dir
 
 ## SD Card Image #########################################################
 echo "Launching build (image)..."
