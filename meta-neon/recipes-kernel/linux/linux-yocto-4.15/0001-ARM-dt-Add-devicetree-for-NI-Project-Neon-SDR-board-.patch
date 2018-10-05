@@ -223,25 +223,25 @@ index 000000000000..a3e5c96980a6
 +	nvmem-cells = <&eth0_addr>;
 +	nvmem-cell-names = "mac-address";
 +
++	rxc-skew-ps = <1860>;
++	rxdv-skew-ps = <0>;
++
++	rxd0-skew-ps = <0>;
++	rxd1-skew-ps = <0>;
++	rxd2-skew-ps = <0>;
++	rxd3-skew-ps = <0>;
++
++	txd0-skew-ps = <0>;
++	txd1-skew-ps = <0>;
++	txd2-skew-ps = <0>;
++	txd3-skew-ps = <0>;
++
++	txc-skew-ps = <1860>;
++	txen-skew-ps = <0>;
++
 +	ethernet_phy0: ethernet-phy@4 {
 +		reg = <4>;
 +		reset-gpios = <&gpio0 3 GPIO_ACTIVE_LOW>;
-+
-+               rxc-skew-ps = <1080>;
-+               rxdv-skew-ps = <420>;
-+
-+               rxd0-skew-ps = <420>;
-+               rxd1-skew-ps = <420>;
-+               rxd2-skew-ps = <420>;
-+               rxd3-skew-ps = <420>;
-+
-+               txd0-skew-ps = <0>;
-+               txd1-skew-ps = <0>;
-+               txd2-skew-ps = <0>;
-+               txd3-skew-ps = <0>;
-+
-+               txc-skew-ps = <1860>;
-+               txen-skew-ps = <0>;
 +	};
 +};
 +
