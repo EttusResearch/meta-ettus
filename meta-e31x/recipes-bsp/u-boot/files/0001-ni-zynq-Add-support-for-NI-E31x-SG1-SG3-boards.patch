@@ -135,7 +135,7 @@ index 0000000000..d9407926f5
 +	usb_phy0: phy0 {
 +		compatible = "usb-nop-xceiv";
 +		#phy-cells = <0>;
-+		reset-gpios = <&gpio0 4 GPIO_ACTIVE_LOW>;
++		reset-gpios = <&gpio0 9 GPIO_ACTIVE_LOW>;
 +	};
 +
 +};
@@ -220,7 +220,7 @@ index 0000000000..d9407926f5
 +
 +	ethernet_phy0: ethernet-phy@0 {
 +		reg = <0>;
-+		reset-gpios = <&gpio0 3 GPIO_ACTIVE_LOW>;
++		reset-gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
 +	};
 +};
 +

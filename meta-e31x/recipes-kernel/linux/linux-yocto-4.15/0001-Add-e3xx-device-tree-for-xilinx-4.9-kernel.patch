@@ -281,8 +281,6 @@ index 000000000000..78afded9d578
 +	status = "okay";
 +	phy-mode = "rgmii-id";
 +	phy-handle = <&phy0>;
-+	phy-reset-gpio = <&gpio0 11 0>;
-+	phy-reset-active-low;
 +
 +	nvmem-cells = <&eth0_addr>;
 +	nvmem-cell-names = "mac-address";
@@ -291,6 +289,7 @@ index 000000000000..78afded9d578
 +	phy0: phy@0 { /* Marvell 88e1512 */
 +		reg = <0>;
 +		device_type = "ethernet-phy";
++		reset-gpios = <&gpio0 11 1>;
 +	};
 +};
 +
