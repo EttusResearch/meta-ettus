@@ -274,6 +274,7 @@ index 000000000000..78afded9d578
 +
 +&clkc {
 +	ps-clk-frequency = <33333333>;
++	fclk-enable = <0xf>;
 +};
 +
 +&gem0 {
