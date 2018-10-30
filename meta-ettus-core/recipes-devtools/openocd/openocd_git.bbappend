@@ -3,7 +3,7 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 SRC_URI += " \
            file://sysfsgpio-ettus-magnesium-dba.cfg \
            file://sysfsgpio-ettus-magnesium-dbb.cfg \
-           file://0001-add-driver-for-axi_bitq-fpga-core.patch \
+           file://0001-Add-driver-for-axi_bitq-FPGA-core.patch \
 	"
 do_install_append() {
     install -D -m 0644 ${WORKDIR}/sysfsgpio-ettus-magnesium-dba.cfg ${D}${datadir}/openocd/scripts/interface
