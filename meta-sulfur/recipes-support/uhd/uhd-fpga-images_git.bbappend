@@ -6,14 +6,10 @@ SRC_URI_append_ni-sulfur  = " http://files.ettus.com/binaries/cache/n3xx/fpga-11
              http://files.ettus.com/binaries/cache/n3xx/fpga-1107862/n3xx_n300_fpga_aurora-g1107862.zip;name=phosphorus-fpga-aurora \
            "
 
-SRC_URI[sulfur-fpga.md5sum] = "51a9fcf2161dfd12682c17d7bd467af3"
 SRC_URI[sulfur-fpga.sha256sum] = "fc80462f2e144d9745b0b480aa513f426e48df46ad18dc85cbb8fdb3cb162355"
-SRC_URI[sulfur-fpga-aurora.md5sum] = "4df2be260fc075cb8dc438fcf07e63e3"
 SRC_URI[sulfur-fpga-aurora.sha256sum] = "3926d6b247a8f931809460d3957cec51f8407cd3f7aea6f4f3b91d1bbb427c7d"
 
-SRC_URI[phosphorus-fpga.md5sum] = "a356a95877bbc826deefacf62549bfff"
 SRC_URI[phosphorus-fpga.sha256sum] = "1e7ae1429825811531149f87f82dfcbc06cf63e1fc3752517edf104950406c36"
-SRC_URI[phosphorus-fpga-aurora.md5sum] = "461bc371a0cc220e9db2d9786bf8ac2a"
 SRC_URI[phosphorus-fpga-aurora.sha256sum] = "e34e9343572adfba905433a1570cb394fe45207d442268d0fa400c3406253530"
 
 

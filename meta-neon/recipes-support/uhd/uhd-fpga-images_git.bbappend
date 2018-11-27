@@ -4,9 +4,7 @@ SRC_URI_append_ni-neon  = " http://files.ettus.com/binaries/cache/e3xx/fpga-abdc
              http://files.ettus.com/binaries/cache/e3xx/fpga-abdc445a/e3xx_e320_fpga_aurora-gabdc445a.zip;name=neon-fpga-aurora \
            "
 
-SRC_URI[neon-fpga.md5sum] = "46ac1fe80d7c8e8cf242ef0189f6bcbe"
 SRC_URI[neon-fpga.sha256sum] = "82e5af3742245f1f8ea5dd334b1ceb7920e3c31306d86b0dbf31bedd696879c4"
-SRC_URI[neon-fpga-aurora.md5sum] = "bb971f0de70318a4d80bc98aee834253"
 SRC_URI[neon-fpga-aurora.sha256sum] = "73a3851e890df827ec1b809e34cea49cf973ba225ef9852416c77237f18f016c"
 
 do_install_append_ni-neon(){
