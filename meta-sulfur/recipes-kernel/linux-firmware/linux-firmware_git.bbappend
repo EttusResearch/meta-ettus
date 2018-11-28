@@ -12,14 +12,8 @@ SRC_URI_append = " file://ec-sulfur-rev3.bin \
                    http://files.ettus.com/binaries/cache/n3xx/fpga-6bea23d/n3xx_n310_cpld_default.zip;name=magnesium-cpld \
                  "
 
-
-SRC_URI[sulfur-fpga.md5sum] = "51a9fcf2161dfd12682c17d7bd467af3"
 SRC_URI[sulfur-fpga.sha256sum] = "fc80462f2e144d9745b0b480aa513f426e48df46ad18dc85cbb8fdb3cb162355"
-
-SRC_URI[phosphorus-fpga.md5sum] = "a356a95877bbc826deefacf62549bfff"
 SRC_URI[phosphorus-fpga.sha256sum] = "1e7ae1429825811531149f87f82dfcbc06cf63e1fc3752517edf104950406c36"
-
-SRC_URI[magnesium-cpld.md5sum] = "8971b73135bd91eee3ceba7ab7c856a5"
 SRC_URI[magnesium-cpld.sha256sum] = "ef128dcd265ee8615b673021d4ee84c39357012ffe8b28c8ad7f893f9dcb94cb"
 
 LICENSE_append = "& Firmware-ni-sulfur"
