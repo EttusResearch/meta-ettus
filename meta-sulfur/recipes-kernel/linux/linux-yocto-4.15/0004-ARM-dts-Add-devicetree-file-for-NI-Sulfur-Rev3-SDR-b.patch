@@ -268,7 +268,7 @@ index 000000000000..1b145911b337
 +	phy-handle = <&ethernet_phy0>;
 +
 +	nvmem-cells = <&eth0_addr>;
-+	nvmem-cell-names = "address";
++	nvmem-cell-names = "mac-address";
 +
 +	ethernet_phy0: ethernet-phy@0 {
 +		reg = <0>;
