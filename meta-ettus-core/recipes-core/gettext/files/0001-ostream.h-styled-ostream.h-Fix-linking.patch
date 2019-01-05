@@ -1,0 +1,79 @@
+From e63539a44921a69a2e33571f527f9c2d5a99bc9f Mon Sep 17 00:00:00 2001
+From: Chun-wei Fan <fanchunwei@src.gnome.org>
+Date: Tue, 21 Mar 2017 16:16:12 +0800
+Subject: [PATCH] ostream.h, styled-ostream.h: Fix linking
+
+There are some ostream sources that we need to build as C++, but that
+would make the symbols mangled with C++ items, which will break linking
+of gettextlib and anything that makes use and link to the ostream items
+unless they are built as C++ as well.
+
+Use extern "C" to fix these, since these ostream sources are C anyways.
+---
+ gettext-tools/gnulib-lib/ostream.h        | 17 +++++++++++++++--
+ gettext-tools/gnulib-lib/styled-ostream.h | 13 +++++++++++++
+ 2 files changed, 28 insertions(+), 2 deletions(-)
+
+diff --git a/gettext-tools/gnulib-lib/ostream.h b/gettext-tools/gnulib-lib/ostream.h
+index 488b1de..ff9051d 100644
+--- a/gettext-tools/gnulib-lib/ostream.h
++++ b/gettext-tools/gnulib-lib/ostream.h
+@@ -108,11 +108,24 @@ ostream_free (ostream_t first_arg)
+ 
+ #endif
+ 
+-extern const typeinfo_t ostream_typeinfo;
++#ifdef __cplusplus
++extern "C" {
++#endif
++extern DLL_VARIABLE const typeinfo_t ostream_typeinfo;
++#ifdef __cplusplus
++}
++#endif
++
+ #define ostream_SUPERCLASSES &ostream_typeinfo, NULL
+ #define ostream_SUPERCLASSES_LENGTH (1 + 1)
+ 
+-extern const struct ostream_implementation ostream_vtable;
++#ifdef __cplusplus
++extern "C" {
++#endif
++extern DLL_VARIABLE const const struct ostream_implementation ostream_vtable;
++#ifdef __cplusplus
++}
++#endif
+ 
+ #line 41 "ostream.oo.h"
+ 
+diff --git a/gettext-tools/gnulib-lib/styled-ostream.h b/gettext-tools/gnulib-lib/styled-ostream.h
+index 3a2dc6d..8e46c84 100644
+--- a/gettext-tools/gnulib-lib/styled-ostream.h
++++ b/gettext-tools/gnulib-lib/styled-ostream.h
+@@ -132,11 +132,24 @@ styled_ostream_end_use_class (styled_ostream_t first_arg, const char *classname)
+ 
+ #endif
+ 
++#ifdef __cplusplus
++extern "C" {
++#endif
+ extern DLL_VARIABLE const typeinfo_t styled_ostream_typeinfo;
++#ifdef __cplusplus
++}
++#endif
++
+ #define styled_ostream_SUPERCLASSES &styled_ostream_typeinfo, ostream_SUPERCLASSES
+ #define styled_ostream_SUPERCLASSES_LENGTH (1 + ostream_SUPERCLASSES_LENGTH)
+ 
++#ifdef __cplusplus
++extern "C" {
++#endif
+ extern DLL_VARIABLE const struct styled_ostream_implementation styled_ostream_vtable;
++#ifdef __cplusplus
++}
++#endif
+ 
+ #line 42 "styled-ostream.oo.h"
+ 
+-- 
+2.10.2.windows.1
+
