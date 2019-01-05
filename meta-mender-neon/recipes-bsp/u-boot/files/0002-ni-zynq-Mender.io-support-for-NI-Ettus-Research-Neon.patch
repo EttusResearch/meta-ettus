@@ -1,32 +1,32 @@
-From 221d210e75a9bceb36eed039b0dea191128a66d8 Mon Sep 17 00:00:00 2001
+From 2468bcb3680a4992d1ab558d180dfc499aa80cea Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
-Date: Tue, 7 Nov 2017 12:13:36 -0800
 Subject: [PATCH] ni: zynq: Mender.io support for NI Ettus Research Neon Rev2
- SDR
+Date: Mon, 21 Jan 2019 14:09:35 -0800
+ Rev2 SDR
 
 This involves adding bootcount in environment, as well as modifying
 the default bootconfiguration to run ${mender_setup} first.
 
-Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+Signed-off-by: Moritz Fischer <moritz@ettus.com>
 ---
  configs/ni_neon_rev2_defconfig |  1 +
  include/configs/ni_neon_rev2.h | 17 ++++++++---------
  2 files changed, 9 insertions(+), 9 deletions(-)
 
 diff --git a/configs/ni_neon_rev2_defconfig b/configs/ni_neon_rev2_defconfig
-index a0ff5ed37a..a172c1bc8e 100644
+index 2b680b7136..271331e9d2 100644
 --- a/configs/ni_neon_rev2_defconfig
 +++ b/configs/ni_neon_rev2_defconfig
-@@ -8,6 +8,7 @@ CONFIG_DEFAULT_DEVICE_TREE="zynq-ni-neon-rev2"
- CONFIG_DEBUG_UART=y
- CONFIG_FIT=y
+@@ -14,6 +14,7 @@ CONFIG_FIT=y
  CONFIG_FIT_SIGNATURE=y
+ CONFIG_IMAGE_FORMAT_LEGACY=y
+ CONFIG_BOOTCOMMAND="run $modeboot || run distro_bootcmd"
 +CONFIG_SYS_EXTRA_OPTIONS="BOOTCOUNT_LIMIT,BOOTCOUNT_ENV"
  CONFIG_BOOTDELAY=0
  # CONFIG_DISPLAY_CPUINFO is not set
- CONFIG_SPL=y
+ CONFIG_SPL_STACK_R=y
 diff --git a/include/configs/ni_neon_rev2.h b/include/configs/ni_neon_rev2.h
-index 643b9015c6..2033f7c88a 100644
+index 47be9c5bd0..640afc667d 100644
 --- a/include/configs/ni_neon_rev2.h
 +++ b/include/configs/ni_neon_rev2.h
 @@ -9,32 +9,31 @@

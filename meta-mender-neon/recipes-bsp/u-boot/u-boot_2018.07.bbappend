@@ -1,3 +1,3 @@
-require u-boot-2018.01-common.inc
+require u-boot-2018.07-common.inc
 
 MENDER_UBOOT_AUTO_CONFIGURE_ni-neon = "0"
