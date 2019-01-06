@@ -38,3 +38,4 @@ patch 0039-ARM-dt-Add-devicetree-files-for-Rhodium-Rev0-SDR.patch
 patch 0042-ARM-dt-Add-devicetree-files-for-NI-Projects-Phosphor.patch
 patch 0001-ARM-dt-Refactor-the-magnesium-daughterboards-using-d.patch
 patch 0002-ARM-dt-Add-Sulfur-Phosphorus-Rev6-boards.patch
+patch 0043-net-ethernet-cadence-fix-sleep-in-atomic-bug.patch
