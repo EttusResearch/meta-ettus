@@ -17,7 +17,7 @@ KERNEL_CLASSES += "kernel-fitimage"
 KERNEL_IMAGETYPE = "fitImage"
 KERNEL_DEFCONFIG ?= "ni_sulfur_defconfig"
 
-PREFERRED_VERSION_linux-yocto = "4.15.%"
+PREFERRED_VERSION_linux-yocto = "4.18.%"
 
 MACHINE_EXTRA_RRECOMMENDS = " \
                              kernel-modules \

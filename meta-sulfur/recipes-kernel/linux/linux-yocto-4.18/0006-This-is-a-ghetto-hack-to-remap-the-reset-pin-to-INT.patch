@@ -1,7 +1,7 @@
-From 0822d6dd99ec32705d02be6e2de417f2a2c36e22 Mon Sep 17 00:00:00 2001
+From d1c92d69ecf983cdaac55310899701b3f49bcefe Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Thu, 20 Apr 2017 17:14:09 -0700
-Subject: [PATCH 05/21] This is a ghetto hack to remap the reset pin to INT
+Subject: [PATCH 06/17] This is a ghetto hack to remap the reset pin to INT
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
@@ -52,5 +52,5 @@ index 38a2e9e684df..35febe1476da 100644
  	ret = i2c_smbus_write_byte_data(save_client, DS1374_REG_CR, cr);
  }
 -- 
-2.14.3
+2.20.1
 

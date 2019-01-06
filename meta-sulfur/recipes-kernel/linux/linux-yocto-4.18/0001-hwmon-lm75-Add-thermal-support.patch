@@ -1,7 +1,7 @@
-From 4c4bf2c96aae25483244ac440a158bb3f22b9d6e Mon Sep 17 00:00:00 2001
+From e0c137fe053f2df4709bd584b7b57311b76c078a Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 11 Jul 2017 10:16:08 -0700
-Subject: [PATCH 11/21] hwmon: lm75: Add thermal support
+Subject: [PATCH 01/17] hwmon: lm75: Add thermal support
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
@@ -9,7 +9,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  1 file changed, 40 insertions(+)
 
 diff --git a/drivers/hwmon/lm75.c b/drivers/hwmon/lm75.c
-index 005ffb5ffa92..ab306a88624e 100644
+index 49f4b33a5685..8079a2fd6afe 100644
 --- a/drivers/hwmon/lm75.c
 +++ b/drivers/hwmon/lm75.c
 @@ -31,6 +31,7 @@
@@ -81,5 +81,5 @@ index 005ffb5ffa92..ab306a88624e 100644
  }
  
 -- 
-2.14.3
+2.20.1
 

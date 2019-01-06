@@ -1,36 +1,36 @@
-From 79be6087715b402c2f0d570e8be7da81be8a4b1b Mon Sep 17 00:00:00 2001
+From e3b4e08420dc9e315482002d94a68962ca0eff5e Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 27 Feb 2018 11:23:56 -0800
-Subject: [PATCH 19/21] ARM: dt: Add devicetree files for NI Projects
+Subject: [PATCH 15/17] ARM: DT: Add devicetree files for NI Projects
  Phosphorus
 
 Add Phosphorus devicetree files to kernel build.
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
- arch/arm/boot/dts/Makefile                         |   3 +
- .../dts/zynq-ni-phosphorus-rev4-magnesium-rev2.dts | 100 +++++++++++++++++++++
- .../dts/zynq-ni-phosphorus-rev4-magnesium-rev3.dts | 100 +++++++++++++++++++++
- arch/arm/boot/dts/zynq-ni-phosphorus-rev4.dts      |  11 +++
+ arch/arm/boot/dts/Makefile                    |   3 +
+ ...zynq-ni-phosphorus-rev4-magnesium-rev2.dts | 100 ++++++++++++++++++
+ ...zynq-ni-phosphorus-rev4-magnesium-rev3.dts | 100 ++++++++++++++++++
+ arch/arm/boot/dts/zynq-ni-phosphorus-rev4.dts |  11 ++
  4 files changed, 214 insertions(+)
  create mode 100644 arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev2.dts
  create mode 100644 arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev3.dts
  create mode 100644 arch/arm/boot/dts/zynq-ni-phosphorus-rev4.dts
 
 diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-index 6917c11ab6f4..7e7b53fd9405 100644
+index 6e72aa31b601..6b24453f1098 100644
 --- a/arch/arm/boot/dts/Makefile
 +++ b/arch/arm/boot/dts/Makefile
-@@ -1054,6 +1054,9 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
+@@ -1122,6 +1122,9 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
+ 	zynq-ni-sulfur-rev5.dtb \
+ 	zynq-ni-sulfur-rev5-magnesium-rev2.dtb \
  	zynq-ni-sulfur-rev5-magnesium-rev3.dtb \
- 	zynq-ni-sulfur-rev4-rhodium-rev0.dtb \
- 	zynq-ni-sulfur-rev5-rhodium-rev0.dtb \
 +	zynq-ni-phosphorus-rev4.dtb \
 +	zynq-ni-phosphorus-rev4-magnesium-rev2.dtb \
 +	zynq-ni-phosphorus-rev4-magnesium-rev3.dtb \
- 	zynq-zybo.dtb
+ 	zynq-zybo.dtb \
+ 	zynq-zybo-z7.dtb
  dtb-$(CONFIG_MACH_ARMADA_370) += \
- 	armada-370-db.dtb \
 diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev2.dts b/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev2.dts
 new file mode 100644
 index 000000000000..aa6f59de159e
@@ -261,5 +261,5 @@ index 000000000000..cfb80264b262
 +
 +#include "zynq-ni-sulfur-rev4.dts"
 -- 
-2.14.3
+2.20.1
 

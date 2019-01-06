@@ -1,33 +1,33 @@
-From b2ecbc077a2f5bd1ae7ebbf4f36c26979c5d492a Mon Sep 17 00:00:00 2001
+From 0958cafda99af59de38832eba162b4f1b97b0653 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 11 Jul 2017 14:16:21 -0700
-Subject: [PATCH 13/21] ARM: dts: Adding NI Project Magnesium SDR devicetree
+Subject: [PATCH 11/17] ARM: DT: Adding NI Project Magnesium SDR devicetree
 
 This adds the devicetree for NI Project Magnesium SDR.
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
  arch/arm/boot/dts/Makefile                |   2 +
- arch/arm/boot/dts/zynq-ni-magnesium.dts   | 179 ++++++++++++++++++++++++++++++
- arch/arm/boot/dts/zynq-ni-sulfur-rev4.dts |  26 +++++
+ arch/arm/boot/dts/zynq-ni-magnesium.dts   | 179 ++++++++++++++++++++++
+ arch/arm/boot/dts/zynq-ni-sulfur-rev4.dts |  26 ++++
  3 files changed, 207 insertions(+)
  create mode 100644 arch/arm/boot/dts/zynq-ni-magnesium.dts
  create mode 100644 arch/arm/boot/dts/zynq-ni-sulfur-rev4.dts
 
 diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-index d7e5b2d0d2fa..9b92d839424b 100644
+index 0a0cf908ec09..3d357d0fd11e 100644
 --- a/arch/arm/boot/dts/Makefile
 +++ b/arch/arm/boot/dts/Makefile
-@@ -1043,7 +1043,9 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
+@@ -1111,7 +1111,9 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
  	zynq-zed.dtb \
  	zynq-ni-sulfur-rev2.dtb \
  	zynq-ni-sulfur-rev3.dtb \
 +	zynq-ni-sulfur-rev4.dtb \
  	zynq-ni-eiscat.dtb \
 +	zynq-ni-magnesium.dtb \
- 	zynq-zybo.dtb
+ 	zynq-zybo.dtb \
+ 	zynq-zybo-z7.dtb
  dtb-$(CONFIG_MACH_ARMADA_370) += \
- 	armada-370-db.dtb \
 diff --git a/arch/arm/boot/dts/zynq-ni-magnesium.dts b/arch/arm/boot/dts/zynq-ni-magnesium.dts
 new file mode 100644
 index 000000000000..e92cd0a2028c
@@ -246,5 +246,5 @@ index 000000000000..b4109ae23e96
 +	};
 +};
 -- 
-2.14.3
+2.20.1
 

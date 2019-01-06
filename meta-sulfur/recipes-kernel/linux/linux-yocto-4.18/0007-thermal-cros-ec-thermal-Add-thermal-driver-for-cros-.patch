@@ -1,7 +1,7 @@
-From 3c0f060a6742c92bdb7f809e0a5fc489e0bd79d7 Mon Sep 17 00:00:00 2001
+From 529cd3153ceadeb4c98b52344f73c2b52ac6822e Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 11 Jul 2017 10:11:25 -0700
-Subject: [PATCH 08/21] thermal: cros-ec-thermal: Add thermal driver for
+Subject: [PATCH 07/17] thermal: cros-ec-thermal: Add thermal driver for
  cros-ec
 
 This adds a thermal framework driver for the chromium-ec
@@ -10,16 +10,16 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
  drivers/thermal/Kconfig              |   8 +
  drivers/thermal/Makefile             |   1 +
- drivers/thermal/cros-ec-thermal.c    | 322 +++++++++++++++++++++++++++++++++++
+ drivers/thermal/cros-ec-thermal.c    | 322 +++++++++++++++++++++++++++
  include/linux/mfd/cros_ec_commands.h |   5 +
  4 files changed, 336 insertions(+)
  create mode 100644 drivers/thermal/cros-ec-thermal.c
 
 diff --git a/drivers/thermal/Kconfig b/drivers/thermal/Kconfig
-index 315ae2926e20..53c90e981c7f 100644
+index 82979880f985..34cd9ac58a79 100644
 --- a/drivers/thermal/Kconfig
 +++ b/drivers/thermal/Kconfig
-@@ -164,6 +164,14 @@ config CLOCK_THERMAL
+@@ -171,6 +171,14 @@ config CLOCK_THERMAL
  	  device that is configured to use this cooling mechanism will be
  	  controlled to reduce clock frequency whenever temperature is high.
  
@@ -375,10 +375,10 @@ index 000000000000..f546a7633644
 +MODULE_ALIAS("platform:cros-ec-thermal");
 +MODULE_AUTHOR("Moritz Fischer <mdf@kernel.org>");
 diff --git a/include/linux/mfd/cros_ec_commands.h b/include/linux/mfd/cros_ec_commands.h
-index 2b16e95b9bb8..2f31124f91cf 100644
+index c1610715d7fa..ec127c6f8d42 100644
 --- a/include/linux/mfd/cros_ec_commands.h
 +++ b/include/linux/mfd/cros_ec_commands.h
-@@ -1020,6 +1020,11 @@ struct ec_params_pwm_set_fan_target_rpm {
+@@ -1025,6 +1025,11 @@ struct ec_params_pwm_set_fan_target_rpm {
  	uint32_t rpm;
  } __packed;
  
@@ -391,5 +391,5 @@ index 2b16e95b9bb8..2f31124f91cf 100644
  #define EC_CMD_PWM_GET_KEYBOARD_BACKLIGHT 0x22
  
 -- 
-2.14.3
+2.20.1
 

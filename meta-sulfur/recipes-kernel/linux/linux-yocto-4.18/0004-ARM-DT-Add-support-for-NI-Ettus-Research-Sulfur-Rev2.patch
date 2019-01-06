@@ -1,33 +1,33 @@
-From e20671dd137617ceb115be098517760b9ac59e0e Mon Sep 17 00:00:00 2001
+From 63109e9d4811f4ceb7478a97bc513450931ea71c Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 12 Dec 2016 09:10:21 -0800
-Subject: [PATCH 02/21] ARM: dts: Add support for NI Ettus Research Sulfur Rev2
+Subject: [PATCH 04/17] ARM: DT: Add support for NI Ettus Research Sulfur Rev2
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
  arch/arm/boot/dts/Makefile                |   1 +
- arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts | 259 ++++++++++++++++++++++++++++++
- 2 files changed, 260 insertions(+)
+ arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts | 304 ++++++++++++++++++++++
+ 2 files changed, 305 insertions(+)
  create mode 100644 arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts
 
 diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-index d0381e9caf21..c27b2e0856dd 100644
+index 37a3de760d40..18361cce4869 100644
 --- a/arch/arm/boot/dts/Makefile
 +++ b/arch/arm/boot/dts/Makefile
-@@ -1041,6 +1041,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
- 	zynq-zc702.dtb \
- 	zynq-zc706.dtb \
+@@ -1109,6 +1109,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
+ 	zynq-zc770-xm012.dtb \
+ 	zynq-zc770-xm013.dtb \
  	zynq-zed.dtb \
 +	zynq-ni-sulfur-rev2.dtb \
- 	zynq-zybo.dtb
+ 	zynq-zybo.dtb \
+ 	zynq-zybo-z7.dtb
  dtb-$(CONFIG_MACH_ARMADA_370) += \
- 	armada-370-db.dtb \
 diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts
 new file mode 100644
-index 000000000000..a7292705c732
+index 000000000000..3bc74593896d
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts
-@@ -0,0 +1,259 @@
+@@ -0,0 +1,304 @@
 +/*
 + * National Instruments Ettus Research Project Sulfur SDR Revision 2
 + * devicetree source.
@@ -89,6 +89,7 @@ index 000000000000..a7292705c732
 +		serial0 = &uart0;
 +		serial1 = &uart1;
 +		spi0 = &spi1;
++		spi1 = &spi0;
 +		/*i2c20 = &tun;*/
 +	};
 +
@@ -148,6 +149,8 @@ index 000000000000..a7292705c732
 +		#size-cells = <0>;
 +		reg = <0x70>;
 +
++		reset-gpios = <&gpio0 3 GPIO_ACTIVE_LOW>, <&gpio0 2 GPIO_ACTIVE_LOW>;
++
 +		i2c@0 {
 +			reg = <0>;
 +			status = "disabled";
@@ -181,6 +184,8 @@ index 000000000000..a7292705c732
 +				interrupts = <1 IRQ_TYPE_LEVEL_LOW>;
 +				interrupt-parent = <&gpio0>;
 +
++				reset-gpios = <&gpio0 2 GPIO_ACTIVE_LOW>;
++
 +				status = "okay";
 +			};
 +		};
@@ -190,14 +195,54 @@ index 000000000000..a7292705c732
 +			status = "disabled";
 +		};
 +
-+		i2c@6 {
++		usrpio_i2c0: i2c@6 {
++			#address-cells = <1>;
++			#size-cells = <0>;
++
 +			reg = <6>;
-+			status = "disabled";
++
++			hwmon@48 {
++				status = "okay";
++				compatible = "tmp112";
++				reg = <0x48>;
++			};
++
++			nvmem@50 {
++				status = "okay";
++				compatible = "at,24c02";
++				reg = <0x50>;
++			};
++
++			nvmem@51 {
++				status = "okay";
++				compatible = "at,24c256";
++				reg = <0x51>;
++			};
++
++
++			gpio@20 {
++				status = "disabled";
++				compatible = "ti,tca6408";
++				reg = <0x20>;
++				gpio-controller;
++				#gpio-cells = <2>;
++			};
 +		};
 +
-+		i2c@7 {
-+			reg = <7>;
-+			status = "disabled";
++		usrpio_i2c1: i2c@7 {
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			reg = <6>;
++
++			gpio@20 {
++				status = "disabled";
++				compatible = "ti,tca6408";
++				reg = <0x20>;
++				gpio-controller;
++				#gpio-cells = <2>;
++			};
++
 +		};
 +	};
 +};
@@ -288,5 +333,5 @@ index 000000000000..a7292705c732
 +	};
 +};
 -- 
-2.14.3
+2.20.1
 

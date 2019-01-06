@@ -1,26 +1,24 @@
-From 6301c11ce379eb20418a6b1c20dbf66f06a25a19 Mon Sep 17 00:00:00 2001
+From c82cc0cf73895b17321803ddd03d4671483549d4 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 17 Apr 2018 10:30:51 -0700
-Subject: [PATCH 21/21] ARM: dt: Add Sulfur/Phosphorus Rev6 boards
+Subject: [PATCH 17/17] ARM: DT: Add Sulfur/Phosphorus Rev6 boards
 
 Add Sulfur/Phosphorus Rev6 motherboards.
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
- arch/arm/boot/dts/Makefile                         | 10 ++++++++++
- .../dts/zynq-ni-phosphorus-rev4-magnesium-rev4.dts | 21 +++++++++++++++++++++
- .../dts/zynq-ni-phosphorus-rev6-magnesium-rev2.dts | 21 +++++++++++++++++++++
- .../dts/zynq-ni-phosphorus-rev6-magnesium-rev3.dts | 21 +++++++++++++++++++++
- .../dts/zynq-ni-phosphorus-rev6-magnesium-rev4.dts | 21 +++++++++++++++++++++
- arch/arm/boot/dts/zynq-ni-phosphorus-rev6.dts      | 11 +++++++++++
- .../dts/zynq-ni-sulfur-rev5-magnesium-rev4.dts     | 22 ++++++++++++++++++++++
- .../dts/zynq-ni-sulfur-rev6-magnesium-rev2.dts     | 22 ++++++++++++++++++++++
- .../dts/zynq-ni-sulfur-rev6-magnesium-rev3.dts     | 22 ++++++++++++++++++++++
- .../dts/zynq-ni-sulfur-rev6-magnesium-rev4.dts     | 22 ++++++++++++++++++++++
- .../boot/dts/zynq-ni-sulfur-rev6-rhodium-rev0.dts  | 11 +++++++++++
- arch/arm/boot/dts/zynq-ni-sulfur-rev6.dts          | 11 +++++++++++
- 12 files changed, 215 insertions(+)
- create mode 100644 arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev4.dts
+ arch/arm/boot/dts/Makefile                    | 10 +++++++++
+ ...zynq-ni-phosphorus-rev6-magnesium-rev2.dts | 21 ++++++++++++++++++
+ ...zynq-ni-phosphorus-rev6-magnesium-rev3.dts | 21 ++++++++++++++++++
+ ...zynq-ni-phosphorus-rev6-magnesium-rev4.dts | 21 ++++++++++++++++++
+ arch/arm/boot/dts/zynq-ni-phosphorus-rev6.dts | 11 ++++++++++
+ .../zynq-ni-sulfur-rev5-magnesium-rev4.dts    | 22 +++++++++++++++++++
+ .../zynq-ni-sulfur-rev6-magnesium-rev2.dts    | 22 +++++++++++++++++++
+ .../zynq-ni-sulfur-rev6-magnesium-rev3.dts    | 22 +++++++++++++++++++
+ .../zynq-ni-sulfur-rev6-magnesium-rev4.dts    | 22 +++++++++++++++++++
+ .../dts/zynq-ni-sulfur-rev6-rhodium-rev0.dts  | 11 ++++++++++
+ arch/arm/boot/dts/zynq-ni-sulfur-rev6.dts     | 11 ++++++++++
+ 11 files changed, 194 insertions(+)
  create mode 100644 arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev2.dts
  create mode 100644 arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev3.dts
  create mode 100644 arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev4.dts
@@ -33,16 +31,18 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  create mode 100644 arch/arm/boot/dts/zynq-ni-sulfur-rev6.dts
 
 diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-index 7e7b53fd9405..db3d7a23f975 100644
+index 6b24453f1098..f364b3555574 100644
 --- a/arch/arm/boot/dts/Makefile
 +++ b/arch/arm/boot/dts/Makefile
-@@ -1052,11 +1052,21 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
- 	zynq-ni-sulfur-rev5.dtb \
- 	zynq-ni-sulfur-rev5-magnesium-rev2.dtb \
- 	zynq-ni-sulfur-rev5-magnesium-rev3.dtb \
+@@ -1117,6 +1117,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
+ 	zynq-ni-sulfur-rev4.dtb \
+ 	zynq-ni-sulfur-rev4-magnesium-rev2.dtb \
+ 	zynq-ni-sulfur-rev4-magnesium-rev3.dtb \
 +	zynq-ni-sulfur-rev5-magnesium-rev4.dts \
  	zynq-ni-sulfur-rev4-rhodium-rev0.dtb \
  	zynq-ni-sulfur-rev5-rhodium-rev0.dtb \
+ 	zynq-ni-sulfur-rev5.dtb \
+@@ -1125,6 +1126,15 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
  	zynq-ni-phosphorus-rev4.dtb \
  	zynq-ni-phosphorus-rev4-magnesium-rev2.dtb \
  	zynq-ni-phosphorus-rev4-magnesium-rev3.dtb \
@@ -55,36 +55,9 @@ index 7e7b53fd9405..db3d7a23f975 100644
 +	zynq-ni-sulfur-rev6-magnesium-rev2.dtb \
 +	zynq-ni-sulfur-rev6-magnesium-rev3.dtb \
 +	zynq-ni-sulfur-rev6-magnesium-rev4.dtb \
- 	zynq-zybo.dtb
+ 	zynq-zybo.dtb \
+ 	zynq-zybo-z7.dtb
  dtb-$(CONFIG_MACH_ARMADA_370) += \
- 	armada-370-db.dtb \
-diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev4.dts b/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev4.dts
-new file mode 100644
-index 000000000000..97612e8fea03
---- /dev/null
-+++ b/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev4.dts
-@@ -0,0 +1,21 @@
-+// SPDX-License-Identifier: (GPL-2.0 OR X11)
-+/*
-+ * National Instruments Ettus Research Project Magnesium SDR
-+ *
-+ * Copyright (c) 2017 National Instruments Corp.
-+ *
-+ */
-+
-+#include "zynq-ni-phosphorus-rev4.dts"
-+#include <dt-bindings/thermal/thermal.h>
-+#include "ni-magnesium-db0.dtsi"
-+
-+&fan0 {
-+	cooling-min-state = <3300>;
-+	cooling-max-state = <13500>;
-+};
-+
-+&fan1 {
-+	cooling-min-state = <3300>;
-+	cooling-max-state = <13500>;
-+};
 diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev2.dts b/arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev2.dts
 new file mode 100644
 index 000000000000..97612e8fea03
@@ -330,5 +303,5 @@ index 000000000000..130ca5ca080d
 +
 +#include "zynq-ni-sulfur-rev4.dts"
 -- 
-2.14.3
+2.20.1
 

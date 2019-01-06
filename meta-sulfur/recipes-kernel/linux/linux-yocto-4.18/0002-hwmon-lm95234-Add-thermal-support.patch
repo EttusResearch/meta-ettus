@@ -1,11 +1,11 @@
-From ed69cb24d0ee0feecd13423bea45ee8ae5fcd22d Mon Sep 17 00:00:00 2001
+From a1a7f4d692697efe54eb0e718463fa4b44ea69b6 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 10 Jul 2017 15:08:20 -0700
-Subject: [PATCH 06/21] hwmon: lm95234: Add thermal support
+Subject: [PATCH 02/17] hwmon: lm95234: Add thermal support
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
- drivers/hwmon/lm95234.c | 48 ++++++++++++++++++++++++++++++++++++++++++++++++
+ drivers/hwmon/lm95234.c | 48 +++++++++++++++++++++++++++++++++++++++++
  1 file changed, 48 insertions(+)
 
 diff --git a/drivers/hwmon/lm95234.c b/drivers/hwmon/lm95234.c
@@ -82,5 +82,5 @@ index c7fcc9e7f57a..9b93f862e0d3 100644
  	if (id->driver_data == lm95234)
  		data->groups[1] = &lm95234_group;
 -- 
-2.14.3
+2.20.1
 
