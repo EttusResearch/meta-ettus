@@ -6,3 +6,4 @@ RDEPENDS_${PN}_append_ni-e31x-sg1 = " \
 
 RDEPENDS_${PN}_append_ni-e31x-sg3 = " \
     linux-firmware-ni-e31x-sg3-fpga \
+"
