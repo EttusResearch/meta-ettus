@@ -1,0 +1,48 @@
+From: Jia-Ju Bai <baijiaju1990@gmail.com>
+To: nicolas.ferre@microchip.com, davem@davemloft.net
+Cc: netdev@vger.kernel.org, linux-kernel@vger.kernel.org,
+        Jia-Ju Bai <baijiaju1990@gmail.com>
+Subject: [PATCH] net: cadence: Fix a sleep-in-atomic-context bug in
+ macb_halt_tx()
+Date: Sat,  1 Sep 2018 20:11:05 +0800
+Message-Id: <20180901121105.436-1-baijiaju1990@gmail.com>
+X-Mailer: git-send-email 2.17.0
+Sender: linux-kernel-owner@vger.kernel.org
+Precedence: bulk
+List-ID: <linux-kernel.vger.kernel.org>
+X-Mailing-List: linux-kernel@vger.kernel.org
+
+The kernel module may sleep with holding a spinlock.
+
+The function call paths (from bottom to top) in Linux-4.16 are:
+
+[FUNC] usleep_range
+drivers/net/ethernet/cadence/macb_main.c, 648: 
+	usleep_range in macb_halt_tx
+drivers/net/ethernet/cadence/macb_main.c, 730: 
+	macb_halt_tx in macb_tx_error_task
+drivers/net/ethernet/cadence/macb_main.c, 721: 
+	_raw_spin_lock_irqsave in macb_tx_error_task
+
+To fix this bug, usleep_range() is replaced with udelay().
+
+This bug is found by my static analysis tool DSAC.
+
+Signed-off-by: Jia-Ju Bai <baijiaju1990@gmail.com>
+---
+ drivers/net/ethernet/cadence/macb_main.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/net/ethernet/cadence/macb_main.c b/drivers/net/ethernet/cadence/macb_main.c
+index a6c911bb5ce2..3dcc31cd4261 100644
+--- a/drivers/net/ethernet/cadence/macb_main.c
++++ b/drivers/net/ethernet/cadence/macb_main.c
+@@ -641,7 +641,7 @@ static int macb_halt_tx(struct macb *bp)
+ 		if (!(status & MACB_BIT(TGO)))
+ 			return 0;
+ 
+-		usleep_range(10, 250);
++		udelay(250);
+ 	} while (time_before(halt_time, timeout));
+ 
+ 	return -ETIMEDOUT;
