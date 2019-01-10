@@ -1,6 +1,7 @@
 FILESEXTRAPATHS_prepend_ni-neon := "${THISDIR}/files:"
 
-SRC_URI_append_ni-neon = " http://files.ettus.com/binaries/cache/e3xx/fpga-d0360f7/e3xx_e320_fpga_default-gd0360f7.zip;name=neon-fpga "
+SRC_URI_append_ni-neon = " http://files.ettus.com/binaries/cache/e3xx/fpga-d0360f7/e3xx_e320_fpga_default-gd0360f7.zip;name=neon-fpga \
+                         "
 
 SRC_URI[neon-fpga.sha256sum] = "7812dd8e7979792b0adc1b64257474ad91ab4237e93e7b3100eb58c97d72204f"
 
