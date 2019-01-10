@@ -7,13 +7,13 @@ SRC_URI_append = " file://ec-sulfur-rev3.bin \
                    file://ec-sulfur-rev5.RW.bin \
                    file://LICENSE.ec-sulfur \
                    file://mykonos-m3.bin \
-                   http://files.ettus.com/binaries/cache/n3xx/fpga-1107862/n3xx_n310_fpga_default-g1107862.zip;name=sulfur-fpga \
-                   http://files.ettus.com/binaries/cache/n3xx/fpga-1107862/n3xx_n300_fpga_default-g1107862.zip;name=phosphorus-fpga \
-                   http://files.ettus.com/binaries/cache/n3xx/fpga-6bea23d/n3xx_n310_cpld_default.zip;name=magnesium-cpld \
+                   http://files.ettus.com/binaries/cache/n3xx/fpga-d0360f7/n3xx_n310_fpga_default-gd0360f7.zip;name=sulfur-fpga \
+                   http://files.ettus.com/binaries/cache/n3xx/fpga-d0360f7/n3xx_n300_fpga_default-gd0360f7.zip;name=phosphorus-fpga \
+                   http://files.ettus.com/binaries/cache/n3xx/fpga-6bea23d/n3xx_n310_cpld_default-g6bea23d.zip;name=magnesium-cpld \
                  "
 
-SRC_URI[sulfur-fpga.sha256sum] = "fc80462f2e144d9745b0b480aa513f426e48df46ad18dc85cbb8fdb3cb162355"
-SRC_URI[phosphorus-fpga.sha256sum] = "1e7ae1429825811531149f87f82dfcbc06cf63e1fc3752517edf104950406c36"
+SRC_URI[sulfur-fpga.sha256sum] = "8bcf81b4453487fc5fb375b9a79ce8ca8cb676dc2e7fde127c7491181d42ddc5"
+SRC_URI[phosphorus-fpga.sha256sum] = "882acb86fb4a0fd52b0ccffab83cc554a5a6d0bf057af1f591623ae080257069"
 SRC_URI[magnesium-cpld.sha256sum] = "ef128dcd265ee8615b673021d4ee84c39357012ffe8b28c8ad7f893f9dcb94cb"
 
 LICENSE_append = "& Firmware-ni-sulfur"

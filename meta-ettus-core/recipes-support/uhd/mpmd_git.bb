@@ -24,12 +24,12 @@ RDEPENDS_${PN} = "python3-netaddr \
                   dtc \
                  "
 
-PV = "3.13.0.2"
+PV = "3.13.1.0"
 
 SRC_URI = "git://github.com/EttusResearch/uhd.git;branch=UHD-3.13 \
           "
 
-SRCREV = "78745bda5de0beed0411c4b1baf3783d84090024"
+SRCREV = "4a356623b46adf2117914c565d0322638912bb1a"
 
 inherit distutils3-base cmake python3-dir python3native systemd
 
