@@ -1,3 +1,6 @@
+require recipes-support/uhd/version.inc
+require recipes-support/uhd/uhd_git_src.inc
+
 SUMMARY = "Universal Hardware Driver for Ettus Research products (Hardware Daemon)."
 HOMEPAGE = "http://www.ettus.com"
 LICENSE = "GPLv3+"
@@ -24,13 +27,9 @@ RDEPENDS_${PN} = "python3-netaddr \
                   dtc \
                  "
 
-PV = "3.13.0.2"
-
-SRC_URI = "git://github.com/EttusResearch/uhd.git;branch=UHD-3.13 \
-           file://0001-mpm-cmake-Fix-boost-python3-component-search.patch \
-          "
-
-SRCREV = "78745bda5de0beed0411c4b1baf3783d84090024"
+SRC_URI_append = " \
+                 file://0001-mpm-cmake-Fix-boost-python3-component-search.patch \
+                 "
 
 inherit distutils3-base cmake python3-dir python3native systemd
 
