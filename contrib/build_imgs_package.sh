@@ -114,10 +114,16 @@ fi
 _sdkpath=`dirname $_sdk`
 echo "Found SDK in: $_sdkpath. Files:"
 ls $_sdkpath
-# SDK works a bit differently. We just zip up the SDK directory.
+# Prefix all files with device
+for f in `ls $_sdkpath`
+do
+	_base=`basename $f`
+	cp -v $_sdkpath/$_base $TMP_DIR/$_requested_device-$_base
+done
 echo "Zipping up SDK..."
-zip -j $TMP_DIR/$_sdk_pkg_name $_sdkpath/*.{sh,manifest,json}
+zip -j $TMP_DIR/$_sdk_pkg_name $TMP_DIR/*.{sh,manifest,json}
 mv $TMP_DIR/*.zip $DST_DIR
+rm $TMP_DIR/*
 
 rmdir $TMP_DIR
 
