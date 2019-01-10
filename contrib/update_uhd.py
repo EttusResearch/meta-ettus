@@ -18,10 +18,8 @@ import shutil
 from six import iteritems
 
 UHD_REPO = 'https://github.com/EttusResearch/uhd.git'
-GIT_BB_FILES = [
-    'meta-ettus-core/recipes-support/uhd/uhd_git.bb',
-    'meta-ettus-core/recipes-support/uhd/mpmd_git.bb',
-]
+UHD_VERSION_FILE = 'meta-ettus-core/recipes-support/uhd/version.inc'
+UHD_SRC_FILE = 'meta-ettus-core/recipes-support/uhd/uhd_git_src.inc'
 DEVICE_INFO = {
     'n3xx': {
         'fpga_append': [
@@ -76,37 +74,48 @@ def check_meta_ettus_path(mep):
     """
     return os.path.isdir(os.path.join(mep, 'meta-ettus-core'))
 
-def update_uhd_sha(mep, uhd_sha1, branch):
+def update_uhd_info(mep, uhd_sha1, branch, version):
     """
-    Update current meta-ettus to latest UHD hash
+    Update current meta-ettus to latest UHD
 
     mep: meta-ettus path
     uhd_sha1: The git SHA1 for the UHD repo
     branch: The name of the branch we're going to track
+    version: The UHD version
     """
-    for bbfile in GIT_BB_FILES:
-        print("### Updating `{}'...".format(bbfile))
-        bbfile_content = open(os.path.join(mep, bbfile)).read()
+    print("### Updating `{}'...".format(UHD_SRC_FILE))
+    bbfile = os.path.join(mep, UHD_SRC_FILE)
+    bbfile_content = open(bbfile).read()
+    bbfile_content = re.sub(
+        r'SRCREV = "([a-z0-9]+)"',
+        'SRCREV = "{}"'.format(uhd_sha1),
+        bbfile_content,
+    )
+    current_branch = \
+        re.search(
+            r'SRC_URI = [^;]+;branch=(?P<branch>[^"]+)',
+            bbfile_content).group('branch')
+    if branch is None:
+        print("### FYI: File {} is referring to git branch {}.".format(
+            os.path.basename(bbfile), current_branch))
+    else:
+        print("### Replacing branch name in SRC_URI with {}".format(branch))
         bbfile_content = re.sub(
-            r'SRCREV = "([a-z0-9]+)"',
-            'SRCREV = "{}"'.format(uhd_sha1),
+            r'(SRC_URI = [^;]+;branch=)([^"]+)',
+            r'\1' + branch,
             bbfile_content,
         )
-        current_branch = \
-            re.search(
-                r'SRC_URI = [^;]+;branch=(?P<branch>[^ ]+)',
-                bbfile_content).group('branch')
-        if branch is None:
-            print("### FYI: File {} is referring to git branch {}.".format(
-                os.path.basename(bbfile), current_branch))
-        else:
-            print("### Replacing branch name in SRC_URI with {}".format(branch))
-            bbfile_content = re.sub(
-                r'(SRC_URI = [^;]+;branch=)([^ ]+)',
-                r'\1' + branch,
-                bbfile_content,
-            )
-        open(os.path.join(mep, bbfile), 'w').write(bbfile_content)
+    open(bbfile, 'w').write(bbfile_content)
+    print("### Setting version to {} in {}".format(
+        version, os.path.basename(bbfile)))
+    bbfile = os.path.join(mep, UHD_VERSION_FILE)
+    bbfile_content = open(bbfile).read()
+    bbfile_content = re.sub(
+        r'PV = ".*"',
+        'PV = "{}"'.format(version),
+        bbfile_content,
+    )
+    open(bbfile, 'w').write(bbfile_content)
 
 def load_manifest(upath):
     """
@@ -133,6 +142,24 @@ def load_manifest(upath):
                   "         {}".format(line))
             continue
     return manifest
+
+def get_uhd_version(upath):
+    """
+    Return the UHD version
+    """
+    uhd_version_path = os.path.join(upath,
+        'host', 'cmake', 'Modules', 'UHDVersion.cmake')
+    print("### Reading UHD version from {}...".format(uhd_version_path))
+    uhdver_contents = open(uhd_version_path).read()
+    major = re.search(r'set\(UHD_VERSION_MAJOR[ ]+(?P<major>[0-9]+)\)',
+        uhdver_contents).group('major')
+    api = re.search(r'set\(UHD_VERSION_API[ ]+(?P<api>[0-9]+)\)',
+        uhdver_contents).group('api')
+    abi = re.search(r'set\(UHD_VERSION_ABI[ ]+(?P<abi>[0-9]+)\)',
+        uhdver_contents).group('abi')
+    patch = re.search(r'set\(UHD_VERSION_PATCH[ ]+(?P<patch>[0-9]+)\)',
+        uhdver_contents).group('patch')
+    return ""+major+"."+api+"."+abi+"."+patch
 
 def get_fpga_target_list(src_uri_content):
     """
@@ -241,7 +268,10 @@ def main():
     uhd_git_hash = subprocess.check_output(
         ['git', 'rev-parse', 'HEAD'], cwd=args.uhd_path).decode('utf-8').strip()
     print("### Git hash is: {}".format(uhd_git_hash))
-    update_uhd_sha(args.meta_ettus_path, uhd_git_hash, args.branch)
+    print("### Learning UHD version...")
+    uhd_version = get_uhd_version(args.uhd_path)
+    print("### UHD version is: {}".format(uhd_version))
+    update_uhd_info(args.meta_ettus_path, uhd_git_hash, args.branch, uhd_version)
     manifest = load_manifest(args.uhd_path)
     for device in args.devices:
         print("### Updating FPGA images for device `{}'...".format(device))
