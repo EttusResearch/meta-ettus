@@ -1,0 +1,29 @@
+From 7ffe26fb4acc5f21858fd6a37dfcd60054252c5d Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz@ettus.com>
+Date: Fri, 18 Jan 2019 19:18:37 +0000
+Subject: [PATCH] mpm: cmake: Fix boost-python3 component search
+
+With 1.67 boost changed how they look for boost-python
+in cmake. Now need to look for python35 component.
+
+Signed-off-by: Moritz Fischer <moritz@ettus.com>
+---
+ CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9fc24b98b..6d57239b3 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -64,7 +64,7 @@ MESSAGE(STATUS "")
+ MESSAGE(STATUS "Configuring Boost C++ Libraries...")
+ SET(BOOST_REQUIRED_COMPONENTS
+   system
+-  python3
++  python35
+ )
+ 
+ IF(MINGW)
+-- 
+2.20.1
+

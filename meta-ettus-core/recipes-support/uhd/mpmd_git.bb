@@ -27,6 +27,7 @@ RDEPENDS_${PN} = "python3-netaddr \
 PV = "3.13.0.2"
 
 SRC_URI = "git://github.com/EttusResearch/uhd.git;branch=UHD-3.13 \
+           file://0001-mpm-cmake-Fix-boost-python3-component-search.patch \
           "
 
 SRCREV = "78745bda5de0beed0411c4b1baf3783d84090024"
