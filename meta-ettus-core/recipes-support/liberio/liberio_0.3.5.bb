@@ -12,7 +12,7 @@ RDEPENDS_liberio = "libudev"
 DEPENDS = "udev"
 
 SHRT_VER = "${@d.getVar('PV').split('.')[0]}.${@d.getVar('PV').split('.')[1]}"
-SRC_URI = "git://github.com/EttusResearch/liberio.git;rev=d0e8a603f5f4dddf29764fc0fc6f6f965de77b8a"
+SRC_URI = "git://github.com/EttusResearch/liberio.git;rev=b8736a87c6a70d33a70c5f938e2f81bd536317f8"
 
 FILES_${PN} = "${libdir}/lib*.so.* ${libdir}/lib*.la ${libdir}/liberio.pc"
 FILES_${PN}-dev += "${includedir}/liberio/"
