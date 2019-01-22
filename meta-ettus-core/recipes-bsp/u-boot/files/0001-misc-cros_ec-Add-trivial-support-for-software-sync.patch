@@ -1,7 +1,7 @@
-From 32bfd97d1105f13c49ce54121ff3d45eaaea23f0 Mon Sep 17 00:00:00 2001
+From b83d5539c0a57c757819b2f6b803d0b6f03de7cd Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Wed, 26 Oct 2016 09:58:51 -0700
-Subject: [PATCH 1/7] misc: cros_ec: Add trivial support for software sync
+Subject: [PATCH] misc: cros_ec: Add trivial support for software sync
 
 This adds basic support for 'software sync' - the technique
 used by Chromebooks to keep the EC software in sync with
@@ -10,7 +10,7 @@ the rest of the software stack.
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
  cmd/cros_ec.c          |  12 ++++
- drivers/misc/cros_ec.c | 150 +++++++++++++++++++++++++++++++++++++++++
+ drivers/misc/cros_ec.c | 150 +++++++++++++++++++++++++++++++++++++++++++++++++
  include/cros_ec.h      |   9 +++
  3 files changed, 171 insertions(+)
 
@@ -45,7 +45,7 @@ index af0b4eee78..fd1dd9e644 100644
  	"crosec reboot [rw | ro | cold]  Reboot CROS-EC\n"
  	"crosec events              Read CROS-EC host events\n"
 diff --git a/drivers/misc/cros_ec.c b/drivers/misc/cros_ec.c
-index eefaaa53ad..ee67ce7e46 100644
+index feaa5d8567..a6120a6c82 100644
 --- a/drivers/misc/cros_ec.c
 +++ b/drivers/misc/cros_ec.c
 @@ -29,6 +29,9 @@
@@ -233,5 +233,5 @@ index 771a176eea..28d55fcf72 100644
   * Clear the specified host event flags
   *
 -- 
-2.18.0
+2.15.0
 
