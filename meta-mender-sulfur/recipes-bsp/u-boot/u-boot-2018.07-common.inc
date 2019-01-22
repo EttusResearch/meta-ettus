@@ -1,4 +1,4 @@
-FILESEXTRAPATHS_prepend := "${THISDIR}/u-boot-2018.01:"
+FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
 # Make sure this is an append, otherwise this might get applied before the BSP patches
 SRC_URI_append_ni-sulfur-mender = " \
