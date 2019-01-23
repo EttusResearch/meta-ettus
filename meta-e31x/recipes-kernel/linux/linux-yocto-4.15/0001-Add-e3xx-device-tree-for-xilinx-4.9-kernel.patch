@@ -293,7 +293,7 @@ index 000000000000..78afded9d578
 +	};
 +
 +	adt7408: temp@19 {
-+		compatible = "jc42";
++		compatible = "jedec,jc-42.4-temp";
 +		reg = <0x19>;
 +	};
 +	mpu6050@69 {
