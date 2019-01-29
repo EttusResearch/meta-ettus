@@ -1,0 +1,848 @@
+From 07ed296e3c59b312d03d15b3589da0d40db8c2ae Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Tue, 29 Jan 2019 00:35:35 +0000
+Subject: [PATCH] mfd/power-supply: Add ni-e31x-pmu, battery and charger
+
+Add ni-e31x-pmu, battery and charger drivers.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ Documentation/devicetree/bindings/mfd/e31x-pmu.txt |  28 ++
+ .../bindings/power/supply/e31x-battery.txt         |  14 +
+ .../bindings/power/supply/e31x-charger.txt         |  15 +
+ drivers/mfd/Kconfig                                |   8 +
+ drivers/mfd/Makefile                               |   1 +
+ drivers/mfd/e31x-pmu.c                             |  87 +++++
+ drivers/power/supply/Kconfig                       |  10 +
+ drivers/power/supply/Makefile                      |   2 +
+ drivers/power/supply/e31x-battery.c                | 350 +++++++++++++++++++++
+ drivers/power/supply/e31x-charger.c                | 189 +++++++++++
+ include/linux/mfd/e31x-pmu.h                       |  35 +++
+ 11 files changed, 739 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/mfd/e31x-pmu.txt
+ create mode 100644 Documentation/devicetree/bindings/power/supply/e31x-battery.txt
+ create mode 100644 Documentation/devicetree/bindings/power/supply/e31x-charger.txt
+ create mode 100644 drivers/mfd/e31x-pmu.c
+ create mode 100644 drivers/power/supply/e31x-battery.c
+ create mode 100644 drivers/power/supply/e31x-charger.c
+ create mode 100644 include/linux/mfd/e31x-pmu.h
+
+diff --git a/Documentation/devicetree/bindings/mfd/e31x-pmu.txt b/Documentation/devicetree/bindings/mfd/e31x-pmu.txt
+new file mode 100644
+index 0000000..39603d5
+--- /dev/null
++++ b/Documentation/devicetree/bindings/mfd/e31x-pmu.txt
+@@ -0,0 +1,28 @@
++Ettus Research/National Instruments E31x PMU MFD driver
++
++Required properties:
++- compatible : Must be "ni,e31x-pmu"
++- regmap     : Must be <&regmapnode>
++
++e31x-pmu consists of two sub-devices, e31x-battery and e31x-charger.
++
++For the e31x-battery properties please refer to:
++Documentation/device-tree/bindings/power/supply/e31x-battery.txt
++
++For the e31x-charger properties please refer to:
++Documentation/device-tree/bindings/power/supply/e31x-charger.txt
++
++Example:
++
++pmu {
++	compatible = "ni,e31x-pmu";
++	regmap = <&devctrl>;
++	status = "okay";
++	battery: battery@0{
++		compatible = "ni,e31x-battery";
++	};
++	charger: charger@1{
++		compatible = "ni,e31x-charger";
++	};
++};
++
+diff --git a/Documentation/devicetree/bindings/power/supply/e31x-battery.txt b/Documentation/devicetree/bindings/power/supply/e31x-battery.txt
+new file mode 100644
+index 0000000..7b01089
+--- /dev/null
++++ b/Documentation/devicetree/bindings/power/supply/e31x-battery.txt
+@@ -0,0 +1,14 @@
++Ettus Research/National Instruments E31x Devices Battery
++~~~~~~~~~~~~~~~~~~~~~~~~~~~
++
++Some variants of the E31x devices have an in-built Li-ion
++battery. Some capability is provided to provided to monitor the battery.
++
++Required properties:
++- compatible: Must be "ni,e31x-battery"
++
++Example:
++
++battery: battery@0{
++	compatible = "ni,e31x-battery";
++};
+diff --git a/Documentation/devicetree/bindings/power/supply/e31x-charger.txt b/Documentation/devicetree/bindings/power/supply/e31x-charger.txt
+new file mode 100644
+index 0000000..588cb1a
+--- /dev/null
++++ b/Documentation/devicetree/bindings/power/supply/e31x-charger.txt
+@@ -0,0 +1,15 @@
++Ettus Research/National Instruments  E31x Devices Charger
++~~~~~~~~~~~~~~~~~~~~~~~~~~~
++
++All E31x devices have to be connected to an external power supply
++charger to charge the in-built battery or supply power.
++Some capability is provided to monitor this charger.
++
++Required properties:
++- compatible: Must be "ni,e31x-charger"
++
++Example:
++
++charger: charger@0{
++	compatible = "ni,e31x-charger";
++};
+diff --git a/drivers/mfd/Kconfig b/drivers/mfd/Kconfig
+index 1d20a80..5e98906 100644
+--- a/drivers/mfd/Kconfig
++++ b/drivers/mfd/Kconfig
+@@ -1860,4 +1860,12 @@ config MFD_VEXPRESS_SYSREG
+ 	  on the ARM Ltd. Versatile Express board.
+ 
+ endmenu
++
++config MFD_E31X_PMU
++	tristate "E31X PMU driver"
++	help
++	 Select this to get support for the Ettus Research E31x devices. This
++	 driver provides support to access the in-built battery and the charger
++	 device properties.
++
+ endif
+diff --git a/drivers/mfd/Makefile b/drivers/mfd/Makefile
+index d9474ad..91f1ffe 100644
+--- a/drivers/mfd/Makefile
++++ b/drivers/mfd/Makefile
+@@ -230,3 +230,4 @@ obj-$(CONFIG_MFD_STM32_LPTIMER)	+= stm32-lptimer.o
+ obj-$(CONFIG_MFD_STM32_TIMERS) 	+= stm32-timers.o
+ obj-$(CONFIG_MFD_MXS_LRADC)     += mxs-lradc.o
+ obj-$(CONFIG_MFD_SC27XX_PMIC)	+= sprd-sc27xx-spi.o
++obj-$(CONFIG_MFD_E31X_PMU)          += e31x-pmu.o
+diff --git a/drivers/mfd/e31x-pmu.c b/drivers/mfd/e31x-pmu.c
+new file mode 100644
+index 0000000..80f7742
+--- /dev/null
++++ b/drivers/mfd/e31x-pmu.c
+@@ -0,0 +1,87 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (c) 2018 National Instruments Corp
++ * Author: Virendra Kakade <virendra.kakade@ni.com>
++ *
++ * Ettus Research E31x PMU MFD driver
++ */
++
++#include <linux/err.h>
++#include <linux/delay.h>
++#include <linux/interrupt.h>
++#include <linux/kernel.h>
++#include <linux/mfd/syscon.h>
++#include <linux/module.h>
++#include <linux/pm_runtime.h>
++#include <linux/regmap.h>
++#include <linux/mfd/core.h>
++#include <linux/of_device.h>
++#include <linux/mfd/e31x-pmu.h>
++#include <linux/platform_device.h>
++
++#define E31X_PMU_MISC_IRQ_MASK         BIT(8)
++#define E31X_PMU_MISC_IRQ_SHIFT                8
++#define E31X_PMU_MISC_VERSION_MIN_MASK GENMASK(3, 0)
++#define E31X_PMU_MISC_VERSION_MIN_SHIFT 0
++#define E31X_PMU_MISC_VERSION_MAJ_MASK GENMASK(7, 4)
++#define E31X_PMU_MISC_VERSION_MAJ_SHIFT 4
++
++struct e31x_pmu {
++       struct regmap *regmap;
++};
++
++static int e31x_pmu_check_version(struct e31x_pmu *pmu)
++{
++       int timeout = 100;
++       u32 misc, maj;
++       int err;
++       /* we need to wait a bit for firmware to populate the fields */
++       while (timeout--) {
++               err = regmap_read(pmu->regmap, E31X_PMU_REG_MISC, &misc);
++               if (err)
++                       return err;
++               if (misc)
++                       break;
++
++               usleep_range(2500, 5000);
++       }
++
++       /* only firmware versions above 2.0 are supported */
++       maj = E31X_PMU_GET_FIELD(MISC_VERSION_MAJ, misc);
++       if (maj < 2)
++               return -ENOTSUPP;
++       return 0;
++}
++
++static int e31x_pmu_probe(struct platform_device *pdev)
++{
++       struct e31x_pmu *pmu;
++       pmu = devm_kzalloc(&pdev->dev, sizeof(*pmu), GFP_KERNEL);
++       if (!pmu)
++               return -ENOMEM;
++   	   pmu->regmap = syscon_regmap_lookup_by_phandle(pdev->dev.of_node, "regmap");
++
++       if (IS_ERR(pmu->regmap))
++               return PTR_ERR(pmu->regmap);
++       if (e31x_pmu_check_version(pmu))
++               return -ENOTSUPP;
++       return devm_of_platform_populate(&pdev->dev);
++}
++
++static const struct of_device_id e31x_pmu_id[] = {
++       { .compatible = "ni,e31x-pmu" },
++       {},
++};
++
++static struct platform_driver e31x_pmu_driver = {
++       .driver = {
++               .name = "e31x-pmu",
++               .of_match_table = e31x_pmu_id,
++       },
++       .probe = e31x_pmu_probe,
++};
++module_platform_driver(e31x_pmu_driver);
++
++MODULE_DESCRIPTION("E31x PMU driver");
++MODULE_AUTHOR("Virendra Kakade <virendra.kakade@ni.com>");
++MODULE_LICENSE("GPL");
+diff --git a/drivers/power/supply/Kconfig b/drivers/power/supply/Kconfig
+index 428b426..6f4bf17 100644
+--- a/drivers/power/supply/Kconfig
++++ b/drivers/power/supply/Kconfig
+@@ -624,4 +624,14 @@ config CHARGER_RT9455
+ 	help
+ 	  Say Y to enable support for Richtek RT9455 battery charger.
+ 
++config E31X_BATTERY
++       tristate "Ettus Research E31x battery support"
++       help
++         This adds support for battery fuel gauge in Ettus Research E31x PMU.
++
++config E31X_CHARGER
++       tristate "Ettus Research E31x charger support"
++       help
++         This adds support for battery charger in Ettus Research E31x PMU.
++
+ endif # POWER_SUPPLY
+diff --git a/drivers/power/supply/Makefile b/drivers/power/supply/Makefile
+index e83aa84..c9f2a63 100644
+--- a/drivers/power/supply/Makefile
++++ b/drivers/power/supply/Makefile
+@@ -83,3 +83,5 @@ obj-$(CONFIG_CHARGER_TPS65090)	+= tps65090-charger.o
+ obj-$(CONFIG_CHARGER_TPS65217)	+= tps65217_charger.o
+ obj-$(CONFIG_AXP288_FUEL_GAUGE) += axp288_fuel_gauge.o
+ obj-$(CONFIG_AXP288_CHARGER)	+= axp288_charger.o
++obj-$(CONFIG_E31X_BATTERY)      += e31x-battery.o
++obj-$(CONFIG_E31X_CHARGER)      += e31x-charger.o
+\ No newline at end of file
+diff --git a/drivers/power/supply/e31x-battery.c b/drivers/power/supply/e31x-battery.c
+new file mode 100644
+index 0000000..ac05939
+--- /dev/null
++++ b/drivers/power/supply/e31x-battery.c
+@@ -0,0 +1,350 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (c) 2018 National Instruments Corp
++ * Author: Virendra Kakade <virendra.kakade@ni.com>
++ *
++ * Ettus Research E31x battery driver
++ */
++
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/of_device.h>
++#include <linux/platform_device.h>
++#include <linux/mfd/syscon.h>
++#include <linux/mutex.h>
++#include <linux/regmap.h>
++#include <linux/string.h>
++#include <linux/slab.h>
++#include <linux/power_supply.h>
++#include <linux/delay.h>
++#include <linux/mfd/e31x-pmu.h>
++
++#define E31X_PMU_BATTERY_TEMP_ALERT_MASK       GENMASK(7,6)
++#define E31X_PMU_BATTERY_TEMP_ALERT_SHIFT      6
++#define E31X_PMU_BATTERY_ONLINE_MASK           BIT(5)
++#define E31X_PMU_BATTERY_ONLINE_SHIFT          5
++#define E31X_PMU_BATTERY_HEALTH_MASK           GENMASK(4,2)
++#define E31X_PMU_BATTERY_HEALTH_SHIFT          2
++#define E31X_PMU_BATTERY_STATUS_MASK           GENMASK(1,0)
++#define E31X_PMU_BATTERY_STATUS_SHIFT          0
++
++#define E31X_PMU_GAUGE_TEMP_MASK               GENMASK(31,16)
++#define E31X_PMU_GAUGE_TEMP_SHIFT              16
++#define E31X_PMU_GAUGE_CHARGE_MASK             GENMASK(15,0)
++#define E31X_PMU_GAUGE_CHARGE_SHIFT            0
++
++#define E31X_PMU_GAUGE_VOLTAGE_MASK            GENMASK(15, 0)
++#define E31X_PMU_GAUGE_VOLTAGE_SHIFT           0
++
++#define E31X_PMU_GAUGE_CHARGE_LAST_FULL_MASK   GENMASK(15, 0)
++#define E31X_PMU_GAUGE_CHARGE_LAST_FULL_SHIFT  0
++
++#define E31X_BATTERY_CHARGE_DESIGN_FULL (3200000)
++#define E31X_PMU_VSENSE                        (6000)
++
++struct e31x_battery_dev {
++       struct regmap *regmap;
++       struct power_supply *supply;
++};
++
++static int e31x_battery_set_prop(struct power_supply *psy,
++                                enum power_supply_property psp,
++                                const union power_supply_propval *val)
++{
++       return 0;
++}
++
++static int e31x_battery_get_status(struct e31x_battery_dev *bat,
++                                  union power_supply_propval *val)
++{
++       u32 value;
++       int err;
++
++       err = regmap_read(bat->regmap, E31X_PMU_REG_CHARGER, &value);
++       if (err)
++               return err;
++
++       value = E31X_PMU_GET_FIELD(CHARGER_ONLINE, value);
++
++       /* if charger is offline, we're discharging, period */
++       if (!value) {
++               val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
++               return 0;
++       }
++
++       err = regmap_read(bat->regmap, E31X_PMU_REG_BATTERY, &value);
++       if (err)
++               return err;
++
++       value &= E31X_PMU_BATTERY_STATUS_MASK;
++
++       switch (value) {
++       case 0x0:
++               val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
++               break;
++       case 0x1:
++               val->intval = POWER_SUPPLY_STATUS_CHARGING;
++               break;
++       case 0x2:
++               val->intval = POWER_SUPPLY_STATUS_FULL;
++               break;
++       case 0x3:
++               val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
++               break;
++       default:
++               return -EIO;
++       };
++
++       return 0;
++}
++
++static int e31x_battery_get_health(struct e31x_battery_dev *bat,
++                                  union power_supply_propval *val)
++{
++       u32 value;
++       int err;
++
++       err = regmap_read(bat->regmap, E31X_PMU_REG_BATTERY, &value);
++       if (err)
++               return err;
++
++       value = E31X_PMU_GET_FIELD(BATTERY_HEALTH, value);
++
++       switch (value) {
++       case 0x00:
++               val->intval = POWER_SUPPLY_HEALTH_GOOD;
++               break;
++       case 0x01:
++               val->intval = POWER_SUPPLY_HEALTH_UNSPEC_FAILURE;
++               break;
++       case 0x02:
++               val->intval = POWER_SUPPLY_HEALTH_OVERVOLTAGE;
++               break;
++       case 0x03:
++               val->intval = POWER_SUPPLY_HEALTH_OVERHEAT;
++               break;
++       case 0x04:
++               val->intval = POWER_SUPPLY_HEALTH_COLD;
++               break;
++       default:
++               val->intval = POWER_SUPPLY_HEALTH_UNKNOWN;
++               break;
++       }
++
++       return 0;
++}
++
++static int e31x_battery_get_online(struct e31x_battery_dev *bat,
++                                  union power_supply_propval *val)
++{
++       u32 value;
++       int err;
++
++       err = regmap_read(bat->regmap, E31X_PMU_REG_BATTERY, &value);
++       if (err)
++               return err;
++
++       return !!(value & E31X_PMU_BATTERY_ONLINE_MASK);
++}
++
++static int e31x_battery_get_voltage_now(struct e31x_battery_dev *bat,
++                                       union power_supply_propval *val)
++{
++       u32 value;
++       int err;
++
++       err = regmap_read(bat->regmap, E31X_PMU_REG_GAUGE, &value);
++       if (err)
++               return err;
++
++       value = E31X_PMU_GET_FIELD(GAUGE_VOLTAGE, value);
++
++       val->intval = value * E31X_PMU_VSENSE / GENMASK(15,0);
++
++       return 0;
++}
++
++#define E31X_PMU_BIN_TO_UAH(x) ((x) * 53)
++#define E31X_PMU_UAH_TO_BIN(x) ((x) / 53)
++
++static int e31x_battery_get_charge_now(struct e31x_battery_dev *bat,
++                                       union power_supply_propval *val)
++{
++       u32 value;
++       int err;
++
++       err = regmap_read(bat->regmap, E31X_PMU_REG_GAUGE, &value);
++       if (err)
++               return err;
++
++       value = E31X_PMU_GET_FIELD(GAUGE_CHARGE, value);
++       val->intval = E31X_PMU_BIN_TO_UAH(value);
++
++       return 0;
++}
++
++static int e31x_battery_get_temp(struct e31x_battery_dev *bat,
++                                union power_supply_propval *val)
++{
++       u32 value;
++       int err;
++
++       err = regmap_read(bat->regmap, E31X_PMU_REG_GAUGE, &value);
++       if (err)
++               return err;
++
++       value = E31X_PMU_GET_FIELD(GAUGE_TEMP, value);
++       val->intval = 10 * (((600 * value) / 0xffff) - 273);
++
++       return 0;
++}
++
++static int e31x_battery_get_charge_full(struct e31x_battery_dev *bat,
++                                       union power_supply_propval *val)
++{
++       u32 value;
++       int err;
++
++       err = regmap_read(bat->regmap, E31X_PMU_REG_LAST, &value);
++       if (err)
++               return err;
++
++       value = E31X_PMU_GET_FIELD(GAUGE_CHARGE_LAST_FULL, value);
++       val->intval = E31X_PMU_BIN_TO_UAH(value);
++
++       return 0;
++}
++
++static const int e31x_pmu_temp_values[] = {
++       600, 800, 1000, 1200
++};
++
++static int e31x_battery_get_temp_alert_max(struct e31x_battery_dev *bat,
++                                          union power_supply_propval *val)
++{
++       u32 value;
++       int err;
++       int i;
++
++       err = regmap_read(bat->regmap, E31X_PMU_REG_BATTERY, &value);
++       if (err)
++               return err;
++
++       value = E31X_PMU_GET_FIELD(BATTERY_TEMP_ALERT, value);
++       for (i = 0; i < ARRAY_SIZE(e31x_pmu_temp_values); i++)
++               if (e31x_pmu_temp_values[i] > value)
++                       break;
++
++       val->intval = e31x_pmu_temp_values[i - 1];
++
++       return 0;
++}
++
++static int e31x_battery_get_prop(struct power_supply *psy,
++                                enum power_supply_property psp,
++                                union power_supply_propval *val)
++{
++       struct e31x_battery_dev *battery = power_supply_get_drvdata(psy);
++
++       switch(psp) {
++       case POWER_SUPPLY_PROP_STATUS:
++               return e31x_battery_get_status(battery, val);
++       case POWER_SUPPLY_PROP_HEALTH:
++               return e31x_battery_get_health(battery, val);
++       case POWER_SUPPLY_PROP_ONLINE:
++               return e31x_battery_get_online(battery, val);
++       case POWER_SUPPLY_PROP_TECHNOLOGY:
++               val->intval = POWER_SUPPLY_TECHNOLOGY_LION;
++               break;
++       case POWER_SUPPLY_PROP_TEMP:
++               return e31x_battery_get_temp(battery, val);
++       case POWER_SUPPLY_PROP_VOLTAGE_NOW:
++               return e31x_battery_get_voltage_now(battery, val);
++       case POWER_SUPPLY_PROP_CHARGE_NOW:
++               return e31x_battery_get_charge_now(battery, val);
++       case POWER_SUPPLY_PROP_CHARGE_FULL:
++               return e31x_battery_get_charge_full(battery, val);
++       case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
++               val->intval = E31X_BATTERY_CHARGE_DESIGN_FULL;
++               return 0;
++       case POWER_SUPPLY_PROP_TEMP_ALERT_MAX:
++               return e31x_battery_get_temp_alert_max(battery, val);
++       default:
++               break;
++       };
++
++       return 0;
++}
++
++static enum power_supply_property e31x_battery_props[] = {
++       POWER_SUPPLY_PROP_STATUS,
++       POWER_SUPPLY_PROP_HEALTH,
++       POWER_SUPPLY_PROP_ONLINE,
++       POWER_SUPPLY_PROP_TECHNOLOGY,
++       POWER_SUPPLY_PROP_TEMP,
++       POWER_SUPPLY_PROP_VOLTAGE_NOW,
++       POWER_SUPPLY_PROP_CHARGE_NOW,
++       POWER_SUPPLY_PROP_CHARGE_FULL,
++       POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
++       POWER_SUPPLY_PROP_TEMP_ALERT_MAX,
++};
++
++static int e31x_battery_prop_writeable(struct power_supply *psy,
++                                      enum power_supply_property psp)
++{
++       return psp == POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN ||
++              psp == POWER_SUPPLY_PROP_SCOPE;
++}
++
++static const struct power_supply_desc e31x_battery_desc = {
++       .name = "e31x-battery",
++       .type = POWER_SUPPLY_TYPE_BATTERY,
++       .properties = e31x_battery_props,
++       .num_properties = ARRAY_SIZE(e31x_battery_props),
++       .property_is_writeable = e31x_battery_prop_writeable,
++       .get_property = e31x_battery_get_prop,
++       .set_property = e31x_battery_set_prop,
++};
++
++static const struct of_device_id e31x_battery_id[] = {
++       { .compatible = "ni,e31x-battery" },
++       { },
++};
++
++static int e31x_battery_probe(struct platform_device *pdev)
++{
++       struct power_supply_config psy_cfg = {};
++       struct e31x_battery_dev *battery;
++
++       if (!of_device_is_available(pdev->dev.of_node))
++               return -ENODEV;
++
++       battery = devm_kzalloc(&pdev->dev, sizeof(*battery), GFP_KERNEL);
++       if (!battery)
++               return -ENOMEM;
++
++       battery->regmap = syscon_regmap_lookup_by_phandle(pdev->dev.parent->of_node, "regmap");
++
++       psy_cfg.of_node = pdev->dev.of_node;
++       psy_cfg.drv_data = battery;
++
++       battery->supply = devm_power_supply_register(&pdev->dev,
++                                                    &e31x_battery_desc,
++                                                    &psy_cfg);
++       if (IS_ERR(battery->supply))
++               return PTR_ERR(battery->supply);
++       return 0;
++}
++
++static struct platform_driver e31x_battery_driver = {
++       .driver = {
++               .name = "e31x-battery",
++               .of_match_table = e31x_battery_id,
++       },
++       .probe = e31x_battery_probe,
++};
++module_platform_driver(e31x_battery_driver);
++
++MODULE_AUTHOR("Virendra Kakade <virendra.kakade@ni.com>");
++MODULE_DESCRIPTION("E31x battery driver");
++MODULE_LICENSE("GPL");
+diff --git a/drivers/power/supply/e31x-charger.c b/drivers/power/supply/e31x-charger.c
+new file mode 100644
+index 0000000..72d696e
+--- /dev/null
++++ b/drivers/power/supply/e31x-charger.c
+@@ -0,0 +1,189 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (c) 2018 National Instruments Corp
++ * Author: Virendra Kakade <virendra.kakade@ni.com>
++ *
++ * Ettus Research E31x charger driver
++ */
++
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/of_device.h>
++#include <linux/platform_device.h>
++#include <linux/mfd/syscon.h>
++#include <linux/mutex.h>
++#include <linux/regmap.h>
++#include <linux/string.h>
++#include <linux/slab.h>
++#include <linux/power_supply.h>
++#include <linux/delay.h>
++#include <linux/mfd/e31x-pmu.h>
++
++#define E31X_PMU_CHARGER_HEALTH_MASK           GENMASK(1,0)
++#define E31X_PMU_CHARGER_HEALTH_SHIFT          0
++#define E31X_PMU_CHARGER_CHARGE_TYPE_MASK      GENMASK(4,3)
++#define E31X_PMU_CHARGER_CHARGE_TYPE_SHIFT     3
++
++struct e31x_charger_dev {
++       struct regmap *regmap;
++       struct power_supply *supply;
++};
++
++static int e31x_charger_get_health(struct e31x_charger_dev *charger,
++                                  union power_supply_propval *val)
++{
++       u32 value;
++       int err;
++
++       err = regmap_read(charger->regmap, E31X_PMU_REG_CHARGER, &value);
++       if (err)
++               return err;
++
++       value = E31X_PMU_GET_FIELD(CHARGER_HEALTH, value);
++       switch (value) {
++       case 0x0:
++               val->intval = POWER_SUPPLY_HEALTH_GOOD;
++               break;
++       case 0x1:
++               val->intval = POWER_SUPPLY_HEALTH_UNSPEC_FAILURE;
++               break;
++       case 0x2:
++               val->intval = POWER_SUPPLY_HEALTH_OVERVOLTAGE;
++               break;
++       case 0x3:
++               val->intval = POWER_SUPPLY_HEALTH_OVERHEAT;
++               break;
++       default:
++               val->intval = POWER_SUPPLY_HEALTH_UNKNOWN;
++               break;
++       };
++
++       return 0;
++}
++
++static int e31x_charger_get_type(struct e31x_charger_dev *charger,
++                                union power_supply_propval *val)
++{
++       u32 value;
++       int err;
++
++       err = regmap_read(charger->regmap, E31X_PMU_REG_CHARGER, &value);
++       if (err)
++               return err;
++
++       value = E31X_PMU_GET_FIELD(CHARGER_CHARGE_TYPE, value);
++       switch (value) {
++       case 0x0:
++               val->intval = POWER_SUPPLY_CHARGE_TYPE_NONE;
++               break;
++       case 0x1:
++               val->intval = POWER_SUPPLY_CHARGE_TYPE_TRICKLE;
++               break;
++       case 0x2:
++               val->intval = POWER_SUPPLY_CHARGE_TYPE_FAST;
++               break;
++       default:
++               val->intval = POWER_SUPPLY_CHARGE_TYPE_NONE;
++               break;
++       };
++       return 0;
++}
++
++static int e31x_charger_get_online(struct e31x_charger_dev *charger,
++                                  union power_supply_propval *val)
++{
++       u32 value;
++       int err;
++
++       err = regmap_read(charger->regmap, E31X_PMU_REG_CHARGER, &value);
++       if (err)
++               return err;
++
++       value = E31X_PMU_GET_FIELD(CHARGER_ONLINE, value);
++       val->intval = !!value;
++
++       return 0;
++}
++
++static int e31x_charger_get_property(struct power_supply *psy,
++                                    enum power_supply_property psp,
++                                    union power_supply_propval *val)
++{
++       struct e31x_charger_dev *charger = power_supply_get_drvdata(psy);
++       int err = -EINVAL;
++
++       switch (psp) {
++       case POWER_SUPPLY_PROP_HEALTH:
++               return e31x_charger_get_health(charger, val);
++       case POWER_SUPPLY_PROP_CHARGE_TYPE:
++               return e31x_charger_get_type(charger, val);
++       case POWER_SUPPLY_PROP_ONLINE:
++               return e31x_charger_get_online(charger, val);
++       case POWER_SUPPLY_PROP_SCOPE:
++               val->intval = POWER_SUPPLY_SCOPE_SYSTEM;
++               return 0;
++       default:
++               break;
++       }
++
++       return err;
++}
++
++static enum power_supply_property e31x_charger_properties[] = {
++       POWER_SUPPLY_PROP_HEALTH,
++       POWER_SUPPLY_PROP_CHARGE_TYPE,
++       POWER_SUPPLY_PROP_ONLINE,
++       POWER_SUPPLY_PROP_SCOPE,
++};
++
++static const struct power_supply_desc e31x_charger_desc = {
++       .name = "e31x-charger",
++       .type = POWER_SUPPLY_TYPE_MAINS,
++       .properties = e31x_charger_properties,
++       .num_properties = ARRAY_SIZE(e31x_charger_properties),
++       .get_property = e31x_charger_get_property,
++};
++
++static const struct of_device_id e31x_charger_id[] = {
++       { .compatible = "ni,e31x-charger" },
++       { },
++};
++
++static int e31x_charger_probe(struct platform_device *pdev)
++{
++       struct power_supply_config psy_cfg = {};
++       struct e31x_charger_dev *charger;
++
++       if (!of_device_is_available(pdev->dev.of_node))
++               return -ENODEV;
++
++       charger = devm_kzalloc(&pdev->dev, sizeof(*charger), GFP_KERNEL);
++       if (!charger)
++               return -ENOMEM;
++
++       charger->regmap = syscon_regmap_lookup_by_phandle(pdev->dev.parent->of_node, "regmap");
++
++       psy_cfg.of_node = pdev->dev.of_node;
++       psy_cfg.drv_data = charger;
++
++       charger->supply = devm_power_supply_register(&pdev->dev,
++                                                    &e31x_charger_desc,
++                                                    &psy_cfg);
++
++       if (IS_ERR(charger->supply))
++               return PTR_ERR(charger->supply);
++       return 0;
++}
++
++static struct platform_driver e31x_charger_driver = {
++       .driver = {
++               .name = "e31x-charger",
++               .of_match_table = e31x_charger_id,
++       },
++       .probe = e31x_charger_probe,
++};
++module_platform_driver(e31x_charger_driver);
++
++MODULE_AUTHOR("Virendra Kakade <virendra.kakade@ni.com>");
++MODULE_DESCRIPTION("E31x charger driver");
++MODULE_LICENSE("GPL");
+diff --git a/include/linux/mfd/e31x-pmu.h b/include/linux/mfd/e31x-pmu.h
+new file mode 100644
+index 0000000..640a219
+--- /dev/null
++++ b/include/linux/mfd/e31x-pmu.h
+@@ -0,0 +1,35 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (c) 2018 National Instruments Corp
++ * Author: Virendra Kakade <virendra.kakade@ni.com>
++ *
++ * Ettus Research E31x PMU constants
++ */
++
++#ifndef MFD_E31X_PMU_H
++#define MFD_E31X_PMU_H
++
++#include <linux/bitops.h>
++
++#define E31X_PMU_REG_MISC      0x04
++#define E31X_PMU_REG_BATTERY   0x08
++#define E31X_PMU_REG_CHARGER   0x0c
++#define E31X_PMU_REG_GAUGE     0x10
++#define E31X_PMU_REG_STATUS    0x14
++#define E31X_PMU_REG_LAST      0x18
++#define E31X_PMU_REG_EEPROM    0x1c
++
++#define E31X_PMU_GET_FIELD(name, reg) \
++       (((reg) & E31X_PMU_## name ##_MASK) >> \
++        E31X_PMU_## name ##_SHIFT)
++
++/* the eeprom register */
++static const u32 E31X_PMU_EEPROM_AUTOBOOT_MASK = BIT(0);
++static const u32 E31X_PMU_EEPROM_AUTOBOOT_SHIFT = 0;
++static const u32 E31X_PMU_EEPROM_DB_POWER_MASK = BIT(1);
++static const u32 E31X_PMU_EEPROM_DB_POWER_SHIFT = 1;
++
++#define E31X_PMU_CHARGER_ONLINE_MASK           BIT(2)
++#define E31X_PMU_CHARGER_ONLINE_SHIFT          2
++
++#endif /* MFD_E31X_PMU_H */
+-- 
+2.9.5
+
