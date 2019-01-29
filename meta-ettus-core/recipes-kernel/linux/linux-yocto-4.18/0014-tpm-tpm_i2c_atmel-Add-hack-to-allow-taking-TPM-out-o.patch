@@ -1,0 +1,46 @@
+From 1fb029ca7d1f3ef924485c18738887d6b8f136fd Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Tue, 17 Oct 2017 10:08:03 -0700
+Subject: [PATCH 14/17] tpm: tpm_i2c_atmel: Add hack to allow taking TPM out of
+ reset
+
+This takes the TPM out of reset.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ drivers/char/tpm/tpm_i2c_atmel.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/drivers/char/tpm/tpm_i2c_atmel.c b/drivers/char/tpm/tpm_i2c_atmel.c
+index 95ce2e9ccdc6..0405221fcff3 100644
+--- a/drivers/char/tpm/tpm_i2c_atmel.c
++++ b/drivers/char/tpm/tpm_i2c_atmel.c
+@@ -28,6 +28,7 @@
+  * along with this program.  If not, see http://www.gnu.org/licenses/>.
+  */
+ #include <linux/init.h>
++#include <linux/gpio/consumer.h>
+ #include <linux/module.h>
+ #include <linux/moduleparam.h>
+ #include <linux/slab.h>
+@@ -156,8 +157,17 @@ static int i2c_atmel_probe(struct i2c_client *client,
+ {
+ 	struct tpm_chip *chip;
+ 	struct device *dev = &client->dev;
++	struct gpio_desc *gpio;
+ 	struct priv_data *priv;
+ 
++	/* Get the tpm out of reset if a reset GPIO is specified. */
++	gpio = devm_gpiod_get_optional(&client->dev, "reset", GPIOD_OUT_LOW);
++	if (IS_ERR(gpio))
++		return PTR_ERR(gpio);
++
++	if (gpio)
++		usleep_range(90000, 100000);
++
+ 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C))
+ 		return -ENODEV;
+ 
+-- 
+2.20.1
+

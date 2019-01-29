@@ -1,0 +1,31 @@
+From d0152a6c751a3479da0ed5558e45404adff21be4 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Tue, 21 Aug 2018 17:55:08 +0000
+Subject: [PATCH 08/17] net: phy: Make genphy actually use genphy_soft_reset
+
+Make genphy actually use genphy_soft_reset to clear the
+BMCR_PDOWN flag as required by PHY to come out of power
+down state.
+
+Signed-off-by: Sugandha Gupta <sugandha.gupta@ettus.com>
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ drivers/net/phy/phy_device.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/net/phy/phy_device.c b/drivers/net/phy/phy_device.c
+index b9f5f40a7ac1..c2665a5a2d13 100644
+--- a/drivers/net/phy/phy_device.c
++++ b/drivers/net/phy/phy_device.c
+@@ -1966,7 +1966,7 @@ static struct phy_driver genphy_driver = {
+ 	.phy_id		= 0xffffffff,
+ 	.phy_id_mask	= 0xffffffff,
+ 	.name		= "Generic PHY",
+-	.soft_reset	= genphy_no_soft_reset,
++	.soft_reset	= genphy_soft_reset,
+ 	.config_init	= genphy_config_init,
+ 	.features	= PHY_GBIT_FEATURES | SUPPORTED_MII |
+ 			  SUPPORTED_AUI | SUPPORTED_FIBRE |
+-- 
+2.20.1
+

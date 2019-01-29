@@ -1,0 +1,154 @@
+From 85b6bdb4ff31c8a56daf8de41b595fcd2662a8d3 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <mdf@kernel.org>
+Date: Mon, 8 May 2017 12:32:03 -0700
+Subject: [PATCH 15/17] mfd: cros-ec: Add cros_ec_readmem() helpers for I2C/SPI
+ based ECs
+
+Add cros_ec_readmem() based helpers for I2C/SPI based ECs.
+Unlike the LPC based ECs the I2C/SPI based ones cannot just directly
+read the mapped region.
+
+Signed-off-by: Moritz Fischer <mdf@kernel.org>
+---
+ drivers/mfd/cros_ec.c     | 39 +++++++++++++++++++++++++++++++++++++++
+ drivers/mfd/cros_ec.h     | 29 +++++++++++++++++++++++++++++
+ drivers/mfd/cros_ec_i2c.c |  3 +++
+ drivers/mfd/cros_ec_spi.c |  2 ++
+ 4 files changed, 73 insertions(+)
+ create mode 100644 drivers/mfd/cros_ec.h
+
+diff --git a/drivers/mfd/cros_ec.c b/drivers/mfd/cros_ec.c
+index 65a9757a6d21..fb6e1e464f40 100644
+--- a/drivers/mfd/cros_ec.c
++++ b/drivers/mfd/cros_ec.c
+@@ -2,6 +2,7 @@
+  * ChromeOS EC multi-function device
+  *
+  * Copyright (C) 2012 Google, Inc
++ * Copyright (C) 2017 National Instruments Corp
+  *
+  * This software is licensed under the terms of the GNU General Public
+  * License version 2, as published by the Free Software Foundation, and
+@@ -257,5 +258,43 @@ EXPORT_SYMBOL(cros_ec_resume);
+ 
+ #endif
+ 
++int cros_ec_readmem(struct cros_ec_device *ec, unsigned int offset,
++			   unsigned int bytes, void *dest)
++{
++	int ret;
++	struct ec_params_read_memmap *params;
++	struct cros_ec_command *msg;
++
++	if (offset >= EC_MEMMAP_SIZE - bytes)
++		return -EINVAL;
++
++	msg = kzalloc(sizeof(*msg) + max(sizeof(*params), bytes), GFP_KERNEL);
++	if (!msg)
++		return -ENOMEM;
++
++	msg->version = 0;
++	msg->command = EC_CMD_READ_MEMMAP;
++	msg->insize = bytes;
++	msg->outsize = sizeof(*params);
++
++	params = (struct ec_params_read_memmap *)msg->data;
++	params->offset = offset;
++	params->size = bytes;
++
++	ret = cros_ec_cmd_xfer_status(ec, msg);
++	if (ret < 0) {
++		dev_warn(ec->dev, "cannot read mapped reg: %d/%d\n",
++			 ret, msg->result);
++		goto out_free;
++	}
++
++	memcpy(dest, msg->data, bytes);
++
++out_free:
++	kfree(msg);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(cros_ec_readmem);
++
+ MODULE_LICENSE("GPL");
+ MODULE_DESCRIPTION("ChromeOS EC core driver");
+diff --git a/drivers/mfd/cros_ec.h b/drivers/mfd/cros_ec.h
+new file mode 100644
+index 000000000000..09e83e64c499
+--- /dev/null
++++ b/drivers/mfd/cros_ec.h
+@@ -0,0 +1,29 @@
++/*
++ * Copyright (C) 2017 National Instruments Corp
++ *
++ * This software is licensed under the terms of the GNU General Public
++ * License version 2, as published by the Free Software Foundation, and
++ * may be copied, distributed, and modified under those terms.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#ifndef MFD_CROS_EC_H
++#define MFD_CROS_EC_H
++
++/**
++ * cros_ec_readmem - Read mapped memory in the ChromeOS EC
++ *
++ * @ec: Device to read from
++ * @offset: Offset to read within the mapped region
++ * @bytes: number of bytes to read
++ * @data: Return data
++ * @return: 0 if Ok, -ve on error
++ */
++int cros_ec_readmem(struct cros_ec_device *ec, unsigned int offset,
++		    unsigned int bytes, void *dest);
++
++#endif /* MFD_CROS_EC_H */
+diff --git a/drivers/mfd/cros_ec_i2c.c b/drivers/mfd/cros_ec_i2c.c
+index ef9b4763356f..9c8e8a002d07 100644
+--- a/drivers/mfd/cros_ec_i2c.c
++++ b/drivers/mfd/cros_ec_i2c.c
+@@ -24,6 +24,8 @@
+ #include <linux/platform_device.h>
+ #include <linux/slab.h>
+ 
++#include "cros_ec.h"
++
+ /**
+  * Request format for protocol v3
+  * byte 0	0xda (EC_COMMAND_PROTOCOL_3)
+@@ -303,6 +305,7 @@ static int cros_ec_i2c_probe(struct i2c_client *client,
+ 	ec_dev->irq = client->irq;
+ 	ec_dev->cmd_xfer = cros_ec_cmd_xfer_i2c;
+ 	ec_dev->pkt_xfer = cros_ec_pkt_xfer_i2c;
++	ec_dev->cmd_readmem = cros_ec_readmem;
+ 	ec_dev->phys_name = client->adapter->name;
+ 	ec_dev->din_size = sizeof(struct ec_host_response_i2c) +
+ 			   sizeof(struct ec_response_get_protocol_info);
+diff --git a/drivers/mfd/cros_ec_spi.c b/drivers/mfd/cros_ec_spi.c
+index 2060d1483043..4b7d7674bf49 100644
+--- a/drivers/mfd/cros_ec_spi.c
++++ b/drivers/mfd/cros_ec_spi.c
+@@ -23,6 +23,7 @@
+ #include <linux/slab.h>
+ #include <linux/spi/spi.h>
+ 
++#include "cros_ec.h"
+ 
+ /* The header byte, which follows the preamble */
+ #define EC_MSG_HEADER			0xec
+@@ -666,6 +667,7 @@ static int cros_ec_spi_probe(struct spi_device *spi)
+ 	ec_dev->irq = spi->irq;
+ 	ec_dev->cmd_xfer = cros_ec_cmd_xfer_spi;
+ 	ec_dev->pkt_xfer = cros_ec_pkt_xfer_spi;
++	ec_dev->cmd_readmem = cros_ec_readmem;
+ 	ec_dev->phys_name = dev_name(&ec_spi->spi->dev);
+ 	ec_dev->din_size = EC_MSG_PREAMBLE_COUNT +
+ 			   sizeof(struct ec_host_response) +
+-- 
+2.20.1
+

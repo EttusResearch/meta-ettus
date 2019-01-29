@@ -1,0 +1,33 @@
+From 661c183b7fb39ffd8eea2a60b21335037b8a9aec Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <mdf@kernel.org>
+Date: Tue, 24 Apr 2018 16:25:20 -0700
+Subject: [PATCH 03/17] net: nixge: Work around broken PHY autoneg
+
+The Xilinx 10G PCS/PMA cannot do autonegotiation,
+mask it out for now. This is not the correct solution.
+
+We'll need a phy driver for this.
+
+Signed-off-by: Moritz Fischer <mdf@kernel.org>
+---
+ drivers/net/ethernet/ni/nixge.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
+index 09f674ec0f9e..d32eb9eace01 100644
+--- a/drivers/net/ethernet/ni/nixge.c
++++ b/drivers/net/ethernet/ni/nixge.c
+@@ -821,6 +821,10 @@ static int nixge_open(struct net_device *ndev)
+ 	if (!phy)
+ 		return -ENODEV;
+ 
++	ndev->phydev->supported &= ~(SUPPORTED_Autoneg);
++	ndev->phydev->advertising = ndev->phydev->supported;
++	ndev->phydev->autoneg = AUTONEG_DISABLE;
++
+ 	phy_start(phy);
+ 
+ 	/* Enable tasklets for Axi DMA error handling */
+-- 
+2.20.1
+

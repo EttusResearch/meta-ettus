@@ -1,0 +1,43 @@
+From 0aa9a86732c2448654bc0d8e4c075cc36a646678 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Tue, 1 Aug 2017 12:00:41 -0700
+Subject: [PATCH 11/17] media: Increase VIDEO_MAX_FRAMES and VB2_MAX_FRAMES to
+ 128
+
+Upstream-Status: Inappropriate, since affects all v4l2 devices.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ include/media/videobuf2-core.h | 2 +-
+ include/uapi/linux/videodev2.h | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/include/media/videobuf2-core.h b/include/media/videobuf2-core.h
+index f6818f732f34..5ad37d94e29c 100644
+--- a/include/media/videobuf2-core.h
++++ b/include/media/videobuf2-core.h
+@@ -18,7 +18,7 @@
+ #include <linux/dma-buf.h>
+ #include <linux/bitops.h>
+ 
+-#define VB2_MAX_FRAME	(32)
++#define VB2_MAX_FRAME	(128)
+ #define VB2_MAX_PLANES	(8)
+ 
+ /**
+diff --git a/include/uapi/linux/videodev2.h b/include/uapi/linux/videodev2.h
+index 082dc1439a50..d3e037afcebe 100644
+--- a/include/uapi/linux/videodev2.h
++++ b/include/uapi/linux/videodev2.h
+@@ -70,7 +70,7 @@
+  * Common stuff for both V4L1 and V4L2
+  * Moved from videodev.h
+  */
+-#define VIDEO_MAX_FRAME               32
++#define VIDEO_MAX_FRAME              128
+ #define VIDEO_MAX_PLANES               8
+ 
+ /*
+-- 
+2.20.1
+

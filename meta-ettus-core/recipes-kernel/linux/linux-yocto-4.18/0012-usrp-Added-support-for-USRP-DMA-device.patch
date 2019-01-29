@@ -1,0 +1,1233 @@
+From 6c324e2892ad8471b471ac0dd1620fb689bf0585 Mon Sep 17 00:00:00 2001
+From: Alex Williams <alex.williams@ni.com>
+Date: Wed, 24 May 2017 14:48:34 -0700
+Subject: [PATCH 12/17] usrp: Added support for USRP DMA device.
+
+Signed-off-by: Alex Williams <alex.williams@ni.com>
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ drivers/Kconfig               |   2 +
+ drivers/Makefile              |   1 +
+ drivers/usrp/Kconfig          |  32 +++
+ drivers/usrp/Makefile         |   9 +
+ drivers/usrp/usrp-dma-core.c  | 512 ++++++++++++++++++++++++++++++++++
+ drivers/usrp/usrp-dmaengine.c | 393 ++++++++++++++++++++++++++
+ include/linux/usrp/usrp-dma.h |  59 ++++
+ include/uapi/linux/usrp.h     | 140 ++++++++++
+ 8 files changed, 1148 insertions(+)
+ create mode 100644 drivers/usrp/Kconfig
+ create mode 100644 drivers/usrp/Makefile
+ create mode 100644 drivers/usrp/usrp-dma-core.c
+ create mode 100644 drivers/usrp/usrp-dmaengine.c
+ create mode 100644 include/linux/usrp/usrp-dma.h
+ create mode 100644 include/uapi/linux/usrp.h
+
+diff --git a/drivers/Kconfig b/drivers/Kconfig
+index fed5cca14ff9..7901e11d82f7 100644
+--- a/drivers/Kconfig
++++ b/drivers/Kconfig
+@@ -209,6 +209,8 @@ source "drivers/rfnoc/Kconfig"
+ 
+ source "drivers/tee/Kconfig"
+ 
++source "drivers/usrp/Kconfig"
++
+ source "drivers/mux/Kconfig"
+ 
+ source "drivers/opp/Kconfig"
+diff --git a/drivers/Makefile b/drivers/Makefile
+index b35998806dbd..1a8f8b9c88ef 100644
+--- a/drivers/Makefile
++++ b/drivers/Makefile
+@@ -183,6 +183,7 @@ obj-$(CONFIG_FPGA)		+= fpga/
+ obj-$(CONFIG_FSI)		+= fsi/
+ obj-$(CONFIG_RFNOC)		+= rfnoc/
+ obj-$(CONFIG_TEE)		+= tee/
++obj-$(CONFIG_USRP)              += usrp/
+ obj-$(CONFIG_MULTIPLEXER)	+= mux/
+ obj-$(CONFIG_UNISYS_VISORBUS)	+= visorbus/
+ obj-$(CONFIG_SIOX)		+= siox/
+diff --git a/drivers/usrp/Kconfig b/drivers/usrp/Kconfig
+new file mode 100644
+index 000000000000..f875fb93432a
+--- /dev/null
++++ b/drivers/usrp/Kconfig
+@@ -0,0 +1,32 @@
++#
++# USRP Framework configuration
++#
++
++menu "USRP Support"
++
++config USRP
++       bool "USRP Framework"
++       help
++         Say Y here if you want support for the National Instruments
++         USRP Framework.
++
++if USRP
++
++config USRP_QUEUE
++       tristate "USRP DMA Queue"
++       depends on ARCH_ZYNQ && HAS_DMA
++       select MEDIA_SUPPORT
++       select VIDEOBUF2_DMA_SG
++       select VIDEOBUF2_DMA_CONTIG
++       help
++         USRP queue support
++
++config USRP_QUEUE_TEST
++       tristate "USRP DMA Queue Test"
++       depends on ARCH_ZYNQ && USRP_QUEUE
++       help
++         USRP queue test creates /dev/tx-dma and /dev/rx-dma
++
++endif # USRP
++
++endmenu
+diff --git a/drivers/usrp/Makefile b/drivers/usrp/Makefile
+new file mode 100644
+index 000000000000..4ef4347defdb
+--- /dev/null
++++ b/drivers/usrp/Makefile
+@@ -0,0 +1,9 @@
++#
++# Makefile for the USRP Framework
++#
++
++# Core USRP Framework
++obj-$(CONFIG_USRP_QUEUE)               += usrp.o
++
++usrp-objs := usrp-dmaengine.o usrp-dma-core.o
++
+diff --git a/drivers/usrp/usrp-dma-core.c b/drivers/usrp/usrp-dma-core.c
+new file mode 100644
+index 000000000000..436bff993c83
+--- /dev/null
++++ b/drivers/usrp/usrp-dma-core.c
+@@ -0,0 +1,512 @@
++/*
++ * Copyright (C) 2017 National Instruments Corp
++ *
++ * SPDX-License-Identifier: GPL-2.0
++ */
++
++#include <linux/lcm.h>
++#include <linux/list.h>
++#include <linux/module.h>
++#include <linux/slab.h>
++#include <linux/mutex.h>
++#include <linux/spinlock.h>
++#include <linux/miscdevice.h>
++
++#include <linux/usrp.h>
++#include <linux/usrp/usrp-dma.h>
++
++#include <media/videobuf2-dma-contig.h>
++#include <media/videobuf2-dma-sg.h>
++
++#define USRP_DMA_API_MAJOR 1
++#define USRP_DMA_API_MINOR 0
++
++static DEFINE_IDA(usrp_dma_tx_ida);
++static DEFINE_IDA(usrp_dma_rx_ida);
++
++static inline struct usrp_dma *to_usrp_dma(struct file *file)
++{
++	return container_of(file->private_data, struct usrp_dma, mdev);
++}
++
++static int usrp_dma_core_fop_open(struct inode *inode, struct file *file)
++{
++	return 0;
++}
++
++void *usrp_dma_get_drvdata(struct usrp_dma *dma)
++{
++	return dma->priv;
++}
++
++void usrp_dma_set_drvdata(struct usrp_dma *dma, void *drvdata)
++{
++	dma->priv = drvdata;
++}
++
++static ssize_t port_show(struct device *dev, struct device_attribute *attr,
++			 char *buf)
++{
++	struct usrp_dma *dma;
++	dma = dev_get_drvdata(dev);
++	return sprintf(buf, "%d\n", dma->port);
++};
++static DEVICE_ATTR_RO(port);
++
++static ssize_t api_maj_show(struct device *dev, struct device_attribute *attr,
++			    char *buf)
++{
++	struct usrp_dma *dma;
++	dma = dev_get_drvdata(dev);
++	return sprintf(buf, "%u\n", USRP_DMA_API_MAJOR);
++};
++static DEVICE_ATTR_RO(api_maj);
++
++static ssize_t api_min_show(struct device *dev, struct device_attribute *attr,
++			    char *buf)
++{
++	struct usrp_dma *dma;
++	dma = dev_get_drvdata(dev);
++	return sprintf(buf, "%u\n", USRP_DMA_API_MINOR);
++};
++static DEVICE_ATTR_RO(api_min);
++
++
++static struct attribute *sysfs_entries[] = {
++	&dev_attr_port.attr,
++	&dev_attr_api_maj.attr,
++	&dev_attr_api_min.attr,
++	NULL
++};
++
++static struct attribute_group usrp_dma_attr_group = {
++	.name = NULL,
++	.attrs = sysfs_entries,
++};
++
++static const struct attribute_group *usrp_dma_attr_groups[] = {
++	&usrp_dma_attr_group,
++	NULL
++};
++
++static int usrp_dma_core_fop_release(struct inode *inode, struct file *file)
++{
++	struct usrp_dma *dma = to_usrp_dma(file);
++	struct vb2_queue *q = &dma->queue;
++
++	if (q->lock)
++		mutex_lock(q->lock);
++	if (file->private_data == q->owner) {
++		vb2_queue_release(q);
++		q->owner = NULL;
++	}
++	if (q->lock)
++		mutex_unlock(q->lock);
++
++	return 0;
++}
++
++int usrp_dma_ioc_expbuf(struct vb2_queue *q,
++			struct usrp_exportbuffer __user * arg)
++{
++	int err;
++	struct usrp_exportbuffer req;
++
++	if (copy_from_user(&req, (void __user *)arg, sizeof(req)))
++		return -EFAULT;
++
++	err = vb2_core_expbuf(q, &req.fd, req.type, req.index, req.plane,
++			      req.flags);
++
++	if (copy_to_user((void __user *)arg, &req, sizeof(req)))
++		return -EFAULT;
++
++	return err;
++}
++
++int usrp_dma_ioc_reqbufs(struct vb2_queue *q,
++			 struct usrp_requestbuffers __user * arg)
++{
++	int err;
++	struct usrp_requestbuffers req;
++
++	if (copy_from_user(&req, (void __user *)arg, sizeof(req)))
++		return -EFAULT;
++
++	err = vb2_core_reqbufs(q, req.memory, &req.count);
++
++	if (copy_to_user((void __user *)arg, &req, sizeof(req)))
++		return -EFAULT;
++
++	return err;
++}
++
++int usrp_dma_ioc_querybuf(struct vb2_queue *q, struct usrp_buffer __user * arg)
++{
++	struct usrp_buffer req;
++
++	if (copy_from_user(&req, (void __user *)arg, sizeof(req)))
++		return -EFAULT;
++
++	vb2_core_querybuf(q, req.index, &req);
++
++	if (copy_to_user((void __user *)arg, &req, sizeof(req)))
++		return -EFAULT;
++
++	return 0;
++}
++
++int usrp_dma_ioc_streamon(struct vb2_queue *q, enum usrp_buf_type type)
++{
++	return vb2_core_streamon(q, type);
++}
++
++int usrp_dma_ioc_streamoff(struct vb2_queue *q, enum usrp_buf_type type)
++{
++	return vb2_core_streamoff(q, type);
++}
++
++int usrp_dma_ioc_qbuf(struct vb2_queue *q, struct usrp_buffer __user * arg)
++{
++	int err;
++	struct usrp_buffer req;
++
++	if (copy_from_user(&req, (void __user *)arg, sizeof(req)))
++		return -EFAULT;
++
++	err = vb2_core_qbuf(q, req.index, &req);
++
++	if (copy_to_user((void __user *)arg, &req, sizeof(req)))
++		return -EFAULT;
++
++	return err;
++}
++
++int usrp_dma_ioc_dqbuf(struct vb2_queue *q, struct usrp_buffer __user * arg)
++{
++	int err;
++	struct usrp_buffer req;
++
++	if (copy_from_user(&req, (void __user *)arg, sizeof(req)))
++		return -EFAULT;
++
++	err = vb2_core_dqbuf(q, &req.index, &req, false);
++
++	if (copy_to_user((void __user *)arg, &req, sizeof(req)))
++		return -EFAULT;
++
++	return err;
++}
++
++int usrp_dma_ioc_set_fmt(struct usrp_dma *dma, struct usrp_fmt __user *arg)
++{
++	struct usrp_fmt req;
++
++	if (copy_from_user(&req, (void __user *)arg, sizeof(req)))
++		return -EFAULT;
++
++	if (dma->ops && dma->ops->set_fmt)
++		return dma->ops->set_fmt(dma, &req);
++
++	return -ENOTTY;
++}
++
++static long usrp_dma_core_fop_ioctl(struct file *file, unsigned int cmd,
++				    unsigned long arg)
++{
++	struct usrp_dma *dma = to_usrp_dma(file);
++
++	switch (cmd) {
++	case USRPIOC_EXPBUF:
++		return usrp_dma_ioc_expbuf(&dma->queue,
++					   (struct usrp_exportbuffer
++					    __user *)arg);
++	case USRPIOC_REQBUFS:
++		return usrp_dma_ioc_reqbufs(&dma->queue,
++					    (struct usrp_requestbuffers __user
++					     *)arg);
++
++	case USRPIOC_QUERYBUF:
++		return usrp_dma_ioc_querybuf(&dma->queue,
++					     (struct usrp_buffer __user *)arg);
++
++	case USRPIOC_QBUF:
++		return usrp_dma_ioc_qbuf(&dma->queue,
++					 (struct usrp_buffer __user *)arg);
++
++	case USRPIOC_DQBUF:
++		return usrp_dma_ioc_dqbuf(&dma->queue,
++					  (struct usrp_buffer __user *)arg);
++
++	case USRPIOC_STREAMON: {
++		enum usrp_buf_type type = (int)arg;
++
++		return usrp_dma_ioc_streamon(&dma->queue, type);
++	}
++
++	case USRPIOC_STREAMOFF: {
++		enum usrp_buf_type type = (int)arg;
++
++		return usrp_dma_ioc_streamoff(&dma->queue, type);
++	}
++
++	case USRPIOC_SET_FMT:
++		return usrp_dma_ioc_set_fmt(dma, (struct usrp_fmt __user *)arg);
++	default:
++		return -ENOTTY;
++	}
++
++	return 0;
++}
++
++static int usrp_dma_core_fop_mmap(struct file *file, struct vm_area_struct *vma)
++{
++	struct usrp_dma *dma = to_usrp_dma(file);
++
++	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
++
++	return vb2_mmap(&dma->queue, vma);
++}
++
++static unsigned int usrp_dma_core_fop_poll(struct file *file, poll_table * wait)
++{
++	struct usrp_dma *dma = to_usrp_dma(file);
++	struct vb2_queue *q = &dma->queue;
++
++	return vb2_core_poll(q, file, wait);
++}
++
++static ssize_t usrp_dma_core_fop_read(struct file *file, char *buf,
++				      size_t count, loff_t * ppos)
++{
++	struct usrp_dma *dma = to_usrp_dma(file);
++	struct vb2_queue *q = &dma->queue;
++	int err = -EBUSY;
++
++	if (!(q->io_modes & VB2_READ))
++		return -EINVAL;
++	if (q->lock && mutex_lock_interruptible(q->lock))
++		return -ERESTARTSYS;
++	if (q->owner && q->owner != file->private_data)
++		goto exit;
++	err = vb2_read(q, buf, count, ppos, file->f_flags & O_NONBLOCK);
++	if (q->fileio)
++		q->owner = file->private_data;
++ exit:
++	if (q->lock)
++		mutex_unlock(q->lock);
++	return err;
++}
++
++static ssize_t usrp_dma_core_fop_write(struct file *file, const char *buf,
++				       size_t count, loff_t * ppos)
++{
++	struct usrp_dma *dma = to_usrp_dma(file);
++	struct vb2_queue *q = &dma->queue;
++	int err = -EBUSY;
++
++	if (!(q->io_modes & VB2_WRITE))
++		return -EINVAL;
++	if (q->lock && mutex_lock_interruptible(q->lock))
++		return -ERESTARTSYS;
++	if (q->owner && q->owner != file->private_data)
++		goto exit;
++	err = vb2_write(q, buf, count, ppos, file->f_flags & O_NONBLOCK);
++	if (q->fileio)
++		q->owner = file->private_data;
++ exit:
++	if (q->lock)
++		mutex_unlock(q->lock);
++	return err;
++}
++
++const struct file_operations usrp_dma_core_fops = {
++	.owner = THIS_MODULE,
++	.open = usrp_dma_core_fop_open,
++	.poll = usrp_dma_core_fop_poll,
++	.mmap = usrp_dma_core_fop_mmap,
++	.release = usrp_dma_core_fop_release,
++	.unlocked_ioctl = usrp_dma_core_fop_ioctl,
++	.read = usrp_dma_core_fop_read,
++	.write = usrp_dma_core_fop_write,
++};
++
++EXPORT_SYMBOL_GPL(usrp_dma_core_fops);
++
++static void usrp_dma_core_fill_user_buffer(struct vb2_buffer *vb, void *pb)
++{
++	struct usrp_buffer *b = pb;
++	struct vb2_queue *q = vb->vb2_queue;
++
++	b->index = vb->index;
++	b->type = vb->type;
++	b->memory = vb->memory;
++	b->bytesused = 0;
++
++	/*b->timestamp = ns_to_timeval(vb->timestamp); */
++	b->reserved2 = 0;
++	b->reserved = 0;
++
++	/*
++	 * We use length and offset in usrp_planes array even for
++	 * single-planar buffers, but userspace does not.
++	 */
++	b->length = vb->planes[0].length;
++	b->bytesused = vb->planes[0].bytesused;
++	if (q->memory == VB2_MEMORY_MMAP)
++		b->m.offset = vb->planes[0].m.offset;
++	else if (q->memory == VB2_MEMORY_USERPTR)
++		b->m.userptr = vb->planes[0].m.userptr;
++	else if (q->memory == VB2_MEMORY_DMABUF)
++		b->m.fd = vb->planes[0].m.fd;
++
++	switch (vb->state) {
++	case VB2_BUF_STATE_QUEUED:
++	case VB2_BUF_STATE_ACTIVE:
++		b->flags |= USRP_BUF_FLAG_QUEUED;
++		break;
++	case VB2_BUF_STATE_ERROR:
++		b->flags |= USRP_BUF_FLAG_ERROR;
++		/* fall through */
++	case VB2_BUF_STATE_DONE:
++		b->flags |= USRP_BUF_FLAG_DONE;
++		break;
++	case VB2_BUF_STATE_PREPARED:
++		b->flags |= USRP_BUF_FLAG_PREPARED;
++		break;
++	case VB2_BUF_STATE_PREPARING:
++	case VB2_BUF_STATE_DEQUEUED:
++	case VB2_BUF_STATE_REQUEUEING:
++		/* nothing */
++		break;
++	}
++
++	if (vb2_buffer_in_use(q, vb))
++		b->flags |= USRP_BUF_FLAG_MAPPED;
++
++	if (!q->is_output &&
++	    b->flags & USRP_BUF_FLAG_DONE && b->flags & USRP_BUF_FLAG_LAST)
++		q->last_buffer_dequeued = true;
++}
++
++static int __verify_length(struct vb2_buffer *vb, const struct usrp_buffer *b)
++{
++	unsigned int length;
++
++	if (!USRP_TYPE_IS_OUTPUT(b->type))
++		return 0;
++
++	length = (b->memory == VB2_MEMORY_USERPTR)
++	    ? b->length : vb->planes[0].length;
++
++	if (b->bytesused > length)
++		return -EINVAL;
++
++	return 0;
++}
++
++static int usrp_dma_core_fill_vb2_buffer(struct vb2_buffer *vb, const void *pb,
++					 struct vb2_plane *planes)
++{
++	const struct usrp_buffer *b = pb;
++	int ret;
++
++	ret = __verify_length(vb, b);
++	if (ret < 0) {
++		pr_err("%s: plane parameters verification failed: %d\n",
++		       __func__, ret);
++		return ret;
++	}
++
++	if (b->memory == VB2_MEMORY_USERPTR) {
++		planes[0].m.userptr = b->m.userptr;
++		planes[0].length = b->length;
++	}
++
++	if (b->memory == VB2_MEMORY_DMABUF) {
++		planes[0].m.fd = b->m.fd;
++		planes[0].length = b->length;
++	}
++
++	if (USRP_TYPE_IS_OUTPUT(b->type)) {
++		if (b->bytesused == 0)
++			WARN_ON(1);
++
++		if (vb->vb2_queue->allow_zero_bytesused)
++			planes[0].bytesused = b->bytesused;
++		else
++			planes[0].bytesused = b->bytesused ?
++			    b->bytesused : planes[0].length;
++	} else
++		planes[0].bytesused = 0;
++
++	return 0;
++}
++
++static void usrp_dma_core_copy_timestamp(struct vb2_buffer *vb, const void *pb)
++{
++}
++
++const struct vb2_buf_ops usrp_dma_core_buf_ops = {
++	.fill_user_buffer = usrp_dma_core_fill_user_buffer,
++	.fill_vb2_buffer = usrp_dma_core_fill_vb2_buffer,
++	.copy_timestamp = usrp_dma_core_copy_timestamp,
++};
++
++int usrp_dma_register(struct usrp_dma *dma)
++{
++	int err;
++	struct device *dev = dma->queue.dev;
++
++	/* get a unique id for this one */
++	if (USRP_TYPE_IS_OUTPUT(dma->queue.type)) {
++		dma->id = ida_simple_get(&usrp_dma_tx_ida, 0, 0, GFP_KERNEL);
++		snprintf(dma->name, USRP_DMA_MAX_NAME, "tx-dma%d", dma->id);
++	} else {
++		dma->id = ida_simple_get(&usrp_dma_rx_ida, 0, 0, GFP_KERNEL);
++		snprintf(dma->name, USRP_DMA_MAX_NAME, "rx-dma%d", dma->id);
++	}
++
++	if (dma->id < 0) {
++		dev_err(dev, "failed to get unique id");
++		return dma->id;
++	}
++
++	dma->mdev.name = dma->name;
++	dma->mdev.fops = &usrp_dma_core_fops;
++	dma->mdev.minor = MISC_DYNAMIC_MINOR;
++	dma->mdev.groups = usrp_dma_attr_groups;
++
++	err = misc_register(&dma->mdev);
++	if (err) {
++		dev_err(dev, "failed to register misc device %s",
++			dma->mdev.name);
++		return err;
++	}
++
++	dev_set_drvdata(dma->mdev.this_device, dma);
++
++	pr_info("usrp-dma-core: Registered %s\n", dma->name);
++
++	return 0;
++}
++
++EXPORT_SYMBOL_GPL(usrp_dma_register);
++
++void usrp_dma_deregister(struct usrp_dma *dma)
++{
++	misc_deregister(&dma->mdev);
++	if (USRP_TYPE_IS_OUTPUT(dma->queue.type)) {
++		ida_simple_remove(&usrp_dma_tx_ida, dma->id);
++	} else {
++		ida_simple_remove(&usrp_dma_rx_ida, dma->id);
++	}
++
++	pr_info("usrp-dma-core: Deregistered %s\n", dma->name);
++}
++
++EXPORT_SYMBOL_GPL(usrp_dma_deregister);
++
++MODULE_AUTHOR("Moritz Fischer <moritz.fischer@ettus.com>");
++MODULE_DESCRIPTION("USRP DMA Queue Core Functionality");
++MODULE_LICENSE("GPL v2");
+diff --git a/drivers/usrp/usrp-dmaengine.c b/drivers/usrp/usrp-dmaengine.c
+new file mode 100644
+index 000000000000..d20cb7f383d5
+--- /dev/null
++++ b/drivers/usrp/usrp-dmaengine.c
+@@ -0,0 +1,393 @@
++/*
++ * Copyright (C) 2017 National Instruments Corp
++ *
++ * SPDX-License-Identifier: GPL-2.0
++ */
++
++#include <linux/lcm.h>
++#include <linux/list.h>
++#include <linux/module.h>
++#include <linux/slab.h>
++#include <linux/dmaengine.h>
++#include <linux/mutex.h>
++#include <linux/spinlock.h>
++#include <linux/miscdevice.h>
++#include <linux/mfd/syscon.h>
++#include <linux/regmap.h>
++#include <linux/of.h>
++#include <linux/of_device.h>
++
++#include <media/videobuf2-dma-contig.h>
++#include <media/videobuf2-dma-sg.h>
++
++#include <linux/usrp.h>
++#include <linux/usrp/usrp-dma.h>
++
++extern const struct vb2_buf_ops usrp_dma_core_buf_ops;
++
++#define USRP_DMA_BUF_SZ (2*PAGE_SIZE)
++
++struct usrp_dmaengine_fmt {
++	u32 type;
++	u32 length;
++};
++
++struct usrp_dmaengine_priv {
++	struct usrp_dma dma;
++
++	enum dma_transfer_direction dir;
++
++	struct dma_chan *chan;
++
++	struct list_head queued_bufs;
++	spinlock_t queued_lock;
++
++	struct mutex lock;
++	u32 port;
++
++	struct regmap *regmap;
++	u32 offset;
++
++	struct usrp_dmaengine_fmt fmt;
++};
++
++static inline struct usrp_dmaengine_priv *to_usrp_dmaengine(const struct
++							    usrp_dma *d)
++{
++	return container_of(d, struct usrp_dmaengine_priv, dma);
++}
++
++static void usrp_dmaengine_buffer_complete_cb(void *param)
++{
++	struct usrp_dma_buffer *buf = param;
++	struct usrp_dma *dma = buf->dma;
++	struct usrp_dmaengine_priv *priv = to_usrp_dmaengine(dma);
++
++	spin_lock(&priv->queued_lock);
++	list_del(&buf->queue);
++	spin_unlock(&priv->queued_lock);
++
++	if (priv->dir == DMA_DEV_TO_MEM)
++		vb2_set_plane_payload(&buf->buf, 0, priv->fmt.length);
++
++	vb2_buffer_done(&buf->buf, VB2_BUF_STATE_DONE);
++}
++
++static int usrp_dmaengine_queue_setup(struct vb2_queue *vq,
++				      unsigned int *nbuffers,
++				      unsigned int *nplanes,
++				      unsigned int sizes[],
++				      struct device *alloc_devs[])
++{
++	struct usrp_dma *dma = vb2_get_drv_priv(vq);
++	struct usrp_dmaengine_priv *priv = to_usrp_dmaengine(dma);
++
++
++	*nplanes = 1;
++	if (priv->fmt.length > PAGE_SIZE)
++		sizes[0] = PAGE_ALIGN(priv->fmt.length);
++	else
++		sizes[0] = PAGE_SIZE;
++
++	pr_debug("%s: nbuffers=%u nplanes=%u sizes[0]=%u\n",
++		 __func__, *nbuffers, *nplanes, sizes[0]);
++
++	return 0;
++}
++
++static int usrp_dmaengine_buffer_prepare(struct vb2_buffer *vb)
++{
++	struct usrp_dma *dma = vb2_get_drv_priv(vb->vb2_queue);
++	struct usrp_dma_buffer *buf = to_usrp_dma_buffer(vb);
++
++	buf->dma = dma;
++
++	return 0;
++}
++
++static void usrp_dmaengine_buffer_queue_contig(struct vb2_buffer *vb)
++{
++	struct usrp_dma_buffer *buf = to_usrp_dma_buffer(vb);
++	struct usrp_dma *dma = vb2_get_drv_priv(vb->vb2_queue);
++	struct usrp_dmaengine_priv *priv = to_usrp_dmaengine(dma);
++	struct dma_chan *chan = priv->chan;
++	struct dma_async_tx_descriptor *desc;
++	dma_addr_t addr;
++	dma_cookie_t cookie;
++
++	addr = vb2_dma_contig_plane_dma_addr(vb, 0);
++	desc = dmaengine_prep_slave_single(chan, addr,
++					   priv->dir == DMA_MEM_TO_DEV ?
++					   vb2_get_plane_payload(vb, 0)
++					   : priv->fmt.length,
++					   priv->dir,
++					   DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
++
++	desc->callback = usrp_dmaengine_buffer_complete_cb;
++	desc->callback_param = buf;
++
++	spin_lock_irq(&priv->queued_lock);
++	list_add_tail(&buf->queue, &priv->queued_bufs);
++	spin_unlock_irq(&priv->queued_lock);
++
++	cookie = dmaengine_submit(desc);
++	if (dma_submit_error(cookie)) {
++		vb2_buffer_done(&buf->buf, VB2_BUF_STATE_ERROR);
++		pr_err("%s: failed to submit descriptor ...\n", __func__);
++		return;
++	}
++
++	if (vb2_is_streaming(&dma->queue))
++		dma_async_issue_pending(chan);
++}
++
++static void usrp_dmaengine_buffer_queue_sg(struct vb2_buffer *vb)
++{
++	struct usrp_dma_buffer *buf = to_usrp_dma_buffer(vb);
++	struct usrp_dma *dma = vb2_get_drv_priv(vb->vb2_queue);
++	struct usrp_dmaengine_priv *priv = to_usrp_dmaengine(dma);
++
++	struct dma_chan *chan = priv->chan;
++	struct dma_async_tx_descriptor *desc;
++	struct sg_table *sgt;
++	dma_cookie_t cookie;
++
++	sgt = vb2_dma_sg_plane_desc(vb, 0);
++	desc = dmaengine_prep_slave_sg(chan, sgt->sgl, sgt->nents,
++				       priv->dir, DMA_PREP_INTERRUPT
++				       | DMA_CTRL_ACK);
++
++	desc->callback = usrp_dmaengine_buffer_complete_cb;
++	desc->callback_param = buf;
++
++	spin_lock_irq(&priv->queued_lock);
++	list_add_tail(&buf->queue, &priv->queued_bufs);
++	spin_unlock_irq(&priv->queued_lock);
++
++	cookie = dmaengine_submit(desc);
++	if (dma_submit_error(cookie)) {
++		vb2_buffer_done(&buf->buf, VB2_BUF_STATE_ERROR);
++		pr_err("%s: failed to submit descriptor ...\n", __func__);
++		return;
++	}
++
++	if (vb2_is_streaming(&dma->queue))
++		dma_async_issue_pending(chan);
++}
++
++static int usrp_dmaengine_start_streaming(struct vb2_queue *vq,
++					  unsigned int count)
++{
++	struct usrp_dma *dma = vb2_get_drv_priv(vq);
++	struct usrp_dmaengine_priv *priv = to_usrp_dmaengine(dma);
++	struct dma_chan *chan = priv->chan;
++
++	/* Start the DMA engine. This must be done before starting the blocks
++	 * in the pipeline to avoid DMA synchronization issues.
++	 */
++	dma_async_issue_pending(chan);
++
++	return 0;
++}
++
++static void usrp_dmaengine_stop_streaming(struct vb2_queue *vq)
++{
++	struct usrp_dma *dma = vb2_get_drv_priv(vq);
++	struct usrp_dma_buffer *buf, *nbuf;
++	struct usrp_dmaengine_priv *priv = to_usrp_dmaengine(dma);
++	struct dma_chan *chan = priv->chan;
++
++	/* Stop and reset the DMA engine. */
++	dmaengine_terminate_async(chan);
++
++	/* Give back all queued buffers to videobuf2. */
++	spin_lock_irq(&priv->queued_lock);
++	list_for_each_entry_safe(buf, nbuf, &priv->queued_bufs, queue) {
++		vb2_buffer_done(&buf->buf, VB2_BUF_STATE_ERROR);
++		list_del(&buf->queue);
++	}
++	spin_unlock_irq(&priv->queued_lock);
++
++	vb2_wait_for_all_buffers(vq);
++}
++
++const struct vb2_ops usrp_dma_queue_contig_qops = {
++	.queue_setup = usrp_dmaengine_queue_setup,
++	.buf_prepare = usrp_dmaengine_buffer_prepare,
++	.buf_queue = usrp_dmaengine_buffer_queue_contig,
++	.wait_prepare = vb2_ops_wait_prepare,
++	.wait_finish = vb2_ops_wait_finish,
++	.start_streaming = usrp_dmaengine_start_streaming,
++	.stop_streaming = usrp_dmaengine_stop_streaming,
++};
++
++EXPORT_SYMBOL_GPL(usrp_dma_queue_contig_qops);
++
++const struct vb2_ops usrp_dma_queue_sg_qops = {
++	.queue_setup = usrp_dmaengine_queue_setup,
++	.buf_prepare = usrp_dmaengine_buffer_prepare,
++	.buf_queue = usrp_dmaengine_buffer_queue_sg,
++	.wait_prepare = vb2_ops_wait_prepare,
++	.wait_finish = vb2_ops_wait_finish,
++	.start_streaming = usrp_dmaengine_start_streaming,
++	.stop_streaming = usrp_dmaengine_stop_streaming,
++};
++
++EXPORT_SYMBOL_GPL(usrp_dma_queue_sg_qops);
++
++struct usrp_dmaengine_match_type {
++	enum usrp_buf_type type;
++	bool has_sg;
++};
++
++static const struct usrp_dmaengine_match_type tx_data = {
++	.type = USRP_BUF_TYPE_OUTPUT,
++	.has_sg = false,
++};
++
++static const struct usrp_dmaengine_match_type rx_data = {
++	.type = USRP_BUF_TYPE_INPUT,
++	.has_sg = false,
++};
++
++#ifdef CONFIG_OF
++static const struct of_device_id usrp_dmaengine_of_match[] = {
++	{.compatible = "ettus,usrp-tx-dma",.data = &tx_data},
++	{.compatible = "ettus,usrp-rx-dma",.data = &rx_data},
++	{},
++};
++
++MODULE_DEVICE_TABLE(of, usrp_dmaengine_of_match);
++#endif
++
++int usrp_dma_op_set_fmt(struct usrp_dma *dma, struct usrp_fmt *fmt)
++{
++	struct usrp_dmaengine_priv *priv = to_usrp_dmaengine(dma);
++
++	if (!fmt->length || fmt->type != USRP_FMT_CHDR_FIXED_BLOCK) {
++		pr_err("%s: fmt->length = %u\n", __func__, fmt->length);
++		pr_err("%s: fmt->type = %u\n", __func__, fmt->type);
++		return -EINVAL;
++	}
++
++	priv->fmt.length = fmt->length;
++	priv->fmt.type = fmt->type;
++
++	if (priv->dir == DMA_DEV_TO_MEM && priv->regmap)
++		regmap_write(priv->regmap, priv->offset, priv->fmt.length >> 3);
++
++	return 0;
++}
++
++static const struct usrp_dma_ops usrp_dmaengine_ops = {
++	.set_fmt = usrp_dma_op_set_fmt,
++};
++
++static int usrp_dmaengine_probe(struct platform_device *pdev)
++{
++	const struct usrp_dmaengine_match_type *mdata;
++	struct usrp_dmaengine_priv *priv;
++	int err;
++
++	priv = devm_kzalloc(&pdev->dev, sizeof(*priv), GFP_KERNEL);
++	if (!priv)
++		return -ENOMEM;
++	dev_set_drvdata(&pdev->dev, priv);
++
++	err = of_property_read_u32(pdev->dev.of_node, "port-id",
++	                                      &priv->dma.port);
++	if (err) {
++		dev_err(&pdev->dev, "failed to assign port-id");
++		return err;
++	}
++
++	priv->chan = dma_request_slave_channel(&pdev->dev, "dma");
++	if (!priv->chan) {
++		dev_err(&pdev->dev, "failed to request dma channel: %s", "dma");
++		return -EPROBE_DEFER;
++	}
++
++	mdata = of_device_get_match_data(&pdev->dev);
++
++	priv->dir = USRP_TYPE_IS_OUTPUT(mdata->type) ? DMA_MEM_TO_DEV :
++	    DMA_DEV_TO_MEM;
++
++	if (priv->dir == DMA_DEV_TO_MEM) {
++		priv->regmap = syscon_regmap_lookup_by_phandle(pdev->dev.of_node,
++							    "regmap");
++		if (IS_ERR(priv->regmap)) {
++			dev_err(&pdev->dev, "unable to get syscon");
++			return PTR_ERR(priv->regmap);
++		}
++
++		if (of_property_read_u32(pdev->dev.of_node, "offset",
++					 &priv->offset)) {
++			dev_err(&pdev->dev, "unable to read 'offset'");
++			return -EINVAL;
++		}
++	}
++	priv->dma.ops = &usrp_dmaengine_ops;
++
++	mutex_init(&priv->lock);
++	INIT_LIST_HEAD(&priv->queued_bufs);
++	spin_lock_init(&priv->queued_lock);
++
++	/* we probably shouldn't allow for read() and write() based
++	 * accesses, but meh, why not, if someone wants to go slow,
++	 * let 'em */
++	priv->dma.queue.buf_ops = &usrp_dma_core_buf_ops;
++	priv->dma.queue.type = mdata->type;
++	priv->dma.queue.is_output = USRP_TYPE_IS_OUTPUT(mdata->type);
++	priv->dma.queue.io_modes = VB2_MMAP | VB2_USERPTR | VB2_DMABUF;
++	priv->dma.queue.io_modes |= VB2_READ | VB2_WRITE;
++	priv->dma.queue.lock = &priv->lock;
++	priv->dma.queue.drv_priv = &priv->dma;
++	priv->dma.queue.buf_struct_size = sizeof(struct usrp_dma_buffer);
++	priv->dma.queue.ops = mdata->has_sg ? &usrp_dma_queue_sg_qops :
++	    &usrp_dma_queue_contig_qops;
++	priv->dma.queue.dev = &pdev->dev;
++
++	/* memorize if we can use sg, or not ... */
++	if (mdata->has_sg)
++		priv->dma.queue.mem_ops = &vb2_dma_sg_memops;
++	else
++		priv->dma.queue.mem_ops = &vb2_dma_contig_memops;
++
++	err = vb2_core_queue_init(&priv->dma.queue);
++	if (err < 0) {
++		dev_err(&pdev->dev, "failed to initialize VB2 queue");
++		return err;
++	}
++
++	return usrp_dma_register(&priv->dma);
++}
++
++static int usrp_dmaengine_remove(struct platform_device *pdev)
++{
++	struct usrp_dma *dma = dev_get_drvdata(&pdev->dev);
++	struct usrp_dmaengine_priv *priv = to_usrp_dmaengine(dma);
++
++	usrp_dma_deregister(dma);
++
++	if (priv->chan)
++		dma_release_channel(priv->chan);
++
++	mutex_destroy(&priv->lock);
++
++	return 0;
++}
++
++static struct platform_driver usrp_dmaengine_driver = {
++	.probe = usrp_dmaengine_probe,
++	.remove = usrp_dmaengine_remove,
++	.driver = {
++		.name = "usrp_dmaengine",
++		.of_match_table = of_match_ptr(usrp_dmaengine_of_match),
++	},
++};
++
++module_platform_driver(usrp_dmaengine_driver);
++
++MODULE_AUTHOR("Moritz Fischer <moritz.fischer@ettus.com>");
++MODULE_DESCRIPTION("USRP DMAEngine Queue");
++MODULE_LICENSE("GPL v2");
+diff --git a/include/linux/usrp/usrp-dma.h b/include/linux/usrp/usrp-dma.h
+new file mode 100644
+index 000000000000..75c6d3e42f53
+--- /dev/null
++++ b/include/linux/usrp/usrp-dma.h
+@@ -0,0 +1,59 @@
++/*
++ * Copyright (C) 2017 National Instruments Corp
++ *
++ * SPDX-License-Identifier: GPL-2.0
++ */
++
++#ifndef USRP_DMA_H
++#define USRP_DMA_H
++
++#include <media/videobuf2-core.h>
++#include <linux/miscdevice.h>
++
++#define USRP_DMA_MAX_NAME 64
++
++struct usrp_dma;
++struct usrp_fmt;
++
++struct usrp_dma_ops {
++	int (*set_fmt)(struct usrp_dma *, struct usrp_fmt *);
++};
++
++struct usrp_dma {
++	struct list_head list;
++
++	struct vb2_queue queue;
++
++	struct miscdevice mdev;
++
++	char name[USRP_DMA_MAX_NAME];
++
++	void *priv;
++	int id;
++	int port;
++
++	const struct usrp_dma_ops *ops;
++};
++
++/**
++ * struct usrp_dma_buffer - USRP DMA buffer
++ * @buf: vb2 buffer base object
++ * @queue: buffer list entry in the DMA engine queued buffer list
++ * @dma: DMA channel that uses the buffer
++ */
++struct usrp_dma_buffer {
++       struct vb2_buffer buf;
++       struct list_head queue;
++       struct usrp_dma *dma;
++};
++
++static inline struct usrp_dma_buffer *to_usrp_dma_buffer(struct vb2_buffer *vb)
++{
++       return container_of(vb, struct usrp_dma_buffer, buf);
++}
++
++int usrp_dma_register(struct usrp_dma *dma);
++
++void usrp_dma_deregister(struct usrp_dma *dma);
++
++#endif /* USRP_DMA_H */
+diff --git a/include/uapi/linux/usrp.h b/include/uapi/linux/usrp.h
+new file mode 100644
+index 000000000000..28096a30f697
+--- /dev/null
++++ b/include/uapi/linux/usrp.h
+@@ -0,0 +1,140 @@
++/*
++ * Copyright (C) 2017 National Instruments Corp
++ *
++ * SPDX-License-Identifier: GPL-2.0
++ */
++
++#ifndef USRP_H
++#define USRP_H
++
++enum usrp_buf_type {
++       USRP_BUF_TYPE_INPUT  = 1,
++       USRP_BUF_TYPE_OUTPUT = 2,
++       USRP_BUF_TYPE_INPUT_MPLANE = 3,
++       USRP_BUF_TYPE_OUTPUT_MPLANE = 4,
++};
++
++enum usrp_memory {
++       USRP_MEMORY_MMAP        = 1,
++       USRP_MEMORY_USERPTR     = 2,
++       USRP_MEMORY_OVERLAY     = 3,
++       USRP_MEMORY_DMABUF      = 4,
++};
++
++struct usrp_requestbuffers {
++       __u32                   count;
++       __u32                   type;           /* enum usrp_buf_type */
++       __u32                   memory;         /* enum usrp_memory */
++       __u32                   reserved[2];
++};
++
++static inline int USRP_TYPE_IS_OUTPUT(enum usrp_buf_type type)
++{
++	return type == USRP_BUF_TYPE_OUTPUT || type == USRP_BUF_TYPE_OUTPUT_MPLANE;
++}
++
++struct usrp_plane {
++       __u32                   bytesused;
++       __u32                   length;
++       union {
++               __u32           mem_offset;
++               unsigned long   userptr;
++               __s32           fd;
++       } m;
++       __u32                   data_offset;
++       __u32                   reserved[11];
++};
++
++struct usrp_timecode {
++       __u32   type;
++       __u32   flags;
++       __u8    frames;
++       __u8    seconds;
++       __u8    minutes;
++       __u8    hours;
++       __u8    userbits[4];
++};
++
++
++struct usrp_buffer {
++       __u32                   index;
++       __u32                   type;
++       __u32                   bytesused;
++       __u32                   flags;
++       __u32                   field;
++       struct timeval          timestamp;
++       struct usrp_timecode    timecode;
++       __u32                   sequence;
++
++       /* memory location */
++       __u32                   memory;
++       union {
++               __u32           offset;
++               unsigned long   userptr;
++               struct usrp_plane *planes;
++               __s32           fd;
++       } m;
++       __u32                   length;
++       __u32                   reserved2;
++       __u32                   reserved;
++};
++
++/*  Flags for 'flags' field */
++/* Buffer is mapped (flag) */
++#define USRP_BUF_FLAG_MAPPED                   0x00000001
++/* Buffer is queued for processing */
++#define USRP_BUF_FLAG_QUEUED                   0x00000002
++/* Buffer is ready */
++#define USRP_BUF_FLAG_DONE                     0x00000004
++/* Buffer is ready, but the data contained within is corrupted. */
++#define USRP_BUF_FLAG_ERROR                    0x00000040
++/* timecode field is valid */
++#define USRP_BUF_FLAG_TIMECODE                 0x00000100
++/* Buffer is prepared for queuing */
++#define USRP_BUF_FLAG_PREPARED                 0x00000400
++/* Cache handling flags */
++#define USRP_BUF_FLAG_NO_CACHE_INVALIDATE      0x00000800
++#define USRP_BUF_FLAG_NO_CACHE_CLEAN           0x00001000
++
++/* Timestamp type */
++#define USRP_BUF_FLAG_TIMESTAMP_MASK           0x0000e000
++#define USRP_BUF_FLAG_TIMESTAMP_UNKNOWN                0x00000000
++#define USRP_BUF_FLAG_TIMESTAMP_MONOTONIC      0x00002000
++#define USRP_BUF_FLAG_TIMESTAMP_COPY           0x00004000
++/* Timestamp sources. */
++#define USRP_BUF_FLAG_TSTAMP_SRC_MASK          0x00070000
++#define USRP_BUF_FLAG_TSTAMP_SRC_EOF           0x00000000
++#define USRP_BUF_FLAG_TSTAMP_SRC_SOE           0x00010000
++/* mem2mem encoder/decoder */
++#define USRP_BUF_FLAG_LAST                     0x00100000
++
++
++struct usrp_exportbuffer {
++       __u32           type; /* enum usrp_buf_type */
++       __u32           index;
++       __u32           plane;
++       __u32           flags;
++       __s32           fd;
++       __u32           reserved[11];
++};
++
++enum usrp_fmt_type {
++	USRP_FMT_CHDR_FIXED_BLOCK = 0,
++};
++
++struct usrp_fmt {
++	__u32		type;
++	__u32		length;
++	__u32		reserved[6];
++};
++
++#define USRPIOC_REQBUFS                _IOWR('V',  8, struct usrp_requestbuffers)
++#define USRPIOC_QUERYBUF               _IOWR('V',  9, struct usrp_buffer)
++#define USRPIOC_QBUF           _IOWR('V', 15, struct usrp_buffer)
++#define USRPIOC_EXPBUF         _IOWR('V', 16, struct usrp_exportbuffer)
++#define USRPIOC_DQBUF          _IOWR('V', 17, struct usrp_buffer)
++#define USRPIOC_STREAMON                _IOW('V', 18, int)
++#define USRPIOC_STREAMOFF       _IOW('V', 19, int)
++#define USRPIOC_SET_FMT        _IOW('V',  20, struct usrp_fmt)
++
++#endif /* USRP_H */
+-- 
+2.20.1
+
