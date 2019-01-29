@@ -1,7 +1,8 @@
-From 416ee9063c18a1b353920e8d1279dc808c25c486 Mon Sep 17 00:00:00 2001
+From 122c7e94b7b4706f18c6e790a67c42c0c37b31f7 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Wed, 27 Jun 2018 18:10:45 -0700
-Subject: [PATCH] thermal: cros-ec-thermal: Add thermal driver for chromium-ec
+Subject: [PATCH 16/17] thermal: cros-ec-thermal: Add thermal driver for
+ chromium-ec
 
 Add thermal framework driver for the chromium-ec
 
@@ -16,10 +17,10 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  create mode 100644 drivers/thermal/cros-ec-thermal.c
 
 diff --git a/drivers/thermal/Kconfig b/drivers/thermal/Kconfig
-index 315ae2926e20..53c90e981c7f 100644
+index 82979880f985..34cd9ac58a79 100644
 --- a/drivers/thermal/Kconfig
 +++ b/drivers/thermal/Kconfig
-@@ -164,6 +164,14 @@ config CLOCK_THERMAL
+@@ -171,6 +171,14 @@ config CLOCK_THERMAL
  	  device that is configured to use this cooling mechanism will be
  	  controlled to reduce clock frequency whenever temperature is high.
  
@@ -559,10 +560,10 @@ index 000000000000..4ca1a2dec516
 +MODULE_ALIAS("platform:cros-ec-thermal");
 +MODULE_AUTHOR("Moritz Fischer <mdf@kernel.org>");
 diff --git a/include/linux/mfd/cros_ec_commands.h b/include/linux/mfd/cros_ec_commands.h
-index 2b16e95b9bb8..2f31124f91cf 100644
+index f2edd9969b40..e40d66d09aa9 100644
 --- a/include/linux/mfd/cros_ec_commands.h
 +++ b/include/linux/mfd/cros_ec_commands.h
-@@ -1020,6 +1020,11 @@ struct ec_params_pwm_set_fan_target_rpm {
+@@ -1025,6 +1025,11 @@ struct ec_params_pwm_set_fan_target_rpm {
  	uint32_t rpm;
  } __packed;
  
@@ -575,5 +576,5 @@ index 2b16e95b9bb8..2f31124f91cf 100644
  #define EC_CMD_PWM_GET_KEYBOARD_BACKLIGHT 0x22
  
 -- 
-2.18.0
+2.20.1
 

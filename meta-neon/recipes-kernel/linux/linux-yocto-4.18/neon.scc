@@ -1,0 +1,3 @@
+patch 0013-ARM-dt-Add-devicetree-for-NI-Project-Neon-SDR-board-.patch
+patch 0016-thermal-cros-ec-thermal-Add-thermal-driver-for-chrom.patch
+patch 0017-mfd-cros_ec-Fix-struct-definition-to-work-with-upstr.patch

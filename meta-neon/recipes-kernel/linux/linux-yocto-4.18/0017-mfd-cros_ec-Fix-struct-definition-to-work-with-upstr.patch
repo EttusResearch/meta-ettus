@@ -1,7 +1,8 @@
-From f3f1cb36abd8c3d3614367304a5f43654999c22f Mon Sep 17 00:00:00 2001
+From 77b494c6371063aa7e92e6f59baf735eeba22c60 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <mdf@kernel.org>
 Date: Tue, 24 Jul 2018 16:01:40 -0700
-Subject: [PATCH 2/2] mfd: cros_ec: Fix struct definition to work with upstream
+Subject: [PATCH 17/17] mfd: cros_ec: Fix struct definition to work with
+ upstream
 
 Fix struct definition with missing parts in order to make
 thermal commands work.
@@ -13,10 +14,10 @@ Signed-off-by: Moritz Fischer <mdf@kernel.org>
  1 file changed, 1 insertion(+)
 
 diff --git a/include/linux/mfd/cros_ec_commands.h b/include/linux/mfd/cros_ec_commands.h
-index 2f31124f91cf..d8231ed7fd57 100644
+index e40d66d09aa9..ec127c6f8d42 100644
 --- a/include/linux/mfd/cros_ec_commands.h
 +++ b/include/linux/mfd/cros_ec_commands.h
-@@ -1802,6 +1802,7 @@ enum ec_temp_thresholds {
+@@ -1810,6 +1810,7 @@ enum ec_temp_thresholds {
   */
  struct ec_thermal_config {
  	uint32_t temp_host[EC_TEMP_THRESH_COUNT]; /* levels of hotness */
@@ -25,5 +26,5 @@ index 2f31124f91cf..d8231ed7fd57 100644
  	uint32_t temp_fan_max;		/* max active cooling needed */
  } __packed;
 -- 
-2.18.0
+2.20.1
 
