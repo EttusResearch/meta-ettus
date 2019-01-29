@@ -1,167 +1,29 @@
-From cad7bd5e8733399c9a07fd36c342bb157ed96adc Mon Sep 17 00:00:00 2001
+From 9013d01a523bbe02332045db50baac686405c6d1 Mon Sep 17 00:00:00 2001
 From: Kurt Kiefer <kekiefer@gmail.com>
 Date: Sun, 8 Apr 2018 13:36:00 -0700
-Subject: [PATCH 1/7] Add e3xx device tree for xilinx 4.9 kernel
+Subject: [PATCH] Add e3xx device tree for xilinx 4.9 kernel
 
 ---
- arch/arm/boot/dts/zynq-ni-e31x-sg1.dts       |  20 +++
- arch/arm/boot/dts/zynq-ni-e31x-sg3.dts       |  20 +++
- arch/arm/boot/dts/zynq-ni-e33x-sg1.dts       |  20 +++
- arch/arm/boot/dts/zynq-ni-e33x-sg3.dts       |  20 +++
- arch/arm/boot/dts/zynq-ni-e3xx-factory.dts |  28 ++++
- arch/arm/boot/dts/zynq-e3xx.dtsi               | 181 +++++++++++++++++++++++++
- 6 files changed, 290 insertions(+)
+ arch/arm/boot/dts/zynq-e3xx.dtsi           | 139 +++++++++++++++++++++++++++++
+ arch/arm/boot/dts/zynq-ni-e31x-sg1.dts     |  20 +++++
+ arch/arm/boot/dts/zynq-ni-e31x-sg3.dts     |  20 +++++
+ arch/arm/boot/dts/zynq-ni-e33x-sg1.dts     |  20 +++++
+ arch/arm/boot/dts/zynq-ni-e33x-sg3.dts     |  20 +++++
+ arch/arm/boot/dts/zynq-ni-e3xx-factory.dts |  28 ++++++
+ 6 files changed, 247 insertions(+)
+ create mode 100644 arch/arm/boot/dts/zynq-e3xx.dtsi
  create mode 100644 arch/arm/boot/dts/zynq-ni-e31x-sg1.dts
  create mode 100644 arch/arm/boot/dts/zynq-ni-e31x-sg3.dts
  create mode 100644 arch/arm/boot/dts/zynq-ni-e33x-sg1.dts
  create mode 100644 arch/arm/boot/dts/zynq-ni-e33x-sg3.dts
  create mode 100644 arch/arm/boot/dts/zynq-ni-e3xx-factory.dts
- create mode 100644 arch/arm/boot/dts/zynq-e3xx.dtsi
 
-diff --git a/arch/arm/boot/dts/zynq-ni-e31x-sg1.dts b/arch/arm/boot/dts/zynq-ni-e31x-sg1.dts
-new file mode 100644
-index 000000000000..68f3ddad2a4d
---- /dev/null
-+++ b/arch/arm/boot/dts/zynq-ni-e31x-sg1.dts
-@@ -0,0 +1,20 @@
-+/*
-+ *  Copyright (C) 2011 - 2014 Xilinx
-+ *  Copyright (C) 2012 National Instruments Corp.
-+ *
-+ * This software is licensed under the terms of the GNU General Public
-+ * License version 2, as published by the Free Software Foundation, and
-+ * may be copied, distributed, and modified under those terms.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ */
-+/dts-v1/;
-+/include/ "zynq-e3xx.dtsi"
-+
-+/ {
-+	model = "NI Ettus Research USRP E31x-1";
-+	compatible = "ettus,e31x", "xlnx,zynq-7000";
-+};
-diff --git a/arch/arm/boot/dts/zynq-ni-e31x-sg3.dts b/arch/arm/boot/dts/zynq-ni-e31x-sg3.dts
-new file mode 100644
-index 000000000000..6eebe3eeebd6
---- /dev/null
-+++ b/arch/arm/boot/dts/zynq-ni-e31x-sg3.dts
-@@ -0,0 +1,20 @@
-+/*
-+ *  Copyright (C) 2011 - 2014 Xilinx
-+ *  Copyright (C) 2012 National Instruments Corp.
-+ *
-+ * This software is licensed under the terms of the GNU General Public
-+ * License version 2, as published by the Free Software Foundation, and
-+ * may be copied, distributed, and modified under those terms.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ */
-+/dts-v1/;
-+/include/ "zynq-e3xx.dtsi"
-+
-+/ {
-+	model = "NI Ettus Research USRP E31x-3";
-+	compatible = "ettus,e31x", "xlnx,zynq-7000";
-+};
-diff --git a/arch/arm/boot/dts/zynq-ni-e33x-sg1.dts b/arch/arm/boot/dts/zynq-ni-e33x-sg1.dts
-new file mode 100644
-index 000000000000..16949bc737ee
---- /dev/null
-+++ b/arch/arm/boot/dts/zynq-ni-e33x-sg1.dts
-@@ -0,0 +1,20 @@
-+/*
-+ *  Copyright (C) 2011 - 2014 Xilinx
-+ *  Copyright (C) 2012 National Instruments Corp.
-+ *
-+ * This software is licensed under the terms of the GNU General Public
-+ * License version 2, as published by the Free Software Foundation, and
-+ * may be copied, distributed, and modified under those terms.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ */
-+/dts-v1/;
-+/include/ "zynq-e3xx.dtsi"
-+
-+/ {
-+	model = "NI Ettus Research USRP E33x-1";
-+	compatible = "ettus,e33x", "xlnx,zynq-7000";
-+};
-diff --git a/arch/arm/boot/dts/zynq-ni-e33x-sg3.dts b/arch/arm/boot/dts/zynq-ni-e33x-sg3.dts
-new file mode 100644
-index 000000000000..c341eea515b4
---- /dev/null
-+++ b/arch/arm/boot/dts/zynq-ni-e33x-sg3.dts
-@@ -0,0 +1,20 @@
-+/*
-+ *  Copyright (C) 2011 - 2014 Xilinx
-+ *  Copyright (C) 2012 National Instruments Corp.
-+ *
-+ * This software is licensed under the terms of the GNU General Public
-+ * License version 2, as published by the Free Software Foundation, and
-+ * may be copied, distributed, and modified under those terms.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ */
-+/dts-v1/;
-+/include/ "zynq-e3xx.dtsi"
-+
-+/ {
-+	model = "NI Ettus Research USRP E33x-3";
-+	compatible = "ettus,e33x", "xlnx,zynq-7000";
-+};
-diff --git a/arch/arm/boot/dts/zynq-ni-e3xx-factory.dts b/arch/arm/boot/dts/zynq-ni-e3xx-factory.dts
-new file mode 100644
-index 000000000000..c01467a72e51
---- /dev/null
-+++ b/arch/arm/boot/dts/zynq-ni-e3xx-factory.dts
-@@ -0,0 +1,28 @@
-+/*
-+ *  Copyright (C) 2011 - 2014 Xilinx
-+ *  Copyright (C) 2012 National Instruments Corp.
-+ *
-+ * This software is licensed under the terms of the GNU General Public
-+ * License version 2, as published by the Free Software Foundation, and
-+ * may be copied, distributed, and modified under those terms.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ */
-+/dts-v1/;
-+/include/ "zynq-e3xx.dtsi"
-+
-+/ {
-+	model = "NI Ettus Research USRP E3xx-unknown";
-+	compatible = "ettus,e31x", "xlnx,zynq-7000";
-+
-+	chosen {
-+		/delete-property/ bootargs;
-+	};
-+};
-+
-+&adt7408 {
-+	status = "disabled";
-+};
 diff --git a/arch/arm/boot/dts/zynq-e3xx.dtsi b/arch/arm/boot/dts/zynq-e3xx.dtsi
 new file mode 100644
-index 000000000000..78afded9d578
+index 0000000..6f2abb6
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-e3xx.dtsi
-@@ -0,0 +1,181 @@
+@@ -0,0 +1,139 @@
 +/*
 + *  Copyright (C) 2011 - 2014 Xilinx
 + *  Copyright (C) 2012 National Instruments Corp.
@@ -195,7 +57,7 @@ index 000000000000..78afded9d578
 +	};
 +
 +	chosen {
-+		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 rootwait ro earlyprintk";
++		bootargs = "console=ttyPS0,115200 earlyprintk";
 +		linux,stdout-path = "serial0:115200n8";
 +	};
 +
@@ -211,54 +73,12 @@ index 000000000000..78afded9d578
 +		interrupt-names = "press", "release";
 +	};
 +
-+	poweroff {
-+		compatible = "ettus,e3x0-poweroff", "syscon-poweroff";
-+		regmap = <&devctrl>;
-+		offset = <0x0>;
-+		mask = <0x7a>;
-+	};
-+
-+	db_reg: db_reg {
-+		compatible = "ettus,e3xx-db-regulator";
-+		regulator-name = "db-supply";
-+		regulator-boot-on;
-+		syscon = <&devctrl>;
-+	};
-+
 +	usb_phy0: phy0@e0002000 {
 +		compatible = "ulpi-phy";
 +		#phy-cells = <0>;
 +		reg = <0xe0002000 0x1000>;
 +		view-port = <0x0170>;
 +		drv-vbus;
-+	};
-+};
-+
-+&amba {
-+	/delete-node/ devcfg@f8007000; /* must rename devcfg@f8007000 for uhd */
-+
-+	devcfg: ps7-dev-cfg@f8007000 {
-+		compatible = "xlnx,zynq-devcfg-1.0";
-+		interrupt-parent = <&intc>;
-+		interrupts = <0 8 4>;
-+		reg = <0xf8007000 0x100>;
-+		clocks = <&clkc 12>, <&clkc 15>, <&clkc 16>, <&clkc 17>, <&clkc 18>;
-+		clock-names = "ref_clk", "fclk0", "fclk1", "fclk2", "fclk3";
-+		syscon = <&slcr>;
-+	};
-+
-+	axi_fpga0: axi-fpga@40000000 {
-+		compatible = "xlnx,ps7-axi-fpga-1.00.a";
-+		reg = <0x40000000 0x100000
-+			0x00000000 0xa>;
-+		interrupts = <0 29 1>;
-+		interrupt-parent = <&intc>;
-+		db-supply = <&db_reg>;
-+	};
-+
-+	devctrl: devctrl@40300000 {
-+		compatible = "ettus,e3xx-syscon", "syscon";
-+		reg = <0x40300000 0x24>;
 +	};
 +};
 +
@@ -296,10 +116,12 @@ index 000000000000..78afded9d578
 +		compatible = "jedec,jc-42.4-temp";
 +		reg = <0x19>;
 +	};
++
 +	mpu6050@69 {
 +		compatible = "invensense,mpu6050";
 +		reg = <0x69>;
 +	};
++
 +	eeprom@51 {
 +		compatible = "at24,24c02";
 +		reg = <0x51>;
@@ -321,7 +143,6 @@ index 000000000000..78afded9d578
 +};
 +
 +&sdhci0 {
-+	u-boot,dm-pre-reloc;
 +	status = "okay";
 +};
 +
@@ -330,7 +151,6 @@ index 000000000000..78afded9d578
 +};
 +
 +&uart0 {
-+	u-boot,dm-pre-reloc;
 +	status = "okay";
 +};
 +
@@ -343,6 +163,144 @@ index 000000000000..78afded9d578
 +	dr_mode = "host";
 +	usb-phy = <&usb_phy0>;
 +};
+diff --git a/arch/arm/boot/dts/zynq-ni-e31x-sg1.dts b/arch/arm/boot/dts/zynq-ni-e31x-sg1.dts
+new file mode 100644
+index 0000000..68f3dda
+--- /dev/null
++++ b/arch/arm/boot/dts/zynq-ni-e31x-sg1.dts
+@@ -0,0 +1,20 @@
++/*
++ *  Copyright (C) 2011 - 2014 Xilinx
++ *  Copyright (C) 2012 National Instruments Corp.
++ *
++ * This software is licensed under the terms of the GNU General Public
++ * License version 2, as published by the Free Software Foundation, and
++ * may be copied, distributed, and modified under those terms.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++/dts-v1/;
++/include/ "zynq-e3xx.dtsi"
++
++/ {
++	model = "NI Ettus Research USRP E31x-1";
++	compatible = "ettus,e31x", "xlnx,zynq-7000";
++};
+diff --git a/arch/arm/boot/dts/zynq-ni-e31x-sg3.dts b/arch/arm/boot/dts/zynq-ni-e31x-sg3.dts
+new file mode 100644
+index 0000000..6eebe3ee
+--- /dev/null
++++ b/arch/arm/boot/dts/zynq-ni-e31x-sg3.dts
+@@ -0,0 +1,20 @@
++/*
++ *  Copyright (C) 2011 - 2014 Xilinx
++ *  Copyright (C) 2012 National Instruments Corp.
++ *
++ * This software is licensed under the terms of the GNU General Public
++ * License version 2, as published by the Free Software Foundation, and
++ * may be copied, distributed, and modified under those terms.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++/dts-v1/;
++/include/ "zynq-e3xx.dtsi"
++
++/ {
++	model = "NI Ettus Research USRP E31x-3";
++	compatible = "ettus,e31x", "xlnx,zynq-7000";
++};
+diff --git a/arch/arm/boot/dts/zynq-ni-e33x-sg1.dts b/arch/arm/boot/dts/zynq-ni-e33x-sg1.dts
+new file mode 100644
+index 0000000..16949bc
+--- /dev/null
++++ b/arch/arm/boot/dts/zynq-ni-e33x-sg1.dts
+@@ -0,0 +1,20 @@
++/*
++ *  Copyright (C) 2011 - 2014 Xilinx
++ *  Copyright (C) 2012 National Instruments Corp.
++ *
++ * This software is licensed under the terms of the GNU General Public
++ * License version 2, as published by the Free Software Foundation, and
++ * may be copied, distributed, and modified under those terms.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++/dts-v1/;
++/include/ "zynq-e3xx.dtsi"
++
++/ {
++	model = "NI Ettus Research USRP E33x-1";
++	compatible = "ettus,e33x", "xlnx,zynq-7000";
++};
+diff --git a/arch/arm/boot/dts/zynq-ni-e33x-sg3.dts b/arch/arm/boot/dts/zynq-ni-e33x-sg3.dts
+new file mode 100644
+index 0000000..c341eea5
+--- /dev/null
++++ b/arch/arm/boot/dts/zynq-ni-e33x-sg3.dts
+@@ -0,0 +1,20 @@
++/*
++ *  Copyright (C) 2011 - 2014 Xilinx
++ *  Copyright (C) 2012 National Instruments Corp.
++ *
++ * This software is licensed under the terms of the GNU General Public
++ * License version 2, as published by the Free Software Foundation, and
++ * may be copied, distributed, and modified under those terms.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++/dts-v1/;
++/include/ "zynq-e3xx.dtsi"
++
++/ {
++	model = "NI Ettus Research USRP E33x-3";
++	compatible = "ettus,e33x", "xlnx,zynq-7000";
++};
+diff --git a/arch/arm/boot/dts/zynq-ni-e3xx-factory.dts b/arch/arm/boot/dts/zynq-ni-e3xx-factory.dts
+new file mode 100644
+index 0000000..c01467a
+--- /dev/null
++++ b/arch/arm/boot/dts/zynq-ni-e3xx-factory.dts
+@@ -0,0 +1,28 @@
++/*
++ *  Copyright (C) 2011 - 2014 Xilinx
++ *  Copyright (C) 2012 National Instruments Corp.
++ *
++ * This software is licensed under the terms of the GNU General Public
++ * License version 2, as published by the Free Software Foundation, and
++ * may be copied, distributed, and modified under those terms.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++/dts-v1/;
++/include/ "zynq-e3xx.dtsi"
++
++/ {
++	model = "NI Ettus Research USRP E3xx-unknown";
++	compatible = "ettus,e31x", "xlnx,zynq-7000";
++
++	chosen {
++		/delete-property/ bootargs;
++	};
++};
++
++&adt7408 {
++	status = "disabled";
++};
 -- 
-2.11.1
+2.9.5
 
