@@ -1,0 +1,7 @@
+#!/bin/bash
+
+if [ -f /data/network/hostname ]; then
+        hostnamectl set-hostname $(cat /data/network/hostname)
+else
+        hostnamectl set-hostname ni-e31x-`/usr/bin/eeprom-id | grep serial | sed -e 's/serial=//g'`
+fi
