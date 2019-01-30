@@ -26,7 +26,6 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     htop \
     glib-2.0 \
     mpmd \
-    mpmd-tools \
     orc \
     overlay-script \
     libudev \
