@@ -11,6 +11,7 @@ UBOOT_SUFFIX ?= "img"
 UBOOT_ENTRYPOINT = "0000000"
 UBOOT_LOADADDRESS = "0000000"
 UBOOT_BINARY_ni-sulfur = "u-boot.${UBOOT_SUFFIX}"
+SPL_BINARY_ni-sulfur = "spl/boot.bin"
 
 IMAGE_BOOT_FILES ?= "boot.bin ${UBOOT_BINARY}"
 
