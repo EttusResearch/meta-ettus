@@ -46,9 +46,6 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     salt-minion \
     "
 
-#eeprom-hostname-systemd
-#migrate-netcfg-systemd
-
 inherit core-image image-buildinfo
 TOOLCHAIN_HOST_TASK += "nativesdk-python3-setuptools \
                        "
