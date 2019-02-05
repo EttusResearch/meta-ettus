@@ -9,12 +9,16 @@ SRC_URI_append = " file://ec-sulfur-rev3.bin \
                    file://mykonos-m3.bin \
                    http://files.ettus.com/binaries/cache/n3xx/fpga-1107862/n3xx_n310_fpga_default-g1107862.zip;name=sulfur-fpga \
                    http://files.ettus.com/binaries/cache/n3xx/fpga-1107862/n3xx_n300_fpga_default-g1107862.zip;name=phosphorus-fpga \
+                   http://files.ettus.com/binaries/cache/n3xx/fpga-5688c09d/n3xx_n320_fpga_default-gc41506b.zip;name=rhodium-fpga \
                    http://files.ettus.com/binaries/cache/n3xx/fpga-6bea23d/n3xx_n310_cpld_default.zip;name=magnesium-cpld \
+                   http://files.ettus.com/binaries/cache/n3xx/fpga-5688c09d/n3xx_n320_cpld_default-g5688c09d.zip;name=rhodium-cpld \
                  "
 
 SRC_URI[sulfur-fpga.sha256sum] = "fc80462f2e144d9745b0b480aa513f426e48df46ad18dc85cbb8fdb3cb162355"
 SRC_URI[phosphorus-fpga.sha256sum] = "1e7ae1429825811531149f87f82dfcbc06cf63e1fc3752517edf104950406c36"
+SRC_URI[rhodium-fpga.sha256sum] = "af6b4fcf28caee9de96e865f705541657d04a8abf2cf383dacf1640e1bbfaafb"
 SRC_URI[magnesium-cpld.sha256sum] = "ef128dcd265ee8615b673021d4ee84c39357012ffe8b28c8ad7f893f9dcb94cb"
+SRC_URI[rhodium-cpld.sha256sum] = "9a9746f470623c8a4ec9e104fecd227e001786492d2a5f056198a743f055811b"
 
 LICENSE_append = "& Firmware-ni-sulfur"
 LIC_FILES_CHKSUM_append = "file://${WORKDIR}/LICENSE.ec-sulfur;md5=72f855f00b364ec8bdc025e1a36b39c3"
@@ -26,9 +30,11 @@ PACKAGES =+ " \
     ${PN}-ni-sulfur-license \
     ${PN}-ni-sulfur \
     ${PN}-ni-magnesium \
+    ${PN}-ni-rhodium \
     ${PN}-ni-sulfur-fpga \
     ${PN}-ni-phosphorus-fpga \
     ${PN}-adi-mykonos \
+    ${PN}-ni-rhodium-fpga \
     "
 
 # The EC image is under the Chromium License, so add custom license file
@@ -59,12 +65,23 @@ FILES_${PN}-ni-magnesium = " \
 LICENSE_${PN}-ni-magnesium = "Firmware-GPLv2"
 RDEPENDS_${PN}-ni-magnesium += "${PN}-gplv2-license"
 
+FILES_${PN}-ni-rhodium = " \
+                           /lib/firmware/ni/cpld-rhodium-revb.svf \
+                           "
+
+LICENSE_${PN}-ni-rhodium = "Firmware-GPLv2"
+RDEPENDS_${PN}-ni-rhodium += "${PN}-gplv2-license"
+
+
 do_compile_append() {
     dtc -@ -o ${WORKDIR}/n310.dtbo ${WORKDIR}/usrp_n310_fpga_HG.dts
     python3 ${WORKDIR}/fpga_bit_to_bin.py -f ${WORKDIR}/usrp_n310_fpga_HG.bit ${WORKDIR}/n310.bin
 
     dtc -@ -o ${WORKDIR}/n300.dtbo ${WORKDIR}/usrp_n300_fpga_HG.dts
     python3 ${WORKDIR}/fpga_bit_to_bin.py -f ${WORKDIR}/usrp_n300_fpga_HG.bit ${WORKDIR}/n300.bin
+
+    dtc -@ -o ${WORKDIR}/n320.dtbo ${WORKDIR}/usrp_n320_fpga_HG.dts
+    python3 ${WORKDIR}/fpga_bit_to_bin.py -f ${WORKDIR}/usrp_n320_fpga_HG.bit ${WORKDIR}/n320.bin
 }
 
 do_install_append() {
@@ -95,6 +112,8 @@ do_install_append() {
     # This workaround ultimately should go away once the .svf is generated correctly
     sed -i -e 's/FREQUENCY 1.80E+07/FREQUENCY 1.00E+07/g' ${D}/lib/firmware/ni/cpld-magnesium-revc.svf
 
+    install -m 0644 ${WORKDIR}/usrp_n320_rh_cpld.svf ${D}/lib/firmware/ni/cpld-rhodium-revb.svf
+
     install -D -m 0644 ${WORKDIR}/mykonos-m3.bin ${D}/lib/firmware/adi/mykonos-m3.bin
 
     install -m 0644 ${WORKDIR}/n310.bin ${D}/lib/firmware/n310.bin
@@ -102,6 +121,9 @@ do_install_append() {
 
     install -m 0644 ${WORKDIR}/n300.bin ${D}/lib/firmware/n300.bin
     install -m 0644 ${WORKDIR}/n300.dtbo ${D}/lib/firmware/n300.dtbo
+
+    install -m 0644 ${WORKDIR}/n320.bin ${D}/lib/firmware/n320.bin
+    install -m 0644 ${WORKDIR}/n320.dtbo ${D}/lib/firmware/n320.dtbo
 }
 
 FILES_${PN}-adi-mykonos = " \
@@ -124,3 +146,12 @@ FILES_${PN}-ni-phosphorus-fpga = " \
 
 LICENSE_${PN}-ni-phosphorus-fpga = "Firmware-GPLv2"
 RDEPENDS_${PN}-ni-phosphorus-fpga += "${PN}-gplv2-license"
+
+FILES_${PN}-ni-rhodium-fpga = " \
+                              /lib/firmware/n320.bin \
+                              /lib/firmware/n320.dtbo \
+                             "
+
+LICENSE_${PN}-ni-rhodium-fpga = "Firmware-GPLv2"
+RDEPENDS_${PN}-ni-rhodium-fpga += "${PN}-gplv2-license"
+
