@@ -43,7 +43,7 @@ case $_requested_device in
 		DISTRO ?= "Alchemy"
 		MACHINE ?= "ni-sulfur-rev6-mender"
 		INHERIT += "mender-full"
-		MENDER_ARTIFACT_NAME = "$_artifact_name"
+		MENDER_ARTIFACT_NAME = "${_artifact_name}_n3xx"
 		IMAGE_ROOTFS_EXTRA_SPACE = "0"
 		_EOF_
 		_bb_layers="\
@@ -65,7 +65,7 @@ case $_requested_device in
 		DISTRO ?= "Alchemy"
 		MACHINE ?= "ni-neon-rev2-mender"
 		INHERIT += "mender-full"
-		MENDER_ARTIFACT_NAME = "$_artifact_name"
+		MENDER_ARTIFACT_NAME = "${_artifact_name}_e320"
 		IMAGE_ROOTFS_EXTRA_SPACE = "0"
 		_EOF_
 		_bb_layers="\
@@ -112,7 +112,7 @@ esac
 echo "Using top-level source dir: $_requested_device"
 echo "Using device type: $_requested_device"
 echo "Using build directory: $_build_dir"
-echo "Using artifact name: $_artifact_name"
+echo "Using artifact name: ${_artifact_name}_${_requested_device}"
 
 source $_src_dir/oe-core/oe-init-build-env $_build_dir $_src_dir/bitbake
 
