@@ -7,18 +7,18 @@ SRC_URI_append = " file://ec-sulfur-rev3.bin \
                    file://ec-sulfur-rev5.RW.bin \
                    file://LICENSE.ec-sulfur \
                    file://mykonos-m3.bin \
-                   http://files.ettus.com/binaries/cache/n3xx/fpga-1107862/n3xx_n310_fpga_default-g1107862.zip;name=sulfur-fpga \
-                   http://files.ettus.com/binaries/cache/n3xx/fpga-1107862/n3xx_n300_fpga_default-g1107862.zip;name=phosphorus-fpga \
-                   http://files.ettus.com/binaries/cache/n3xx/fpga-5688c09d/n3xx_n320_fpga_default-gc41506b.zip;name=rhodium-fpga \
-                   http://files.ettus.com/binaries/cache/n3xx/fpga-6bea23d/n3xx_n310_cpld_default.zip;name=magnesium-cpld \
-                   http://files.ettus.com/binaries/cache/n3xx/fpga-5688c09d/n3xx_n320_cpld_default-g5688c09d.zip;name=rhodium-cpld \
+                   http://files.ettus.com/binaries/cache/n3xx/fpga-64da560/n3xx_n310_fpga_default-g64da560.zip;name=sulfur-fpga \
+                   http://files.ettus.com/binaries/cache/n3xx/fpga-64da560/n3xx_n300_fpga_default-g64da560.zip;name=phosphorus-fpga \
+                   http://files.ettus.com/binaries/cache/n3xx/fpga-4bc2c6f/n3xx_n320_fpga_default-g4bc2c6f.zip;name=rhodium-fpga \
+                   http://files.ettus.com/binaries/cache/n3xx/fpga-6bea23d/n3xx_n310_cpld_default-g6bea23d.zip;name=magnesium-cpld \
+                   http://files.ettus.com/binaries/cache/n3xx/fpga-4bc2c6f/n3xx_n320_cpld_default-g4bc2c6f.zip;name=rhodium-cpld \
                  "
 
-SRC_URI[sulfur-fpga.sha256sum] = "fc80462f2e144d9745b0b480aa513f426e48df46ad18dc85cbb8fdb3cb162355"
-SRC_URI[phosphorus-fpga.sha256sum] = "1e7ae1429825811531149f87f82dfcbc06cf63e1fc3752517edf104950406c36"
-SRC_URI[rhodium-fpga.sha256sum] = "af6b4fcf28caee9de96e865f705541657d04a8abf2cf383dacf1640e1bbfaafb"
+SRC_URI[sulfur-fpga.sha256sum] = "75debfd43ca782055d69d1cc563909b9e361adcb871f62768da1efac16c6e15d"
+SRC_URI[phosphorus-fpga.sha256sum] = "7b53e899ef6d1998fc2226ab6d37fded6eb333bbdd4ef38888f0ab24fea348c1"
+SRC_URI[rhodium-fpga.sha256sum] = "0ef6414a13b6476d3cf015021ec979e75e4e20349b497cfb2ac9affdc4293a90"
 SRC_URI[magnesium-cpld.sha256sum] = "ef128dcd265ee8615b673021d4ee84c39357012ffe8b28c8ad7f893f9dcb94cb"
-SRC_URI[rhodium-cpld.sha256sum] = "9a9746f470623c8a4ec9e104fecd227e001786492d2a5f056198a743f055811b"
+SRC_URI[rhodium-cpld.sha256sum] = "6680a9363efc5fa8b5a68beb3dff44f2e314b94e716e3a1751aba0fed1f384da"
 
 LICENSE_append = "& Firmware-ni-sulfur"
 LIC_FILES_CHKSUM_append = "file://${WORKDIR}/LICENSE.ec-sulfur;md5=72f855f00b364ec8bdc025e1a36b39c3"

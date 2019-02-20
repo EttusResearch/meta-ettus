@@ -1,10 +1,9 @@
 FILESEXTRAPATHS_prepend_ni-neon := "${THISDIR}/files:"
 
-SRC_URI_append_ni-neon  = " http://files.ettus.com/binaries/cache/e3xx/fpga-abdc445a/e3xx_e320_fpga_default-gabdc445a.zip;name=neon-fpga \
-             http://files.ettus.com/binaries/cache/e3xx/fpga-abdc445a/e3xx_e320_fpga_aurora-gabdc445a.zip;name=neon-fpga-aurora \
-           "
+SRC_URI_append_ni-neon = " http://files.ettus.com/binaries/cache/e3xx/fpga-10c27fb5/e3xx_e320_fpga_default-g10c27fb5.zip;name=neon-fpga \
+                         "
 
-SRC_URI[neon-fpga.sha256sum] = "82e5af3742245f1f8ea5dd334b1ceb7920e3c31306d86b0dbf31bedd696879c4"
+SRC_URI[neon-fpga.sha256sum] = "aa0338b911cf814cbefa67a794d992706afc16f3f2e7ccbed921f7c75900d6fb"
 SRC_URI[neon-fpga-aurora.sha256sum] = "73a3851e890df827ec1b809e34cea49cf973ba225ef9852416c77237f18f016c"
 
 do_install_append_ni-neon(){

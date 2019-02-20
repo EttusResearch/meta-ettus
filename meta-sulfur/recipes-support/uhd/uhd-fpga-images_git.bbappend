@@ -1,19 +1,17 @@
 FILESEXTRAPATHS_prepend_ni-sulfur := "${THISDIR}/files:"
 
-SRC_URI_append_ni-sulfur  = " http://files.ettus.com/binaries/cache/n3xx/fpga-1107862/n3xx_n310_fpga_default-g1107862.zip;name=sulfur-fpga \
-             http://files.ettus.com/binaries/cache/n3xx/fpga-1107862/n3xx_n300_fpga_default-g1107862.zip;name=phosphorus-fpga \
-             http://files.ettus.com/binaries/cache/n3xx/fpga-1107862/n3xx_n310_fpga_aurora-g1107862.zip;name=sulfur-fpga-aurora \
-             http://files.ettus.com/binaries/cache/n3xx/fpga-1107862/n3xx_n300_fpga_aurora-g1107862.zip;name=phosphorus-fpga-aurora \
-             http://files.ettus.com/binaries/cache/n3xx/fpga-c41506b/n3xx_n320_fpga_default-gc41506b.zip;name=rhodium-fpga \
-           "
+SRC_URI_append_ni-sulfur = " http://files.ettus.com/binaries/cache/n3xx/fpga-64da560/n3xx_n310_fpga_default-g64da560.zip;name=sulfur-fpga \
+                             http://files.ettus.com/binaries/cache/n3xx/fpga-64da560/n3xx_n300_fpga_default-g64da560.zip;name=phosphorus-fpga \
+                             http://files.ettus.com/binaries/cache/n3xx/fpga-4bc2c6f/n3xx_n320_fpga_default-g4bc2c6f.zip;name=rhodium-fpga \
+                           "
 
-SRC_URI[sulfur-fpga.sha256sum] = "fc80462f2e144d9745b0b480aa513f426e48df46ad18dc85cbb8fdb3cb162355"
+SRC_URI[sulfur-fpga.sha256sum] = "75debfd43ca782055d69d1cc563909b9e361adcb871f62768da1efac16c6e15d"
 SRC_URI[sulfur-fpga-aurora.sha256sum] = "3926d6b247a8f931809460d3957cec51f8407cd3f7aea6f4f3b91d1bbb427c7d"
 
-SRC_URI[phosphorus-fpga.sha256sum] = "1e7ae1429825811531149f87f82dfcbc06cf63e1fc3752517edf104950406c36"
+SRC_URI[phosphorus-fpga.sha256sum] = "7b53e899ef6d1998fc2226ab6d37fded6eb333bbdd4ef38888f0ab24fea348c1"
 SRC_URI[phosphorus-fpga-aurora.sha256sum] = "e34e9343572adfba905433a1570cb394fe45207d442268d0fa400c3406253530"
 
-SRC_URI[rhodium-fpga.sha256sum] = "af6b4fcf28caee9de96e865f705541657d04a8abf2cf383dacf1640e1bbfaafb"
+SRC_URI[rhodium-fpga.sha256sum] = "0ef6414a13b6476d3cf015021ec979e75e4e20349b497cfb2ac9affdc4293a90"
 
 do_install_append_ni-sulfur(){
     mkdir -p ${D}/usr/share/uhd/images
