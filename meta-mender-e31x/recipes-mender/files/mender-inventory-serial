@@ -1,0 +1,5 @@
+#!/bin/sh
+
+if [ -e /usr/bin/eeprom-id ]; then
+  eeprom-id | tail -n 1
+fi
