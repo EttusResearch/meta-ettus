@@ -81,6 +81,28 @@ case $_requested_device in
 		  /meta-ettus/meta-neon \
 		  /meta-ettus/meta-mender-neon"
 	;;
+	"e31x")
+		read -d '' _auto_conf_edits <<- _EOF_
+		$_header
+		DISTRO ?= "Alchemy"
+		MACHINE ?= "ni-e31x-sg3-mender"
+		INHERIT += "mender-full"
+		MENDER_ARTIFACT_NAME = "$_artifact_name"
+		IMAGE_ROOTFS_EXTRA_SPACE = "0"
+		_EOF_
+		_bb_layers="\
+		  /oe-core/meta \
+		  /meta-oe/meta-oe \
+		  /meta-oe/meta-python \
+		  /meta-oe/meta-filesystems \
+		  /meta-oe/meta-networking \
+		  /meta-mender/meta-mender-core \
+		  /meta-security/meta-tpm \
+		  /meta-ettus/meta-ettus-core \
+		  /meta-ettus/meta-alchemy \
+		  /meta-ettus/meta-e31x \
+		  /meta-ettus/meta-mender-e31x"
+	;;
 	*)
 		echo "Unknown device type: $_requested_device. Aborting."
 		exit 1

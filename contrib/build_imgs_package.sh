@@ -58,6 +58,14 @@ case $_requested_device in
 		_mender_pkg_name=e3xx_e320_mender_default-$_artifact_name.zip
 		_sdk_pkg_name=e3xx_e320_sdk_default-$_artifact_name.zip
 	;;
+	"e31x")
+		echo "Building E31x image..."
+		_sdimg_file_name=usrp_e310_fs.sdimg
+		_mender_file_name=usrp_e310_fs.mender
+		_sdimg_pkg_name=e3xx_e310_sdimg_default-$_artifact_name.zip
+		_mender_pkg_name=e3xx_e310_mender_default-$_artifact_name.zip
+		_sdk_pkg_name=e3xx_e310_sdk_default-$_artifact_name.zip
+	;;
 	*)
 		echo "Unknown device type: $_requested_device. Aborting."
 		exit 1
