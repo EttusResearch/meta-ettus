@@ -1,3 +1,4 @@
+patch 0000-rtc-ds1374-Add-trickle-charger-device-tree-binding.patch
 patch 0001-hwmon-lm75-Add-thermal-support.patch
 patch 0002-hwmon-lm95234-Add-thermal-support.patch
 patch 0003-ARM-DT-iio_hwmon-to-zynq-dt.patch
