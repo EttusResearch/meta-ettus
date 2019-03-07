@@ -1,3 +1,4 @@
+patch 0000-rtc-ds1374-Add-trickle-charger-device-tree-binding.patch
 patch 0001-gitignore-Ignore-DTB-files.patch
 patch 0002-ARM-dts-Add-support-for-NI-Ettus-Research-Sulfur-Rev.patch
 patch 0003-ARM-dts-iio_hwmon-to-zynq-dt.patch
