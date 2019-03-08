@@ -1,0 +1,34 @@
+From 56f966e259e5b0ca3f223df64098389965b2ebf5 Mon Sep 17 00:00:00 2001
+From: michael-west <michael.west@ettus.com>
+Date: Tue, 19 Feb 2019 11:52:07 -0800
+Subject: [PATCH] N3xx: Update max rev to 7
+
+Hardware revision was increased due to new firmware.  No software
+changes are required.
+
+Signed-off-by: michael-west <michael.west@ettus.com>
+---
+ mpm/python/usrp_mpm/periph_manager/n3xx.py | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/mpm/python/usrp_mpm/periph_manager/n3xx.py b/mpm/python/usrp_mpm/periph_manager/n3xx.py
+index 34b07f0c4..3680f18f4 100644
+--- a/mpm/python/usrp_mpm/periph_manager/n3xx.py
++++ b/mpm/python/usrp_mpm/periph_manager/n3xx.py
+@@ -115,7 +115,7 @@ class n3xx(ZynqComponents, PeriphManagerBase):
+     mboard_eeprom_offset = 0
+     mboard_eeprom_max_len = 256
+     mboard_info = {"type": "n3xx"}
+-    mboard_max_rev = 6 # 6 == RevG
++    mboard_max_rev = 7 # 7 == RevH
+     mboard_sensor_callback_map = {
+         'ref_locked': 'get_ref_lock_sensor',
+         'gps_locked': 'get_gps_lock_sensor',
+@@ -1008,4 +1008,3 @@ class n3xx(ZynqComponents, PeriphManagerBase):
+         if self._bp_leds is not None:
+             # Turn off LINK
+             self._bp_leds.set(self._bp_leds.LED_LINK, 0)
+-
+-- 
+2.20.1
+
