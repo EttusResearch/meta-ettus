@@ -239,8 +239,8 @@ index 000000000000..e817c9ed8260
 +	txc-skew-ps = <1860>;
 +	txen-skew-ps = <0>;
 +
-+	ethernet_phy0: ethernet-phy@4 {
-+		reg = <4>;
++	ethernet_phy0: ethernet-phy@7 {
++		reg = <7>;
 +		reset-gpios = <&gpio0 3 GPIO_ACTIVE_LOW>;
 +	};
 +};
