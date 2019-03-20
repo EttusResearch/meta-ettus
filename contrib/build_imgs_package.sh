@@ -78,6 +78,11 @@ source $SETUP_ENV_SH $_requested_device $_artifact_name $_src_dir $_build_dir
 ## SD Card Image #########################################################
 echo "Launching build (image)..."
 bitbake developer-image
+if [ $? != 0 ]
+then
+	echo "Build was not successful, stopping script"
+	exit 1
+fi
 echo "Finding image..."
 _sdimg=`find tmp-glibc/deploy/images -name "developer-image*.sdimg" -type l`
 if [ ! -r $_sdimg ]; then
@@ -134,4 +139,3 @@ mv $TMP_DIR/*.zip $DST_DIR
 rm $TMP_DIR/*
 
 rmdir $TMP_DIR
-
