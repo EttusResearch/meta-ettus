@@ -1,0 +1,28 @@
+From b93e33901bc3a9418de0c6fa8bf6a688634397db Mon Sep 17 00:00:00 2001
+From: Michael West <michael.west@ettus.com>
+Date: Mon, 1 Apr 2019 16:39:54 -0700
+Subject: [PATCH] E320: Update max rev to 4
+
+Hardware changes only.  No software changes are required.
+
+Signed-off-by: Michael West <michael.west@ettus.com>
+---
+ mpm/python/usrp_mpm/periph_manager/e320.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/mpm/python/usrp_mpm/periph_manager/e320.py b/mpm/python/usrp_mpm/periph_manager/e320.py
+index aae4a2868..96a184477 100644
+--- a/mpm/python/usrp_mpm/periph_manager/e320.py
++++ b/mpm/python/usrp_mpm/periph_manager/e320.py
+@@ -78,7 +78,7 @@ class e320(ZynqComponents, PeriphManagerBase):
+     mboard_info = {"type": "e3xx",
+                    "product": "e320"
+                   }
+-    mboard_max_rev = 2  # RevB
++    mboard_max_rev = 4  # Rev E
+     mboard_sensor_callback_map = {
+         'ref_locked': 'get_ref_lock_sensor',
+         'gps_locked': 'get_gps_lock_sensor',
+-- 
+2.17.1
+
