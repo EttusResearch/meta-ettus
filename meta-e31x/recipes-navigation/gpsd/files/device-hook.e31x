@@ -1,0 +1,12 @@
+if [ "$2" = "ACTIVATE" ];then
+	logger "GPS: Activating GPS antenna supply voltage... "
+	ubx -d /dev/ttyPS1 -a on
+	logger "GPS: Activating GPS PPS..."
+	ubx -d /dev/ttyPS1 -a on -p on
+fi
+if [ "$2" = "DEACTIVATE" ];then
+	logger "GPS: Deactivating GPS antenna supply voltage... "
+	ubx -d /dev/ttyPS1 -a off
+	logger "GPS: Deactivating GPS PPS..."
+	ubx -d /dev/ttyPS1 -a off -p off
+fi
