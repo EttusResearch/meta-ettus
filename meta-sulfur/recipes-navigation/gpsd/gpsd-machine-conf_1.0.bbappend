@@ -3,8 +3,8 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 PACKAGE_ARCH = "${MACHINE_ARCH}"
 
 SRC_URI_ni-sulfur = " \
-    file://gpsd-machine \
-    file://device-hook \
+    file://gpsd-machine.sulfur \
+    file://device-hook.sulfur \
 "
 
 inherit update-alternatives
@@ -19,7 +19,7 @@ RREPLACES_${PN} += "gpsd-conf"
 
 do_install_ni-sulfur() {
     install -d ${D}/${sysconfdir}/default
-    install -m 0644 ${WORKDIR}/gpsd-machine ${D}/${sysconfdir}/default/gpsd.machine
+    install -m 0644 ${WORKDIR}/gpsd-machine.sulfur ${D}/${sysconfdir}/default/gpsd.machine
     install -d ${D}${sysconfdir}/gpsd/
-    install -m 0755 ${WORKDIR}/device-hook ${D}/${sysconfdir}/gpsd/device-hook
+    install -m 0755 ${WORKDIR}/device-hook.sulfur ${D}/${sysconfdir}/gpsd/device-hook
 }
