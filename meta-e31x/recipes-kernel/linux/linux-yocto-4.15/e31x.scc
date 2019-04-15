@@ -1,2 +1,3 @@
 patch 0001-Add-e3xx-device-tree-for-xilinx-4.9-kernel.patch
 patch 0001-mfd-power-supply-Add-ni-e31x-pmu-battery-and-charger.patch
+patch 0001-mfd-power-supply-Fix-incorrect-battery-property-valu.patch
