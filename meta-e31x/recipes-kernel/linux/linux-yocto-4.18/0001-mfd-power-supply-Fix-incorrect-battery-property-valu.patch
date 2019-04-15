@@ -1,0 +1,85 @@
+From 2f1bc72e9dbeee7d8557a065bc208fd5d0f5b9f8 Mon Sep 17 00:00:00 2001
+From: Virendra Kakade <virendra.kakade@ni.com>
+Date: Tue, 9 Apr 2019 14:56:05 -0500
+Subject: [PATCH] mfd/power-supply: Fix incorrect battery property values
+
+Fix the issues caused due to the change in the hardware mapping of
+battery property values from the GAUGE register to the BATTERY register
+along with other issues listed below.
+
+Battery Online Status: This is incorrectly determined from the
+E31X_PMU_REG_GAUGE register and the property read function returns
+inaccurate status too. Fix by reading it from the E31X_PMU_REG_BATTERY
+register and return the correct status.
+
+Battery Voltage: Similar to the online status this value is
+incorrectly determined from the E31X_PMU_REG_GAUGE register instead
+of the E31X_PMU_REG_BATTERY register. Also the units of voltage
+are incorrect. Report voltage in uV units according to the Linux
+power supply class documentation.
+
+Battery Temperature Alert: The algorithm to determine the temperature
+alert property can index an array out of bounds. Fix by restricting
+the array indexing.
+
+Fixes 27ca4dc25700 ("mfd/power-supply: Add ni-e31x-pmu, battery and
+charger")
+Signed-off-by: Virendra Kakade <virendra.kakade@ni.com>
+---
+ drivers/power/supply/e31x-battery.c | 15 ++++++++++-----
+ 1 file changed, 10 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/power/supply/e31x-battery.c b/drivers/power/supply/e31x-battery.c
+index ac05939a9405..00a1561e7ad2 100644
+--- a/drivers/power/supply/e31x-battery.c
++++ b/drivers/power/supply/e31x-battery.c
+@@ -19,6 +19,8 @@
+ #include <linux/delay.h>
+ #include <linux/mfd/e31x-pmu.h>
+ 
++#define E31X_PMU_BATTERY_VOLTAGE_MASK		GENMASK(23, 8)
++#define E31X_PMU_BATTERY_VOLTAGE_SHIFT		8
+ #define E31X_PMU_BATTERY_TEMP_ALERT_MASK       GENMASK(7,6)
+ #define E31X_PMU_BATTERY_TEMP_ALERT_SHIFT      6
+ #define E31X_PMU_BATTERY_ONLINE_MASK           BIT(5)
+@@ -144,7 +146,9 @@ static int e31x_battery_get_online(struct e31x_battery_dev *bat,
+        if (err)
+                return err;
+ 
+-       return !!(value & E31X_PMU_BATTERY_ONLINE_MASK);
++       val->intval = !!(value & E31X_PMU_BATTERY_ONLINE_MASK);
++
++       return 0;
+ }
+ 
+ static int e31x_battery_get_voltage_now(struct e31x_battery_dev *bat,
+@@ -153,13 +157,14 @@ static int e31x_battery_get_voltage_now(struct e31x_battery_dev *bat,
+        u32 value;
+        int err;
+ 
+-       err = regmap_read(bat->regmap, E31X_PMU_REG_GAUGE, &value);
++       err = regmap_read(bat->regmap, E31X_PMU_REG_BATTERY, &value);
++
+        if (err)
+                return err;
+ 
+-       value = E31X_PMU_GET_FIELD(GAUGE_VOLTAGE, value);
++       value = E31X_PMU_GET_FIELD(BATTERY_VOLTAGE, value);
+ 
+-       val->intval = value * E31X_PMU_VSENSE / GENMASK(15,0);
++       val->intval = 10000 * (value * E31X_PMU_VSENSE / GENMASK(15, 0));
+ 
+        return 0;
+ }
+@@ -231,7 +236,7 @@ static int e31x_battery_get_temp_alert_max(struct e31x_battery_dev *bat,
+                return err;
+ 
+        value = E31X_PMU_GET_FIELD(BATTERY_TEMP_ALERT, value);
+-       for (i = 0; i < ARRAY_SIZE(e31x_pmu_temp_values); i++)
++       for (i = 1; i < ARRAY_SIZE(e31x_pmu_temp_values); i++)
+                if (e31x_pmu_temp_values[i] > value)
+                        break;
+ 
+-- 
+2.17.1
+
