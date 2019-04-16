@@ -1,0 +1,62 @@
+From 145df49323dd3dbb0306d46f75dd45fb370edd71 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@ni.com>
+Date: Wed, 17 Apr 2019 14:56:46 +0200
+Subject: [PATCH] ni: zynq: Added network commands (dhcp, tftpboot)
+
+This change enables loading the kernel from network via TFTP. When combined with mounting
+the rootfs from NFS, the system can boot completely from network without the need for a
+valid system partition on the SD card
+---
+ configs/ni_sulfur_rev3_defconfig | 20 +++++++++++++++++++-
+ include/configs/ni_sulfur_rev3.h |  4 ++++
+ 2 files changed, 23 insertions(+), 1 deletion(-)
+
+diff --git a/configs/ni_sulfur_rev3_defconfig b/configs/ni_sulfur_rev3_defconfig
+index fa4a803a37..9cd12a0fc0 100644
+--- a/configs/ni_sulfur_rev3_defconfig
++++ b/configs/ni_sulfur_rev3_defconfig
+@@ -30,7 +30,25 @@ CONFIG_CMD_I2C=y
+ CONFIG_CMD_MMC=y
+ CONFIG_CMD_USB=y
+ # CONFIG_CMD_SETEXPR is not set
+-# CONFIG_CMD_NET is not set
++CONFIG_CMD_NET=y
++CONFIG_CMD_BOOTP=y
++CONFIG_CMD_DHCP=y
++CONFIG_BOOTP_BOOTPATH=y
++CONFIG_BOOTP_DNS=y
++# CONFIG_BOOTP_DNS2 is not set
++CONFIG_BOOTP_GATEWAY=y
++CONFIG_BOOTP_HOSTNAME=y
++# CONFIG_BOOTP_PREFER_SERVERIP is not set
++CONFIG_BOOTP_SUBNETMASK=y
++# CONFIG_BOOTP_NTPSERVER is not set
++CONFIG_BOOTP_PXE=y
++CONFIG_BOOTP_PXE_CLIENTARCH=0x15
++CONFIG_BOOTP_VCI_STRING="U-Boot.armv7"
++CONFIG_CMD_TFTPBOOT=y
++# CONFIG_CMD_TFTPPUT is not set
++# CONFIG_CMD_TFTPSRV is not set
++CONFIG_NET_TFTP_VARS=y
++# CONFIG_CMD_RARP is not set
+ # CONFIG_CMD_NFS is not set
+ CONFIG_CMD_CACHE=y
+ CONFIG_CMD_EXT4=y
+diff --git a/include/configs/ni_sulfur_rev3.h b/include/configs/ni_sulfur_rev3.h
+index 483414daa8..d12d0f410c 100644
+--- a/include/configs/ni_sulfur_rev3.h
++++ b/include/configs/ni_sulfur_rev3.h
+@@ -29,6 +29,10 @@
+ 	"fit_size=0x800000\0"           \
+ 	"fdt_high=0x20000000\0"         \
+ 	"initrd_high=0x20000000\0"      \
++	"netargs=printenv serverip && printenv nfsroot && setenv bootargs root=/dev/nfs " \
++	    "nfsroot=${serverip}:${nfsroot},v3,tcp ip=dhcp uio_pdrv_genirq.of_id=usrp-uio\0" \
++	"netboot=run netargs && echo Loading FIT to RAM via DHCP/TFTP && dhcp ${load_addr} " \
++	    "${fit_image} && bootm ${load_addr}#conf@zynq-ni-${variant}.dtb\0" \
+ 	"sdboot=if test ${ec_disable_swsync} = 0; then " \
+ 			"echo Copying MCU FW from SD to RAM... && " \
+ 			"run expand_ec_image; " \
+-- 
+2.17.1
+
