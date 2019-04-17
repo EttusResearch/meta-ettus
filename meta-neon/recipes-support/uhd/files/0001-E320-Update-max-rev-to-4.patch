@@ -7,13 +7,13 @@ Hardware changes only.  No software changes are required.
 
 Signed-off-by: Michael West <michael.west@ettus.com>
 ---
- mpm/python/usrp_mpm/periph_manager/e320.py | 2 +-
+ python/usrp_mpm/periph_manager/e320.py | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/mpm/python/usrp_mpm/periph_manager/e320.py b/mpm/python/usrp_mpm/periph_manager/e320.py
+diff --git a/python/usrp_mpm/periph_manager/e320.py b/python/usrp_mpm/periph_manager/e320.py
 index aae4a2868..96a184477 100644
---- a/mpm/python/usrp_mpm/periph_manager/e320.py
-+++ b/mpm/python/usrp_mpm/periph_manager/e320.py
+--- a/python/usrp_mpm/periph_manager/e320.py
++++ b/python/usrp_mpm/periph_manager/e320.py
 @@ -78,7 +78,7 @@ class e320(ZynqComponents, PeriphManagerBase):
      mboard_info = {"type": "e3xx",
                     "product": "e320"
