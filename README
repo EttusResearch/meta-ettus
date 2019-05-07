@@ -8,7 +8,7 @@ Supported devices
 
   - NI USRP N310/N300 series (meta-sulfur)
   - NI USRP E320 series (meta-neon)
-  - NI USRP E310/E312/E313 (meta-e31x, work in progress, boots but not functional)
+  - NI USRP E310/E312/E313 (meta-e31x)
 
 
 Repository organization
