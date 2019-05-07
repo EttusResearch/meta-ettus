@@ -58,12 +58,19 @@ case $_requested_device in
 		_mender_pkg_name=e3xx_e320_mender_default-$_artifact_name.zip
 		_sdk_pkg_name=e3xx_e320_sdk_default-$_artifact_name.zip
 	;;
-	"e31x")
-		echo "Building E31x image..."
+	"e310_sg1")
+		echo "Building E310 SG1 image..."
 		_sdimg_file_name=usrp_e310_fs.sdimg
 		_mender_file_name=usrp_e310_fs.mender
-		_sdimg_pkg_name=e3xx_e310_sdimg_default-$_artifact_name.zip
-		_mender_pkg_name=e3xx_e310_mender_default-$_artifact_name.zip
+		_sdimg_pkg_name=e3xx_e310_sg1_sdimg_default-$_artifact_name.zip
+		_mender_pkg_name=e3xx_e310_sg1_mender_default-$_artifact_name.zip
+	;;
+	"e310_sg3")
+		echo "Building E310 SG3 image..."
+		_sdimg_file_name=usrp_e310_fs.sdimg
+		_mender_file_name=usrp_e310_fs.mender
+		_sdimg_pkg_name=e3xx_e310_sg3_sdimg_default-$_artifact_name.zip
+		_mender_pkg_name=e3xx_e310_sg3_mender_default-$_artifact_name.zip
 		_sdk_pkg_name=e3xx_e310_sdk_default-$_artifact_name.zip
 	;;
 	*)
@@ -84,7 +91,10 @@ then
 	exit 1
 fi
 echo "Finding image..."
-_sdimg=`find tmp-glibc/deploy/images -name "developer-image*.sdimg" -type l`
+if echo $_requested_device | grep '_'; then
+_speed_grade=$(echo $_requested_device | cut -d'_' -f 2)
+fi
+_sdimg=`find $_build_dir/tmp-glibc/deploy/images -name "developer-image*$_speed_grade*.sdimg" -type l`
 if [ ! -r $_sdimg ]; then
 	echo "ERROR: Could not find SD card image!" exit 1
 fi
@@ -102,7 +112,7 @@ rm $TMP_DIR/*
 ## Mender Image #########################################################
 # This gets built in the same step as the SD card image.
 echo "Finding mender artefact..."
-_mender_art=`find tmp-glibc/deploy/images -name "developer-image*.mender" -type l`
+_mender_art=`find $_build_dir/tmp-glibc/deploy/images -name "developer-image*$_speed_grade*.mender" -type l`
 if [ ! -r $_mender_art ]; then
 	echo "ERROR: Could not find mender artefact!"
 	exit 1
@@ -116,10 +126,12 @@ mv $TMP_DIR/*.zip $DST_DIR
 rm $TMP_DIR/*
 
 ## SDK ################################################################
+# Skip SDK build for e310_sg1 as it has the same sdk as sg3.
+if [ ! -z $_sdk_pkg_name ]; then
 echo "Launching build (SDK)..."
 bitbake developer-image -cpopulate_sdk
 echo "Finding SDK..."
-_sdk=`find tmp-glibc/deploy/sdk -name "oecore*.sh" -type f`
+_sdk=`find $_build_dir/tmp-glibc/deploy/sdk -name "oecore*.sh" -type f`
 if [ ! -r $_sdk ]; then
 	echo "ERROR: Could not find SDK!"
 	exit 1
@@ -135,6 +147,7 @@ do
 done
 echo "Zipping up SDK..."
 zip -j $TMP_DIR/$_sdk_pkg_name $TMP_DIR/*.{sh,manifest,json}
+fi
 mv $TMP_DIR/*.zip $DST_DIR
 rm $TMP_DIR/*
 
