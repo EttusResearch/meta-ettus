@@ -157,7 +157,7 @@ def get_uhd_version(upath):
         uhdver_contents).group('api')
     abi = re.search(r'set\(UHD_VERSION_ABI[ ]+(?P<abi>[0-9]+)\)',
         uhdver_contents).group('abi')
-    patch = re.search(r'set\(UHD_VERSION_PATCH[ ]+(?P<patch>[0-9]+)\)',
+    patch = re.search(r'set\(UHD_VERSION_PATCH[ ]+(?P<patch>[a-z0-9]+)\)',
         uhdver_contents).group('patch')
     return ""+major+"."+api+"."+abi+"."+patch
 
