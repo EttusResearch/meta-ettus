@@ -1,0 +1,125 @@
+From 5e86b3b6da3bbc855d2911161a77bcf42380fd97 Mon Sep 17 00:00:00 2001
+From: Virendra Kakade <virendra.kakade@ni.com>
+Date: Fri, 10 May 2019 16:22:46 -0500
+Subject: [PATCH] mfd/power-supply: Add support for writeable property
+
+Add support for writeable properties like charge_now for battery.
+This enables support for a fast charge calibration routine which
+requires the user to write a value to the charge_now property.
+
+Signed-off-by: Virendra Kakade <virendra.kakade@ni.com>
+---
+ drivers/power/supply/e31x-battery.c | 68 ++++++++++++++++++++++++-----
+ 1 file changed, 56 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/power/supply/e31x-battery.c b/drivers/power/supply/e31x-battery.c
+index 00a1561e7ad2..9b9d27eb7a3f 100644
+--- a/drivers/power/supply/e31x-battery.c
++++ b/drivers/power/supply/e31x-battery.c
+@@ -49,13 +49,6 @@ struct e31x_battery_dev {
+        struct power_supply *supply;
+ };
+ 
+-static int e31x_battery_set_prop(struct power_supply *psy,
+-                                enum power_supply_property psp,
+-                                const union power_supply_propval *val)
+-{
+-       return 0;
+-}
+-
+ static int e31x_battery_get_status(struct e31x_battery_dev *bat,
+                                   union power_supply_propval *val)
+ {
+@@ -188,6 +181,29 @@ static int e31x_battery_get_charge_now(struct e31x_battery_dev *bat,
+        return 0;
+ }
+ 
++static int e31x_battery_set_charge_now(struct e31x_battery_dev *bat,
++				       const union power_supply_propval *val)
++{
++	u32 data;
++	int err;
++	u16 charge;
++
++	err = regmap_read(bat->regmap, E31X_PMU_REG_GAUGE, &data);
++	if (err)
++		return err;
++
++	charge = E31X_PMU_UAH_TO_BIN(val->intval);
++
++	data = (data & (~E31X_PMU_GAUGE_CHARGE_MASK)) |
++			(charge << E31X_PMU_GAUGE_CHARGE_SHIFT);
++
++	err = regmap_write(bat->regmap, E31X_PMU_REG_GAUGE, data);
++	if (err)
++		return err;
++
++	return 0;
++}
++
+ static int e31x_battery_get_temp(struct e31x_battery_dev *bat,
+                                 union power_supply_propval *val)
+ {
+@@ -281,6 +297,25 @@ static int e31x_battery_get_prop(struct power_supply *psy,
+        return 0;
+ }
+ 
++
++static int e31x_battery_set_prop(struct power_supply *psy,
++                                enum power_supply_property psp,
++                                const union power_supply_propval *val)
++{
++	int ret;
++	struct e31x_battery_dev *battery = power_supply_get_drvdata(psy);
++
++	switch (psp) {
++	case POWER_SUPPLY_PROP_CHARGE_NOW:
++		ret = e31x_battery_set_charge_now(battery, val);
++		break;
++	default:
++		ret = -EINVAL;
++	}
++
++	return ret;
++}
++
+ static enum power_supply_property e31x_battery_props[] = {
+        POWER_SUPPLY_PROP_STATUS,
+        POWER_SUPPLY_PROP_HEALTH,
+@@ -294,11 +329,20 @@ static enum power_supply_property e31x_battery_props[] = {
+        POWER_SUPPLY_PROP_TEMP_ALERT_MAX,
+ };
+ 
+-static int e31x_battery_prop_writeable(struct power_supply *psy,
+-                                      enum power_supply_property psp)
++static int e31x_battery_property_is_writeable(struct power_supply *psy,
++					      enum power_supply_property psp)
+ {
+-       return psp == POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN ||
+-              psp == POWER_SUPPLY_PROP_SCOPE;
++	int ret;
++
++	switch (psp) {
++	case POWER_SUPPLY_PROP_CHARGE_NOW:
++		ret = 1;
++		break;
++	default:
++		ret = 0;
++	}
++
++	return ret;
+ }
+ 
+ static const struct power_supply_desc e31x_battery_desc = {
+@@ -306,7 +350,7 @@ static const struct power_supply_desc e31x_battery_desc = {
+        .type = POWER_SUPPLY_TYPE_BATTERY,
+        .properties = e31x_battery_props,
+        .num_properties = ARRAY_SIZE(e31x_battery_props),
+-       .property_is_writeable = e31x_battery_prop_writeable,
++       .property_is_writeable = e31x_battery_property_is_writeable,
+        .get_property = e31x_battery_get_prop,
+        .set_property = e31x_battery_set_prop,
+ };
+-- 
+2.17.1
+
