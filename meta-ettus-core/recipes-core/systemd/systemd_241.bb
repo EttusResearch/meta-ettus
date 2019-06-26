@@ -53,6 +53,7 @@ SRC_URI_MUSL = "file://0001-Use-getenv-when-secure-versions-are-not-available.pa
                file://0023-socket-util.h-include-string.h.patch \
                file://0024-test-json.c-define-M_PIl.patch \
                file://0001-do-not-disable-buffer-in-writing-files.patch \
+               file://0026-resolve-also-add-missing.h-needed-for-musl.patch \
                "
 
 PAM_PLUGINS = " \
@@ -101,7 +102,6 @@ PACKAGECONFIG_remove_libc-musl = " \
     nss \
     nss-mymachines \
     nss-resolve \
-    resolved \
     smack \
     sysusers \
     utmp \
