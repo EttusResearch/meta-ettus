@@ -2,7 +2,8 @@
 Name=eth0
 
 [Network]
-DHCP=v4
+DHCP=ipv4
 
-[DHCPv4]
+[DHCP]
 UseHostname=false
+ClientIdentifier=mac
