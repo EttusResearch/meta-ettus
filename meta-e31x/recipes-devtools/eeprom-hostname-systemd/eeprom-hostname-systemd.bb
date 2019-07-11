@@ -1,3 +1,5 @@
+require includes/maintainer-ettus.inc
+
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 DESCRIPTION = "Hostname utility for the Ettus Research E31x SDR"
 PV="0.10"

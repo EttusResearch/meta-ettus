@@ -1,3 +1,5 @@
+require includes/maintainer-ettus.inc
+
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 DESCRIPTION = "Hostname utility for the Ettus Research Sulfur SDR"
 PV="0.10"
