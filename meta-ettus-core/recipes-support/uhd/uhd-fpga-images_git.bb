@@ -1,4 +1,5 @@
 require recipes-support/uhd/version.inc
+require includes/maintainer-ettus.inc
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 

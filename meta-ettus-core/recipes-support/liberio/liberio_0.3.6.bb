@@ -5,6 +5,7 @@ LICENSE = "GPLv2"
 LIC_FILES_CHKSUM = "file://COPYING;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 
 inherit autotools pkgconfig
+require includes/maintainer-ettus.inc
 
 S = "${WORKDIR}/git"
 
@@ -20,4 +21,3 @@ FILES_${PN}-dev += "${includedir}/liberio/"
 do_install_append() {
 	rm ${D}/${bindir} -r
 }
-

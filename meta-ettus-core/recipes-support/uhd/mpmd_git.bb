@@ -1,5 +1,6 @@
 require recipes-support/uhd/version.inc
 require recipes-support/uhd/uhd_git_src.inc
+require includes/maintainer-ettus.inc
 
 SUMMARY = "Universal Hardware Driver for Ettus Research products (Hardware Daemon)."
 HOMEPAGE = "http://www.ettus.com"
