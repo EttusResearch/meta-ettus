@@ -1,0 +1,98 @@
+From 4c8f7cd50d64174738207d95d5783792be6d985e Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Tue, 30 Jul 2019 13:07:23 +0200
+Subject: [PATCH 2/2] configs: ni_e31x_sg{1|3}: Added network commands (dhcp,
+ tftpboot)
+
+This change enables loading the kernel from network via TFTP. When
+combined with mounting the rootfs from NFS, the system can boot
+completely from network without the need for a valid rootfs
+partition on the SD card
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ configs/ni_e31x_sg1_defconfig | 19 ++++++++++++++++++-
+ configs/ni_e31x_sg3_defconfig | 19 ++++++++++++++++++-
+ include/configs/ni_e31x.h     |  6 ++++++
+ 3 files changed, 42 insertions(+), 2 deletions(-)
+
+diff --git a/configs/ni_e31x_sg1_defconfig b/configs/ni_e31x_sg1_defconfig
+index c865bdc97d..66a391b703 100644
+--- a/configs/ni_e31x_sg1_defconfig
++++ b/configs/ni_e31x_sg1_defconfig
+@@ -29,7 +29,24 @@ CONFIG_CMD_MMC=y
+ CONFIG_CMD_MII=y
+ CONFIG_CMD_USB=y
+ # CONFIG_CMD_SETEXPR is not set
+-# CONFIG_CMD_NET is not set
++CONFIG_CMD_NET=y
++CONFIG_CMD_BOOTP=y
++CONFIG_CMD_DHCP=y
++CONFIG_BOOTP_BOOTPATH=y
++CONFIG_BOOTP_DNS=y
++# CONFIG_BOOTP_DNS2 is not set
++CONFIG_BOOTP_GATEWAY=y
++CONFIG_BOOTP_HOSTNAME=y
++# CONFIG_BOOTP_PREFER_SERVERIP is not set
++CONFIG_BOOTP_SUBNETMASK=y
++# CONFIG_BOOTP_NTPSERVER is not set
++CONFIG_BOOTP_PXE=y
++CONFIG_BOOTP_PXE_CLIENTARCH=0x15
++CONFIG_BOOTP_VCI_STRING="U-Boot.armv7"
++CONFIG_CMD_TFTPBOOT=y
++# CONFIG_CMD_TFTPPUT is not set
++# CONFIG_CMD_TFTPSRV is not set
++CONFIG_NET_TFTP_VARS=y
+ # CONFIG_CMD_NFS is not set
+ CONFIG_CMD_CACHE=y
+ CONFIG_CMD_EXT4=y
+diff --git a/configs/ni_e31x_sg3_defconfig b/configs/ni_e31x_sg3_defconfig
+index e3a7313561..9a3c25846a 100644
+--- a/configs/ni_e31x_sg3_defconfig
++++ b/configs/ni_e31x_sg3_defconfig
+@@ -29,7 +29,24 @@ CONFIG_CMD_MMC=y
+ CONFIG_CMD_MII=y
+ CONFIG_CMD_USB=y
+ # CONFIG_CMD_SETEXPR is not set
+-# CONFIG_CMD_NET is not set
++CONFIG_CMD_NET=y
++CONFIG_CMD_BOOTP=y
++CONFIG_CMD_DHCP=y
++CONFIG_BOOTP_BOOTPATH=y
++CONFIG_BOOTP_DNS=y
++# CONFIG_BOOTP_DNS2 is not set
++CONFIG_BOOTP_GATEWAY=y
++CONFIG_BOOTP_HOSTNAME=y
++# CONFIG_BOOTP_PREFER_SERVERIP is not set
++CONFIG_BOOTP_SUBNETMASK=y
++# CONFIG_BOOTP_NTPSERVER is not set
++CONFIG_BOOTP_PXE=y
++CONFIG_BOOTP_PXE_CLIENTARCH=0x15
++CONFIG_BOOTP_VCI_STRING="U-Boot.armv7"
++CONFIG_CMD_TFTPBOOT=y
++# CONFIG_CMD_TFTPPUT is not set
++# CONFIG_CMD_TFTPSRV is not set
++CONFIG_NET_TFTP_VARS=y
+ # CONFIG_CMD_NFS is not set
+ CONFIG_CMD_CACHE=y
+ CONFIG_CMD_EXT4=y
+diff --git a/include/configs/ni_e31x.h b/include/configs/ni_e31x.h
+index a1a5dd9fb3..8c60447097 100644
+--- a/include/configs/ni_e31x.h
++++ b/include/configs/ni_e31x.h
+@@ -25,6 +25,12 @@
+ 	"fit_size=0x800000\0"           \
+ 	"fdt_high=0x20000000\0"         \
+ 	"initrd_high=0x20000000\0"      \
++	"netargs=printenv serverip && printenv tftproot && printenv nfsroot && setenv bootargs root=/dev/nfs " \
++		"nfsroot=${serverip}:${nfsroot},v3,tcp ip=dhcp uio_pdrv_genirq.of_id=usrp-uio\0" \
++	"netboot=run netargs && " \
++		"echo Loading FIT to RAM via DHCP/TFTP && " \
++		"dhcp ${load_addr} ${tftproot}/${fit_image} && "\
++		"bootm ${load_addr}#conf@zynq-ni-${mboard}.dtb\0" \
+ 	"sdboot=echo Copying FIT from SD to RAM... && " \
+ 		"ext4load mmc 0:2 ${load_addr} ${fit_image} && " \
+ 		"bootm ${load_addr}#conf@zynq-ni-${mboard}.dtb\0" \
+-- 
+2.17.1
+

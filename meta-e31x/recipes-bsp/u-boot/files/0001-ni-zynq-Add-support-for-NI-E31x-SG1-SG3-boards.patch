@@ -1,7 +1,7 @@
-From dabcfce775e57252d30debeb2b9c6368bbf64e17 Mon Sep 17 00:00:00 2001
+From 93ace1836fda4b46b1044e0dc8f77b7fad3d9e1e Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Fri, 27 Apr 2018 15:22:09 -0700
-Subject: [PATCH] ni: zynq: Add support for NI E31x SG1/SG3 boards
+Subject: [PATCH 1/2] ni: zynq: Add support for NI E31x SG1/SG3 boards
 
 Add support for NI E31x series of embedded SDRs.
 
@@ -9,22 +9,22 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 ---
  arch/arm/dts/zynq-ni-e31x-sg1.dts             |   1 +
  arch/arm/dts/zynq-ni-e31x-sg3.dts             |   1 +
- arch/arm/dts/zynq-ni-e31x-uboot.dtsi          |  26 +++
- arch/arm/dts/zynq-ni-e31x.dtsi                | 143 ++++++++++++
+ arch/arm/dts/zynq-ni-e31x-uboot.dtsi          |  26 ++
+ arch/arm/dts/zynq-ni-e31x.dtsi                | 143 ++++++++
  board/ni/zynq/Makefile                        |  10 +
- board/ni/zynq/board.c                         | 159 +++++++++++++
- board/ni/zynq/e31x-eeprom.c                   | 125 +++++++++++
- board/ni/zynq/e31x-eeprom.h                   |  40 ++++
- board/ni/zynq/ps7_init_common.c               | 118 ++++++++++
- board/ni/zynq/ps7_init_gpl.h                  |  35 +++
- board/ni/zynq/zynq-ni-e31x-sg1/ps7_init_gpl.c | 299 +++++++++++++++++++++++++
- board/ni/zynq/zynq-ni-e31x-sg3/ps7_init_gpl.c | 306 ++++++++++++++++++++++++++
- configs/ni_e31x_sg1_defconfig                 |  65 ++++++
- configs/ni_e31x_sg3_defconfig                 |  65 ++++++
- include/configs/ni_e31x.h                     |  41 ++++
- include/configs/ni_e31x_sg1.h                 |  15 ++
- include/configs/ni_e31x_sg3.h                 |  16 ++
- 17 files changed, 1465 insertions(+)
+ board/ni/zynq/board.c                         | 159 +++++++++
+ board/ni/zynq/e31x-eeprom.c                   | 125 +++++++
+ board/ni/zynq/e31x-eeprom.h                   |  40 +++
+ board/ni/zynq/ps7_init_common.c               | 118 +++++++
+ board/ni/zynq/ps7_init_gpl.h                  |  35 ++
+ board/ni/zynq/zynq-ni-e31x-sg1/ps7_init_gpl.c | 299 +++++++++++++++++
+ board/ni/zynq/zynq-ni-e31x-sg3/ps7_init_gpl.c | 306 ++++++++++++++++++
+ configs/ni_e31x_sg1_defconfig                 |  65 ++++
+ configs/ni_e31x_sg3_defconfig                 |  65 ++++
+ include/configs/ni_e31x.h                     |  40 +++
+ include/configs/ni_e31x_sg1.h                 |  15 +
+ include/configs/ni_e31x_sg3.h                 |  16 +
+ 17 files changed, 1464 insertions(+)
  create mode 100644 arch/arm/dts/zynq-ni-e31x-sg1.dts
  create mode 100644 arch/arm/dts/zynq-ni-e31x-sg3.dts
  create mode 100644 arch/arm/dts/zynq-ni-e31x-uboot.dtsi
@@ -91,7 +91,7 @@ index 0000000000..d4fc0272bb
 +};
 diff --git a/arch/arm/dts/zynq-ni-e31x.dtsi b/arch/arm/dts/zynq-ni-e31x.dtsi
 new file mode 100644
-index 0000000..5ff07e6
+index 0000000000..5ff07e6782
 --- /dev/null
 +++ b/arch/arm/dts/zynq-ni-e31x.dtsi
 @@ -0,0 +1,143 @@
@@ -763,7 +763,7 @@ index 0000000000..e728cb296a
 +int ps7_config(unsigned long *ps7_config_init);
 diff --git a/board/ni/zynq/zynq-ni-e31x-sg1/ps7_init_gpl.c b/board/ni/zynq/zynq-ni-e31x-sg1/ps7_init_gpl.c
 new file mode 100644
-index 0000000..8dd522e
+index 0000000000..8dd522e947
 --- /dev/null
 +++ b/board/ni/zynq/zynq-ni-e31x-sg1/ps7_init_gpl.c
 @@ -0,0 +1,299 @@
@@ -1068,7 +1068,7 @@ index 0000000..8dd522e
 +}
 diff --git a/board/ni/zynq/zynq-ni-e31x-sg3/ps7_init_gpl.c b/board/ni/zynq/zynq-ni-e31x-sg3/ps7_init_gpl.c
 new file mode 100644
-index 0000000..b7cd02c
+index 0000000000..b7cd02cad3
 --- /dev/null
 +++ b/board/ni/zynq/zynq-ni-e31x-sg3/ps7_init_gpl.c
 @@ -0,0 +1,306 @@
@@ -1380,7 +1380,7 @@ index 0000000..b7cd02c
 +}
 diff --git a/configs/ni_e31x_sg1_defconfig b/configs/ni_e31x_sg1_defconfig
 new file mode 100644
-index 0000000..c865bdc
+index 0000000000..c865bdc97d
 --- /dev/null
 +++ b/configs/ni_e31x_sg1_defconfig
 @@ -0,0 +1,65 @@
@@ -1451,7 +1451,7 @@ index 0000000..c865bdc
 +CONFIG_ENV_IS_IN_MMC=y
 diff --git a/configs/ni_e31x_sg3_defconfig b/configs/ni_e31x_sg3_defconfig
 new file mode 100644
-index 0000000..e3a7313
+index 0000000000..e3a7313561
 --- /dev/null
 +++ b/configs/ni_e31x_sg3_defconfig
 @@ -0,0 +1,65 @@
@@ -1522,10 +1522,10 @@ index 0000000..e3a7313
 +CONFIG_ENV_IS_IN_MMC=y
 diff --git a/include/configs/ni_e31x.h b/include/configs/ni_e31x.h
 new file mode 100644
-index 0000000000..7cd102cc81
+index 0000000000..a1a5dd9fb3
 --- /dev/null
 +++ b/include/configs/ni_e31x.h
-@@ -0,0 +1,41 @@
+@@ -0,0 +1,40 @@
 +/*
 + * SPDX-License-Identifier: GPL-2.0
 + *
@@ -1554,7 +1554,7 @@ index 0000000000..7cd102cc81
 +	"fdt_high=0x20000000\0"         \
 +	"initrd_high=0x20000000\0"      \
 +	"sdboot=echo Copying FIT from SD to RAM... && " \
-+		"ext4load ${mender_uboot_root} ${load_addr} ${fit_image} && " \
++		"ext4load mmc 0:2 ${load_addr} ${fit_image} && " \
 +		"bootm ${load_addr}#conf@zynq-ni-${mboard}.dtb\0" \
 +	"jtagboot=echo TFTPing FIT to RAM... && " \
 +		"tftpboot ${load_addr} ${fit_image} && " \
@@ -1566,7 +1566,6 @@ index 0000000000..7cd102cc81
 +		DFU_ALT_INFO
 +
 +#endif /* __CONFIG_NI_E31X_H */
-+
 diff --git a/include/configs/ni_e31x_sg1.h b/include/configs/ni_e31x_sg1.h
 new file mode 100644
 index 0000000000..3e736aa740
@@ -1610,6 +1609,5 @@ index 0000000000..d278757646
 +#include <configs/ni_e31x.h>
 +
 +#endif /* __CONFIG_NI_E31X_SG3_H */
--- 
-2.7.4
-
+--
+2.17.1
