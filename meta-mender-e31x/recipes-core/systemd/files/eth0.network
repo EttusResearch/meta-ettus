@@ -1,5 +1,6 @@
 [Match]
 Name=eth0
+KernelCommandLine=!nfsroot
 
 [Network]
 DHCP=ipv4
