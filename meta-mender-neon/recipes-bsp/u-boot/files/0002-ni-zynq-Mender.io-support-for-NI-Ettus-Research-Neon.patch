@@ -1,20 +1,21 @@
-From 2468bcb3680a4992d1ab558d180dfc499aa80cea Mon Sep 17 00:00:00 2001
+From b8ec382853ef03682e6c89f5e6ebd91f4d439ea7 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
-Subject: [PATCH] ni: zynq: Mender.io support for NI Ettus Research Neon Rev2
 Date: Mon, 21 Jan 2019 14:09:35 -0800
- Rev2 SDR
+Subject: [PATCH] ni: zynq: Mender.io support for NI Ettus Research Neon Rev2
 
 This involves adding bootcount in environment, as well as modifying
 the default bootconfiguration to run ${mender_setup} first.
 
 Signed-off-by: Moritz Fischer <moritz@ettus.com>
+
+%% original patch: 0002-ni-zynq-Mender.io-support-for-NI-Ettus-Research-Neon.patch
 ---
  configs/ni_neon_rev2_defconfig |  1 +
- include/configs/ni_neon_rev2.h | 17 ++++++++---------
- 2 files changed, 9 insertions(+), 9 deletions(-)
+ include/configs/ni_neon_rev2.h | 14 ++++++--------
+ 2 files changed, 7 insertions(+), 8 deletions(-)
 
 diff --git a/configs/ni_neon_rev2_defconfig b/configs/ni_neon_rev2_defconfig
-index 2b680b7136..271331e9d2 100644
+index 8ee4c0a971..a339749b0f 100644
 --- a/configs/ni_neon_rev2_defconfig
 +++ b/configs/ni_neon_rev2_defconfig
 @@ -14,6 +14,7 @@ CONFIG_FIT=y
@@ -26,10 +27,10 @@ index 2b680b7136..271331e9d2 100644
  # CONFIG_DISPLAY_CPUINFO is not set
  CONFIG_SPL_STACK_R=y
 diff --git a/include/configs/ni_neon_rev2.h b/include/configs/ni_neon_rev2.h
-index 47be9c5bd0..640afc667d 100644
+index 46b3431951..ff3d898a0a 100644
 --- a/include/configs/ni_neon_rev2.h
 +++ b/include/configs/ni_neon_rev2.h
-@@ -9,32 +9,31 @@
+@@ -9,11 +9,9 @@
  #ifndef __CONFIG_NI_NEON_REV2_H
  #define __CONFIG_NI_NEON_REV2_H
  
@@ -43,10 +44,7 @@ index 47be9c5bd0..640afc667d 100644
  
  #undef CONFIG_EXTRA_ENV_SETTINGS
  #define CONFIG_EXTRA_ENV_SETTINGS	\
--	"fit_image=fit.itb\0"		\
-+	"fit_image=boot/fitImage\0"	\
- 	"ec_compat=2\0"		\
-	"mboard=neon-rev1\0"	\
+@@ -23,7 +21,7 @@
  	"ec_disable_swsync=0\0"		\
  	"ec_image=lib/firmware/ni/ec-neon-rev2.RW.bin\0"	\
  	"expand_ec_image=setenv ec_image lib/firmware/ni/ec-neon-rev${ec_compat}.RW.bin\0" \
@@ -55,21 +53,24 @@ index 47be9c5bd0..640afc667d 100644
  	"load_addr=0x2000000\0"		\
  	"fit_size=0x800000\0"           \
  	"fdt_high=0x20000000\0"         \
- 	"initrd_high=0x20000000\0"      \
--	"sdboot=if test ${ec_disable_swsync} = 0; then "\
-+	"sdboot=run mender_setup; " \
-+		"if test ${ec_disable_swsync} = 0; then "\
- 			"echo Copying MCU FW from SD to RAM... && " \
- 			"run expand_ec_image; " \
--			"load mmc 0 ${load_addr} ${ec_image} && " \
-+			"ext4load ${mender_uboot_root} ${load_addr} ${ec_image} && " \
- 			"crosec swsync ${load_addr} ${filesize}; fi;" \
+@@ -34,14 +32,14 @@
+ 		"echo Loading FIT to RAM via DHCP/TFTP && " \
+ 		"dhcp ${load_addr} ${tftproot}/${fit_image} && "\
+ 		"bootm ${load_addr}#conf@zynq-ni-${mboard}.dtb\0" \
+-	"sdboot=run swsync_sd; " \
++	"sdboot=run mender_setup; run swsync_sd; " \
  		"echo Copying FIT from SD to RAM... && " \
 -		"load mmc 0 ${load_addr} ${fit_image} && " \
 +		"ext4load ${mender_uboot_root} ${load_addr} ${fit_image} && " \
  		"bootm ${load_addr}#conf@zynq-ni-${mboard}.dtb\0" \
- 	"jtagboot=echo TFTPing FIT to RAM... && " \
- 		"tftpboot ${load_addr} ${fit_image} && " \
+ 	"swsync_sd=if test ${ec_disable_swsync} = 0; then "\
+ 			"echo Copying MCU FW from SD to RAM... && " \
+ 			"run expand_ec_image; " \
+-			"load mmc 0 ${load_addr} ${ec_image} && " \
++			"ext4load ${mender_uboot_root} ${load_addr} ${ec_image} && " \
+ 			"crosec swsync ${load_addr} ${filesize}; fi;\0" \
+ 	"swsync_net=if test ${ec_disable_swsync} = 0; then " \
+ 			"echo Copying MCU FW to RAM via DHCP/TFTP... && " \
 -- 
-2.14.3
+2.17.1
 
