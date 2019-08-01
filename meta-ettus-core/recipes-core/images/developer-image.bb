@@ -43,6 +43,8 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     trousers \
     tpm-tools \
     salt-minion \
+    gps-utils-cgps \
+    gps-utils-gps2udp \
     "
 
 inherit core-image image-buildinfo
