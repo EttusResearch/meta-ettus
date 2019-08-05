@@ -41,18 +41,8 @@ PACKAGES =+ " \
 FILES_${PN}-ni-sulfur-license = " \
                         /lib/firmware/ni/LICENSE.ec-sulfur \
                         "
-FILES_${PN}-ni-sulfur = "/lib/firmware/ni/ec-sulfur-rev3.bin \
-                         /lib/firmware/ni/ec-sulfur-rev3.RW.bin \
-                         /lib/firmware/ni/ec-sulfur-rev4.bin \
-                         /lib/firmware/ni/ec-sulfur-rev4.RW.bin \
-                         /lib/firmware/ni/ec-sulfur-rev5.bin \
-                         /lib/firmware/ni/ec-sulfur-rev5.RW.bin \
-                         /lib/firmware/ni/ec-sulfur-rev6.bin \
-                         /lib/firmware/ni/ec-sulfur-rev6.RW.bin \
-                         /lib/firmware/ni/ec-phosphorus-rev4.bin \
-                         /lib/firmware/ni/ec-phosphorus-rev4.RW.bin \
-                         /lib/firmware/ni/ec-phosphorus-rev6.bin \
-                         /lib/firmware/ni/ec-phosphorus-rev6.RW.bin \
+FILES_${PN}-ni-sulfur = "/lib/firmware/ni/ec-sulfur*.bin \
+                         /lib/firmware/ni/ec-phosphorus*.bin \
                         "
 RDEPENDS_${PN}-ni-sulfur += "${PN}-ni-sulfur-license"
 DEPENDS += "dtc-native python3-native"
@@ -94,17 +84,17 @@ do_install_append() {
     install -D -m 0644 ${WORKDIR}/ec-sulfur-rev5.bin ${D}/lib/firmware/ni/ec-sulfur-rev5.bin
     install -m 0644 ${WORKDIR}/ec-sulfur-rev5.RW.bin ${D}/lib/firmware/ni/ec-sulfur-rev5.RW.bin
 
-    ln -sf ec-sulfur-rev5.bin ${D}/lib/firmware/ni/ec-sulfur-rev4.bin
-    ln -sf ec-sulfur-rev5.RW.bin ${D}/lib/firmware/ni/ec-sulfur-rev4.RW.bin
+    for REV in 4 6 7 8 9
+    do
+      ln -sf ec-sulfur-rev5.bin ${D}/lib/firmware/ni/ec-sulfur-rev${REV}.bin
+      ln -sf ec-sulfur-rev5.RW.bin ${D}/lib/firmware/ni/ec-sulfur-rev${REV}.RW.bin
+    done
 
-    ln -sf ec-sulfur-rev5.bin ${D}/lib/firmware/ni/ec-sulfur-rev6.bin
-    ln -sf ec-sulfur-rev5.RW.bin ${D}/lib/firmware/ni/ec-sulfur-rev6.RW.bin
-
-    ln -sf ec-sulfur-rev5.bin ${D}/lib/firmware/ni/ec-phosphorus-rev4.bin
-    ln -sf ec-sulfur-rev5.RW.bin ${D}/lib/firmware/ni/ec-phosphorus-rev4.RW.bin
-
-    ln -sf ec-sulfur-rev5.bin ${D}/lib/firmware/ni/ec-phosphorus-rev6.bin
-    ln -sf ec-sulfur-rev5.RW.bin ${D}/lib/firmware/ni/ec-phosphorus-rev6.RW.bin
+    for REV in 4 5 6 7 8 9
+    do
+      ln -sf ec-sulfur-rev5.bin ${D}/lib/firmware/ni/ec-phosphorus-rev${REV}.bin
+      ln -sf ec-sulfur-rev5.RW.bin ${D}/lib/firmware/ni/ec-phosphorus-rev${REV}.RW.bin
+    done
 
     install -m 0644 ${WORKDIR}/LICENSE.ec-sulfur ${D}/lib/firmware/ni/LICENSE.ec-sulfur
 
@@ -154,4 +144,3 @@ FILES_${PN}-ni-rhodium-fpga = " \
 
 LICENSE_${PN}-ni-rhodium-fpga = "Firmware-GPLv2"
 RDEPENDS_${PN}-ni-rhodium-fpga += "${PN}-gplv2-license"
-
