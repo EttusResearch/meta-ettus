@@ -5,6 +5,8 @@ SRC_URI_append = " file://ec-sulfur-rev3.bin \
                    file://ec-sulfur-rev3.RW.bin \
                    file://ec-sulfur-rev5.bin \
                    file://ec-sulfur-rev5.RW.bin \
+                   file://ec-sulfur-rev10.bin \
+                   file://ec-sulfur-rev10.RW.bin \
                    file://LICENSE.ec-sulfur \
                    file://mykonos-m3.bin \
                    http://files.ettus.com/binaries/cache/n3xx/fpga-e39334fe/n3xx_n310_fpga_default-ge39334fe.zip;name=sulfur-fpga \
@@ -76,7 +78,7 @@ do_compile_append() {
 
 do_install_append() {
 
-    # For now they all run the same firmware, so symlinks will do ...
+    # legacy rev. 3 firmware
     install -D -m 0644 ${WORKDIR}/ec-sulfur-rev3.bin ${D}/lib/firmware/ni/ec-sulfur-rev3.bin
     install -m 0644 ${WORKDIR}/ec-sulfur-rev3.RW.bin ${D}/lib/firmware/ni/ec-sulfur-rev3.RW.bin
 
@@ -95,6 +97,10 @@ do_install_append() {
       ln -sf ec-sulfur-rev5.bin ${D}/lib/firmware/ni/ec-phosphorus-rev${REV}.bin
       ln -sf ec-sulfur-rev5.RW.bin ${D}/lib/firmware/ni/ec-phosphorus-rev${REV}.RW.bin
     done
+
+    # Rev 10+ firmware uses GPIOs which can en-/disable the 12V of the daughter cards and the fans
+    install -D -m 0644 ${WORKDIR}/ec-sulfur-rev10.bin ${D}/lib/firmware/ni/ec-sulfur-rev10.bin
+    install -m 0644 ${WORKDIR}/ec-sulfur-rev10.RW.bin ${D}/lib/firmware/ni/ec-sulfur-rev10.RW.bin
 
     install -m 0644 ${WORKDIR}/LICENSE.ec-sulfur ${D}/lib/firmware/ni/LICENSE.ec-sulfur
 
