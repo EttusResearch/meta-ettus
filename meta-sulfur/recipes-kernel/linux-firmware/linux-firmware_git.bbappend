@@ -102,6 +102,18 @@ do_install_append() {
     install -D -m 0644 ${WORKDIR}/ec-sulfur-rev10.bin ${D}/lib/firmware/ni/ec-sulfur-rev10.bin
     install -m 0644 ${WORKDIR}/ec-sulfur-rev10.RW.bin ${D}/lib/firmware/ni/ec-sulfur-rev10.RW.bin
 
+    for REV in 11
+    do
+      ln -sf ec-sulfur-rev10.bin ${D}/lib/firmware/ni/ec-sulfur-rev${REV}.bin
+      ln -sf ec-sulfur-rev10.RW.bin ${D}/lib/firmware/ni/ec-sulfur-rev${REV}.RW.bin
+    done
+
+    for REV in 10 11
+    do
+      ln -sf ec-sulfur-rev10.bin ${D}/lib/firmware/ni/ec-phosphorus-rev${REV}.bin
+      ln -sf ec-sulfur-rev10.RW.bin ${D}/lib/firmware/ni/ec-phosphorus-rev${REV}.RW.bin
+    done
+
     install -m 0644 ${WORKDIR}/LICENSE.ec-sulfur ${D}/lib/firmware/ni/LICENSE.ec-sulfur
 
     install -m 0644 ${WORKDIR}/usrp_n310_mg_cpld.svf ${D}/lib/firmware/ni/cpld-magnesium-revc.svf
