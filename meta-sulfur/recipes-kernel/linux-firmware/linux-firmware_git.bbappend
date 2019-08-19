@@ -9,16 +9,16 @@ SRC_URI_append = " file://ec-sulfur-rev3.bin \
                    file://ec-sulfur-rev10.RW.bin \
                    file://LICENSE.ec-sulfur \
                    file://mykonos-m3.bin \
-                   http://files.ettus.com/binaries/cache/n3xx/fpga-e39334fe/n3xx_n310_fpga_default-ge39334fe.zip;name=sulfur-fpga \
+                   http://files.ettus.com/binaries/cache/n3xx/fpga-bb85bdff/n3xx_n310_fpga_default-gbb85bdff.zip;name=sulfur-fpga \
                    http://files.ettus.com/binaries/cache/n3xx/fpga-4bc2c6f/n3xx_n320_cpld_default-g4bc2c6f.zip;name=rhodium-cpld \
-                   http://files.ettus.com/binaries/cache/n3xx/fpga-e39334fe/n3xx_n300_fpga_default-ge39334fe.zip;name=phosphorus-fpga \
-                   http://files.ettus.com/binaries/cache/n3xx/fpga-e39334fe/n3xx_n320_fpga_default-ge39334fe.zip;name=rhodium-fpga \
+                   http://files.ettus.com/binaries/cache/n3xx/fpga-bb85bdff/n3xx_n300_fpga_default-gbb85bdff.zip;name=phosphorus-fpga \
+                   http://files.ettus.com/binaries/cache/n3xx/fpga-bb85bdff/n3xx_n320_fpga_default-gbb85bdff.zip;name=rhodium-fpga \
                    http://files.ettus.com/binaries/cache/n3xx/fpga-6bea23d/n3xx_n310_cpld_default-g6bea23d.zip;name=magnesium-cpld \
                  "
 
-SRC_URI[sulfur-fpga.sha256sum] = "8c557cc5fa4f413609335f50fd7e0eb977af0f4d2ba13ef9f0545d0166ac7ffb"
-SRC_URI[phosphorus-fpga.sha256sum] = "8b91bc960a7735c8611a1b1aad6d511f362625d06c82744456449cad8d3542a9"
-SRC_URI[rhodium-fpga.sha256sum] = "cd79274b5efda0b93433badd7191ccac6a160537c30ec6113fe7a4e000ece6a8"
+SRC_URI[sulfur-fpga.sha256sum] = "394d1de1362b72aec0e891b57a1a83cad02d5c985694a224144520cb0bbef2a6"
+SRC_URI[phosphorus-fpga.sha256sum] = "6c32d9d0022bfa94c903245e7e39d05fdd877ea38090f096bbe8f656dce3266b"
+SRC_URI[rhodium-fpga.sha256sum] = "a152289292bca238b4d84baee407e2e3297655d94ef6a817bb844db23b3eb338"
 SRC_URI[magnesium-cpld.sha256sum] = "ef128dcd265ee8615b673021d4ee84c39357012ffe8b28c8ad7f893f9dcb94cb"
 SRC_URI[rhodium-cpld.sha256sum] = "6680a9363efc5fa8b5a68beb3dff44f2e314b94e716e3a1751aba0fed1f384da"
 
