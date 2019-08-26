@@ -29,7 +29,7 @@ def get_dboard_id_from_eeprom(valid_ids):
     for valid_id in valid_ids:
         if valid_id in output:
             return valid_id
-    return None
+    return ''
 
 
 def main():
