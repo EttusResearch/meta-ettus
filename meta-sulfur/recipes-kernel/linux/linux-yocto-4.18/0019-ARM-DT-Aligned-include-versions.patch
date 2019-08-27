@@ -1,0 +1,154 @@
+From 6b76a637701fedf7257ff1cc560de3ad51938532 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Tue, 27 Aug 2019 09:29:37 +0000
+Subject: [PATCH 19/19] ARM: DT: Aligned include-versions
+
+All device trees 'zynq-ni-sulfur-revX-<DB>.dts' now include 'zynq-ni-sulfur-revX.dts'
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev2.dts | 2 +-
+ arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev3.dts | 2 +-
+ arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev4.dts | 2 +-
+ arch/arm/boot/dts/zynq-ni-sulfur-rev4-rhodium-rev0.dts       | 3 +--
+ arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev2.dts     | 2 +-
+ arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev3.dts     | 2 +-
+ arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev4.dts     | 2 +-
+ arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev2.dts     | 2 +-
+ arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev3.dts     | 2 +-
+ arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev4.dts     | 2 +-
+ 10 files changed, 10 insertions(+), 11 deletions(-)
+
+diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev2.dts b/arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev2.dts
+index 97612e8fea03..98cffd7e93fd 100644
+--- a/arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev2.dts
++++ b/arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev2.dts
+@@ -6,7 +6,7 @@
+  *
+  */
+ 
+-#include "zynq-ni-phosphorus-rev4.dts"
++#include "zynq-ni-phosphorus-rev6.dts"
+ #include <dt-bindings/thermal/thermal.h>
+ #include "ni-magnesium-db0.dtsi"
+ 
+diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev3.dts b/arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev3.dts
+index 97612e8fea03..98cffd7e93fd 100644
+--- a/arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev3.dts
++++ b/arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev3.dts
+@@ -6,7 +6,7 @@
+  *
+  */
+ 
+-#include "zynq-ni-phosphorus-rev4.dts"
++#include "zynq-ni-phosphorus-rev6.dts"
+ #include <dt-bindings/thermal/thermal.h>
+ #include "ni-magnesium-db0.dtsi"
+ 
+diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev4.dts b/arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev4.dts
+index 97612e8fea03..98cffd7e93fd 100644
+--- a/arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev4.dts
++++ b/arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev4.dts
+@@ -6,7 +6,7 @@
+  *
+  */
+ 
+-#include "zynq-ni-phosphorus-rev4.dts"
++#include "zynq-ni-phosphorus-rev6.dts"
+ #include <dt-bindings/thermal/thermal.h>
+ #include "ni-magnesium-db0.dtsi"
+ 
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev4-rhodium-rev0.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev4-rhodium-rev0.dts
+index 1ed7945f038d..4ed0c20b0663 100644
+--- a/arch/arm/boot/dts/zynq-ni-sulfur-rev4-rhodium-rev0.dts
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev4-rhodium-rev0.dts
+@@ -6,7 +6,6 @@
+  * SPDX-License-Identifier: (GPL-2.0 OR X11)
+  */
+ 
+-#include "zynq-ni-sulfur-rev5.dts"
++#include "zynq-ni-sulfur-rev4.dts"
+ #include <dt-bindings/thermal/thermal.h>
+ #include "ni-rhodium-rev0-thermal.dts"
+-
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev2.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev2.dts
+index 7649f3802f58..4bcdd687dd18 100644
+--- a/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev2.dts
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev2.dts
+@@ -6,7 +6,7 @@
+  * SPDX-License-Identifier: (GPL-2.0 OR X11)
+  */
+ 
+-#include "zynq-ni-sulfur-rev4.dts"
++#include "zynq-ni-sulfur-rev5.dts"
+ #include <dt-bindings/thermal/thermal.h>
+ #include "ni-magnesium-db0.dtsi"
+ #include "ni-magnesium-db1.dtsi"
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev3.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev3.dts
+index 7649f3802f58..4bcdd687dd18 100644
+--- a/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev3.dts
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev3.dts
+@@ -6,7 +6,7 @@
+  * SPDX-License-Identifier: (GPL-2.0 OR X11)
+  */
+ 
+-#include "zynq-ni-sulfur-rev4.dts"
++#include "zynq-ni-sulfur-rev5.dts"
+ #include <dt-bindings/thermal/thermal.h>
+ #include "ni-magnesium-db0.dtsi"
+ #include "ni-magnesium-db1.dtsi"
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev4.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev4.dts
+index 7649f3802f58..4bcdd687dd18 100644
+--- a/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev4.dts
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev4.dts
+@@ -6,7 +6,7 @@
+  * SPDX-License-Identifier: (GPL-2.0 OR X11)
+  */
+ 
+-#include "zynq-ni-sulfur-rev4.dts"
++#include "zynq-ni-sulfur-rev5.dts"
+ #include <dt-bindings/thermal/thermal.h>
+ #include "ni-magnesium-db0.dtsi"
+ #include "ni-magnesium-db1.dtsi"
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev2.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev2.dts
+index 7649f3802f58..3dc4979ccdc6 100644
+--- a/arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev2.dts
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev2.dts
+@@ -6,7 +6,7 @@
+  * SPDX-License-Identifier: (GPL-2.0 OR X11)
+  */
+ 
+-#include "zynq-ni-sulfur-rev4.dts"
++#include "zynq-ni-sulfur-rev6.dts"
+ #include <dt-bindings/thermal/thermal.h>
+ #include "ni-magnesium-db0.dtsi"
+ #include "ni-magnesium-db1.dtsi"
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev3.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev3.dts
+index 7649f3802f58..3dc4979ccdc6 100644
+--- a/arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev3.dts
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev3.dts
+@@ -6,7 +6,7 @@
+  * SPDX-License-Identifier: (GPL-2.0 OR X11)
+  */
+ 
+-#include "zynq-ni-sulfur-rev4.dts"
++#include "zynq-ni-sulfur-rev6.dts"
+ #include <dt-bindings/thermal/thermal.h>
+ #include "ni-magnesium-db0.dtsi"
+ #include "ni-magnesium-db1.dtsi"
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev4.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev4.dts
+index 7649f3802f58..3dc4979ccdc6 100644
+--- a/arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev4.dts
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev4.dts
+@@ -6,7 +6,7 @@
+  * SPDX-License-Identifier: (GPL-2.0 OR X11)
+  */
+ 
+-#include "zynq-ni-sulfur-rev4.dts"
++#include "zynq-ni-sulfur-rev6.dts"
+ #include <dt-bindings/thermal/thermal.h>
+ #include "ni-magnesium-db0.dtsi"
+ #include "ni-magnesium-db1.dtsi"
+-- 
+2.17.1
+

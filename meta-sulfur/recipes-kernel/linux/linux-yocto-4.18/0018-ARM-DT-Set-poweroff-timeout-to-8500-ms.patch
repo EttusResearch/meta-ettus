@@ -1,0 +1,39 @@
+From 61da22422f0a8ce9e8b2cae7af0af57109bb0b48 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Tue, 27 Aug 2019 09:27:37 +0000
+Subject: [PATCH 18/19] ARM: DT: Set poweroff timeout to 8500 ms
+
+To avoid kernel backtrace on powerdown.
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts | 1 +
+ arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts
+index 3bc74593896d..f537c0c313f4 100644
+--- a/arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts
+@@ -80,6 +80,7 @@
+ 	gpio-poweroff {
+ 		compatible = "gpio-poweroff";
+ 		gpios = <&gpio0 4 GPIO_ACTIVE_LOW>;
++		timeout-ms = <8500>;
+ 	};
+ };
+
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
+index 013b3b0ee4a7..891f4cad5e9d 100644
+--- a/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
+@@ -52,6 +52,7 @@
+ 	poweroff: gpio-poweroff {
+ 		compatible = "gpio-poweroff";
+ 		gpios = <&gpio0 3 GPIO_ACTIVE_LOW>;
++		timeout-ms = <8500>;
+ 	};
+
+ 	leds {
+--
+2.17.1
