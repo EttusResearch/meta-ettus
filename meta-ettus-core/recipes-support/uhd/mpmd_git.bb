@@ -29,7 +29,7 @@ RDEPENDS_${PN} = "python3-netaddr \
                  "
 
 SRC_URI_append = " \
-                 file://0001-mpm-cmake-Fix-boost-python3-component-search.patch \
+                 file://0001-mpm-cmake-Fix-boost-python3-component-search.patch;striplevel=2 \
                  "
 
 inherit distutils3-base cmake python3-dir python3native systemd
