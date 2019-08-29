@@ -1,0 +1,71 @@
+From 768c5b37ddac94c7632786ba2c86038868567ddc Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Thu, 29 Aug 2019 15:13:19 +0200
+Subject: [PATCH 16/17] platform/chrome: cros_ec_lightbar: probe lightbar only
+ if feature present
+
+Probe lightbar only if EC_FEATURE_LIGHTBAR is listed in features.
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ drivers/platform/chrome/cros_ec_lightbar.c | 42 +++++++++++++++++++++-
+ 1 file changed, 41 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/platform/chrome/cros_ec_lightbar.c b/drivers/platform/chrome/cros_ec_lightbar.c
+index 68193bb53383..fcc4a9209b1a 100644
+--- a/drivers/platform/chrome/cros_ec_lightbar.c
++++ b/drivers/platform/chrome/cros_ec_lightbar.c
+@@ -584,9 +584,49 @@ static struct attribute *__lb_cmds_attrs[] = {
+ 	NULL,
+ };
+ 
++/* copied from drivers/mfd/cros_ec_dev.c */
++static int cros_ec_check_features(struct cros_ec_dev *ec, int feature)
++{
++	struct cros_ec_command *msg;
++	int ret;
++
++	if (ec->features[0] == -1U && ec->features[1] == -1U) {
++		/* features bitmap not read yet */
++
++		msg = kmalloc(sizeof(*msg) + sizeof(ec->features), GFP_KERNEL);
++		if (!msg)
++			return -ENOMEM;
++
++		msg->version = 0;
++		msg->command = EC_CMD_GET_FEATURES + ec->cmd_offset;
++		msg->insize = sizeof(ec->features);
++		msg->outsize = 0;
++
++		ret = cros_ec_cmd_xfer(ec->ec_dev, msg);
++		if (ret < 0 || msg->result != EC_RES_SUCCESS) {
++			dev_warn(ec->dev, "cannot get EC features: %d/%d\n",
++				 ret, msg->result);
++			memset(ec->features, 0, sizeof(ec->features));
++		} else {
++			memcpy(ec->features, msg->data, sizeof(ec->features));
++		}
++
++		dev_dbg(ec->dev, "EC features %08x %08x\n",
++			ec->features[0], ec->features[1]);
++
++		kfree(msg);
++	}
++
++	return ec->features[feature / 32] & EC_FEATURE_MASK_0(feature);
++}
++
+ bool ec_has_lightbar(struct cros_ec_dev *ec)
+ {
+-	return !!get_lightbar_version(ec, NULL, NULL);
++	bool ret=0;
++	if (cros_ec_check_features(ec, EC_FEATURE_LIGHTBAR)) {
++		bool ret = !!get_lightbar_version(ec, NULL, NULL);
++	}
++	return ret;
+ }
+ 
+ static umode_t cros_ec_lightbar_attrs_are_visible(struct kobject *kobj,
+-- 
+2.17.1
+

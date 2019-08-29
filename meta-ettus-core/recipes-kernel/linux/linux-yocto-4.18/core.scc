@@ -9,3 +9,5 @@ patch 0008-net-phy-Make-genphy-actually-use-genphy_soft_reset.patch
 patch 0009-net-nixge-Separate-ctrl-and-dma-resources.patch
 patch 0014-tpm-tpm_i2c_atmel-Add-hack-to-allow-taking-TPM-out-o.patch
 patch 0015-mfd-cros-ec-Add-cros_ec_readmem-helpers-for-I2C-SPI-.patch
+patch 0016-platform-chrome-cros_ec_lightbar-probe-lightbar-only.patch
+patch 0017-mfd-cros_ec-add-command-in-error-print-that-request-.patch
