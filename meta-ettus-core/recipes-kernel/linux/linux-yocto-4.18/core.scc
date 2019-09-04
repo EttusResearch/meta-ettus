@@ -11,3 +11,9 @@ patch 0014-tpm-tpm_i2c_atmel-Add-hack-to-allow-taking-TPM-out-o.patch
 patch 0015-mfd-cros-ec-Add-cros_ec_readmem-helpers-for-I2C-SPI-.patch
 patch 0016-platform-chrome-cros_ec_lightbar-probe-lightbar-only.patch
 patch 0017-mfd-cros_ec-add-command-in-error-print-that-request-.patch
+patch 0018-revert-drivers-i2c-to-v4.18.27.patch
+patch 0019-of-overlay-validate-overlay-properties-address-cells.patch
+patch 0020-of-overlay-make-all-pr_debug-and-pr_err-messages-uni.patch
+patch 0021-of-overlay-check-prevents-multiple-fragments-add-or-.patch
+patch 0022-of-overlay-check-prevents-multiple-fragments-touchin.patch
+patch 0023-of-overlay-set-node-fields-from-properties-when-add-.patch
