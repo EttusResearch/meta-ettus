@@ -1,0 +1,45 @@
+From 17933e04f1e2655e91cf4e69958bc75dfded109f Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Sun, 24 Feb 2019 18:01:18 +0100
+Subject: [PATCH] net: phy: fix reading fixed phy status (backport of 0f3b1cf23f0e)
+
+Original commit from Heiner Kallweit <hkallweit1@gmail.com>:
+
+With the switch to phy_resolve_aneg_linkmode() we don't read from the
+chip any longer what is advertised but use phydev->advertising directly.
+For a fixed phy however this bitmap is empty so far, what results in
+no common mode being found. This breaks DSA. Fix this by advertising
+everything that is supported. For a normal phy this done by phy_probe().
+
+Fixes: 5502b218e001 ("net: phy: use phy_resolve_aneg_linkmode in genphy_read_status")
+Signed-off-by: Heiner Kallweit <hkallweit1@gmail.com>
+Tested-by: Andrew Lunn <andrew@lunn.ch>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+Changes to the original commit:
+
+- Implement the same functionality (assign phy->advertising based on phy->supported)
+  but based the old u32 implementation, not the linkmode implementation which was
+  introduced with 3c1bcc8614db (which was not backported)
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+
+---
+ drivers/net/phy/fixed_phy.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/net/phy/fixed_phy.c b/drivers/net/phy/fixed_phy.c
+index 65354acede50..067d60166e52 100644
+--- a/drivers/net/phy/fixed_phy.c
++++ b/drivers/net/phy/fixed_phy.c
+@@ -295,6 +295,8 @@ static struct phy_device *__fixed_phy_register(unsigned int irq,
+ 		phy->supported = PHY_10BT_FEATURES;
+ 	}
+ 
++	phy->advertising = phy->supported;
++
+ 	ret = phy_device_register(phy);
+ 	if (ret) {
+ 		phy_device_free(phy);
+-- 
+2.17.1

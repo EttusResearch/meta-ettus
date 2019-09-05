@@ -1,0 +1,44 @@
+From e158770e22892f8f8e11810267e2a100d25d22c7 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <mdf@kernel.org>
+Date: Fri, 10 Aug 2018 18:19:40 -0700
+Subject: [PATCH] net: nixge: Do not zero application specific fields in desc
+
+Do not zero application specific fields in DMA descriptors.
+The hardware does ignore them, so should software.
+
+Signed-off-by: Moritz Fischer <mdf@kernel.org>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/ethernet/ni/nixge.c | 10 ----------
+ 1 file changed, 10 deletions(-)
+
+diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
+index 9ae4fcef725e..ac31b0d30415 100644
+--- a/drivers/net/ethernet/ni/nixge.c
++++ b/drivers/net/ethernet/ni/nixge.c
+@@ -739,22 +739,12 @@ static void nixge_dma_err_handler(unsigned long data)
+ 		cur_p->phys = 0;
+ 		cur_p->cntrl = 0;
+ 		cur_p->status = 0;
+-		cur_p->app0 = 0;
+-		cur_p->app1 = 0;
+-		cur_p->app2 = 0;
+-		cur_p->app3 = 0;
+-		cur_p->app4 = 0;
+ 		cur_p->sw_id_offset = 0;
+ 	}
+ 
+ 	for (i = 0; i < RX_BD_NUM; i++) {
+ 		cur_p = &lp->rx_bd_v[i];
+ 		cur_p->status = 0;
+-		cur_p->app0 = 0;
+-		cur_p->app1 = 0;
+-		cur_p->app2 = 0;
+-		cur_p->app3 = 0;
+-		cur_p->app4 = 0;
+ 	}
+ 
+ 	lp->tx_bd_ci = 0;
+-- 
+2.17.1
+

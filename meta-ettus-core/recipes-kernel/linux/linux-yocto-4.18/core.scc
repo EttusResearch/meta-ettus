@@ -17,3 +17,16 @@ patch 0020-of-overlay-make-all-pr_debug-and-pr_err-messages-uni.patch
 patch 0021-of-overlay-check-prevents-multiple-fragments-add-or-.patch
 patch 0022-of-overlay-check-prevents-multiple-fragments-touchin.patch
 patch 0023-of-overlay-set-node-fields-from-properties-when-add-.patch
+patch 0024-net-phy-fixed-phy-Make-the-error-path-simpler.patch
+patch 0025-net-nixge-Get-rid-of-unused-struct-member-last_link.patch
+patch 0026-net-nixge-Do-not-zero-application-specific-fields-in.patch
+patch 0027-net-nixge-Don-t-store-skb-in-app4-field-of-descripto.patch
+patch 0028-net-nixge-Add-support-for-64-bit-platforms.patch
+patch 0029-net-nixge-Fix-Kconfig-warning-with-OF_MDIO.patch
+patch 0030-net-nixge-Address-compiler-warnings-when-building-fo.patch
+patch 0031-net-nixge-Update-device-tree-bindings-with-v3.00.patch
+patch 0032-net-nixge-Make-mdio-child-node-optional.patch
+patch 0033-net-nixge-Add-support-for-fixed-link-configurations.patch
+patch 0034-dt-bindings-net-Add-fixed-link-support.patch
+patch 0035-net-phy-fixed_phy-Fix-fixed_phy-not-checking-GPIO.patch
+patch 0036-net-phy-fix-reading-fixed-phy-status-backport-of-0f3.patch

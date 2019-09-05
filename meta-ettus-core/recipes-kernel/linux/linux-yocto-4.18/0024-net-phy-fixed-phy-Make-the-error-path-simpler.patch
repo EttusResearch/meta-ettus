@@ -1,0 +1,45 @@
+From b0c1638f26a5f8d593e79b226e8dec0bcd5adc3e Mon Sep 17 00:00:00 2001
+From: Fabio Estevam <fabio.estevam@nxp.com>
+Date: Sat, 23 Jun 2018 21:28:22 -0300
+Subject: [PATCH] net: phy: fixed-phy: Make the error path simpler
+
+When platform_device_register_simple() fails we can return
+the error immediately instead of jumping to the 'err_pdev'
+label.
+
+This makes the error path a bit simpler.
+
+Signed-off-by: Fabio Estevam <fabio.estevam@nxp.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/phy/fixed_phy.c | 7 ++-----
+ 1 file changed, 2 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/phy/fixed_phy.c b/drivers/net/phy/fixed_phy.c
+index 001fe1df7557..67b260877f30 100644
+--- a/drivers/net/phy/fixed_phy.c
++++ b/drivers/net/phy/fixed_phy.c
+@@ -259,10 +259,8 @@ static int __init fixed_mdio_bus_init(void)
+ 	int ret;
+ 
+ 	pdev = platform_device_register_simple("Fixed MDIO bus", 0, NULL, 0);
+-	if (IS_ERR(pdev)) {
+-		ret = PTR_ERR(pdev);
+-		goto err_pdev;
+-	}
++	if (IS_ERR(pdev))
++		return PTR_ERR(pdev);
+ 
+ 	fmb->mii_bus = mdiobus_alloc();
+ 	if (fmb->mii_bus == NULL) {
+@@ -287,7 +285,6 @@ static int __init fixed_mdio_bus_init(void)
+ 	mdiobus_free(fmb->mii_bus);
+ err_mdiobus_reg:
+ 	platform_device_unregister(pdev);
+-err_pdev:
+ 	return ret;
+ }
+ module_init(fixed_mdio_bus_init);
+-- 
+2.17.1
+

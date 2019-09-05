@@ -1,0 +1,50 @@
+From f29fd57a2d65bf9c5cc0f91ed9970e11b314ca8e Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Wed, 6 Feb 2019 21:45:29 -0800
+Subject: [PATCH] net: phy: fixed_phy: Fix fixed_phy not checking GPIO (backport of 8f289805616e)
+
+Original commit from Moritz Fischer <mdf@kernel.org>:
+
+Fix fixed_phy not checking GPIO if no link_update callback
+is registered.
+
+In the original version all users registered a link_update
+callback so the issue was masked.
+
+Fixes: a5597008dbc2 ("phy: fixed_phy: Add gpio to determine link up/down.")
+Reviewed-by: Andrew Lunn <andrew@lunn.ch>
+Signed-off-by: Moritz Fischer <mdf@kernel.org>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+Changes to the original commit:
+
+- no functional changes (adopted the patch to successfully apply on the given
+  set of patches)
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+
+---
+ drivers/net/phy/fixed_phy.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/phy/fixed_phy.c b/drivers/net/phy/fixed_phy.c
+index 67b260877f30..59820164502e 100644
+--- a/drivers/net/phy/fixed_phy.c
++++ b/drivers/net/phy/fixed_phy.c
+@@ -67,11 +67,11 @@ static int fixed_mdio_read(struct mii_bus *bus, int phy_addr, int reg_num)
+ 			do {
+ 				s = read_seqcount_begin(&fp->seqcount);
+ 				/* Issue callback if user registered it. */
+-				if (fp->link_update) {
++				if (fp->link_update)
+ 					fp->link_update(fp->phydev->attached_dev,
+ 							&fp->status);
+-					fixed_phy_update(fp);
+-				}
++				/* Check the GPIO for change in status */
++				fixed_phy_update(fp);
+ 				state = fp->status;
+ 			} while (read_seqcount_retry(&fp->seqcount, s));
+ 
+-- 
+2.17.1

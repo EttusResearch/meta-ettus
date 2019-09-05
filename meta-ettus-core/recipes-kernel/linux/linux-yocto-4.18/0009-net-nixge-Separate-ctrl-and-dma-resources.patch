@@ -1,18 +1,19 @@
-From 97ed84c5b0dacc94f9d6ac51442ba84ff85a440b Mon Sep 17 00:00:00 2001
+From 87ab207981ec54dc2f2a1511cd2fbfc9bc6599ec Mon Sep 17 00:00:00 2001
 From: Alex Williams <alex.williams@ni.com>
-Date: Tue, 9 Oct 2018 15:41:33 -0700
-Subject: [PATCH 09/17] net: nixge: Separate ctrl and dma resources
+Date: Thu, 31 Jan 2019 13:33:27 -0800
+Subject: [PATCH] net: nixge: Separate ctrl and dma resources
 
 The DMA engine is a separate entity altogether, and this allows the DMA
 controller's address to float elsewhere in the FPGA's map.
 
 Signed-off-by: Alex Williams <alex.williams@ni.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
 ---
  drivers/net/ethernet/ni/nixge.c | 74 ++++++++++++++++++++++++++-------
  1 file changed, 58 insertions(+), 16 deletions(-)
 
 diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
-index d32eb9eace01..4dea958556fa 100644
+index 1e408d1a9b5f..73a98bd2fcd2 100644
 --- a/drivers/net/ethernet/ni/nixge.c
 +++ b/drivers/net/ethernet/ni/nixge.c
 @@ -105,6 +105,12 @@
@@ -26,9 +27,9 @@ index d32eb9eace01..4dea958556fa 100644
 +};
 +
  struct nixge_hw_dma_bd {
- 	u32 next;
- 	u32 reserved1;
-@@ -1181,11 +1187,59 @@ static void *nixge_get_nvmem_address(struct device *dev)
+ 	u32 next_lo;
+ 	u32 next_hi;
+@@ -1225,11 +1231,59 @@ static void *nixge_get_nvmem_address(struct device *dev)
  	return mac;
  }
  
@@ -89,7 +90,7 @@ index d32eb9eace01..4dea958556fa 100644
  	const u8 *mac_addr;
  	int err;
  
-@@ -1217,14 +1271,9 @@ static int nixge_probe(struct platform_device *pdev)
+@@ -1261,14 +1315,9 @@ static int nixge_probe(struct platform_device *pdev)
  	priv->dev = &pdev->dev;
  
  	netif_napi_add(ndev, &priv->napi, nixge_poll, NAPI_POLL_WEIGHT);
@@ -107,7 +108,7 @@ index d32eb9eace01..4dea958556fa 100644
  	__nixge_hw_set_mac_address(ndev);
  
  	priv->tx_irq = platform_get_irq_byname(pdev, "tx");
-@@ -1293,13 +1342,6 @@ static int nixge_remove(struct platform_device *pdev)
+@@ -1337,13 +1386,6 @@ static int nixge_remove(struct platform_device *pdev)
  	return 0;
  }
  
@@ -122,5 +123,5 @@ index d32eb9eace01..4dea958556fa 100644
  	.probe		= nixge_probe,
  	.remove		= nixge_remove,
 -- 
-2.20.1
+2.17.1
 

@@ -1,0 +1,28 @@
+From e93dd8a1ac3141290936f174b81f4a9ba0c1c8a6 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <mdf@kernel.org>
+Date: Tue, 7 Aug 2018 16:35:20 -0700
+Subject: [PATCH] net: nixge: Get rid of unused struct member 'last_link'
+
+Get rid of unused struct member 'last_link'
+
+Signed-off-by: Moritz Fischer <mdf@kernel.org>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/ethernet/ni/nixge.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
+index 09f674ec0f9e..9ae4fcef725e 100644
+--- a/drivers/net/ethernet/ni/nixge.c
++++ b/drivers/net/ethernet/ni/nixge.c
+@@ -155,7 +155,6 @@ struct nixge_priv {
+ 
+ 	int tx_irq;
+ 	int rx_irq;
+-	u32 last_link;
+ 
+ 	/* Buffer descriptors */
+ 	struct nixge_hw_dma_bd *tx_bd_v;
+-- 
+2.17.1
+
