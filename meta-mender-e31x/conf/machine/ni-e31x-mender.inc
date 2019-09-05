@@ -1,7 +1,7 @@
 MACHINEOVERRIDES =. "ni-e31x-mender:"
 
 # 8GB SD card with some wiggle room for smaller cards
-MENDER_STORAGE_TOTAL_SIZE_MB = "7590"
+MENDER_STORAGE_TOTAL_SIZE_MB = "7372"
 MENDER_DATA_PART_SIZE_MB = "2000"
 MENDER_BOOT_PART_SIZE_MB = "16"
 MENDER_STORAGE_DEVICE = "/dev/mmcblk0"
