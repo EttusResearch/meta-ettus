@@ -29,6 +29,7 @@ MACHINE_EXTRA_RRECOMMENDS = " \
                              gpsd-gpsctl \
                              gpsd-machine-conf \
                              kernel-image \
+                             haveged \
                             "
 
 IMAGE_INSTALL_append_ni-e31x = " kernel-image"
