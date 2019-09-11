@@ -58,7 +58,7 @@ index 0000000..6f2abb6
 +
 +	chosen {
 +		bootargs = "console=ttyPS0,115200 earlyprintk";
-+		linux,stdout-path = "serial0:115200n8";
++		stdout-path = "serial0:115200n8";
 +	};
 +
 +	pps {
@@ -301,6 +301,5 @@ index 0000000..c01467a
 +&adt7408 {
 +	status = "disabled";
 +};
--- 
+--
 2.9.5
-
