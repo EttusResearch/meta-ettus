@@ -33,6 +33,12 @@ DEVICE_INFO = {
             'meta-neon/recipes-kernel/linux-firmware/linux-firmware_git.bbappend',
         ],
     },
+    'e31x': {
+        'fpga_append': [
+            'meta-e31x/recipes-support/uhd/uhd-fpga-images_git.bbappend',
+            'meta-e31x/recipes-kernel/linux-firmware/linux-firmware_git.bbappend',
+        ],
+    },
 }
 BASE_URL = "http://files.ettus.com/binaries/cache"
 
@@ -166,7 +172,7 @@ def get_fpga_target_list(src_uri_content):
     sdf
     """
     url_name_pairs = [
-        s.strip(" \\")
+        s.strip(" \\\t")
         for s in src_uri_content.strip().split("\n")
     ]
     return [
@@ -203,7 +209,7 @@ def update_fpga_hashes(bbafile, manifest):
     print("### Modifying {}...".format(bbafile))
     bbafile_content = open(bbafile).read()
     src_uri_key, src_uri_content = \
-        re.search(r'(SRC_URI_append[a-z-_]*)\s+=\s+"([^"]+)"',
+        re.search(r'(SRC_URI_append[a-z0-9-_]*)\s+=\s+"([^"]+)"',
                   bbafile_content).groups()
     extra_lines, fpga_target_list = get_fpga_target_list(src_uri_content)
     print("### Found targets:")
@@ -219,7 +225,7 @@ def update_fpga_hashes(bbafile, manifest):
         if target in manifest
     }
     bbafile_content, n_subs = re.subn(
-        r'SRC_URI_append[a-z-_]*\s+=\s+"[^"]+"',
+        r'SRC_URI_append[a-z0-9-_]*\s+=\s+"[^"]+"',
         get_new_src_uri_str(src_uri_key, extra_lines, target_dict),
         bbafile_content,
         count=1
@@ -260,7 +266,7 @@ def main():
         subprocess.check_call(['git', 'clone', args.uhd_repo, args.uhd_path])
     print("### Using UHD repo at: {}".format(args.uhd_path))
     if args.branch is not None:
-        print("### Switching UHD branch at request of user (-b was provided)")
+        print("### Switching UHD branch to {} at request of user (-b was provided)".format(args.branch))
         print("##### Note: You will need to switch back if you so desire.")
         subprocess.check_call(
             ['git', 'checkout', args.branch], cwd=args.uhd_path)
