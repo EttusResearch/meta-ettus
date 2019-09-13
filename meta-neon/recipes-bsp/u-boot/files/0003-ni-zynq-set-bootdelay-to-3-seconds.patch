@@ -1,0 +1,26 @@
+From b1d294bac94f022f5cc946a59f9107093f8ecdcf Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Fri, 13 Sep 2019 09:01:39 +0200
+Subject: [PATCH] ni: zynq: set bootdelay to 3 seconds
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ configs/ni_neon_rev2_defconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/configs/ni_neon_rev2_defconfig b/configs/ni_neon_rev2_defconfig
+index 8ee4c0a971..6de0e30068 100644
+--- a/configs/ni_neon_rev2_defconfig
++++ b/configs/ni_neon_rev2_defconfig
+@@ -14,7 +14,7 @@ CONFIG_FIT=y
+ CONFIG_FIT_SIGNATURE=y
+ CONFIG_IMAGE_FORMAT_LEGACY=y
+ CONFIG_BOOTCOMMAND="run $modeboot || run distro_bootcmd"
+-CONFIG_BOOTDELAY=0
++CONFIG_BOOTDELAY=3
+ # CONFIG_DISPLAY_CPUINFO is not set
+ CONFIG_SPL_STACK_R=y
+ CONFIG_HUSH_PARSER=y
+-- 
+2.17.1
+
