@@ -21,16 +21,21 @@ KERNEL_DEFCONFIG ?= "ni_sulfur_defconfig"
 
 PREFERRED_VERSION_linux-yocto = "4.18.%"
 
-MACHINE_EXTRA_RRECOMMENDS = " \
-                             kernel-modules \
-                             gpsd \
-                             gpsd-gpsctl \
-                             gpsd-machine-conf \
+MACHINE_ESSENTIAL_EXTRA_RRECOMMENDS = " \
                              kernel-image \
+                             kernel-modules \
                              linux-firmware-ni-sulfur \
                              linux-firmware-ni-magnesium \
                              linux-firmware-adi-mykonos \
                              linux-firmware-ni-rhodium \
+"
+
+MACHINE_EXTRA_RRECOMMENDS = " \
+                             mpmd-tools \
+                             eeprom-hostname-systemd \
+                             gpsd \
+                             gpsd-gpsctl \
+                             gpsd-machine-conf \
                             "
 
 IMAGE_INSTALL_append_ni-sulfur = " kernel-image"
