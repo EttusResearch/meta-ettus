@@ -22,14 +22,19 @@ KERNEL_DEFCONFIG ?= "ni_neon_defconfig"
 
 PREFERRED_VERSION_linux-yocto = "4.18.%"
 
-MACHINE_EXTRA_RRECOMMENDS = " \
+MACHINE_ESSENTIAL_EXTRA_RRECOMMENDS = " \
+                             kernel-image \
                              kernel-modules \
+                             linux-firmware-ni-neon \
+                            "
+
+MACHINE_EXTRA_RRECOMMENDS = " \
+                             mpmd-tools \
+                             eeprom-hostname-systemd \
                              gpsd \
                              gpsd-gpsctl \
                              gps-utils \
                              gpsd-machine-conf \
-                             kernel-image \
-                             linux-firmware-ni-neon \
                             "
 
 IMAGE_INSTALL_append_ni-neon = " kernel-image"
