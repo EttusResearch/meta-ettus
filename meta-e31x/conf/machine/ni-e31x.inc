@@ -23,12 +23,16 @@ KERNEL_DEFCONFIG ?= "multi_v7_defconfig"
 
 PREFERRED_VERSION_linux-yocto = "4.18.%"
 
-MACHINE_EXTRA_RRECOMMENDS = " \
+MACHINE_ESSENTIAL_EXTRA_RRECOMMENDS = " \
+                             kernel-image \
                              kernel-modules \
+                            "
+
+MACHINE_EXTRA_RRECOMMENDS = " \
+                             eeprom-hostname-systemd \
                              gpsd \
                              gpsd-gpsctl \
                              gpsd-machine-conf \
-                             kernel-image \
                              haveged \
                             "
 
