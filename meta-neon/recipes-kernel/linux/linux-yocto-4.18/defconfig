@@ -3240,7 +3240,6 @@ CONFIG_AD7291=y
 # CONFIG_MAX11100 is not set
 # CONFIG_MAX1118 is not set
 # CONFIG_MAX1363 is not set
-# CONFIG_MAX9611 is not set
 # CONFIG_MCP320X is not set
 # CONFIG_MCP3422 is not set
 # CONFIG_NAU7802 is not set
