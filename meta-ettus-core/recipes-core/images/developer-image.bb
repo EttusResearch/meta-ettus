@@ -45,6 +45,15 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     salt-minion \
     gps-utils-cgps \
     gps-utils-gps2udp \
+    rsync \
+    nfs-utils-mount \
+    "
+
+# including nfs-utils-mount together dev-pkgs feature enabled also pulls in
+# nfs-utils-dev which pulls in nfs-utils which pulls in nfs-utils-client
+# which causes a systemd service (proc-fs-nfsd.mount) to fail...
+PACKAGE_EXCLUDE = " \
+    nfs-utils-dev \
     "
 
 inherit core-image image-buildinfo
