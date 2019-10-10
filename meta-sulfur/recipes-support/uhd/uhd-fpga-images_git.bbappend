@@ -1,8 +1,8 @@
 FILESEXTRAPATHS_prepend_ni-sulfur := "${THISDIR}/files:"
 
-SRC_URI_append_ni-sulfur = " http://files.ettus.com/binaries/cache/n3xx/fpga-e39334fe/n3xx_n310_fpga_default-ge39334fe.zip;name=sulfur-fpga \
-                             http://files.ettus.com/binaries/cache/n3xx/fpga-e39334fe/n3xx_n300_fpga_default-ge39334fe.zip;name=phosphorus-fpga \
-                             http://files.ettus.com/binaries/cache/n3xx/fpga-e39334fe/n3xx_n320_fpga_default-ge39334fe.zip;name=rhodium-fpga \
+SRC_URI_append_ni-sulfur = " http://files.ettus.com/binaries/cache/n3xx/fpga-e39334fe/n3xx_n310_fpga_default-ge39334fe.zip;name=sulfur-fpga;unpack=false \
+                             http://files.ettus.com/binaries/cache/n3xx/fpga-e39334fe/n3xx_n300_fpga_default-ge39334fe.zip;name=phosphorus-fpga;unpack=false \
+                             http://files.ettus.com/binaries/cache/n3xx/fpga-e39334fe/n3xx_n320_fpga_default-ge39334fe.zip;name=rhodium-fpga;unpack=false \
                            "
 
 SRC_URI[sulfur-fpga.sha256sum] = "8c557cc5fa4f413609335f50fd7e0eb977af0f4d2ba13ef9f0545d0166ac7ffb"
@@ -12,6 +12,8 @@ SRC_URI[phosphorus-fpga.sha256sum] = "8b91bc960a7735c8611a1b1aad6d511f362625d06c
 SRC_URI[phosphorus-fpga-aurora.sha256sum] = "e34e9343572adfba905433a1570cb394fe45207d442268d0fa400c3406253530"
 
 SRC_URI[rhodium-fpga.sha256sum] = "cd79274b5efda0b93433badd7191ccac6a160537c30ec6113fe7a4e000ece6a8"
+
+IMAGE_MANIFEST_BINARIES_ni-sulfur = "n3xx_n310_fpga_default n3xx_n300_fpga_default n3xx_n320_fpga_default"
 
 do_install_append_ni-sulfur(){
     mkdir -p ${D}/usr/share/uhd/images

@@ -181,23 +181,24 @@ def get_fpga_target_list(src_uri_content):
         if not u.startswith('http')
     ], [
         re.search(
-            r'http://[a-z0-9.-/-]+/([a-z0-9_]+)[-a-z0-9]*\.zip;name=(.+)',
+            r'http://[a-z0-9.-/-]+/([a-z0-9_]+)[-a-z0-9]*\.zip;name=([-_a-z0-9]+);?',
             u).groups()
         for u in url_name_pairs
         if u.startswith('http')
     ]
 
 
-def get_new_src_uri_str(src_uri_key, extra_lines, target_dict):
+def get_new_src_uri_str(src_uri_key, extra_lines, target_dict, unpack):
     """
     Create the SRC_URI_append... string
     """
     num_leading_spaces = len(src_uri_key) + len(' = " ')
     return src_uri_key + ' = " ' + ' \\\n{spaces}'.format(spaces=' ' * num_leading_spaces).join(extra_lines + [
-        "{base_url}/{url};name={name}".format(
+        "{base_url}/{url};name={name};unpack={unpack}".format(
             base_url=BASE_URL,
             url=t_dict['url'],
             name=name,
+            unpack=str(unpack).lower(),
         ) for name, t_dict in iteritems(target_dict)
     ]) + ' \\\n{spaces}"'.format(spaces=' ' * (num_leading_spaces - 2))
 
@@ -224,9 +225,13 @@ def update_fpga_hashes(bbafile, manifest):
         for target, name in fpga_target_list
         if target in manifest
     }
+    if "uhd-fpga-images" in bbafile:
+        unpack=False
+    else:
+        unpack=True
     bbafile_content, n_subs = re.subn(
         r'SRC_URI_append[a-z0-9-_]*\s+=\s+"[^"]+"',
-        get_new_src_uri_str(src_uri_key, extra_lines, target_dict),
+        get_new_src_uri_str(src_uri_key, extra_lines, target_dict, unpack),
         bbafile_content,
         count=1
     )
