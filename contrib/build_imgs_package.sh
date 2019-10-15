@@ -10,6 +10,9 @@
 SETUP_ENV_SH=meta-ettus/contrib/setup_build_env.sh
 TMP_DIR=ettus_tmp
 DST_DIR=.
+# This depends on the libc used:
+TMP_OUTPUT_DIR=tmp-musl
+#TMP_OUTPUT_DIR=tmp-glibc
 
 if [ ! -r $SETUP_ENV_SH ]; then
 	echo "ERROR: This needs to be run from the Ettus OE root."
@@ -94,7 +97,7 @@ echo "Finding image..."
 if echo $_requested_device | grep '_'; then
 _speed_grade=$(echo $_requested_device | cut -d'_' -f 2)
 fi
-_sdimg=`find $_build_dir/tmp-glibc/deploy/images -name "developer-image*$_speed_grade*.sdimg" -type l`
+_sdimg=`find $_build_dir/${TMP_OUTPUT_DIR}/deploy/images -name "developer-image*$_speed_grade*.sdimg" -type l`
 if [ ! -r $_sdimg ]; then
 	echo "ERROR: Could not find SD card image!" exit 1
 fi
@@ -112,7 +115,7 @@ rm $TMP_DIR/*
 ## Mender Image #########################################################
 # This gets built in the same step as the SD card image.
 echo "Finding mender artefact..."
-_mender_art=`find $_build_dir/tmp-glibc/deploy/images -name "developer-image*$_speed_grade*.mender" -type l`
+_mender_art=`find $_build_dir/${TMP_OUTPUT_DIR}/deploy/images -name "developer-image*$_speed_grade*.mender" -type l`
 if [ ! -r $_mender_art ]; then
 	echo "ERROR: Could not find mender artefact!"
 	exit 1
@@ -131,7 +134,7 @@ if [ ! -z $_sdk_pkg_name ]; then
 echo "Launching build (SDK)..."
 bitbake developer-image -cpopulate_sdk
 echo "Finding SDK..."
-_sdk=`find $_build_dir/tmp-glibc/deploy/sdk -name "oecore*.sh" -type f`
+_sdk=`find $_build_dir/${TMP_OUTPUT_DIR}/deploy/sdk -name "oecore*.sh" -type f`
 if [ ! -r $_sdk ]; then
 	echo "ERROR: Could not find SDK!"
 	exit 1
