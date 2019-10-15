@@ -101,6 +101,7 @@ _sdimg=`find $_build_dir/${TMP_OUTPUT_DIR}/deploy/images -name "developer-image*
 if [ ! -r $_sdimg ]; then
 	echo "ERROR: Could not find SD card image!" exit 1
 fi
+echo "Found SD card image: $_sdimg"
 echo "Copying SD card image to tmp dir..."
 mkdir -p $TMP_DIR
 cp -v $_sdimg $TMP_DIR/$_sdimg_file_name
@@ -120,6 +121,7 @@ if [ ! -r $_mender_art ]; then
 	echo "ERROR: Could not find mender artefact!"
 	exit 1
 fi
+echo "Found mender artefact: $_mender_art"
 echo "Copying mender artefact to tmp dir..."
 mkdir -p $TMP_DIR
 cp -v $_mender_art $TMP_DIR/$_mender_file_name
@@ -139,6 +141,7 @@ if [ ! -r $_sdk ]; then
 	echo "ERROR: Could not find SDK!"
 	exit 1
 fi
+echo "Found SDK: $_sdk"
 _sdkpath=`dirname $_sdk`
 echo "Found SDK in: $_sdkpath. Files:"
 ls $_sdkpath
