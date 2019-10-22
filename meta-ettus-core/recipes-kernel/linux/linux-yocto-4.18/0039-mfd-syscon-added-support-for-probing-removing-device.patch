@@ -1,0 +1,177 @@
+From 6d300bed0c1ee7aa37864559e1632dedf007bb50 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Tue, 22 Oct 2019 13:46:57 +0200
+Subject: [PATCH] mfd: syscon: added support for probing/removing device based
+ on device tree
+
+The driver implicitly registered a regmap device based on a device tree entry
+if the "syscon_node_to_regmap" function was called (either directly or inside
+syscon_regmap_lookup_by_compatible or syscon_regmap_lookup_by_phandle).
+
+This change extends syscon_probe to also register the regmap if the device was
+probed based on a devicetree entry.
+
+This change also adds the function syscon_remove which frees the resources which
+were allocated when registering the device based on a devicetree entry.
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ drivers/mfd/syscon.c | 105 ++++++++++++++++++++++++++++++++++---------
+ 1 file changed, 85 insertions(+), 20 deletions(-)
+
+diff --git a/drivers/mfd/syscon.c b/drivers/mfd/syscon.c
+index b6d05cd934e6..447ae47f2853 100644
+--- a/drivers/mfd/syscon.c
++++ b/drivers/mfd/syscon.c
+@@ -43,6 +43,15 @@ static const struct regmap_config syscon_regmap_config = {
+ 	.reg_stride = 4,
+ };
+ 
++#ifdef CONFIG_OF
++static const struct of_device_id syscon_of_match[] = {
++	{.compatible = "syscon",.data = NULL},
++	{},
++};
++
++MODULE_DEVICE_TABLE(of, syscon_of_match);
++#endif
++
+ static struct syscon *of_syscon_register(struct device_node *np)
+ {
+ 	struct syscon *syscon;
+@@ -135,7 +144,7 @@ static struct syscon *of_syscon_register(struct device_node *np)
+ 	return ERR_PTR(ret);
+ }
+ 
+-struct regmap *syscon_node_to_regmap(struct device_node *np)
++struct syscon *__find_syscon_in_list(struct device_node *np)
+ {
+ 	struct syscon *entry, *syscon = NULL;
+ 
+@@ -149,6 +158,15 @@ struct regmap *syscon_node_to_regmap(struct device_node *np)
+ 
+ 	spin_unlock(&syscon_list_slock);
+ 
++	return syscon;
++}
++
++struct regmap *syscon_node_to_regmap(struct device_node *np)
++{
++	struct syscon *syscon = NULL;
++
++	syscon = __find_syscon_in_list(np);
++
+ 	if (!syscon)
+ 		syscon = of_syscon_register(np);
+ 
+@@ -226,25 +244,47 @@ static int syscon_probe(struct platform_device *pdev)
+ 	struct resource *res;
+ 	void __iomem *base;
+ 
+-	syscon = devm_kzalloc(dev, sizeof(*syscon), GFP_KERNEL);
+-	if (!syscon)
+-		return -ENOMEM;
+-
+-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+-	if (!res)
+-		return -ENOENT;
+-
+-	base = devm_ioremap(dev, res->start, resource_size(res));
+-	if (!base)
+-		return -ENOMEM;
+-
+-	syscon_config.max_register = res->end - res->start - 3;
+-	if (pdata)
+-		syscon_config.name = pdata->label;
+-	syscon->regmap = devm_regmap_init_mmio(dev, base, &syscon_config);
+-	if (IS_ERR(syscon->regmap)) {
+-		dev_err(dev, "regmap init failed\n");
+-		return PTR_ERR(syscon->regmap);
++	/*
++	 * if a device is probed with a devicetree entry, use this for registering
++	 * the device
++	 */
++	if (dev->of_node) {
++		syscon = __find_syscon_in_list(dev->of_node);
++
++		if (syscon) {
++			/*
++			 * regmap was already registered (based on devicetree) outside of
++			 * syscon_probe by the function of_syscon_register
++			 */
++		} else {
++			syscon = of_syscon_register(dev->of_node);
++
++			if (IS_ERR(syscon)) {
++				dev_err(dev, "regmap init failed\n");
++				return PTR_ERR(syscon);
++			}
++		}
++	} else {
++		syscon = devm_kzalloc(dev, sizeof(*syscon), GFP_KERNEL);
++		if (!syscon)
++			return -ENOMEM;
++
++		res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++		if (!res)
++			return -ENOENT;
++
++		base = devm_ioremap(dev, res->start, resource_size(res));
++		if (!base)
++			return -ENOMEM;
++
++		syscon_config.max_register = res->end - res->start - 3;
++		if (pdata)
++			syscon_config.name = pdata->label;
++		syscon->regmap = devm_regmap_init_mmio(dev, base, &syscon_config);
++		if (IS_ERR(syscon->regmap)) {
++			dev_err(dev, "regmap init failed\n");
++			return PTR_ERR(syscon->regmap);
++		}
+ 	}
+ 
+ 	platform_set_drvdata(pdev, syscon);
+@@ -254,6 +294,29 @@ static int syscon_probe(struct platform_device *pdev)
+ 	return 0;
+ }
+ 
++static int syscon_remove(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct syscon *syscon = NULL;
++
++	syscon = platform_get_drvdata(pdev);
++
++	if (dev->of_node) {
++		/*
++		 * device was registered based on a devicetree node by the function
++		 * of_syscon_register
++		 */
++		spin_lock(&syscon_list_slock);
++		list_del(&syscon->list);
++		spin_unlock(&syscon_list_slock);
++
++		regmap_exit(syscon->regmap);
++		kfree(syscon);
++	}
++
++	return 0;
++}
++
+ static const struct platform_device_id syscon_ids[] = {
+ 	{ "syscon", },
+ 	{ }
+@@ -262,8 +325,10 @@ static const struct platform_device_id syscon_ids[] = {
+ static struct platform_driver syscon_driver = {
+ 	.driver = {
+ 		.name = "syscon",
++		.of_match_table = of_match_ptr(syscon_of_match),
+ 	},
+ 	.probe		= syscon_probe,
++	.remove		= syscon_remove,
+ 	.id_table	= syscon_ids,
+ };
+ 
+-- 
+2.17.1
+
