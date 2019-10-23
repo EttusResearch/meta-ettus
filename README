@@ -49,6 +49,37 @@ The repository is split into several sublayers to allow for greater modularity.
 
     Contains changes for E310/E312/E313 mender.io integration.
 
+Building an Image using the image builder script
+================================================
+
+This repository provides a script that can be used to build filesystem images
+for the various supported USRP devices.
+
+From the top level of this repository, run ./contrib/build_imgs_package.sh
+without arguments to get the help message of this script.
+
+To run the script, other layers than meta-ettus are required. We provide
+manifest files on our oe-manifests repository:
+https://github.com/EttusResearch/oe-manifests
+
+To get a consistent set of meta-ettus and other layers, find a suitable version
+of the manifest file in the oe-manifests repository, and use repo to check out
+the correct versions:
+
+    repo init -u git://github.com/EttusResearch/oe-manifests.git -b $branch
+
+where $branch is the branch or revision of oe-manifests you wish to build. For
+example, to reproduce the repositories used for the 3.14.1.1 release, run the
+following command:
+
+    repo init -u git://github.com/EttusResearch/oe-manifests.git -b v3.14.1.1
+
+Then, run the script, e.g., for the N310:
+
+    ./meta-ettus/contrib/build_imgs_package.sh n3xx v3.14.1.1 .
+
+This will build and zip up the filesystem image, the SDK, and the Mender
+artefact.
 
 Building an Image using the Alchemy distro
 ===========================================
