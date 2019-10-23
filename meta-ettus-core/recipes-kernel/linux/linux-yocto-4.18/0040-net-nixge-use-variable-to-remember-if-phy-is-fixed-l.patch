@@ -1,0 +1,45 @@
+From ca537b4b27012684c8e34466da73a8687ca5b570 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Wed, 23 Oct 2019 13:25:24 +0200
+Subject: [PATCH] net: nixge: use variable to remember if phy is fixed link
+
+... because of_phy_is_fixed_link returns 0 when called in nixge_remove.
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ drivers/net/ethernet/ni/nixge.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
+index 205d133966f7..8a96adaaf0d9 100644
+--- a/drivers/net/ethernet/ni/nixge.c
++++ b/drivers/net/ethernet/ni/nixge.c
+@@ -203,6 +203,8 @@ struct nixge_priv {
+ 
+ 	u32 coalesce_count_rx;
+ 	u32 coalesce_count_tx;
++
++	int is_fixed_link;
+ };
+ 
+ static void nixge_dma_write_reg(struct nixge_priv *priv, off_t offset, u32 val)
+@@ -1365,6 +1367,7 @@ static int nixge_probe(struct platform_device *pdev)
+ 			goto unregister_mdio;
+ 		}
+ 		phy_node = of_node_get(pdev->dev.of_node);
++		priv->is_fixed_link = 1;
+ 	}
+ 	priv->phy_node = phy_node;
+ 
+@@ -1398,7 +1401,7 @@ static int nixge_remove(struct platform_device *pdev)
+ 
+ 	unregister_netdev(ndev);
+ 
+-	if (of_phy_is_fixed_link(pdev->dev.of_node))
++	if (priv->is_fixed_link)
+ 		of_phy_deregister_fixed_link(pdev->dev.of_node);
+ 	of_node_put(priv->phy_node);
+ 
+-- 
+2.17.1
+
