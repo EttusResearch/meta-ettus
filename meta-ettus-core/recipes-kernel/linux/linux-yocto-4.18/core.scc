@@ -33,3 +33,4 @@ patch 0036-net-phy-fix-reading-fixed-phy-status-backport-of-0f3.patch
 patch 0037-of-mdio-added-function-of_mdiobus_unregister.patch
 patch 0038-net-nixge-use-of_mdiobus_unregister-to-avoid-memory-.patch
 patch 0039-mfd-syscon-added-support-for-probing-removing-device.patch
+patch 0040-net-nixge-use-variable-to-remember-if-phy-is-fixed-l.patch
