@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 # Copyright 2018 Ettus Research, a National Instruments Company
+# Copyright 2019 Ettus Research, a National Instruments Brand
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
@@ -26,7 +27,7 @@ if [[ $# -eq 0 ]]; then
 	echo "- device_type: The name of the device that is being targeted (e.g. 'n3xx')"
 	echo "- artifact_name: The artifact name that gets stored on the filesystem (e.g. 'v3.13.0.2')"
 	echo "- src_dir: The directory in which the layers are stored (defaults to the \$HOME directory)"
-	echo "- build_dir: The directory in which builds happen (defaults to \$HOME/build)"
+	echo "- build_dir: The directory in which builds happen (defaults to \$src_dir/build)"
 	exit 0
 fi
 
