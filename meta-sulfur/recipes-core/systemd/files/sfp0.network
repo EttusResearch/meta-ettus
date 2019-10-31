@@ -5,4 +5,4 @@ Name=sfp0
 Address=192.168.10.2/24
 
 [Link]
-MTUBytes=8000
+MTUBytes=9000

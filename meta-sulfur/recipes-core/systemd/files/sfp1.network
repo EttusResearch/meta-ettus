@@ -5,4 +5,4 @@ Name=sfp1
 Address=192.168.20.2/24
 
 [Link]
-MTUBytes=8000
+MTUBytes=9000
