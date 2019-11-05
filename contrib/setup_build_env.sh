@@ -45,6 +45,7 @@ case $_requested_device in
 		INHERIT += "mender-full"
 		MENDER_ARTIFACT_NAME = "${_artifact_name}_n3xx"
 		IMAGE_ROOTFS_EXTRA_SPACE = "0"
+		PACKAGECONFIG_pn-gnuradio = "uhd zeromq"
 		_EOF_
 		_bb_layers="\
 		  /oe-core/meta \
@@ -57,7 +58,9 @@ case $_requested_device in
 		  /meta-ettus/meta-ettus-core \
 		  /meta-ettus/meta-alchemy \
 		  /meta-ettus/meta-sulfur \
-		  /meta-ettus/meta-mender-sulfur"
+		  /meta-ettus/meta-mender-sulfur \
+		  /meta-sdr \
+		  /meta-qt4"
 	;;
 	"e320")
 		read -d '' _auto_conf_edits <<- _EOF_
@@ -67,6 +70,7 @@ case $_requested_device in
 		INHERIT += "mender-full"
 		MENDER_ARTIFACT_NAME = "${_artifact_name}_e320"
 		IMAGE_ROOTFS_EXTRA_SPACE = "0"
+		PACKAGECONFIG_pn-gnuradio = "uhd zeromq"
 		_EOF_
 		_bb_layers="\
 		  /oe-core/meta \
@@ -79,7 +83,9 @@ case $_requested_device in
 		  /meta-ettus/meta-ettus-core \
 		  /meta-ettus/meta-alchemy \
 		  /meta-ettus/meta-neon \
-		  /meta-ettus/meta-mender-neon"
+		  /meta-ettus/meta-mender-neon \
+		  /meta-sdr \
+		  /meta-qt4"
 	;;
 	"e310_sg1")
 		read -d '' _auto_conf_edits <<- _EOF_
@@ -89,6 +95,7 @@ case $_requested_device in
 		INHERIT += "mender-full"
 		MENDER_ARTIFACT_NAME = "${_artifact_name}_e310_sg1"
 		IMAGE_ROOTFS_EXTRA_SPACE = "0"
+		PACKAGECONFIG_pn-gnuradio = "uhd zeromq"
 		_EOF_
 		_bb_layers="\
 		  /oe-core/meta \
@@ -101,7 +108,9 @@ case $_requested_device in
 		  /meta-ettus/meta-ettus-core \
 		  /meta-ettus/meta-alchemy \
 		  /meta-ettus/meta-e31x \
-		  /meta-ettus/meta-mender-e31x"
+		  /meta-ettus/meta-mender-e31x \
+		  /meta-sdr \
+		  /meta-qt4"
 	;;
 	"e310_sg3")
 		read -d '' _auto_conf_edits <<- _EOF_
@@ -111,6 +120,7 @@ case $_requested_device in
 		INHERIT += "mender-full"
 		MENDER_ARTIFACT_NAME = "${_artifact_name}_e310_sg3"
 		IMAGE_ROOTFS_EXTRA_SPACE = "0"
+		PACKAGECONFIG_pn-gnuradio = "uhd zeromq"
 		_EOF_
 		_bb_layers="\
 		  /oe-core/meta \
@@ -123,7 +133,9 @@ case $_requested_device in
 		  /meta-ettus/meta-ettus-core \
 		  /meta-ettus/meta-alchemy \
 		  /meta-ettus/meta-e31x \
-		  /meta-ettus/meta-mender-e31x"
+		  /meta-ettus/meta-mender-e31x \
+		  /meta-sdr \
+		  /meta-qt4"
 	;;
 	*)
 		echo "Unknown device type: $_requested_device. Aborting."
@@ -150,4 +162,5 @@ _auto_conf=$_build_dir/conf/auto.conf
 echo "Creating $_auto_conf..."
 echo "$_auto_conf_edits" > $_auto_conf
 
-echo "You can now run 'bitbake developer-image'."
+echo "You can now run 'bitbake <image>'"
+echo "where <image> is e.g. developer-image or gnuradio-image."
