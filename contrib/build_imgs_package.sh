@@ -53,6 +53,7 @@ case $_requested_device in
 		_sdimg_pkg_name=n3xx_common_sdimg_default-$_artifact_name.zip
 		_mender_pkg_name=n3xx_common_mender_default-$_artifact_name.zip
 		_sdk_pkg_name=n3xx_common_sdk_default-$_artifact_name.zip
+		_device=sulfur
 	;;
 	"e320")
 		echo "Building E320 image..."
@@ -61,6 +62,7 @@ case $_requested_device in
 		_sdimg_pkg_name=e3xx_e320_sdimg_default-$_artifact_name.zip
 		_mender_pkg_name=e3xx_e320_mender_default-$_artifact_name.zip
 		_sdk_pkg_name=e3xx_e320_sdk_default-$_artifact_name.zip
+		_device=neon
 	;;
 	"e310_sg1")
 		echo "Building E310 SG1 image..."
@@ -68,6 +70,7 @@ case $_requested_device in
 		_mender_file_name=usrp_e310_fs.mender
 		_sdimg_pkg_name=e3xx_e310_sg1_sdimg_default-$_artifact_name.zip
 		_mender_pkg_name=e3xx_e310_sg1_mender_default-$_artifact_name.zip
+		_device=e31x-sg1
 	;;
 	"e310_sg3")
 		echo "Building E310 SG3 image..."
@@ -76,6 +79,7 @@ case $_requested_device in
 		_sdimg_pkg_name=e3xx_e310_sg3_sdimg_default-$_artifact_name.zip
 		_mender_pkg_name=e3xx_e310_sg3_mender_default-$_artifact_name.zip
 		_sdk_pkg_name=e3xx_e310_sdk_default-$_artifact_name.zip
+		_device=e31x-sg3
 	;;
 	*)
 		echo "Unknown device type: $_requested_device. Aborting."
@@ -83,22 +87,21 @@ case $_requested_device in
 	;;
 esac
 
+_image=gnuradio-image
+
 echo "Sourcing environment..."
 source $SETUP_ENV_SH $_requested_device $_artifact_name $_src_dir $_build_dir
 
 ## SD Card Image #########################################################
-echo "Launching build (image)..."
-bitbake developer-image
+echo "Launching build ($_image)..."
+bitbake $_image
 if [ $? != 0 ]
 then
 	echo "Build was not successful, stopping script"
 	exit 1
 fi
 echo "Finding image..."
-if echo $_requested_device | grep '_'; then
-_speed_grade=$(echo $_requested_device | cut -d'_' -f 2)
-fi
-_sdimg=`find $_build_dir/${TMP_OUTPUT_DIR}/deploy/images -name "developer-image*$_speed_grade*.sdimg" -type l`
+_sdimg=`find $_build_dir/${TMP_OUTPUT_DIR}/deploy/images -name "$_image-ni-$_device*-mender.sdimg" -type l`
 if [ ! -r $_sdimg ]; then
 	echo "ERROR: Could not find SD card image!" exit 1
 fi
@@ -117,7 +120,7 @@ rm $TMP_DIR/*
 ## Mender Image #########################################################
 # This gets built in the same step as the SD card image.
 echo "Finding mender artefact..."
-_mender_art=`find $_build_dir/${TMP_OUTPUT_DIR}/deploy/images -name "developer-image*$_speed_grade*.mender" -type l`
+_mender_art=`find $_build_dir/${TMP_OUTPUT_DIR}/deploy/images -name "$_image-ni-$_device*-mender.mender" -type l`
 if [ ! -r $_mender_art ]; then
 	echo "ERROR: Could not find mender artefact!"
 	exit 1
@@ -134,8 +137,8 @@ rm $TMP_DIR/*
 ## SDK ################################################################
 # Skip SDK build for e310_sg1 as it has the same sdk as sg3.
 if [ ! -z $_sdk_pkg_name ]; then
-echo "Launching build (SDK)..."
-bitbake developer-image -cpopulate_sdk
+echo "Launching build (SDK for $_image)..."
+bitbake $_image -cpopulate_sdk
 echo "Finding SDK..."
 _sdk=`find $_build_dir/${TMP_OUTPUT_DIR}/deploy/sdk -name "oecore*.sh" -type f`
 if [ ! -r $_sdk ]; then
@@ -154,8 +157,8 @@ do
 done
 echo "Zipping up SDK..."
 zip -j $TMP_DIR/$_sdk_pkg_name $TMP_DIR/*.{sh,manifest,json}
-fi
 mv $TMP_DIR/*.zip $DST_DIR
 rm $TMP_DIR/*
+fi
 
 rmdir $TMP_DIR
