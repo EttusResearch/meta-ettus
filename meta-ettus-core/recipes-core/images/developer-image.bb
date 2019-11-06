@@ -14,4 +14,5 @@ LICENSE = "MIT"
 
 inherit core-image image-buildinfo
 TOOLCHAIN_HOST_TASK += "nativesdk-python3-setuptools \
+                        nativesdk-python3-mako \
                        "
