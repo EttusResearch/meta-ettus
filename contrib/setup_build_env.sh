@@ -47,17 +47,17 @@ case $_requested_device in
 		IMAGE_ROOTFS_EXTRA_SPACE = "0"
 		_EOF_
 		_bb_layers="\
-		  oe-core/meta \
-		  meta-oe/meta-oe \
-		  meta-oe/meta-filesystems \
-		  meta-oe/meta-python \
-		  meta-oe/meta-networking \
-		  meta-security/meta-tpm \
-		  meta-mender/meta-mender-core \
-		  meta-ettus/meta-ettus-core \
-		  meta-ettus/meta-alchemy \
-		  meta-ettus/meta-sulfur \
-		  meta-ettus/meta-mender-sulfur"
+		  /oe-core/meta \
+		  /meta-oe/meta-oe \
+		  /meta-oe/meta-python \
+		  /meta-oe/meta-filesystems \
+		  /meta-oe/meta-networking \
+		  /meta-security/meta-tpm \
+		  /meta-mender/meta-mender-core \
+		  /meta-ettus/meta-ettus-core \
+		  /meta-ettus/meta-alchemy \
+		  /meta-ettus/meta-sulfur \
+		  /meta-ettus/meta-mender-sulfur"
 	;;
 	"e320")
 		read -d '' _auto_conf_edits <<- _EOF_
