@@ -61,6 +61,11 @@ case $_requested_device in
 		  /meta-ettus/meta-mender-sulfur \
 		  /meta-sdr \
 		  /meta-qt4"
+		_remove_layers="\
+		  /meta-ettus/meta-mender-neon \
+		  /meta-ettus/meta-neon \
+		  /meta-ettus/meta-mender-e31x \
+		  /meta-ettus/meta-e31x"
 	;;
 	"e320")
 		read -d '' _auto_conf_edits <<- _EOF_
@@ -86,6 +91,11 @@ case $_requested_device in
 		  /meta-ettus/meta-mender-neon \
 		  /meta-sdr \
 		  /meta-qt4"
+		_remove_layers="\
+		  /meta-ettus/meta-mender-sulfur \
+		  /meta-ettus/meta-sulfur \
+		  /meta-ettus/meta-mender-e31x \
+		  /meta-ettus/meta-e31x"
 	;;
 	"e310_sg1")
 		read -d '' _auto_conf_edits <<- _EOF_
@@ -136,6 +146,11 @@ case $_requested_device in
 		  /meta-ettus/meta-mender-e31x \
 		  /meta-sdr \
 		  /meta-qt4"
+		_remove_layers="\
+		  /meta-ettus/meta-mender-sulfur \
+		  /meta-ettus/meta-sulfur \
+		  /meta-ettus/meta-mender-neon \
+		  /meta-ettus/meta-neon"
 	;;
 	*)
 		echo "Unknown device type: $_requested_device. Aborting."
@@ -149,6 +164,13 @@ echo "Using build directory: $_build_dir"
 echo "Using artifact name: ${_artifact_name}_${_requested_device}"
 
 source $_src_dir/oe-core/oe-init-build-env $_build_dir $_src_dir/bitbake
+
+echo "Removing layers..."
+for bb_layer in $_remove_layers
+do
+	echo "Removing layer: $_src_dir/$bb_layer"
+	bitbake-layers remove-layer $_src_dir/$bb_layer
+done
 
 echo "Adding layers..."
 for bb_layer in $_bb_layers
