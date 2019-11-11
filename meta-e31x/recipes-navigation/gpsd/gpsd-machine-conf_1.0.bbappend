@@ -20,6 +20,8 @@ RREPLACES_${PN} += "gpsd-conf"
 
 S = "${WORKDIR}"
 
+TARGET_CC_ARCH += "${LDFLAGS}"
+
 do_compile_ni-e31x() {
     ${CC} ubx.c -o ubx
 }
