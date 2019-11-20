@@ -13,5 +13,5 @@
 #   we've already published a version within OE, we start incrementing PR as in
 #   r1, r2, etc.
 
-PV = "3.15.0.0+rc1"
+PV = "3.15.0.0"
 #PR = "r1"
