@@ -32,6 +32,7 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     salt-minion \
     gps-utils-cgps \
     gps-utils-gps2udp \
+    gps-utils-gpsmon \
     rsync \
     nfs-utils-mount \
     "
