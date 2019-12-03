@@ -1,0 +1,34 @@
+From 6d80189c790f4ded10072084eb57479d724f9fc8 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Tue, 3 Dec 2019 11:10:20 +0100
+Subject: [PATCH] ARM: dts: zynq-e3xx: add reset delay of 10ms for ethernet PHY
+
+otherwise the ethernet PHY is not correctly reset and hence not available
+after boot.
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ arch/arm/boot/dts/zynq-e3xx.dtsi | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/boot/dts/zynq-e3xx.dtsi b/arch/arm/boot/dts/zynq-e3xx.dtsi
+index 8755a571ce83..13afbe55955a 100644
+--- a/arch/arm/boot/dts/zynq-e3xx.dtsi
++++ b/arch/arm/boot/dts/zynq-e3xx.dtsi
+@@ -67,11 +67,12 @@
+ 	nvmem-cells = <&eth0_addr>;
+ 	nvmem-cell-names = "mac-address";
+ 
++	reset-gpios = <&gpio0 11 1>;
++	reset-delay-us = <10000>;
+ 
+ 	phy0: phy@0 { /* Marvell 88e1512 */
+ 		reg = <0>;
+ 		compatible = "ethernet-phy-ieee802.3-c22";
+-		reset-gpios = <&gpio0 11 1>;
+ 	};
+ };
+ 
+-- 
+2.17.1
+
