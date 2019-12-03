@@ -1,5 +1,6 @@
 patch 0001-Add-e3xx-device-tree-for-xilinx-4.9-kernel.patch
 patch 0001-ARM-dts-zynq-e3xx-corrected-usb_phy0-entry.patch
+patch 0001-ARM-dts-zynq-e3xx-add-reset-delay-of-10ms-for-ethern.patch
 patch 0001-mfd-power-supply-Add-ni-e31x-pmu-battery-and-charger.patch
 patch 0001-mfd-power-supply-Fix-incorrect-battery-property-valu.patch
 patch 0001-mfd-power-supply-Add-support-for-writeable-property.patch
