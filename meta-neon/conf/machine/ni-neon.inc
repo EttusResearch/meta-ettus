@@ -35,6 +35,7 @@ MACHINE_EXTRA_RRECOMMENDS = " \
                              gpsd-gpsctl \
                              gps-utils \
                              gpsd-machine-conf \
+                             haveged \
                             "
 
 IMAGE_INSTALL_append_ni-neon = " kernel-image"
