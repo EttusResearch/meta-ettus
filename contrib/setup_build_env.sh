@@ -45,7 +45,6 @@ case $_requested_device in
 		INHERIT += "mender-full"
 		MENDER_ARTIFACT_NAME = "${_artifact_name}_n3xx"
 		IMAGE_ROOTFS_EXTRA_SPACE = "0"
-		PACKAGECONFIG_pn-gnuradio = "uhd zeromq"
 		_EOF_
 		_bb_layers="\
 		  /oe-core/meta \
@@ -75,7 +74,6 @@ case $_requested_device in
 		INHERIT += "mender-full"
 		MENDER_ARTIFACT_NAME = "${_artifact_name}_e320"
 		IMAGE_ROOTFS_EXTRA_SPACE = "0"
-		PACKAGECONFIG_pn-gnuradio = "uhd zeromq"
 		_EOF_
 		_bb_layers="\
 		  /oe-core/meta \
@@ -105,7 +103,6 @@ case $_requested_device in
 		INHERIT += "mender-full"
 		MENDER_ARTIFACT_NAME = "${_artifact_name}_e310_sg1"
 		IMAGE_ROOTFS_EXTRA_SPACE = "0"
-		PACKAGECONFIG_pn-gnuradio = "uhd zeromq"
 		_EOF_
 		_bb_layers="\
 		  /oe-core/meta \
@@ -130,7 +127,6 @@ case $_requested_device in
 		INHERIT += "mender-full"
 		MENDER_ARTIFACT_NAME = "${_artifact_name}_e310_sg3"
 		IMAGE_ROOTFS_EXTRA_SPACE = "0"
-		PACKAGECONFIG_pn-gnuradio = "uhd zeromq"
 		_EOF_
 		_bb_layers="\
 		  /oe-core/meta \
