@@ -1,0 +1,33 @@
+From beb58913866bfcaee220715d83a5296d8ebdcd53 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Wed, 11 Dec 2019 14:44:27 +0100
+Subject: [PATCH 1/2] fixup! usrp: Added support for USRP DMA device.
+
+---
+ drivers/usrp/usrp-dma-core.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/usrp/usrp-dma-core.c b/drivers/usrp/usrp-dma-core.c
+index 436bff993c83..33e0778cbafb 100644
+--- a/drivers/usrp/usrp-dma-core.c
++++ b/drivers/usrp/usrp-dma-core.c
+@@ -371,12 +371,12 @@ static void usrp_dma_core_fill_user_buffer(struct vb2_buffer *vb, void *pb)
+ 	case VB2_BUF_STATE_DONE:
+ 		b->flags |= USRP_BUF_FLAG_DONE;
+ 		break;
+-	case VB2_BUF_STATE_PREPARED:
+-		b->flags |= USRP_BUF_FLAG_PREPARED;
+-		break;
+ 	case VB2_BUF_STATE_PREPARING:
++		if (vb->prepared)
++			b->flags |= USRP_BUF_FLAG_PREPARED;
++		break;
+ 	case VB2_BUF_STATE_DEQUEUED:
+-	case VB2_BUF_STATE_REQUEUEING:
++	case VB2_BUF_STATE_IN_REQUEST:
+ 		/* nothing */
+ 		break;
+ 	}
+-- 
+2.17.1
+

@@ -1,0 +1,89 @@
+From 78936cc5287b9981854aa669321efb7c212e3014 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Thu, 5 Sep 2019 16:05:26 +0200
+Subject: [PATCH 14/17] of: mdio: added function of_mdiobus_unregister
+
+Added a new function of_mdiobus_unregister which is the counterpart
+to of_mdiobus_register. It deassociates the OF nodes which were
+previously associated before calling mdiobus_unregister.
+
+This avoids the "OF: ERROR: memory leak" error which otherwise occurs
+for each registered device when just calling mdiobus_unregister.
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ drivers/of/of_mdio.c    | 28 ++++++++++++++++++++++++++++
+ include/linux/of_mdio.h | 11 +++++++++++
+ 2 files changed, 39 insertions(+)
+
+diff --git a/drivers/of/of_mdio.c b/drivers/of/of_mdio.c
+index 3b67896d9d74..c2f8b6005bc0 100644
+--- a/drivers/of/of_mdio.c
++++ b/drivers/of/of_mdio.c
+@@ -280,6 +280,34 @@ int of_mdiobus_register(struct mii_bus *mdio, struct device_node *np)
+ }
+ EXPORT_SYMBOL(of_mdiobus_register);
+ 
++
++/**
++ * of_mdiobus_unregister - Unregister mii_bus and remove PHYs from the device tree
++ * @mdio: pointer to mii_bus structure
++ * @np: pointer to device_node of MDIO bus.
++ *
++ * This function unregisters the mii_bus structure and removes the phy_devices.
++ */
++void of_mdiobus_unregister(struct mii_bus *mdio)
++{
++	struct mdio_device *mdiodev;
++	int i;
++
++	for (i = 0; i < PHY_MAX_ADDR; i++) {
++		mdiodev = mdio->mdio_map[i];
++		if (!mdiodev)
++			continue;
++
++		if (mdiodev->dev.of_node) {
++			of_node_put(mdiodev->dev.of_node);
++			mdiodev->dev.of_node = NULL;
++		}
++	}
++
++	mdiobus_unregister(mdio);
++}
++EXPORT_SYMBOL(of_mdiobus_unregister);
++
+ /* Helper function for of_phy_find_device */
+ static int of_phy_match(struct device *dev, void *phy_np)
+ {
+diff --git a/include/linux/of_mdio.h b/include/linux/of_mdio.h
+index 99cefe6f5edb..ee60853a4ea8 100644
+--- a/include/linux/of_mdio.h
++++ b/include/linux/of_mdio.h
+@@ -13,6 +13,7 @@
+ 
+ #if IS_ENABLED(CONFIG_OF_MDIO)
+ extern int of_mdiobus_register(struct mii_bus *mdio, struct device_node *np);
++extern void of_mdiobus_unregister(struct mii_bus *mdio);
+ extern struct phy_device *of_phy_find_device(struct device_node *phy_np);
+ extern struct phy_device *of_phy_connect(struct net_device *dev,
+ 					 struct device_node *phy_np,
+@@ -64,6 +65,16 @@ static inline int of_mdiobus_register(struct mii_bus *mdio, struct device_node *
+ 	return mdiobus_register(mdio);
+ }
+ 
++static inline void of_mdiobus_unregister(struct mii_bus *mdio)
++{
++	/*
++	 * Fall back to the non-DT function to unregister a bus.
++	 * This way, we don't have to keep compat bits around in drivers.
++	 */
++
++	mdiobus_unregister(mdio);
++}
++
+ static inline struct phy_device *of_phy_find_device(struct device_node *phy_np)
+ {
+ 	return NULL;
+-- 
+2.17.1
+

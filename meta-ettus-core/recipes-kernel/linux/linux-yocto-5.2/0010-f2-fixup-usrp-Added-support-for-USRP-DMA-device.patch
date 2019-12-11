@@ -1,0 +1,249 @@
+From f4fe6020b831434ed770255aece927cf3d647d51 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Thu, 12 Dec 2019 14:27:10 +0100
+Subject: [PATCH 2/2] fixup! usrp: Added support for USRP DMA device.
+
+---
+ drivers/usrp/usrp-dma-core.c  | 190 +++++++++++++++++++++++++---------
+ include/linux/usrp/usrp-dma.h |   1 +
+ 2 files changed, 141 insertions(+), 50 deletions(-)
+
+diff --git a/drivers/usrp/usrp-dma-core.c b/drivers/usrp/usrp-dma-core.c
+index 33e0778cbafb..ea42afaa89f1 100644
+--- a/drivers/usrp/usrp-dma-core.c
++++ b/drivers/usrp/usrp-dma-core.c
+@@ -18,6 +18,15 @@
+ #include <media/videobuf2-dma-contig.h>
+ #include <media/videobuf2-dma-sg.h>
+ 
++static int debug;
++module_param(debug, int, 0644);
++
++#define dprintk(level, fmt, arg...)					      \
++	do {								      \
++		if (debug >= level)					      \
++			pr_info("usrp-dma-core: %s: " fmt, __func__, ## arg); \
++	} while (0)
++
+ #define USRP_DMA_API_MAJOR 1
+ #define USRP_DMA_API_MINOR 0
+ 
+@@ -166,6 +175,119 @@ int usrp_dma_ioc_streamoff(struct vb2_queue *q, enum usrp_buf_type type)
+ 	return vb2_core_streamoff(q, type);
+ }
+ 
++static int __verify_length(struct vb2_buffer *vb, const struct usrp_buffer *b)
++{
++	unsigned int length;
++
++	if (!USRP_TYPE_IS_OUTPUT(b->type))
++		return 0;
++
++	length = (b->memory == USRP_MEMORY_USERPTR)
++	    ? b->length : vb->planes[0].length;
++
++	if (b->bytesused > length)
++		return -EINVAL;
++
++	return 0;
++}
++
++static void usrp_dma_warn_zero_bytesused(struct vb2_buffer *vb)
++{
++	static bool check_once;
++
++	if (check_once)
++		return;
++
++	check_once = true;
++
++	pr_warn("use of bytesused == 0 is deprecated and will be removed in the future,\n");
++}
++
++static int usrp_dma_fill_vb2_usrp_buffer(struct vb2_buffer *vb, struct usrp_buffer *b)
++{
++	struct usrp_dma_buffer *vbuf = to_usrp_dma_buffer(vb);
++	struct vb2_plane *planes = vbuf->planes;
++	int ret;
++
++	ret = __verify_length(vb, b);
++	if (ret < 0) {
++		dprintk(1, "plane parameters verification failed: %d\n", ret);
++		return ret;
++	}
++
++	switch (b->memory) {
++		case USRP_MEMORY_USERPTR:
++			planes[0].m.userptr = b->m.userptr;
++			planes[0].length = b->length;
++			break;
++		case USRP_MEMORY_DMABUF:
++			planes[0].m.fd = b->m.fd;
++			planes[0].length = b->length;
++			break;
++		default:
++			planes[0].m.offset = vb->planes[0].m.offset;
++			planes[0].length = vb->planes[0].length;
++			break;
++	}
++
++	planes[0].data_offset = 0;
++	if (USRP_TYPE_IS_OUTPUT(b->type)) {
++		if (b->bytesused == 0)
++			usrp_dma_warn_zero_bytesused(vb);
++
++		if (vb->vb2_queue->allow_zero_bytesused)
++			planes[0].bytesused = b->bytesused;
++		else
++			planes[0].bytesused = b->bytesused ?
++				b->bytesused : planes[0].length;
++	} else
++		planes[0].bytesused = 0;
++
++	return 0;
++}
++
++static int usrp_dma_queue_buf(struct vb2_queue *q, struct usrp_buffer *b)
++{
++	struct usrp_dma_buffer *vbuf;
++	struct vb2_buffer *vb;
++	int ret;
++
++	if (b->type != q->type) {
++		dprintk(1, "invalid buffer type\n");
++		return -EINVAL;
++	}
++
++	if (b->index >= q->num_buffers) {
++		dprintk(1, "buffer index out of range\n");
++		return -EINVAL;
++	}
++
++	if (q->bufs[b->index] == NULL) {
++		/* Should never happen */
++		dprintk(1, "buffer is NULL\n");
++		return -EINVAL;
++	}
++
++	if (b->memory != q->memory) {
++		dprintk(1, "invalid memory type\n");
++		return -EINVAL;
++	}
++
++	vb = q->bufs[b->index];
++	vbuf = to_usrp_dma_buffer(vb);
++
++	if (!vb->prepared) {
++		/* Copy relevant information provided by the userspace */
++		memset(vbuf->planes, 0,
++		       sizeof(vbuf->planes[0]) * vb->num_planes);
++		ret = usrp_dma_fill_vb2_usrp_buffer(vb, b);
++		if (ret)
++			return ret;
++	}
++
++	return 0;
++}
++
+ int usrp_dma_ioc_qbuf(struct vb2_queue *q, struct usrp_buffer __user * arg)
+ {
+ 	int err;
+@@ -174,7 +296,10 @@ int usrp_dma_ioc_qbuf(struct vb2_queue *q, struct usrp_buffer __user * arg)
+ 	if (copy_from_user(&req, (void __user *)arg, sizeof(req)))
+ 		return -EFAULT;
+ 
+-	err = vb2_core_qbuf(q, req.index, &req);
++	err = usrp_dma_queue_buf(q, &req);
++	if (err)
++		return err;
++	err = vb2_core_qbuf(q, req.index, &req, NULL);
+ 
+ 	if (copy_to_user((void __user *)arg, &req, sizeof(req)))
+ 		return -EFAULT;
+@@ -389,57 +514,22 @@ static void usrp_dma_core_fill_user_buffer(struct vb2_buffer *vb, void *pb)
+ 		q->last_buffer_dequeued = true;
+ }
+ 
+-static int __verify_length(struct vb2_buffer *vb, const struct usrp_buffer *b)
++static int usrp_dma_core_fill_vb2_buffer(struct vb2_buffer *vb, struct vb2_plane *planes)
+ {
+-	unsigned int length;
+-
+-	if (!USRP_TYPE_IS_OUTPUT(b->type))
+-		return 0;
+-
+-	length = (b->memory == VB2_MEMORY_USERPTR)
+-	    ? b->length : vb->planes[0].length;
+-
+-	if (b->bytesused > length)
+-		return -EINVAL;
+-
+-	return 0;
+-}
+-
+-static int usrp_dma_core_fill_vb2_buffer(struct vb2_buffer *vb, const void *pb,
+-					 struct vb2_plane *planes)
+-{
+-	const struct usrp_buffer *b = pb;
+-	int ret;
+-
+-	ret = __verify_length(vb, b);
+-	if (ret < 0) {
+-		pr_err("%s: plane parameters verification failed: %d\n",
+-		       __func__, ret);
+-		return ret;
++	struct usrp_dma_buffer *vbuf = to_usrp_dma_buffer(vb);
++	unsigned int plane;
++
++	if (!vb->vb2_queue->copy_timestamp)
++		vb->timestamp = 0;
++
++	for (plane = 0; plane < vb->num_planes; ++plane) {
++		if (vb->vb2_queue->memory != VB2_MEMORY_MMAP) {
++			planes[plane].m = vbuf->planes[plane].m;
++			planes[plane].length = vbuf->planes[plane].length;
++		}
++		planes[plane].bytesused = vbuf->planes[plane].bytesused;
++		planes[plane].data_offset = vbuf->planes[plane].data_offset;
+ 	}
+-
+-	if (b->memory == VB2_MEMORY_USERPTR) {
+-		planes[0].m.userptr = b->m.userptr;
+-		planes[0].length = b->length;
+-	}
+-
+-	if (b->memory == VB2_MEMORY_DMABUF) {
+-		planes[0].m.fd = b->m.fd;
+-		planes[0].length = b->length;
+-	}
+-
+-	if (USRP_TYPE_IS_OUTPUT(b->type)) {
+-		if (b->bytesused == 0)
+-			WARN_ON(1);
+-
+-		if (vb->vb2_queue->allow_zero_bytesused)
+-			planes[0].bytesused = b->bytesused;
+-		else
+-			planes[0].bytesused = b->bytesused ?
+-			    b->bytesused : planes[0].length;
+-	} else
+-		planes[0].bytesused = 0;
+-
+ 	return 0;
+ }
+ 
+diff --git a/include/linux/usrp/usrp-dma.h b/include/linux/usrp/usrp-dma.h
+index 75c6d3e42f53..e0c7095e5cd9 100644
+--- a/include/linux/usrp/usrp-dma.h
++++ b/include/linux/usrp/usrp-dma.h
+@@ -45,6 +45,7 @@ struct usrp_dma_buffer {
+        struct vb2_buffer buf;
+        struct list_head queue;
+        struct usrp_dma *dma;
++       struct vb2_plane	planes[VB2_MAX_PLANES];
+ };
+ 
+ static inline struct usrp_dma_buffer *to_usrp_dma_buffer(struct vb2_buffer *vb)
+-- 
+2.17.1
+

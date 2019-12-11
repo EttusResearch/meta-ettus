@@ -1,0 +1,24 @@
+From 9935d5471dc5106c722f62eb52d2d0efc66818a9 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Wed, 11 Dec 2019 14:01:50 +0100
+Subject: [PATCH] fixup! drivers/dma/dma-axi-dmac: Enable TLAST handling
+
+---
+ drivers/dma/dma-axi-dmac.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/drivers/dma/dma-axi-dmac.c b/drivers/dma/dma-axi-dmac.c
+index 5d0378a9ac91..53caa6aed4ca 100644
+--- a/drivers/dma/dma-axi-dmac.c
++++ b/drivers/dma/dma-axi-dmac.c
+@@ -418,7 +418,6 @@ static struct axi_dmac_sg *axi_dmac_fill_linear_sg(struct axi_dmac_chan *chan,
+ 			sg->src_addr = addr;
+ 		sg->x_len = len;
+ 		sg->y_len = 1;
+-		sg->last = true;
+ 		sg++;
+ 		addr += len;
+ 	}
+-- 
+2.17.1
+

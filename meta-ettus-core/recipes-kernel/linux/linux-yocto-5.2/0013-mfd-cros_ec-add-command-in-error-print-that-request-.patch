@@ -1,0 +1,31 @@
+From ada5bb84616f811ce0f4015ed1e06d1059665fc8 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Thu, 29 Aug 2019 15:15:47 +0200
+Subject: [PATCH 13/17] mfd: cros_ec: add command in error print that request
+ size was too big
+
+It is very useful for debugging to know which command exceeded
+the allowed request size.
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ drivers/platform/chrome/cros_ec_proto.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/platform/chrome/cros_ec_proto.c b/drivers/platform/chrome/cros_ec_proto.c
+index 3d2325197a68..f5d82ec882d4 100644
+--- a/drivers/platform/chrome/cros_ec_proto.c
++++ b/drivers/platform/chrome/cros_ec_proto.c
+@@ -476,7 +476,8 @@ int cros_ec_cmd_xfer(struct cros_ec_device *ec_dev,
+ 	if (msg->command < EC_CMD_PASSTHRU_OFFSET(1)) {
+ 		if (msg->outsize > ec_dev->max_request) {
+ 			dev_err(ec_dev->dev,
+-				"request of size %u is too big (max: %u)\n",
++				"command 0x%x request of size %u is too big (max: %u)\n",
++				msg->command,
+ 				msg->outsize,
+ 				ec_dev->max_request);
+ 			mutex_unlock(&ec_dev->lock);
+-- 
+2.17.1
+

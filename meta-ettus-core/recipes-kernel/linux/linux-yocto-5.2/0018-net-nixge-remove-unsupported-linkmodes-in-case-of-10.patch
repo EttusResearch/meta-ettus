@@ -1,0 +1,77 @@
+From 1de856c443f84cb00b32ec2cda0d89b469031c56 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Wed, 5 Feb 2020 17:04:11 +0100
+Subject: [PATCH] net: nixge: remove unsupported linkmodes in case of 10GbE
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ drivers/net/ethernet/ni/nixge.c | 53 +++++++++++++++++++++++++++++++--
+ 1 file changed, 50 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
+index 0a9e260d2b2e..38a2e165ead2 100644
+--- a/drivers/net/ethernet/ni/nixge.c
++++ b/drivers/net/ethernet/ni/nixge.c
+@@ -877,9 +877,56 @@ static int nixge_open(struct net_device *ndev)
+ 	if (!phy)
+ 		return -ENODEV;
+ 
+-	linkmode_clear_bit(ETHTOOL_LINK_MODE_Autoneg_BIT, ndev->phydev->supported);
+-	linkmode_copy(ndev->phydev->advertising, ndev->phydev->supported);
+-	ndev->phydev->autoneg = AUTONEG_DISABLE;
++	if (linkmode_test_bit(ETHTOOL_LINK_MODE_Autoneg_BIT, ndev->phydev->supported)) {
++		netdev_warn(ndev, "Ethernet PHY reported autonegotion feature which is not supported, removing it\n");
++		linkmode_clear_bit(ETHTOOL_LINK_MODE_Autoneg_BIT, ndev->phydev->supported);
++		linkmode_copy(ndev->phydev->advertising, ndev->phydev->supported);
++		ndev->phydev->autoneg = AUTONEG_DISABLE;
++	}
++
++	if (phy->is_c45) {
++		/*
++		 * the 10G Ethernet PCS/PMA Logicore IP core (used in the FPGA bitfiles with 10GbE
++		 * PHY) documentation says that it "supports 10GBASE-SR, -LR and -ER optical links"
++		 * but it advertises a lot of other modes (10, 100, 1000, 2500, 10000) over MDIO
++		 * -> remove unsupported modes
++		 */
++
++		__ETHTOOL_DECLARE_LINK_MODE_MASK(mask);
++		__ETHTOOL_DECLARE_LINK_MODE_MASK(corrected);
++
++		static const int mask_array[] = {
++			// supported modes
++			ETHTOOL_LINK_MODE_10000baseT_Full_BIT,
++			ETHTOOL_LINK_MODE_10000baseSR_Full_BIT,
++			ETHTOOL_LINK_MODE_10000baseLR_Full_BIT,
++			ETHTOOL_LINK_MODE_10000baseER_Full_BIT,
++			// 'phy_all_ports_features_array' from phy_device.c
++			ETHTOOL_LINK_MODE_Autoneg_BIT,
++			ETHTOOL_LINK_MODE_TP_BIT,
++			ETHTOOL_LINK_MODE_MII_BIT,
++			ETHTOOL_LINK_MODE_FIBRE_BIT,
++			ETHTOOL_LINK_MODE_AUI_BIT,
++			ETHTOOL_LINK_MODE_BNC_BIT,
++			ETHTOOL_LINK_MODE_Backplane_BIT,
++			// Pause bits
++			ETHTOOL_LINK_MODE_Pause_BIT,
++			ETHTOOL_LINK_MODE_Asym_Pause_BIT
++		};
++
++		linkmode_zero(mask);
++		linkmode_set_bit_array(mask_array,
++			       ARRAY_SIZE(mask_array),
++			       mask);
++
++		linkmode_and(corrected, ndev->phydev->supported, mask);
++
++		if (!linkmode_equal(corrected, ndev->phydev->supported)) {
++			netdev_warn(ndev, "Ethernet PHY reported unsupported link modes, removing them\n");
++			linkmode_copy(ndev->phydev->supported, corrected);
++			linkmode_copy(ndev->phydev->advertising, corrected);
++		}
++	}
+ 
+ 	phy_start(phy);
+ 
+-- 
+2.17.1
+

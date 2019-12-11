@@ -1,0 +1,27 @@
+From f0bd1ffa54c7c4af41ab00dc77d35edacd0dc733 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Tue, 4 Feb 2020 11:34:42 +0100
+Subject: [PATCH] dmaengine: of_dma: print error if DMA controller could not be
+ found
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ drivers/dma/of-dma.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/dma/of-dma.c b/drivers/dma/of-dma.c
+index 1e4d9ef2aea1..d546555097ab 100644
+--- a/drivers/dma/of-dma.c
++++ b/drivers/dma/of-dma.c
+@@ -276,6 +276,8 @@ struct dma_chan *of_dma_request_slave_channel(struct device_node *np,
+ 		} else {
+ 			ret_no_channel = -EPROBE_DEFER;
+ 			chan = NULL;
++			pr_err("%s: Could not find DMA controller for node '%pOF'\n",
++				__func__, dma_spec.np);
+ 		}
+ 
+ 		mutex_unlock(&of_dma_lock);
+-- 
+2.17.1
+

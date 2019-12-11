@@ -1,0 +1,5 @@
+patch 0008-rfnoc-Initial-shot-add-adding-RFNoC-support.patch
+patch 0009-media-Increase-VIDEO_MAX_FRAMES-and-VB2_MAX_FRAMES-t.patch
+patch 0010-usrp-Added-support-for-USRP-DMA-device.patch
+patch 0010-f1-fixup-usrp-Added-support-for-USRP-DMA-device.patch
+patch 0010-f2-fixup-usrp-Added-support-for-USRP-DMA-device.patch

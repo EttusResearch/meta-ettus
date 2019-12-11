@@ -1,0 +1,25 @@
+From 0006dda5b1f93c82c812abb1548352cda4ea5e01 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Wed, 11 Dec 2019 14:15:20 +0100
+Subject: [PATCH] fixup! mfd: syscon: added support for probing/removing device
+ based on device tree
+
+---
+ drivers/mfd/syscon.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/mfd/syscon.c b/drivers/mfd/syscon.c
+index 14adf2384b1f..108918e77b08 100644
+--- a/drivers/mfd/syscon.c
++++ b/drivers/mfd/syscon.c
+@@ -22,6 +22,7 @@
+ #include <linux/regmap.h>
+ #include <linux/mfd/syscon.h>
+ #include <linux/slab.h>
++#include <linux/module.h>
+ 
+ static struct platform_driver syscon_driver;
+ 
+-- 
+2.17.1
+
