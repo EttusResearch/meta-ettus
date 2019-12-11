@@ -1,0 +1,36 @@
+From bf3c5c03f1a216f0bdf2a547d6cf52391e32f2b4 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Mon, 18 Nov 2019 14:02:00 +0100
+Subject: [PATCH 2/6] ARM: dts: zynq-e3xx: corrected usb_phy0 entry
+
+This change sets the correct values for "compatible" (using a dummy PHY)
+and the "reset-gpios".
+
+This fixes the issue that no USB devices would be detected.
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ arch/arm/boot/dts/zynq-e3xx.dtsi | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm/boot/dts/zynq-e3xx.dtsi b/arch/arm/boot/dts/zynq-e3xx.dtsi
+index ff0d7b8a93ad..8755a571ce83 100644
+--- a/arch/arm/boot/dts/zynq-e3xx.dtsi
++++ b/arch/arm/boot/dts/zynq-e3xx.dtsi
+@@ -48,11 +48,9 @@
+ 	};
+ 
+ 	usb_phy0: phy0@e0002000 {
+-		compatible = "ulpi-phy";
++		compatible = "usb-nop-xceiv";
+ 		#phy-cells = <0>;
+-		reg = <0xe0002000 0x1000>;
+-		view-port = <0x0170>;
+-		drv-vbus;
++		reset-gpios = <&gpio0 9 1>;
+ 	};
+ };
+ 
+-- 
+2.17.1
+
