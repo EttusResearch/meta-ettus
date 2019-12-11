@@ -36,6 +36,7 @@ MACHINE_EXTRA_RRECOMMENDS = " \
                              gpsd \
                              gpsd-gpsctl \
                              gpsd-machine-conf \
+                             haveged \
                             "
 
 IMAGE_INSTALL_append_ni-sulfur = " kernel-image"
