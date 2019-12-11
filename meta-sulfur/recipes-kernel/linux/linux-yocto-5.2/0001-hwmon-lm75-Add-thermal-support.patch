@@ -1,0 +1,85 @@
+From 0e2cef53d1d1b1ff78c6877dbd41d9b346c41060 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Tue, 11 Jul 2017 10:16:08 -0700
+Subject: [PATCH 01/19] hwmon: lm75: Add thermal support
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ drivers/hwmon/lm75.c | 40 ++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 40 insertions(+)
+
+diff --git a/drivers/hwmon/lm75.c b/drivers/hwmon/lm75.c
+index ce5ec403ec73..2f908680b70c 100644
+--- a/drivers/hwmon/lm75.c
++++ b/drivers/hwmon/lm75.c
+@@ -18,6 +18,7 @@
+ #include <linux/regmap.h>
+ #include "lm75.h"
+ 
++#include <linux/thermal.h>
+ 
+ /*
+  * This driver handles the LM75 and compatible digital temperature sensors.
+@@ -182,6 +183,29 @@ static umode_t lm75_is_visible(const void *data, enum hwmon_sensor_types type,
+ 	return 0;
+ }
+ 
++struct lm75_thermal_sensor {
++	struct lm75_data *data;
++};
++
++static int lm75_thermal_get_temp(void *data, int *temp)
++{
++	struct lm75_thermal_sensor *thermal = data;
++	int err, regval;
++
++	err = regmap_read(thermal->data->regmap, LM75_REG_TEMP,
++			  &regval);
++	if (err < 0)
++		return err;
++
++	*temp = lm75_reg_to_mc(regval, thermal->data->resolution);
++
++	return 0;
++}
++
++const static struct thermal_zone_of_device_ops tzd_ops = {
++	.get_temp = lm75_thermal_get_temp,
++};
++
+ static const struct hwmon_channel_info *lm75_info[] = {
+ 	HWMON_CHANNEL_INFO(chip,
+ 			   HWMON_C_REGISTER_TZ | HWMON_C_UPDATE_INTERVAL),
+@@ -223,6 +247,20 @@ static const struct regmap_config lm75_regmap_config = {
+ 	.use_single_write = true,
+ };
+ 
++static int lm75_setup_thermal(struct device *dev, void *data)
++{
++	struct lm75_thermal_sensor *sensor;
++
++	sensor = devm_kzalloc(dev, sizeof(*sensor), GFP_KERNEL);
++	if (!sensor)
++		return -ENOMEM;
++	sensor->data = data;
++
++	devm_thermal_zone_of_sensor_register(dev, 0, sensor, &tzd_ops);
++
++	return 0;
++}
++
+ static void lm75_remove(void *data)
+ {
+ 	struct lm75_data *lm75 = data;
+@@ -380,6 +418,8 @@ lm75_probe(struct i2c_client *client, const struct i2c_device_id *id)
+ 
+ 	dev_info(dev, "%s: sensor '%s'\n", dev_name(hwmon_dev), client->name);
+ 
++	lm75_setup_thermal(dev, data);
++
+ 	return 0;
+ }
+ 
+-- 
+2.17.1
+

@@ -1,0 +1,37 @@
+From d97e567877000976a12a1a57ad585e2d5c32df2d Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Thu, 30 Mar 2017 17:51:09 -0700
+Subject: [PATCH 03/19] ARM: DT: iio_hwmon to zynq dt
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ arch/arm/boot/dts/zynq-7000.dtsi | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/arch/arm/boot/dts/zynq-7000.dtsi b/arch/arm/boot/dts/zynq-7000.dtsi
+index ca6425ad794c..e4d7e8d80d89 100644
+--- a/arch/arm/boot/dts/zynq-7000.dtsi
++++ b/arch/arm/boot/dts/zynq-7000.dtsi
+@@ -59,6 +59,11 @@
+ 		regulator-always-on;
+ 	};
+ 
++	iio_hwmon {
++		compatible = "iio-hwmon";
++		io-channels = <&adc 0>;
++	};
++
+ 	amba: amba {
+ 		compatible = "simple-bus";
+ 		#address-cells = <1>;
+@@ -72,6 +77,7 @@
+ 			interrupts = <0 7 4>;
+ 			interrupt-parent = <&intc>;
+ 			clocks = <&clkc 12>;
++			#io-channel-cells = <1>;
+ 		};
+ 
+ 		can0: can@e0008000 {
+-- 
+2.17.1
+

@@ -1,0 +1,1113 @@
+From 07428e83c746f06a27a701c2969dbd1f2e17463c Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Thu, 12 Apr 2018 15:28:03 -0700
+Subject: [PATCH 16/19] ARM: DT: Refactor the magnesium daughterboards using
+ dtsi
+
+Refactor magnesium daugherboards using dtsi file for magnesium.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ arch/arm/boot/dts/ni-magnesium-db0.dtsi       |  89 +++++++++
+ arch/arm/boot/dts/ni-magnesium-db1.dtsi       |  88 +++++++++
+ ...zynq-ni-phosphorus-rev4-magnesium-rev2.dts |  81 +--------
+ ...zynq-ni-phosphorus-rev4-magnesium-rev3.dts |  81 +--------
+ .../zynq-ni-sulfur-rev4-magnesium-rev2.dts    | 161 +----------------
+ .../zynq-ni-sulfur-rev4-magnesium-rev3.dts    | 171 +-----------------
+ .../zynq-ni-sulfur-rev5-magnesium-rev2.dts    | 161 +----------------
+ .../zynq-ni-sulfur-rev5-magnesium-rev3.dts    | 161 +----------------
+ 8 files changed, 187 insertions(+), 806 deletions(-)
+ create mode 100644 arch/arm/boot/dts/ni-magnesium-db0.dtsi
+ create mode 100644 arch/arm/boot/dts/ni-magnesium-db1.dtsi
+
+diff --git a/arch/arm/boot/dts/ni-magnesium-db0.dtsi b/arch/arm/boot/dts/ni-magnesium-db0.dtsi
+new file mode 100644
+index 000000000000..cec8bbf763aa
+--- /dev/null
++++ b/arch/arm/boot/dts/ni-magnesium-db0.dtsi
+@@ -0,0 +1,89 @@
++//SPDX-License-Identifier: (GPL-2.0 OR X11)
++/*
++ * National Instruments Ettus Research Project Magnesium SDR
++ *
++ * Copyright (c) 2017 National Instruments Corp.
++ *
++ */
++
++#include <dt-bindings/thermal/thermal.h>
++
++&usrpio_i2c0 {
++	db_temp0: hwmon@48 {
++		reg = <0x48>;
++		compatible = "lm75";
++		#thermal-sensor-cells = <1>;
++	};
++
++	gpio@20 {
++		compatible = "ti,tca6408";
++		reg = <0x20>;
++		gpio-controller;
++		#gpio-cells = <2>;
++	};
++
++};
++
++&thermal_zones {
++	magnesium-db0-zone {
++		polling-delay-passive = <1000>;
++		polling-delay = <1000>;
++
++		thermal-sensors = <&db_temp0 0>;
++
++		trips  {
++			db0_alert0: db0-alert0 {
++				temperature = <30000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db0_alert1: db0-alert1 {
++				temperature = <45000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db0_alert2: db0-alert2 {
++				temperature = <50000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "active";
++			};
++
++
++			db0_crit: db0-crit {
++				temperature = <70000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "critical";
++			};
++
++		};
++
++		cooling-maps {
++			map0 {
++				trip = <&db0_alert0>;
++				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
++				contribution = <100>;
++			};
++
++			map1 {
++				trip = <&db0_alert1>;
++				cooling-device = <&fan1 6000 8000>;
++				contribution = <100>;
++			};
++
++			map2 {
++				trip = <&db0_alert2>;
++				cooling-device = <&fan1 8000 12500>;
++				contribution = <100>;
++			};
++
++			map3 {
++				trip = <&db0_crit>;
++				cooling-device = <&fan1 12500 13500>;
++				contribution = <100>;
++			};
++
++		};
++	};
++};
+diff --git a/arch/arm/boot/dts/ni-magnesium-db1.dtsi b/arch/arm/boot/dts/ni-magnesium-db1.dtsi
+new file mode 100644
+index 000000000000..5f72004bf14d
+--- /dev/null
++++ b/arch/arm/boot/dts/ni-magnesium-db1.dtsi
+@@ -0,0 +1,88 @@
++//SPDX-License-Identifier: (GPL-2.0 OR X11)
++/*
++ * National Instruments Ettus Research Project Magnesium SDR
++ *
++ * Copyright (c) 2017 National Instruments Corp.
++ *
++ */
++
++#include <dt-bindings/thermal/thermal.h>
++
++&usrpio_i2c1 {
++	db_temp1: hwmon@48 {
++		reg = <0x48>;
++		compatible = "lm75";
++		#thermal-sensor-cells = <1>;
++	};
++
++	gpio@20 {
++		compatible = "ti,tca6408";
++		reg = <0x20>;
++		gpio-controller;
++		#gpio-cells = <2>;
++	};
++};
++
++&thermal_zones {
++	magnesium-db1-zone {
++		polling-delay-passive = <1000>;
++		polling-delay = <1000>;
++
++		thermal-sensors = <&db_temp1 0>;
++
++		trips  {
++			db1_alert0: db1-alert0 {
++				temperature = <30000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db1_alert1: db1-alert1 {
++				temperature = <45000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db1_alert2: db1-alert2 {
++				temperature = <50000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "active";
++			};
++
++
++			db1_crit: db1-crit {
++				temperature = <70000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "critical";
++			};
++
++		};
++
++		cooling-maps {
++			map0 {
++				trip = <&db1_alert0>;
++				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
++				contribution = <100>;
++			};
++
++			map1 {
++				trip = <&db1_alert1>;
++				cooling-device = <&fan1 6000 8000>;
++				contribution = <100>;
++			};
++
++			map2 {
++				trip = <&db1_alert2>;
++				cooling-device = <&fan1 8000 12500>;
++				contribution = <100>;
++			};
++
++			map3 {
++				trip = <&db1_crit>;
++				cooling-device = <&fan1 12500 13500>;
++				contribution = <100>;
++			};
++
++		};
++	};
++};
+diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev2.dts b/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev2.dts
+index aa6f59de159e..97612e8fea03 100644
+--- a/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev2.dts
++++ b/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev2.dts
+@@ -8,22 +8,7 @@
+ 
+ #include "zynq-ni-phosphorus-rev4.dts"
+ #include <dt-bindings/thermal/thermal.h>
+-
+-&usrpio_i2c0 {
+-	db_temp0: hwmon@48 {
+-		reg = <0x48>;
+-		compatible = "lm75";
+-		#thermal-sensor-cells = <1>;
+-	};
+-
+-	gpio@20 {
+-		compatible = "ti,tca6408";
+-		reg = <0x20>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-	};
+-
+-};
++#include "ni-magnesium-db0.dtsi"
+ 
+ &fan0 {
+ 	cooling-min-state = <3300>;
+@@ -34,67 +19,3 @@
+ 	cooling-min-state = <3300>;
+ 	cooling-max-state = <13500>;
+ };
+-
+-&thermal_zones {
+-	magnesium-db0-zone {
+-		polling-delay-passive = <1000>;
+-		polling-delay = <1000>;
+-
+-		thermal-sensors = <&db_temp0 0>;
+-
+-		trips  {
+-			db0_alert0: db0-alert0 {
+-				temperature = <30000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db0_alert1: db0-alert1 {
+-				temperature = <45000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db0_alert2: db0-alert2 {
+-				temperature = <50000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "active";
+-			};
+-
+-
+-			db0_crit: db0-crit {
+-				temperature = <70000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "critical";
+-			};
+-
+-		};
+-
+-		cooling-maps {
+-			map0 {
+-				trip = <&db0_alert0>;
+-				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
+-				contribution = <100>;
+-			};
+-
+-			map1 {
+-				trip = <&db0_alert1>;
+-				cooling-device = <&fan1 6000 8000>;
+-				contribution = <100>;
+-			};
+-
+-			map2 {
+-				trip = <&db0_alert2>;
+-				cooling-device = <&fan1 8000 12500>;
+-				contribution = <100>;
+-			};
+-
+-			map3 {
+-				trip = <&db0_crit>;
+-				cooling-device = <&fan1 12500 13500>;
+-				contribution = <100>;
+-			};
+-
+-		};
+-	};
+-};
+diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev3.dts b/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev3.dts
+index aa6f59de159e..97612e8fea03 100644
+--- a/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev3.dts
++++ b/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev3.dts
+@@ -8,22 +8,7 @@
+ 
+ #include "zynq-ni-phosphorus-rev4.dts"
+ #include <dt-bindings/thermal/thermal.h>
+-
+-&usrpio_i2c0 {
+-	db_temp0: hwmon@48 {
+-		reg = <0x48>;
+-		compatible = "lm75";
+-		#thermal-sensor-cells = <1>;
+-	};
+-
+-	gpio@20 {
+-		compatible = "ti,tca6408";
+-		reg = <0x20>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-	};
+-
+-};
++#include "ni-magnesium-db0.dtsi"
+ 
+ &fan0 {
+ 	cooling-min-state = <3300>;
+@@ -34,67 +19,3 @@
+ 	cooling-min-state = <3300>;
+ 	cooling-max-state = <13500>;
+ };
+-
+-&thermal_zones {
+-	magnesium-db0-zone {
+-		polling-delay-passive = <1000>;
+-		polling-delay = <1000>;
+-
+-		thermal-sensors = <&db_temp0 0>;
+-
+-		trips  {
+-			db0_alert0: db0-alert0 {
+-				temperature = <30000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db0_alert1: db0-alert1 {
+-				temperature = <45000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db0_alert2: db0-alert2 {
+-				temperature = <50000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "active";
+-			};
+-
+-
+-			db0_crit: db0-crit {
+-				temperature = <70000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "critical";
+-			};
+-
+-		};
+-
+-		cooling-maps {
+-			map0 {
+-				trip = <&db0_alert0>;
+-				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
+-				contribution = <100>;
+-			};
+-
+-			map1 {
+-				trip = <&db0_alert1>;
+-				cooling-device = <&fan1 6000 8000>;
+-				contribution = <100>;
+-			};
+-
+-			map2 {
+-				trip = <&db0_alert2>;
+-				cooling-device = <&fan1 8000 12500>;
+-				contribution = <100>;
+-			};
+-
+-			map3 {
+-				trip = <&db0_crit>;
+-				cooling-device = <&fan1 12500 13500>;
+-				contribution = <100>;
+-			};
+-
+-		};
+-	};
+-};
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev2.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev2.dts
+index e92cd0a2028c..7649f3802f58 100644
+--- a/arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev2.dts
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev2.dts
+@@ -8,37 +8,8 @@
+ 
+ #include "zynq-ni-sulfur-rev4.dts"
+ #include <dt-bindings/thermal/thermal.h>
+-
+-&usrpio_i2c0 {
+-	db_temp0: hwmon@48 {
+-		reg = <0x48>;
+-		compatible = "lm75";
+-		#thermal-sensor-cells = <1>;
+-	};
+-
+-	gpio@20 {
+-		compatible = "ti,tca6408";
+-		reg = <0x20>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-	};
+-
+-};
+-
+-&usrpio_i2c1 {
+-	db_temp1: hwmon@48 {
+-		reg = <0x48>;
+-		compatible = "lm75";
+-		#thermal-sensor-cells = <1>;
+-	};
+-
+-	gpio@20 {
+-		compatible = "ti,tca6408";
+-		reg = <0x20>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-	};
+-};
++#include "ni-magnesium-db0.dtsi"
++#include "ni-magnesium-db1.dtsi"
+ 
+ &fan0 {
+ 	cooling-min-state = <3300>;
+@@ -49,131 +20,3 @@
+ 	cooling-min-state = <3300>;
+ 	cooling-max-state = <13500>;
+ };
+-
+-&thermal_zones {
+-	magnesium-db0-zone {
+-		polling-delay-passive = <1000>;
+-		polling-delay = <1000>;
+-
+-		thermal-sensors = <&db_temp0 0>;
+-
+-		trips  {
+-			db0_alert0: db0-alert0 {
+-				temperature = <30000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db0_alert1: db0-alert1 {
+-				temperature = <45000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db0_alert2: db0-alert2 {
+-				temperature = <50000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "active";
+-			};
+-
+-
+-			db0_crit: db0-crit {
+-				temperature = <70000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "critical";
+-			};
+-
+-		};
+-
+-		cooling-maps {
+-			map0 {
+-				trip = <&db0_alert0>;
+-				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
+-				contribution = <100>;
+-			};
+-
+-			map1 {
+-				trip = <&db0_alert1>;
+-				cooling-device = <&fan1 6000 8000>;
+-				contribution = <100>;
+-			};
+-
+-			map2 {
+-				trip = <&db0_alert2>;
+-				cooling-device = <&fan1 8000 12500>;
+-				contribution = <100>;
+-			};
+-
+-			map3 {
+-				trip = <&db0_crit>;
+-				cooling-device = <&fan1 12500 13500>;
+-				contribution = <100>;
+-			};
+-
+-		};
+-	};
+-
+-	magnesium-db1-zone {
+-		polling-delay-passive = <1000>;
+-		polling-delay = <1000>;
+-
+-		thermal-sensors = <&db_temp1 0>;
+-
+-		trips  {
+-			db1_alert0: db1-alert0 {
+-				temperature = <30000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db1_alert1: db1-alert1 {
+-				temperature = <45000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db1_alert2: db1-alert2 {
+-				temperature = <50000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "active";
+-			};
+-
+-
+-			db1_crit: db1-crit {
+-				temperature = <70000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "critical";
+-			};
+-
+-		};
+-
+-		cooling-maps {
+-			map0 {
+-				trip = <&db1_alert0>;
+-				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
+-				contribution = <100>;
+-			};
+-
+-			map1 {
+-				trip = <&db1_alert1>;
+-				cooling-device = <&fan1 6000 8000>;
+-				contribution = <100>;
+-			};
+-
+-			map2 {
+-				trip = <&db1_alert2>;
+-				cooling-device = <&fan1 8000 12500>;
+-				contribution = <100>;
+-			};
+-
+-			map3 {
+-				trip = <&db1_crit>;
+-				cooling-device = <&fan1 12500 13500>;
+-				contribution = <100>;
+-			};
+-
+-		};
+-	};
+-
+-
+-};
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev3.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev3.dts
+index e92cd0a2028c..5fd423baaa73 100644
+--- a/arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev3.dts
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev3.dts
+@@ -8,172 +8,5 @@
+ 
+ #include "zynq-ni-sulfur-rev4.dts"
+ #include <dt-bindings/thermal/thermal.h>
+-
+-&usrpio_i2c0 {
+-	db_temp0: hwmon@48 {
+-		reg = <0x48>;
+-		compatible = "lm75";
+-		#thermal-sensor-cells = <1>;
+-	};
+-
+-	gpio@20 {
+-		compatible = "ti,tca6408";
+-		reg = <0x20>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-	};
+-
+-};
+-
+-&usrpio_i2c1 {
+-	db_temp1: hwmon@48 {
+-		reg = <0x48>;
+-		compatible = "lm75";
+-		#thermal-sensor-cells = <1>;
+-	};
+-
+-	gpio@20 {
+-		compatible = "ti,tca6408";
+-		reg = <0x20>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-	};
+-};
+-
+-&fan0 {
+-	cooling-min-state = <3300>;
+-	cooling-max-state = <13500>;
+-};
+-
+-&fan1 {
+-	cooling-min-state = <3300>;
+-	cooling-max-state = <13500>;
+-};
+-
+-&thermal_zones {
+-	magnesium-db0-zone {
+-		polling-delay-passive = <1000>;
+-		polling-delay = <1000>;
+-
+-		thermal-sensors = <&db_temp0 0>;
+-
+-		trips  {
+-			db0_alert0: db0-alert0 {
+-				temperature = <30000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db0_alert1: db0-alert1 {
+-				temperature = <45000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db0_alert2: db0-alert2 {
+-				temperature = <50000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "active";
+-			};
+-
+-
+-			db0_crit: db0-crit {
+-				temperature = <70000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "critical";
+-			};
+-
+-		};
+-
+-		cooling-maps {
+-			map0 {
+-				trip = <&db0_alert0>;
+-				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
+-				contribution = <100>;
+-			};
+-
+-			map1 {
+-				trip = <&db0_alert1>;
+-				cooling-device = <&fan1 6000 8000>;
+-				contribution = <100>;
+-			};
+-
+-			map2 {
+-				trip = <&db0_alert2>;
+-				cooling-device = <&fan1 8000 12500>;
+-				contribution = <100>;
+-			};
+-
+-			map3 {
+-				trip = <&db0_crit>;
+-				cooling-device = <&fan1 12500 13500>;
+-				contribution = <100>;
+-			};
+-
+-		};
+-	};
+-
+-	magnesium-db1-zone {
+-		polling-delay-passive = <1000>;
+-		polling-delay = <1000>;
+-
+-		thermal-sensors = <&db_temp1 0>;
+-
+-		trips  {
+-			db1_alert0: db1-alert0 {
+-				temperature = <30000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db1_alert1: db1-alert1 {
+-				temperature = <45000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db1_alert2: db1-alert2 {
+-				temperature = <50000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "active";
+-			};
+-
+-
+-			db1_crit: db1-crit {
+-				temperature = <70000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "critical";
+-			};
+-
+-		};
+-
+-		cooling-maps {
+-			map0 {
+-				trip = <&db1_alert0>;
+-				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
+-				contribution = <100>;
+-			};
+-
+-			map1 {
+-				trip = <&db1_alert1>;
+-				cooling-device = <&fan1 6000 8000>;
+-				contribution = <100>;
+-			};
+-
+-			map2 {
+-				trip = <&db1_alert2>;
+-				cooling-device = <&fan1 8000 12500>;
+-				contribution = <100>;
+-			};
+-
+-			map3 {
+-				trip = <&db1_crit>;
+-				cooling-device = <&fan1 12500 13500>;
+-				contribution = <100>;
+-			};
+-
+-		};
+-	};
+-
+-
+-};
++#include "ni-magnesium-db0.dtsi"
++#include "ni-magnesium-db1.dtsi"
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev2.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev2.dts
+index e92cd0a2028c..7649f3802f58 100644
+--- a/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev2.dts
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev2.dts
+@@ -8,37 +8,8 @@
+ 
+ #include "zynq-ni-sulfur-rev4.dts"
+ #include <dt-bindings/thermal/thermal.h>
+-
+-&usrpio_i2c0 {
+-	db_temp0: hwmon@48 {
+-		reg = <0x48>;
+-		compatible = "lm75";
+-		#thermal-sensor-cells = <1>;
+-	};
+-
+-	gpio@20 {
+-		compatible = "ti,tca6408";
+-		reg = <0x20>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-	};
+-
+-};
+-
+-&usrpio_i2c1 {
+-	db_temp1: hwmon@48 {
+-		reg = <0x48>;
+-		compatible = "lm75";
+-		#thermal-sensor-cells = <1>;
+-	};
+-
+-	gpio@20 {
+-		compatible = "ti,tca6408";
+-		reg = <0x20>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-	};
+-};
++#include "ni-magnesium-db0.dtsi"
++#include "ni-magnesium-db1.dtsi"
+ 
+ &fan0 {
+ 	cooling-min-state = <3300>;
+@@ -49,131 +20,3 @@
+ 	cooling-min-state = <3300>;
+ 	cooling-max-state = <13500>;
+ };
+-
+-&thermal_zones {
+-	magnesium-db0-zone {
+-		polling-delay-passive = <1000>;
+-		polling-delay = <1000>;
+-
+-		thermal-sensors = <&db_temp0 0>;
+-
+-		trips  {
+-			db0_alert0: db0-alert0 {
+-				temperature = <30000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db0_alert1: db0-alert1 {
+-				temperature = <45000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db0_alert2: db0-alert2 {
+-				temperature = <50000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "active";
+-			};
+-
+-
+-			db0_crit: db0-crit {
+-				temperature = <70000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "critical";
+-			};
+-
+-		};
+-
+-		cooling-maps {
+-			map0 {
+-				trip = <&db0_alert0>;
+-				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
+-				contribution = <100>;
+-			};
+-
+-			map1 {
+-				trip = <&db0_alert1>;
+-				cooling-device = <&fan1 6000 8000>;
+-				contribution = <100>;
+-			};
+-
+-			map2 {
+-				trip = <&db0_alert2>;
+-				cooling-device = <&fan1 8000 12500>;
+-				contribution = <100>;
+-			};
+-
+-			map3 {
+-				trip = <&db0_crit>;
+-				cooling-device = <&fan1 12500 13500>;
+-				contribution = <100>;
+-			};
+-
+-		};
+-	};
+-
+-	magnesium-db1-zone {
+-		polling-delay-passive = <1000>;
+-		polling-delay = <1000>;
+-
+-		thermal-sensors = <&db_temp1 0>;
+-
+-		trips  {
+-			db1_alert0: db1-alert0 {
+-				temperature = <30000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db1_alert1: db1-alert1 {
+-				temperature = <45000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db1_alert2: db1-alert2 {
+-				temperature = <50000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "active";
+-			};
+-
+-
+-			db1_crit: db1-crit {
+-				temperature = <70000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "critical";
+-			};
+-
+-		};
+-
+-		cooling-maps {
+-			map0 {
+-				trip = <&db1_alert0>;
+-				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
+-				contribution = <100>;
+-			};
+-
+-			map1 {
+-				trip = <&db1_alert1>;
+-				cooling-device = <&fan1 6000 8000>;
+-				contribution = <100>;
+-			};
+-
+-			map2 {
+-				trip = <&db1_alert2>;
+-				cooling-device = <&fan1 8000 12500>;
+-				contribution = <100>;
+-			};
+-
+-			map3 {
+-				trip = <&db1_crit>;
+-				cooling-device = <&fan1 12500 13500>;
+-				contribution = <100>;
+-			};
+-
+-		};
+-	};
+-
+-
+-};
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev3.dts b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev3.dts
+index e92cd0a2028c..7649f3802f58 100644
+--- a/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev3.dts
++++ b/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev3.dts
+@@ -8,37 +8,8 @@
+ 
+ #include "zynq-ni-sulfur-rev4.dts"
+ #include <dt-bindings/thermal/thermal.h>
+-
+-&usrpio_i2c0 {
+-	db_temp0: hwmon@48 {
+-		reg = <0x48>;
+-		compatible = "lm75";
+-		#thermal-sensor-cells = <1>;
+-	};
+-
+-	gpio@20 {
+-		compatible = "ti,tca6408";
+-		reg = <0x20>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-	};
+-
+-};
+-
+-&usrpio_i2c1 {
+-	db_temp1: hwmon@48 {
+-		reg = <0x48>;
+-		compatible = "lm75";
+-		#thermal-sensor-cells = <1>;
+-	};
+-
+-	gpio@20 {
+-		compatible = "ti,tca6408";
+-		reg = <0x20>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-	};
+-};
++#include "ni-magnesium-db0.dtsi"
++#include "ni-magnesium-db1.dtsi"
+ 
+ &fan0 {
+ 	cooling-min-state = <3300>;
+@@ -49,131 +20,3 @@
+ 	cooling-min-state = <3300>;
+ 	cooling-max-state = <13500>;
+ };
+-
+-&thermal_zones {
+-	magnesium-db0-zone {
+-		polling-delay-passive = <1000>;
+-		polling-delay = <1000>;
+-
+-		thermal-sensors = <&db_temp0 0>;
+-
+-		trips  {
+-			db0_alert0: db0-alert0 {
+-				temperature = <30000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db0_alert1: db0-alert1 {
+-				temperature = <45000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db0_alert2: db0-alert2 {
+-				temperature = <50000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "active";
+-			};
+-
+-
+-			db0_crit: db0-crit {
+-				temperature = <70000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "critical";
+-			};
+-
+-		};
+-
+-		cooling-maps {
+-			map0 {
+-				trip = <&db0_alert0>;
+-				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
+-				contribution = <100>;
+-			};
+-
+-			map1 {
+-				trip = <&db0_alert1>;
+-				cooling-device = <&fan1 6000 8000>;
+-				contribution = <100>;
+-			};
+-
+-			map2 {
+-				trip = <&db0_alert2>;
+-				cooling-device = <&fan1 8000 12500>;
+-				contribution = <100>;
+-			};
+-
+-			map3 {
+-				trip = <&db0_crit>;
+-				cooling-device = <&fan1 12500 13500>;
+-				contribution = <100>;
+-			};
+-
+-		};
+-	};
+-
+-	magnesium-db1-zone {
+-		polling-delay-passive = <1000>;
+-		polling-delay = <1000>;
+-
+-		thermal-sensors = <&db_temp1 0>;
+-
+-		trips  {
+-			db1_alert0: db1-alert0 {
+-				temperature = <30000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db1_alert1: db1-alert1 {
+-				temperature = <45000>; /* millicelsius */
+-				hysteresis = <2000>;   /* millicelsius */
+-				type = "active";
+-			};
+-
+-			db1_alert2: db1-alert2 {
+-				temperature = <50000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "active";
+-			};
+-
+-
+-			db1_crit: db1-crit {
+-				temperature = <70000>; /* millicelsius */
+-				hysteresis = <2000>;    /* millicelsius */
+-				type = "critical";
+-			};
+-
+-		};
+-
+-		cooling-maps {
+-			map0 {
+-				trip = <&db1_alert0>;
+-				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
+-				contribution = <100>;
+-			};
+-
+-			map1 {
+-				trip = <&db1_alert1>;
+-				cooling-device = <&fan1 6000 8000>;
+-				contribution = <100>;
+-			};
+-
+-			map2 {
+-				trip = <&db1_alert2>;
+-				cooling-device = <&fan1 8000 12500>;
+-				contribution = <100>;
+-			};
+-
+-			map3 {
+-				trip = <&db1_crit>;
+-				cooling-device = <&fan1 12500 13500>;
+-				contribution = <100>;
+-			};
+-
+-		};
+-	};
+-
+-
+-};
+-- 
+2.17.1
+

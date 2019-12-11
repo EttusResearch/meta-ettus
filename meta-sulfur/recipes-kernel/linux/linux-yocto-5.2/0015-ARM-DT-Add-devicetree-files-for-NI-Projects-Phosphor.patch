@@ -1,0 +1,265 @@
+From 2c09dfea0d7f536be0202d444f4e30f1ad116b5e Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Tue, 27 Feb 2018 11:23:56 -0800
+Subject: [PATCH 15/19] ARM: DT: Add devicetree files for NI Projects
+ Phosphorus
+
+Add Phosphorus devicetree files to kernel build.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ arch/arm/boot/dts/Makefile                    |   3 +
+ ...zynq-ni-phosphorus-rev4-magnesium-rev2.dts | 100 ++++++++++++++++++
+ ...zynq-ni-phosphorus-rev4-magnesium-rev3.dts | 100 ++++++++++++++++++
+ arch/arm/boot/dts/zynq-ni-phosphorus-rev4.dts |  11 ++
+ 4 files changed, 214 insertions(+)
+ create mode 100644 arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev2.dts
+ create mode 100644 arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev3.dts
+ create mode 100644 arch/arm/boot/dts/zynq-ni-phosphorus-rev4.dts
+
+diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
+index 6f09b6017ef2..f75a2cf7da1b 100644
+--- a/arch/arm/boot/dts/Makefile
++++ b/arch/arm/boot/dts/Makefile
+@@ -1199,6 +1199,9 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
+ 	zynq-ni-sulfur-rev5.dtb \
+ 	zynq-ni-sulfur-rev5-magnesium-rev2.dtb \
+ 	zynq-ni-sulfur-rev5-magnesium-rev3.dtb \
++	zynq-ni-phosphorus-rev4.dtb \
++	zynq-ni-phosphorus-rev4-magnesium-rev2.dtb \
++	zynq-ni-phosphorus-rev4-magnesium-rev3.dtb \
+ 	zynq-parallella.dtb \
+ 	zynq-zc702.dtb \
+ 	zynq-zc706.dtb \
+diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev2.dts b/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev2.dts
+new file mode 100644
+index 000000000000..aa6f59de159e
+--- /dev/null
++++ b/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev2.dts
+@@ -0,0 +1,100 @@
++// SPDX-License-Identifier: (GPL-2.0 OR X11)
++/*
++ * National Instruments Ettus Research Project Magnesium SDR
++ *
++ * Copyright (c) 2017 National Instruments Corp.
++ *
++ */
++
++#include "zynq-ni-phosphorus-rev4.dts"
++#include <dt-bindings/thermal/thermal.h>
++
++&usrpio_i2c0 {
++	db_temp0: hwmon@48 {
++		reg = <0x48>;
++		compatible = "lm75";
++		#thermal-sensor-cells = <1>;
++	};
++
++	gpio@20 {
++		compatible = "ti,tca6408";
++		reg = <0x20>;
++		gpio-controller;
++		#gpio-cells = <2>;
++	};
++
++};
++
++&fan0 {
++	cooling-min-state = <3300>;
++	cooling-max-state = <13500>;
++};
++
++&fan1 {
++	cooling-min-state = <3300>;
++	cooling-max-state = <13500>;
++};
++
++&thermal_zones {
++	magnesium-db0-zone {
++		polling-delay-passive = <1000>;
++		polling-delay = <1000>;
++
++		thermal-sensors = <&db_temp0 0>;
++
++		trips  {
++			db0_alert0: db0-alert0 {
++				temperature = <30000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db0_alert1: db0-alert1 {
++				temperature = <45000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db0_alert2: db0-alert2 {
++				temperature = <50000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "active";
++			};
++
++
++			db0_crit: db0-crit {
++				temperature = <70000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "critical";
++			};
++
++		};
++
++		cooling-maps {
++			map0 {
++				trip = <&db0_alert0>;
++				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
++				contribution = <100>;
++			};
++
++			map1 {
++				trip = <&db0_alert1>;
++				cooling-device = <&fan1 6000 8000>;
++				contribution = <100>;
++			};
++
++			map2 {
++				trip = <&db0_alert2>;
++				cooling-device = <&fan1 8000 12500>;
++				contribution = <100>;
++			};
++
++			map3 {
++				trip = <&db0_crit>;
++				cooling-device = <&fan1 12500 13500>;
++				contribution = <100>;
++			};
++
++		};
++	};
++};
+diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev3.dts b/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev3.dts
+new file mode 100644
+index 000000000000..aa6f59de159e
+--- /dev/null
++++ b/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev3.dts
+@@ -0,0 +1,100 @@
++// SPDX-License-Identifier: (GPL-2.0 OR X11)
++/*
++ * National Instruments Ettus Research Project Magnesium SDR
++ *
++ * Copyright (c) 2017 National Instruments Corp.
++ *
++ */
++
++#include "zynq-ni-phosphorus-rev4.dts"
++#include <dt-bindings/thermal/thermal.h>
++
++&usrpio_i2c0 {
++	db_temp0: hwmon@48 {
++		reg = <0x48>;
++		compatible = "lm75";
++		#thermal-sensor-cells = <1>;
++	};
++
++	gpio@20 {
++		compatible = "ti,tca6408";
++		reg = <0x20>;
++		gpio-controller;
++		#gpio-cells = <2>;
++	};
++
++};
++
++&fan0 {
++	cooling-min-state = <3300>;
++	cooling-max-state = <13500>;
++};
++
++&fan1 {
++	cooling-min-state = <3300>;
++	cooling-max-state = <13500>;
++};
++
++&thermal_zones {
++	magnesium-db0-zone {
++		polling-delay-passive = <1000>;
++		polling-delay = <1000>;
++
++		thermal-sensors = <&db_temp0 0>;
++
++		trips  {
++			db0_alert0: db0-alert0 {
++				temperature = <30000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db0_alert1: db0-alert1 {
++				temperature = <45000>; /* millicelsius */
++				hysteresis = <2000>;   /* millicelsius */
++				type = "active";
++			};
++
++			db0_alert2: db0-alert2 {
++				temperature = <50000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "active";
++			};
++
++
++			db0_crit: db0-crit {
++				temperature = <70000>; /* millicelsius */
++				hysteresis = <2000>;    /* millicelsius */
++				type = "critical";
++			};
++
++		};
++
++		cooling-maps {
++			map0 {
++				trip = <&db0_alert0>;
++				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
++				contribution = <100>;
++			};
++
++			map1 {
++				trip = <&db0_alert1>;
++				cooling-device = <&fan1 6000 8000>;
++				contribution = <100>;
++			};
++
++			map2 {
++				trip = <&db0_alert2>;
++				cooling-device = <&fan1 8000 12500>;
++				contribution = <100>;
++			};
++
++			map3 {
++				trip = <&db0_crit>;
++				cooling-device = <&fan1 12500 13500>;
++				contribution = <100>;
++			};
++
++		};
++	};
++};
+diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev4.dts b/arch/arm/boot/dts/zynq-ni-phosphorus-rev4.dts
+new file mode 100644
+index 000000000000..cfb80264b262
+--- /dev/null
++++ b/arch/arm/boot/dts/zynq-ni-phosphorus-rev4.dts
+@@ -0,0 +1,11 @@
++// SPDX-License-Identifier: (GPL-2.0 OR X11)
++/*
++ * National Instruments Ettus Research Project Sulfur SDR Revision 4
++ *
++ * Copyright (c) 2016,2017 National Instruments Corp.
++ *
++ */
++
++/dts-v1/;
++
++#include "zynq-ni-sulfur-rev4.dts"
+-- 
+2.17.1
+

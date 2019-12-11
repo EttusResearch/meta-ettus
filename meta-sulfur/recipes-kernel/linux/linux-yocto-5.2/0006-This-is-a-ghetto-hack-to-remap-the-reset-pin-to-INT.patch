@@ -1,0 +1,56 @@
+From 0df001e0ac3d4b694de3864beec8857fd61d487e Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Thu, 20 Apr 2017 17:14:09 -0700
+Subject: [PATCH 06/19] This is a ghetto hack to remap the reset pin to INT
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ drivers/rtc/rtc-ds1374.c | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/rtc/rtc-ds1374.c b/drivers/rtc/rtc-ds1374.c
+index 3519bc97610c..882899473cf9 100644
+--- a/drivers/rtc/rtc-ds1374.c
++++ b/drivers/rtc/rtc-ds1374.c
+@@ -46,6 +46,7 @@
+ #define DS1374_REG_WDALM2	0x06
+ #define DS1374_REG_CR		0x07 /* Control */
+ #define DS1374_REG_CR_AIE	0x01 /* Alarm Int. Enable */
++#define DS1374_REG_CR_WDSTR	0x08 /* 1=Reset on INT, 0=Rreset on RST */
+ #define DS1374_REG_CR_WDALM	0x20 /* 1=Watchdog, 0=Alarm */
+ #define DS1374_REG_CR_WACE	0x40 /* WD/Alarm counter enable */
+ #define DS1374_REG_SR		0x08 /* Status */
+@@ -404,7 +405,7 @@ static int ds1374_wdt_settimeout(unsigned int timeout)
+ 		goto out;
+ 
+ 	/* Disable any existing watchdog/alarm before setting the new one */
+-	cr &= ~DS1374_REG_CR_WACE;
++	cr &= ~(DS1374_REG_CR_WACE | DS1374_REG_CR_AIE);
+ 
+ 	ret = i2c_smbus_write_byte_data(save_client, DS1374_REG_CR, cr);
+ 	if (ret < 0)
+@@ -418,8 +419,10 @@ static int ds1374_wdt_settimeout(unsigned int timeout)
+ 	}
+ 
+ 	/* Enable watchdog timer */
+-	cr |= DS1374_REG_CR_WACE | DS1374_REG_CR_WDALM;
+-	cr &= ~DS1374_REG_CR_AIE;
++	cr |= DS1374_REG_CR_WACE | DS1374_REG_CR_WDALM | DS1374_REG_CR_WDSTR |
++		/* WHY?! ?!? ?! */
++		DS1374_REG_CR_AIE;
++	//cr &= ~DS1374_REG_CR_AIE;
+ 
+ 	ret = i2c_smbus_write_byte_data(save_client, DS1374_REG_CR, cr);
+ 	if (ret < 0)
+@@ -451,7 +454,7 @@ static void ds1374_wdt_disable(void)
+ 
+ 	cr = i2c_smbus_read_byte_data(save_client, DS1374_REG_CR);
+ 	/* Disable watchdog timer */
+-	cr &= ~DS1374_REG_CR_WACE;
++	cr &= ~(DS1374_REG_CR_WACE | DS1374_REG_CR_WDSTR);
+ 
+ 	ret = i2c_smbus_write_byte_data(save_client, DS1374_REG_CR, cr);
+ }
+-- 
+2.17.1
+
