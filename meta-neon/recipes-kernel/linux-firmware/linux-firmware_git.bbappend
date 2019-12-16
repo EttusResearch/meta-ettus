@@ -4,9 +4,9 @@ SRC_URI_append = " file://ec-neon-rev1.RW.bin \
                    file://ec-neon-rev2.RW.bin \
                    file://ec-neon-rev3.RW.bin \
                    file://LICENSE.ec-neon \
-                   http://files.ettus.com/binaries/cache/e3xx/fpga-ce49fcb/e3xx_e320_fpga_default-gce49fcb.zip;name=neon-fpga;unpack=true \
+                   http://files.ettus.com/binaries/cache/e3xx/fpga-fde2a94eb/e3xx_e320_fpga_default-gfde2a94e.zip;name=neon-fpga;unpack=true \
                  "
-SRC_URI[neon-fpga.sha256sum] = "084146049ac2824c5add7381e469df8d29a82632b1148ce746114ca3001f3706"
+SRC_URI[neon-fpga.sha256sum] = "95064badda9b93281b01e642faff9577d054883869896899e28293a243d8862c"
 
 LICENSE_append = "& Firmware-ni-neon"
 LIC_FILES_CHKSUM_append = "file://${WORKDIR}/LICENSE.ec-neon;md5=72f855f00b364ec8bdc025e1a36b39c3"

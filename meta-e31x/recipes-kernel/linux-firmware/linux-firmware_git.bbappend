@@ -1,10 +1,10 @@
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
-SRC_URI_append = " http://files.ettus.com/binaries/cache/e3xx/fpga-ce49fcb/e3xx_e310_sg1_fpga_default-gce49fcb.zip;name=e31x-sg1-fpga;unpack=true \
-                   http://files.ettus.com/binaries/cache/e3xx/fpga-ce49fcb/e3xx_e310_sg3_fpga_default-gce49fcb.zip;name=e31x-sg3-fpga;unpack=true \
+SRC_URI_append = " http://files.ettus.com/binaries/cache/e3xx/fpga-fde2a94eb/e3xx_e310_sg1_fpga_default-gfde2a94e.zip;name=e31x-sg1-fpga;unpack=true \
+                   http://files.ettus.com/binaries/cache/e3xx/fpga-fde2a94eb/e3xx_e310_sg3_fpga_default-gfde2a94e.zip;name=e31x-sg3-fpga;unpack=true \
                  "
-SRC_URI[e31x-sg1-fpga.sha256sum] = "a7b58db9859669e54db25e6623b989cfb23d09dd1f36a892e0a1b58c1dde0ec1"
-SRC_URI[e31x-sg3-fpga.sha256sum] = "effd4e8b298ee21d7b0d1983a6247bc7703c2f8ff05761a43f526568e08fe27d"
+SRC_URI[e31x-sg1-fpga.sha256sum] = "ac5f6db65780e944c565977e0bd5085c76d0bcdf246579f13d5da69211590980"
+SRC_URI[e31x-sg3-fpga.sha256sum] = "84ddae28d98d02cdeb88b560dc6c1f7280f8d9adcc719bec9774deb7ed6dbb3c"
 
 PACKAGES =+ " \
     ${PN}-ni-e31x-sg1-fpga \

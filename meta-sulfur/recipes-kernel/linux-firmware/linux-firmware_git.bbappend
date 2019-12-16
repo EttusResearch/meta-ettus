@@ -9,16 +9,16 @@ SRC_URI_append = " file://ec-sulfur-rev3.bin \
                    file://ec-sulfur-rev10.RW.bin \
                    file://LICENSE.ec-sulfur \
                    file://mykonos-m3.bin \
-                   http://files.ettus.com/binaries/cache/n3xx/fpga-ce49fcb/n3xx_n310_fpga_default-gce49fcb.zip;name=sulfur-fpga;unpack=true \
+                   http://files.ettus.com/binaries/cache/n3xx/fpga-fde2a94eb/n3xx_n310_fpga_default-gfde2a94e.zip;name=sulfur-fpga;unpack=true \
                    http://files.ettus.com/binaries/cache/n3xx/fpga-4bc2c6f/n3xx_n320_cpld_default-g4bc2c6f.zip;name=rhodium-cpld;unpack=true \
-                   http://files.ettus.com/binaries/cache/n3xx/fpga-ce49fcb/n3xx_n300_fpga_default-gce49fcb.zip;name=phosphorus-fpga;unpack=true \
-                   http://files.ettus.com/binaries/cache/n3xx/fpga-ce49fcb/n3xx_n320_fpga_default-gce49fcb.zip;name=rhodium-fpga;unpack=true \
+                   http://files.ettus.com/binaries/cache/n3xx/fpga-fde2a94eb/n3xx_n300_fpga_default-gfde2a94e.zip;name=phosphorus-fpga;unpack=true \
+                   http://files.ettus.com/binaries/cache/n3xx/fpga-fde2a94eb/n3xx_n320_fpga_default-gfde2a94e.zip;name=rhodium-fpga;unpack=true \
                    http://files.ettus.com/binaries/cache/n3xx/fpga-6bea23d/n3xx_n310_cpld_default-g6bea23d.zip;name=magnesium-cpld;unpack=true \
                  "
 
-SRC_URI[sulfur-fpga.sha256sum] = "8b9fbfd724ef0f9295427f05a11a2f0ab1789a2021760af7e5af0fe0c9447c9d"
-SRC_URI[phosphorus-fpga.sha256sum] = "cf568191baed95ed8b6acbc6d27fdcc61fd3d93710b9df471497e31488b042bb"
-SRC_URI[rhodium-fpga.sha256sum] = "c5e3fe78116fc3f056055bce83b2d4e3fe230d9b00531f6d9933d1f1b7daf046"
+SRC_URI[sulfur-fpga.sha256sum] = "4a45e2d4ec41d34fc550402928248a15488ba7b58d835ef2d4f503556173764a"
+SRC_URI[phosphorus-fpga.sha256sum] = "7f1b512756ae225f8caaf20fd22d2e1537ea211b2fd6c4c9ed1330065fb56645"
+SRC_URI[rhodium-fpga.sha256sum] = "4fae9de2ede7ff446da8afb61808868c08ba32f8e3092b802c5d4d7643c7175f"
 SRC_URI[magnesium-cpld.sha256sum] = "ef128dcd265ee8615b673021d4ee84c39357012ffe8b28c8ad7f893f9dcb94cb"
 SRC_URI[rhodium-cpld.sha256sum] = "6680a9363efc5fa8b5a68beb3dff44f2e314b94e716e3a1751aba0fed1f384da"
 
