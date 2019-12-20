@@ -634,7 +634,7 @@ index 0000000000..42ed383d24
 +	int err, i;
 +	u32 crc;
 +
-+	err = uclass_get_device_by_seq(UCLASS_I2C, 20, &i2c_tun);
++	err = uclass_get_device_by_seq(UCLASS_I2C, 2, &i2c_tun);
 +	if (err < 0)
 +		return err;
 +
@@ -1329,4 +1329,3 @@ index 0000000000..6b1f5a9933
 +#endif /* __CONFIG_NI_NEON_REV2_H */
 -- 
 2.17.1
-
