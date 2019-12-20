@@ -13,7 +13,6 @@ SRC_URI  += " \
 LICENSE = "LGPLv3+"
 LIC_FILES_CHKSUM = "file://${WORKDIR}/LICENSE.md;md5=2d2b59b2fc606f13eb2631fb80325865"
 
-addtask check_hashes after do_patch before do_configure
 
 do_check_hashes() {
   cd ${WORKDIR}
