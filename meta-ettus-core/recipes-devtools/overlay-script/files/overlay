@@ -13,7 +13,7 @@ function add()
         fi
 
         mkdir $OVERLAYS/$1
-        echo $(basename $FIRMWARE/$1.dtbo) > $OVERLAYS/$i/path
+        echo -n $(basename $FIRMWARE/$1.dtbo) > $OVERLAYS/$i/path
 }
 
 function remove()
