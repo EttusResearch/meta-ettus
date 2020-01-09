@@ -1,3 +1,4 @@
+inherit uhd_images_downloader
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
@@ -9,12 +10,7 @@ SRC_URI_append = " file://ec-sulfur-rev3.bin \
                    file://ec-sulfur-rev10.RW.bin \
                    file://LICENSE.ec-sulfur \
                    file://mykonos-m3.bin \
-                   http://files.ettus.com/binaries/cache/n3xx/fpga-4bc2c6f/n3xx_n320_cpld_default-g4bc2c6f.zip;name=rhodium-cpld;unpack=true \
-                   http://files.ettus.com/binaries/cache/n3xx/fpga-6bea23d/n3xx_n310_cpld_default-g6bea23d.zip;name=magnesium-cpld;unpack=true \
                  "
-
-SRC_URI[magnesium-cpld.sha256sum] = "ef128dcd265ee8615b673021d4ee84c39357012ffe8b28c8ad7f893f9dcb94cb"
-SRC_URI[rhodium-cpld.sha256sum] = "6680a9363efc5fa8b5a68beb3dff44f2e314b94e716e3a1751aba0fed1f384da"
 
 LICENSE_append = "& Firmware-ni-sulfur"
 LIC_FILES_CHKSUM_append = "file://${WORKDIR}/LICENSE.ec-sulfur;md5=72f855f00b364ec8bdc025e1a36b39c3"
@@ -68,6 +64,13 @@ FILES_${PN}-ni-rhodium = " \
 
 LICENSE_${PN}-ni-rhodium = "Firmware-GPLv2"
 RDEPENDS_${PN}-ni-rhodium += "${PN}-gplv2-license"
+
+UHD_IMAGES_TO_DOWNLOAD_ni-sulfur ?= " \
+    n3xx_n310_cpld_default \
+    n3xx_n320_cpld_default \
+    "
+
+UHD_IMAGES_DOWNLOAD_DIR_ni_sulfur = "${WORKDIR}"
 
 do_install_append_ni-sulfur() {
 
