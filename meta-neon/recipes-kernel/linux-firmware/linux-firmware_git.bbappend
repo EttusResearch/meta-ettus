@@ -4,9 +4,7 @@ SRC_URI_append = " file://ec-neon-rev1.RW.bin \
                    file://ec-neon-rev2.RW.bin \
                    file://ec-neon-rev3.RW.bin \
                    file://LICENSE.ec-neon \
-                   http://files.ettus.com/binaries/cache/e3xx/fpga-9e3d00c/e3xx_e320_fpga_default-g9e3d00c.zip;name=neon-fpga;unpack=true \
                  "
-SRC_URI[neon-fpga.sha256sum] = "c27221bb1199ab37f4a977d532d58b54993ea979d6d872394dca841071acdc1f"
 
 LICENSE_append = "& Firmware-ni-neon"
 LIC_FILES_CHKSUM_append = "file://${WORKDIR}/LICENSE.ec-neon;md5=72f855f00b364ec8bdc025e1a36b39c3"
@@ -14,7 +12,7 @@ LIC_FILES_CHKSUM_append = "file://${WORKDIR}/LICENSE.ec-neon;md5=72f855f00b364ec
 NO_GENERIC_LICENSE[Firmware-ni-neon] = "${WORKDIR}/LICENSE.ec-neon"
 LICENSE_${PN}-ni-neon = "Firmware-ni-neon"
 
-PACKAGES =+ " \
+PACKAGES_append_ni-neon = " \
     ${PN}-ni-neon-license \
     ${PN}-ni-neon \
     ${PN}-ni-neon-fpga \
@@ -29,28 +27,15 @@ FILES_${PN}-ni-neon = "/lib/firmware/ni/ec-neon-rev1.RW.bin \
                        /lib/firmware/ni/ec-neon-rev3.RW.bin \
                       "
 RDEPENDS_${PN}-ni-neon += "${PN}-ni-neon-license"
-DEPENDS += "dtc-native python3-native"
 
-do_compile_append() {
-    dtc -@ -o ${WORKDIR}/e320.dtbo ${WORKDIR}/usrp_e320_fpga_1G.dts
-    python3 ${WORKDIR}/fpga_bit_to_bin.py -f ${WORKDIR}/usrp_e320_fpga_1G.bit ${WORKDIR}/e320.bin
-}
+# The FPGA images are provided by the uhd-fpga-images recipe
+ALLOW_EMPTY_${PN}-ni-neon-fpga = "1"
+RDEPENDS_${PN}-ni-neon-fpga = "uhd-fpga-images-e320-firmware"
 
-do_install_append() {
+do_install_append_ni-neon() {
     install -D -m 0644 ${WORKDIR}/ec-neon-rev1.RW.bin ${D}/lib/firmware/ni/ec-neon-rev1.RW.bin
     install -D -m 0644 ${WORKDIR}/ec-neon-rev2.RW.bin ${D}/lib/firmware/ni/ec-neon-rev2.RW.bin
     install -D -m 0644 ${WORKDIR}/ec-neon-rev3.RW.bin ${D}/lib/firmware/ni/ec-neon-rev3.RW.bin
 
     install -m 0644 ${WORKDIR}/LICENSE.ec-neon ${D}/lib/firmware/ni/LICENSE.ec-neon
-
-    install -m 0644 ${WORKDIR}/e320.bin ${D}/lib/firmware/e320.bin
-    install -m 0644 ${WORKDIR}/e320.dtbo ${D}/lib/firmware/e320.dtbo
 }
-
-FILES_${PN}-ni-neon-fpga = " \
-                              /lib/firmware/e320.bin \
-                              /lib/firmware/e320.dtbo \
-                             "
-
-LICENSE_${PN}-ni-neon-fpga = "Firmware-GPLv2"
-RDEPENDS_${PN}-ni-neon-fpga += "${PN}-gplv2-license"
