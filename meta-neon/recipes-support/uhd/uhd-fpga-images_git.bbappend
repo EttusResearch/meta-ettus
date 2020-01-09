@@ -1,33 +1,25 @@
-FILESEXTRAPATHS_prepend_ni-neon := "${THISDIR}/files:"
+inherit uhd_images_downloader
 
-SRC_URI_append_ni-neon = " http://files.ettus.com/binaries/cache/e3xx/fpga-9e3d00c/e3xx_e320_fpga_default-g9e3d00c.zip;name=neon-fpga;unpack=false \
-                         "
+EXTRA_PACKAGES_ni-neon ?= " \
+    ${PN}-e320 \
+    ${PN}-inventory \
+"
 
-SRC_URI[neon-fpga.sha256sum] = "c27221bb1199ab37f4a977d532d58b54993ea979d6d872394dca841071acdc1f"
-SRC_URI[neon-fpga-aurora.sha256sum] = "73a3851e890df827ec1b809e34cea49cf973ba225ef9852416c77237f18f016c"
+PACKAGES_append_ni-neon = "${EXTRA_PACKAGES}"
+PACKAGES_BEFORE_PN_append_ni-neon = "${EXTRA_PACKAGES}"
+RDEPENDS_${PN}_ni-neon += "${EXTRA_PACKAGES}"
 
-IMAGE_MANIFEST_BINARIES_ni-neon = "e3xx_e320_fpga_default"
+RPROVIDES_${PN}-e320 = "${PN}-neon"
 
-do_install_append_ni-neon(){
-    mkdir -p ${D}/usr/share/uhd/images
-    install -m 0644 ${WORKDIR}/usrp_e320_fpga_1G.bit ${D}/usr/share/uhd/images/usrp_e320_fpga_1G.bit
-    install -m 0644 ${WORKDIR}/usrp_e320_fpga_XG.bit ${D}/usr/share/uhd/images/usrp_e320_fpga_XG.bit
-    install -m 0644 ${WORKDIR}/usrp_e320_fpga_AA.bit ${D}/usr/share/uhd/images/usrp_e320_fpga_AA.bit
+FILES_${PN}-e320 = "${UHD_IMAGES_INSTALL_PATH}/usrp_e320_*.*"
+FILES_${PN}-inventory = "${UHD_IMAGES_INSTALL_PATH}/inventory.json"
 
-    install -m 0644 ${WORKDIR}/usrp_e320_fpga_1G.dts ${D}/usr/share/uhd/images/usrp_e320_fpga_1G.dts
-    install -m 0644 ${WORKDIR}/usrp_e320_fpga_XG.dts ${D}/usr/share/uhd/images/usrp_e320_fpga_XG.dts
-    install -m 0644 ${WORKDIR}/usrp_e320_fpga_AA.dts ${D}/usr/share/uhd/images/usrp_e320_fpga_AA.dts
+UHD_IMAGES_TO_DOWNLOAD_ni-neon ?= " \
+    e3xx_e320_fpga_default \
+    "
+
+do_install_append_ni-neon() {
+    mkdir -p ${D}/${UHD_IMAGES_INSTALL_PATH}
+    install -m 0644 ${S}/usrp_e320_fpga*.* ${D}/${UHD_IMAGES_INSTALL_PATH}
+    install -m 0644 ${S}/inventory.json    ${D}/${UHD_IMAGES_INSTALL_PATH}
 }
-
-PACKAGES_append_ni-neon = " \
-    ${PN}-neon \
-"
-
-FILES_${PN}-neon = " \
-    /usr/share/uhd/images/usrp_e320_fpga_1G.bit \
-    /usr/share/uhd/images/usrp_e320_fpga_XG.bit \
-    /usr/share/uhd/images/usrp_e320_fpga_AA.bit \
-    /usr/share/uhd/images/usrp_e320_fpga_1G.dts \
-    /usr/share/uhd/images/usrp_e320_fpga_XG.dts \
-    /usr/share/uhd/images/usrp_e320_fpga_AA.dts \
-"
