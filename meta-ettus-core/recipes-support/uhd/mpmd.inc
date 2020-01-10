@@ -10,7 +10,9 @@ DEPENDS = " boost \
 	    udev \
 	    python3-setuptools-native \
           "
-RDEPENDS_${PN} = "python3-netaddr \
+RDEPENDS_${PN} = " \
+                  python3-core \
+                  python3-netaddr \
                   python3-pyudev \
                   python3-gevent \
                   python3-systemd \

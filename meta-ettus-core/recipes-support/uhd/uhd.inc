@@ -4,7 +4,7 @@ LICENSE = "GPLv3+"
 
 DEPENDS = "git-native python3-mako-native boost \
            ncurses udev python3-requests"
-RDEPENDS_${PN} += "python3 python3-requests"
+RDEPENDS_${PN} += "python3-core python3-requests"
 RRECOMMENDS_${PN} += "uhd-fpga-images"
 
 inherit cmake python3native
