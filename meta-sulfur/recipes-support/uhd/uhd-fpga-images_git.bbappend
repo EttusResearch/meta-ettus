@@ -14,7 +14,7 @@ PACKAGES_append_ni-sulfur = " \
     ${PN}-n320-firmware \
     "
 RDEPENDS_${PN}_ni-sulfur = "${EXTRA_PACKAGES}"
-RDEPENDS_${PN}-firmware_append_ni-neon = " \
+RDEPENDS_${PN}-firmware_append_ni-sulfur = " \
     ${PN}-n300-firmware \
     ${PN}-n310-firmware \
     ${PN}-n320-firmware \
