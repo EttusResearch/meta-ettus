@@ -112,7 +112,7 @@ SUMMARY_${PN}-common = "shared libraries that salt requires for all packages"
 DESCRIPTION_${PN}-common ="${DESCRIPTION_COMMON} This particular package provides shared libraries that \
 salt-master, salt-minion, and salt-syndic require to function."
 RDEPENDS_${PN}-common = "python3 python3-dateutil python3-jinja2 python3-pyyaml python3-requests (>= 1.0.0) python3-tornado (>= 4.2.1)"
-RRECOMMENDS_${PN}-common = "lsb python3-futures"
+RRECOMMENDS_${PN}-common = "lsb-release python3-futures"
 RSUGGESTS_${PN}-common = "python3-mako python3-git"
 RCONFLICTS_${PN}-common = "python3-mako (< 0.7.0)"
 CONFFILES_${PN}-common="${sysconfdir}/logrotate.d/${PN}-common"
