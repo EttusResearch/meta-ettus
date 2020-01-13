@@ -1,4 +1,6 @@
-DEPENDS += "uhd"
+DEPENDS += "uhd python3-native python3-requests-native python3-urllib3-native python3-chardet-native python3-six-native python3-certifi-native python3-idna-native"
+
+inherit python3native
 
 # set the UHD images you want to download
 UHD_IMAGES_TO_DOWNLOAD ??= ""
