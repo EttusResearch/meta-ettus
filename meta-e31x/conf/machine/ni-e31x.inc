@@ -13,7 +13,7 @@ UBOOT_LOADADDRESS_ni-e31x = "0000000"
 UBOOT_BINARY_ni-e31x = "u-boot.${UBOOT_SUFFIX}"
 SPL_BINARY_ni-e31x = "spl/boot.bin"
 
-PREFERRED_VERSION_u-boot = "2018.07"
+PREFERRED_VERSION_u-boot = "2019.07"
 
 IMAGE_BOOT_FILES ?= "boot.bin ${UBOOT_BINARY}"
 
