@@ -1,11 +1,8 @@
-require recipes-support/uhd/version.inc
-require recipes-support/uhd/uhd_git_src.inc
 require includes/maintainer-ettus.inc
 
 SUMMARY = "Universal Hardware Driver for Ettus Research products (Hardware Daemon)."
 HOMEPAGE = "http://www.ettus.com"
 LICENSE = "GPLv3+"
-LIC_FILES_CHKSUM = "file://../host/LICENSE;md5=8255adf1069294c928e0e18b01a16282"
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 

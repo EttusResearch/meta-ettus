@@ -1,7 +1,6 @@
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
 inherit uhd_images_downloader
-require recipes-support/uhd/version.inc
 require includes/maintainer-ettus.inc
 
 DEPENDS += "dtc-native python3-native"
