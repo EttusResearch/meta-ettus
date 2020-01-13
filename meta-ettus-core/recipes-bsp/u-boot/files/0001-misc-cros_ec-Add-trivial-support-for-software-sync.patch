@@ -1,6 +1,6 @@
-From b83d5539c0a57c757819b2f6b803d0b6f03de7cd Mon Sep 17 00:00:00 2001
-From: Moritz Fischer <moritz.fischer@ettus.com>
-Date: Wed, 26 Oct 2016 09:58:51 -0700
+From f0ee523d8e6ac58f125038a993ace1fff85c2b86 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Mon, 29 Jul 2019 15:35:42 +0200
 Subject: [PATCH] misc: cros_ec: Add trivial support for software sync
 
 This adds basic support for 'software sync' - the technique
@@ -8,17 +8,18 @@ used by Chromebooks to keep the EC software in sync with
 the rest of the software stack.
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
 ---
- cmd/cros_ec.c          |  12 ++++
- drivers/misc/cros_ec.c | 150 +++++++++++++++++++++++++++++++++++++++++++++++++
+ cmd/cros_ec.c          |  11 +++
+ drivers/misc/cros_ec.c | 150 +++++++++++++++++++++++++++++++++++++++++
  include/cros_ec.h      |   9 +++
- 3 files changed, 171 insertions(+)
+ 3 files changed, 170 insertions(+)
 
 diff --git a/cmd/cros_ec.c b/cmd/cros_ec.c
-index af0b4eee78..fd1dd9e644 100644
+index 9e2f1b06f3..75bdf568f4 100644
 --- a/cmd/cros_ec.c
 +++ b/cmd/cros_ec.c
-@@ -151,6 +151,17 @@ static int do_cros_ec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+@@ -145,6 +145,16 @@ static int do_cros_ec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
  			return 1;
  		}
  		printf("%d\n", image);
@@ -32,11 +33,10 @@ index af0b4eee78..fd1dd9e644 100644
 +			debug("%s: size = %lx\n", __func__, size);
 +			cros_ec_flash_sync_rw(dev, (uint8_t*)addr, size);
 +		}
-+
  	} else if (0 == strcmp("hash", cmd)) {
  		struct ec_response_vboot_hash hash;
  		int i;
-@@ -372,6 +383,7 @@ U_BOOT_CMD(
+@@ -368,6 +378,7 @@ U_BOOT_CMD(
  	"crosec id                  Read CROS-EC ID\n"
  	"crosec info                Read CROS-EC info\n"
  	"crosec curimage            Read CROS-EC current image\n"
@@ -45,10 +45,10 @@ index af0b4eee78..fd1dd9e644 100644
  	"crosec reboot [rw | ro | cold]  Reboot CROS-EC\n"
  	"crosec events              Read CROS-EC host events\n"
 diff --git a/drivers/misc/cros_ec.c b/drivers/misc/cros_ec.c
-index feaa5d8567..a6120a6c82 100644
+index 382f826286..3b6370a6d5 100644
 --- a/drivers/misc/cros_ec.c
 +++ b/drivers/misc/cros_ec.c
-@@ -29,6 +29,9 @@
+@@ -30,6 +30,9 @@
  #include <dm/of_extra.h>
  #include <dm/uclass-internal.h>
  
@@ -58,18 +58,18 @@ index feaa5d8567..a6120a6c82 100644
  #ifdef DEBUG_TRACE
  #define debug_trace(fmt, b...)	debug(fmt, #b)
  #else
-@@ -930,6 +933,153 @@ int cros_ec_flash_update_rw(struct cros_ec_dev *dev,
+@@ -1055,6 +1058,153 @@ int cros_ec_flash_update_rw(struct udevice *dev, const uint8_t *image,
  	return 0;
  }
  
-+int cros_ec_flash_checksum_match(struct cros_ec_dev *dev, const uint8_t *image,
++int cros_ec_flash_checksum_match(struct udevice *dev, const uint8_t *image,
 +				 int image_size)
 +{
 +	struct ec_response_vboot_hash hash;
 +	uint8_t digest[SHA256_SUM_LEN];
 +	int ret, i;
 +
-+	ret = cros_ec_read_hash(dev, &hash);
++	ret = cros_ec_read_hash(dev, EC_VBOOT_HASH_OFFSET_ACTIVE, &hash);
 +	if (ret) {
 +		debug("%s: Could not read hash\n", __func__);
 +		return ret;
@@ -87,7 +87,7 @@ index feaa5d8567..a6120a6c82 100644
 +	return 0;
 +}
 +
-+static int cros_ec_flash_read_match(struct cros_ec_dev *dev, const uint8_t *image,
++static int cros_ec_flash_read_match(struct udevice *dev, const uint8_t *image,
 +				    int offset, int size)
 +{
 +	uint8_t *verify_buf;
@@ -109,7 +109,7 @@ index feaa5d8567..a6120a6c82 100644
 +	return ret;
 +}
 +
-+int cros_ec_flash_sync_rw(struct cros_ec_dev *dev, const uint8_t *image,
++int cros_ec_flash_sync_rw(struct udevice *dev, const uint8_t *image,
 +			  int image_size)
 +{
 +	int ret;
@@ -128,7 +128,7 @@ index feaa5d8567..a6120a6c82 100644
 +
 +	/* read back the size early, so we can check the image we're given
 +	 * against the size of the region we're trying to write to*/
-+	ret = cros_ec_flash_offset(dev, EC_FLASH_REGION_RW, &offset, &size);
++	ret = cros_ec_flash_offset(dev, EC_FLASH_REGION_ACTIVE, &offset, &size);
 +	if (ret) {
 +		printf("Could not read EC flash offset and size\n");
 +		return ret;
@@ -209,16 +209,16 @@ index feaa5d8567..a6120a6c82 100644
 +	return ret;
 +}
 +
- int cros_ec_read_vbnvcontext(struct cros_ec_dev *dev, uint8_t *block)
+ int cros_ec_read_nvdata(struct udevice *dev, uint8_t *block, int size)
  {
  	struct ec_params_vbnvcontext p;
 diff --git a/include/cros_ec.h b/include/cros_ec.h
-index 771a176eea..28d55fcf72 100644
+index f4b9b7a5c2..ad5cfb6d2e 100644
 --- a/include/cros_ec.h
 +++ b/include/cros_ec.h
-@@ -165,6 +165,15 @@ int cros_ec_info(struct cros_ec_dev *dev,
-  */
- int cros_ec_get_host_events(struct cros_ec_dev *dev, uint32_t *events_ptr);
+@@ -187,6 +187,15 @@ int cros_ec_flash_protect(struct udevice *dev, uint32_t set_mask,
+ 			  uint32_t set_flags,
+ 			  struct ec_response_flash_protect *resp);
  
 +/**
 + * Execute a swsync with given address
@@ -226,12 +226,12 @@ index 771a176eea..28d55fcf72 100644
 + * @param addr		Source Address
 + * @param size		Size
 + */
-+int cros_ec_flash_sync_rw(struct cros_ec_dev *dev, const uint8_t *addr,
++int cros_ec_flash_sync_rw(struct udevice *dev, const uint8_t *addr,
 +			  int size);
 +
  /**
-  * Clear the specified host event flags
+  * Notify EC of current boot mode
   *
 -- 
-2.15.0
+2.17.1
 
