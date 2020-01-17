@@ -1,0 +1,12 @@
+diff --git a/systemd/gpsdctl@.service b/systemd/gpsdctl@.service
+index 1c80101..d23b175 100644
+--- a/systemd/gpsdctl@.service
++++ b/systemd/gpsdctl@.service
+@@ -12,3 +12,7 @@ EnvironmentFile=-/etc/sysconfig/gpsd
+ RemainAfterExit=yes
+ ExecStart=/bin/sh -c "[ \"$USBAUTO\" = true ] && /usr/local/sbin/gpsdctl add /dev/%I || :"
+ ExecStop=/bin/sh -c "[ \"$USBAUTO\" = true ] && /usr/local/sbin/gpsdctl remove /dev/%I || :"
++
++[Install]
++WantedBy=multi-user.target
++Also=gpsd.socket
