@@ -8,6 +8,8 @@ IMAGE_INSTALL += "\
     fftwf-wisdom \
     git \
     glib-2.0 \
+    gpsd \
+    gpsd-gpsctl \
     gps-utils-cgps \
     gps-utils-gps2udp \
     gps-utils-gpsmon \

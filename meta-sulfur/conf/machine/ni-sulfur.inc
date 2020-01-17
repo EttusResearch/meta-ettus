@@ -29,7 +29,6 @@ MACHINE_ESSENTIAL_EXTRA_RRECOMMENDS = " \
 MACHINE_EXTRA_RRECOMMENDS = " \
                              mpmd-tools \
                              eeprom-hostname-systemd \
-                             gpsd-gpsctl \
                              gpsd-machine-conf \
                              haveged \
                             "
