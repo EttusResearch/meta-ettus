@@ -70,7 +70,7 @@ UHD_IMAGES_TO_DOWNLOAD_ni-sulfur ?= " \
     n3xx_n320_cpld_default \
     "
 
-UHD_IMAGES_DOWNLOAD_DIR_ni_sulfur = "${WORKDIR}"
+UHD_IMAGES_DOWNLOAD_DIR_ni-sulfur = "${WORKDIR}"
 
 do_install_append_ni-sulfur() {
 
