@@ -1,0 +1,3 @@
+DISTRO ?= "Alchemy"
+MACHINE ?= "ni-e31x-sg1"
+IMAGE_ROOTFS_EXTRA_SPACE = "0"

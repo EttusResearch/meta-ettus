@@ -1,0 +1,5 @@
+DISTRO ?= "Alchemy"
+MACHINE ?= "ni-sulfur-rev11-mender"
+INHERIT += "mender-full"
+MENDER_ARTIFACT_NAME ?= "git_n3xx"
+IMAGE_ROOTFS_EXTRA_SPACE = "0"

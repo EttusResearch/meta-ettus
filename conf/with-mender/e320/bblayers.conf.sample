@@ -1,0 +1,22 @@
+# LAYER_CONF_VERSION is increased each time build/conf/bblayers.conf
+# changes incompatibly
+LCONF_VERSION = "7"
+
+BBPATH = "${TOPDIR}"
+BBFILES ?= ""
+
+BBLAYERS ?= " \
+  ##OEROOT##/meta \
+  ##OEROOT##/../meta-oe/meta-oe \
+  ##OEROOT##/../meta-oe/meta-python \
+  ##OEROOT##/../meta-oe/meta-filesystems \
+  ##OEROOT##/../meta-oe/meta-networking \
+  ##OEROOT##/../meta-mender/meta-mender-core \
+  ##OEROOT##/../meta-security/meta-tpm \
+  ##OEROOT##/../meta-ettus/meta-ettus-core \
+  ##OEROOT##/../meta-ettus/meta-alchemy \
+  ##OEROOT##/../meta-ettus/meta-neon \
+  ##OEROOT##/../meta-ettus/meta-mender-neon \
+  ##OEROOT##/../meta-sdr \
+  ##OEROOT##/../meta-qt4 \
+  "

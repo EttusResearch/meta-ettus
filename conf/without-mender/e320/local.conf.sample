@@ -1,0 +1,3 @@
+DISTRO ?= "Alchemy"
+MACHINE ?= "ni-neon-rev2"
+IMAGE_ROOTFS_EXTRA_SPACE = "0"
