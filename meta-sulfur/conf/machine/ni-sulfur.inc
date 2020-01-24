@@ -41,4 +41,4 @@ MACHINE_EXTRA_RRECOMMENDS = " \
 
 IMAGE_INSTALL_append_ni-sulfur = " kernel-image"
 
-PREFERRED_VERSION_u-boot = "2018.07"
+PREFERRED_VERSION_u-boot = "2019.07"

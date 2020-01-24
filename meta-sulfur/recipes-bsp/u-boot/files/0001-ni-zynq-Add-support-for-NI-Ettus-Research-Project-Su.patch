@@ -1,13 +1,16 @@
-From c54f17025a2f390bf6f44e39c1747b548e73df20 Mon Sep 17 00:00:00 2001
+From 037bec4356113adac794e392179aaf375833415a Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Tue, 7 Nov 2017 11:51:56 -0800
-Subject: [PATCH 1/2] ni: zynq: Add support for NI Ettus Research Project
- Sulfur Rev3 SDR
+Subject: [PATCH] ni: zynq: Add support for NI Ettus Research Project Sulfur
+ Rev3 SDR
 
 Add support for second revision of NI Ettus Research Project Sulfur
 Revision 3 SDR board.
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+
+Adopted to U-Boot 2019.07:
+Joerg Hofrichter <joerg.hofrichter@ni.com>
 ---
  arch/arm/dts/Makefile                         |   1 +
  arch/arm/dts/zynq-ni-sulfur-rev3-uboot.dtsi   |  34 ++
@@ -39,11 +42,11 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  create mode 100644 include/configs/ni_sulfur_rev3.h
 
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
-index 946023093d..b3d007b7cd 100644
+index 20dbc2ff84..7b5e235f54 100644
 --- a/arch/arm/dts/Makefile
 +++ b/arch/arm/dts/Makefile
-@@ -132,6 +132,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
- 	zynq-cse-qspi-single.dtb \
+@@ -221,6 +221,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
+ 	zynq-dlc20-rev1.0.dtb \
  	zynq-microzed.dtb \
  	zynq-minized.dtb \
 +	zynq-ni-sulfur-rev3.dtb \
@@ -364,7 +367,7 @@ index 0000000000..191bbd35c3
 +obj-$(CONFIG_SPL_BUILD) += $(hw-platform-y)/ps7_init_gpl.o ps7_init_common.o
 diff --git a/board/ni/zynq/board.c b/board/ni/zynq/board.c
 new file mode 100644
-index 0000000000..2e738e7229
+index 0000000000..d04c002a87
 --- /dev/null
 +++ b/board/ni/zynq/board.c
 @@ -0,0 +1,243 @@
@@ -571,7 +574,7 @@ index 0000000000..2e738e7229
 +
 +int dram_init(void)
 +{
-+	if (fdtdec_setup_memory_size() != 0)
++	if (fdtdec_setup_mem_size_base() != 0)
 +		return -EINVAL;
 +
 +	zynq_ddrc_init();
@@ -1877,5 +1880,6 @@ index 0000000000..fa2e4f0127
 +
 +
 +#endif /* __CONFIG_NI_SULFUR_REV3_H */
---
+-- 
 2.17.1
+
