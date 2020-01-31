@@ -1,14 +1,16 @@
-From 57bf5fd5753ba3958574922ab8daade49e1f3d97 Mon Sep 17 00:00:00 2001
+From da02f57b123617701783f6d6ab351883546a6541 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Wed, 4 Apr 2018 16:26:27 -0700
-Subject: [PATCH 2/3] ni: zynq: Add support for NI Project Neon Rev2 SDR
+Subject: [PATCH 1/3] ni: zynq: Add support for NI Project Neon Rev2 SDR
 
 Add support for second revision of NI Project Neon SDR board.
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 
-%% original patch: 0001-ni-zynq-Add-support-for-NI-Project-Neon-Rev2-SDR.patch
+Adopted to version 2019.07:
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
 ---
+ arch/arm/dts/Makefile                         |   1 +
  arch/arm/dts/zynq-ni-neon-rev2-uboot.dtsi     |  29 ++
  arch/arm/dts/zynq-ni-neon-rev2.dts            | 217 +++++++++++++
  board/ni/zynq/MAINTAINERS                     |   6 +
@@ -21,7 +23,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  .../ni/zynq/zynq-ni-neon-rev2/ps7_init_gpl.c  | 306 ++++++++++++++++++
  configs/ni_neon_rev2_defconfig                |  69 ++++
  include/configs/ni_neon_rev2.h                |  50 +++
- 12 files changed, 1220 insertions(+)
+ 13 files changed, 1221 insertions(+)
  create mode 100644 arch/arm/dts/zynq-ni-neon-rev2-uboot.dtsi
  create mode 100644 arch/arm/dts/zynq-ni-neon-rev2.dts
  create mode 100644 board/ni/zynq/MAINTAINERS
@@ -35,6 +37,18 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
  create mode 100644 configs/ni_neon_rev2_defconfig
  create mode 100644 include/configs/ni_neon_rev2.h
 
+diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
+index 20dbc2ff84..cdf75ac2b5 100644
+--- a/arch/arm/dts/Makefile
++++ b/arch/arm/dts/Makefile
+@@ -221,6 +221,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
+ 	zynq-dlc20-rev1.0.dtb \
+ 	zynq-microzed.dtb \
+ 	zynq-minized.dtb \
++	zynq-ni-neon-rev2.dtb \
+ 	zynq-picozed.dtb \
+ 	zynq-syzygy-hub.dtb \
+ 	zynq-topic-miami.dtb \
 diff --git a/arch/arm/dts/zynq-ni-neon-rev2-uboot.dtsi b/arch/arm/dts/zynq-ni-neon-rev2-uboot.dtsi
 new file mode 100644
 index 0000000000..6823461018
@@ -323,7 +337,7 @@ index 0000000000..1ff3e377a0
 +obj-$(CONFIG_SPL_BUILD) += $(hw-platform-y)/ps7_init_gpl.o ps7_init_common.o
 diff --git a/board/ni/zynq/board.c b/board/ni/zynq/board.c
 new file mode 100644
-index 0000000000..29ed6e7ffb
+index 0000000000..f72b1ce357
 --- /dev/null
 +++ b/board/ni/zynq/board.c
 @@ -0,0 +1,177 @@
@@ -464,7 +478,7 @@ index 0000000000..29ed6e7ffb
 +
 +int dram_init(void)
 +{
-+	if (fdtdec_setup_memory_size() != 0)
++	if (fdtdec_setup_mem_size_base() != 0)
 +		return -EINVAL;
 +
 +	zynq_ddrc_init();
@@ -506,7 +520,7 @@ index 0000000000..29ed6e7ffb
 +#endif
 diff --git a/board/ni/zynq/neon-eeprom.c b/board/ni/zynq/neon-eeprom.c
 new file mode 100644
-index 0000000000..42ed383d24
+index 0000000000..7666d2c7bb
 --- /dev/null
 +++ b/board/ni/zynq/neon-eeprom.c
 @@ -0,0 +1,155 @@
@@ -1329,3 +1343,4 @@ index 0000000000..6b1f5a9933
 +#endif /* __CONFIG_NI_NEON_REV2_H */
 -- 
 2.17.1
+
