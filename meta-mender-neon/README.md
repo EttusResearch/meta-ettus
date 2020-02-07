@@ -5,20 +5,20 @@ Please see the corresponding sections below for details.
 Dependencies
 ============
 
-  URI: https://github.com/mendersoftware/meta-mender.git
-  layers: meta-mender-core
-  branch: master
+- URI: https://github.com/mendersoftware/meta-mender.git
+  - layers: meta-mender-core
+  - branch: thud
 
-  URI: https://github.com/EttusResearch/meta-ettus.git
-  layers: meta-neon
-  branch: master
+- URI: https://github.com/EttusResearch/meta-ettus.git
+  - layers: meta-neon
+  - branch: thud
 
 Patches
 =======
 
 Please submit any patches against the meta-mender-neon layer as github pull request
 
-Maintainer: Moritz Fischer <moritz.fischer@ettus.com>
+Maintainer: Jörg Hofrichter <joerg.hofrichter@ni.com>
 
 Table of Contents
 =================
@@ -28,4 +28,4 @@ Table of Contents
 I. Adding the meta-mender-neon layer to your build
 =================================================
 
-Run 'bitbake-layers add-layer meta-mender-neon'
+    bitbake-layers add-layer meta-mender-neon

@@ -5,20 +5,20 @@ Please see the corresponding sections below for details.
 Dependencies
 ============
 
-  URI: https://github.com/mendersoftware/meta-mender.git
-  layers: meta-mender-core
-  branch: master
+- URI: https://github.com/mendersoftware/meta-mender.git
+  - layers: meta-mender-core
+  - branch: thud
 
-  URI: https://github.com/EttusResearch/meta-ettus.git
-  layers: meta-e31x
-  branch: master
+- URI: https://github.com/EttusResearch/meta-ettus.git
+  - layers: meta-e31x
+  - branch: thud
 
 Patches
 =======
 
 Please submit any patches against the meta-mender-e31x layer as github pull request
 
-Maintainer: Moritz Fischer <moritz.fischer@ettus.com>
+Maintainer: Jörg Hofrichter <joerg.hofrichter@ni.com>
 
 Table of Contents
 =================
@@ -28,4 +28,4 @@ Table of Contents
 I. Adding the meta-mender-e31x layer to your build
 =================================================
 
-Run 'bitbake-layers add-layer meta-mender-e31x'
+    bitbake-layers add-layer meta-mender-e31x

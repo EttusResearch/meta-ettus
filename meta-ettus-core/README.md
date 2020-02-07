@@ -5,22 +5,27 @@ Please see the corresponding sections below for details.
 Dependencies
 ============
 
-  URI: git//git.openembedded.org/bitbake
-  branch: master
+- URI: git://git.openembedded.org/bitbake.git
+  - branch: thud
 
-  URI: git//git.openembedded.org/meta-openembedded
-  layers: meta-oe meta-filesystems
-  branch: master
+- URI: git://git.openembedded.org/openembedded-core.git
+  - layers: meta
+  - branch: thud
 
-  URI: git//git.openembedded.org/openembedded-core
-  branch: master
+- URI: git://git.openembedded.org/meta-openembedded.git
+  - layers: meta-oe meta-python meta-filesystems meta-networking
+  - branch: thud
+
+- URI: https://github.com/balister/meta-sdr.git
+  - layers: meta-sdr (parent directory)
+  - branch: thud
 
 Patches
 =======
 
 Please submit any patches against the meta-ettus/meta-ettus-core/ layer via github pull requests.
 
-Maintainer: Moritz Fischer <moritz@ettus.com>
+Maintainer: Jörg Hofrichter <joerg.hofrichter@ni.com>
 
 Table of Contents
 =================
@@ -31,4 +36,4 @@ Table of Contents
 I. Adding the meta-ettus/meta-ettus-core/ layer to your build
 =================================================
 
-Run 'bitbake-layers add-layer meta-ettus/meta-ettus-core/'
+    bitbake-layers add-layer meta-ettus/meta-ettus-core/

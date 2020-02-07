@@ -5,16 +5,16 @@ Please see the corresponding sections below for details.
 Dependencies
 ============
 
-  URI: https://github.com/EttusResearch/meta-ettus.git
-  layers: meta-ettus-core
-  branch: master
+- URI: https://github.com/EttusResearch/meta-ettus.git
+  - layers: meta-ettus-core
+  - branch: thud
 
 Patches
 =======
 
 Please submit any patches against the meta-neon layer via github pull requests.
 
-Maintainer: Moritz Fischer <moritz@ettus.com>
+Maintainer: Jörg Hofrichter <joerg.hofrichter@ni.com>
 
 Table of Contents
 =================
@@ -25,4 +25,4 @@ Table of Contents
 I. Adding the meta-neon layer to your build
 =================================================
 
-Run 'bitbake-layers add-layer meta-neon'
+    bitbake-layers add-layer meta-neon

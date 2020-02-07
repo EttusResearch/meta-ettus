@@ -16,38 +16,39 @@ Repository organization
 
 The repository is split into several sublayers to allow for greater modularity.
 
-  meta-alchemy:
-    Contains common distro configuration
+**meta-alchemy:**
 
-  meta-ettus-core:
+- Contains common distro configuration
 
-    Contains common core recipes, such as the developer-image
+**meta-ettus-core:**
 
-  meta-neon:
+- Contains common core recipes, such as the developer-image
 
-    Contains E320 BSP. Defines machines such as ni-neon-rev1, ni-neon-rev2, etc.
+**meta-neon:**
 
-  meta-mender-neon:
+- Contains E320 BSP. Defines machines such as ni-neon-rev1, ni-neon-rev2, etc.
 
-    Contains changes for E320 mender.io integration.
-    Defines new machines ni-neon-rev2-mender to build with mender.io integration.
+**meta-mender-neon:**
 
-  meta-sulfur:
+- Contains changes for E320 mender.io integration.
+- Defines new machines ni-neon-rev2-mender to build with mender.io integration.
 
-    Contains N310/N300 BSP. Defines machines such as ni-sulfur-rev3, ni-sulfur-rev4, etc.
+**meta-sulfur:**
 
-  meta-mender-sulfur:
+- Contains N310/N300 BSP. Defines machines such as ni-sulfur-rev3, ni-sulfur-rev4, etc.
 
-    Contains changes for N310/N300 mender.io integration.
-    Defines new machines ni-sulfur-rev{2,3,4,5,6}-mender to build with mender.io integration.
+**meta-mender-sulfur:**
 
-  meta-e31x:
+- Contains changes for N310/N300 mender.io integration.
+- Defines new machines ni-sulfur-rev{2,3,4,5,6}-mender to build with mender.io integration.
 
-    Contains E310/E312/E313 BSP
+**meta-e31x:**
 
-  meta-mender-e31x:
+- Contains E310/E312/E313 BSP
 
-    Contains changes for E310/E312/E313 mender.io integration.
+**meta-mender-e31x:**
+
+- Contains changes for E310/E312/E313 mender.io integration.
 
 Building an Image using the image builder script
 ================================================
@@ -92,23 +93,53 @@ DISTRO ?= "Alchemy"
 Additionally when building with mender.io support:
 
 MACHINE ??= "ni-sulfur-rev6-mender"
-INHERIT += "mender-full"
+MENDER_ARTIFACT_NAME ?= "v3.14.1.1_custom"
+
+Where MENDER_ARTIFACT_NAME is an arbitrary string which identifies the Mender
+image. It is saved in the file /etc/mender/artifact_info and also displayed
+when running:
+
+    mender -show-artifact
 
 In your bblayers.conf make sure you have the required layers
 (see sublayer README for individual layer dependencies)
 
 An example for N310/N300 (sulfur) with mender.io support:
 
-BBLAYERS ?= " \
-  /home/oe-builder/oe-core/meta \
-  /home/oe-builder/meta-oe/meta-oe \
-  /home/oe-builder/meta-oe/meta-python \
-  /home/oe-builder/meta-ettus/meta-ettus-core \
-  /home/oe-builder/meta-ettus/meta-alchemy \
-  /home/oe-builder/meta-security/meta-tpm \
-  /home/oe-builder/meta-oe/meta-filesystems \
-  /home/oe-builder/meta-oe/meta-networking \
-  /home/oe-builder/meta-ettus/meta-sulfur \
-  /home/oe-builder/meta-ettus/meta-mender-sulfur \
-  /home/oe-builder/meta-mender/meta-mender-core \
-  "
+    BBLAYERS ?= " \
+      /home/oe-builder/oe-core/meta \
+      /home/oe-builder/meta-oe/meta-oe \
+      /home/oe-builder/meta-oe/meta-python \
+      /home/oe-builder/meta-ettus/meta-ettus-core \
+      /home/oe-builder/meta-ettus/meta-alchemy \
+      /home/oe-builder/meta-security/meta-tpm \
+      /home/oe-builder/meta-oe/meta-filesystems \
+      /home/oe-builder/meta-oe/meta-networking \
+      /home/oe-builder/meta-ettus/meta-sulfur \
+      /home/oe-builder/meta-ettus/meta-mender-sulfur \
+      /home/oe-builder/meta-mender/meta-mender-core \
+      "
+
+Specifying the UHD version to use
+=================================
+
+The repository contains different recipes for building different versions of
+UHD, see the recipe files in meta-ettus-core/recipes-support/uhd.
+
+You can specify the UHD version to use by setting the variable
+PREFERRED_UHD_VERSION in your local.conf file. Example for forcing UHD 4.0:
+
+    PREFERRED_UHD_VERSION = "4.0%"
+
+Please note the '%' symbol at the end which is used to match any 4.0 version
+(e.g. 4.0.0.0+gitGITHASH).
+
+The Alchemy.conf file (meta-alchemy/conf/distro/Alchemy.conf) will automatically
+set the appropriate versions for the uhd, uhd-fpga-images and mpmd recipes:
+
+    PREFERRED_VERSION_pn-uhd ?= "${PREFERRED_UHD_VERSION}"
+    PREFERRED_VERSION_pn-uhd-fpga-images ?= "${PREFERRED_UHD_VERSION}"
+    PREFERRED_VERSION_pn-mpmd ?= "${PREFERRED_UHD_VERSION}"
+
+The default value for PREFERRED_UHD_VERSION is also set in the Alchemy.conf
+file. It set to the latest released version of UHD per default.
