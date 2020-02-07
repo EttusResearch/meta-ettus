@@ -1,0 +1,28 @@
+From 74c2e7224681088a593eef25f87281c1882d2dec Mon Sep 17 00:00:00 2001
+From: Ciro Nishiguchi <ciro.nishiguchi@ni.com>
+Date: Wed, 15 Jan 2020 12:39:11 -0600
+Subject: [PATCH] mpm: Add compile flag to fix missing definition
+
+In some environments _GNU_SOURCE must be defined to use
+O_LARGEFILE.
+---
+ mpm/lib/i2c/CMakeLists.txt | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/mpm/lib/i2c/CMakeLists.txt b/mpm/lib/i2c/CMakeLists.txt
+index f083325a7..105e9a8b0 100644
+--- a/mpm/lib/i2c/CMakeLists.txt
++++ b/mpm/lib/i2c/CMakeLists.txt
+@@ -8,5 +8,9 @@ set(I2C_SOURCES
+     ${CMAKE_CURRENT_SOURCE_DIR}/i2c_regs_iface.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/i2cdev.c
+ )
++set_source_files_properties(
++    ${CMAKE_CURRENT_SOURCE_DIR}/i2cdev.c
++    PROPERTIES COMPILE_FLAGS "-D_GNU_SOURCE"
++)
+ 
+ USRP_PERIPHS_ADD_OBJECT(i2c ${I2C_SOURCES})
+-- 
+2.17.1
+
