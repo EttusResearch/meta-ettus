@@ -16,7 +16,6 @@ CORE_IMAGE_EXTRA_INSTALL += " \
     packagegroup-sdr-python-extended \
     packagegroup-sdr-gnuradio-base \
     ${@bb.utils.contains('DISTRO_FEATURES', 'x11', 'xauth', '', d)} \
-    gr-ettus \
     "
 
 inherit core-image image-buildinfo
