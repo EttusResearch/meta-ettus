@@ -23,6 +23,7 @@ RDEPENDS_${PN} = "python3-netaddr \
                   python3-pyroute2 \
                   udev \
                   dtc \
+                  uhd-fpga-images-firmware \
                  "
 
 inherit distutils3-base cmake python3-dir python3native systemd
