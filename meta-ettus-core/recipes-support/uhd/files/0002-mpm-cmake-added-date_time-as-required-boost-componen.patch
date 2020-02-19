@@ -1,0 +1,28 @@
+From c0a6bb1720a3db8ac9a40bdd5ca19de8be40d500 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Fri, 7 Feb 2020 09:06:38 +0100
+Subject: [PATCH] mpm: cmake: added date_time as required boost component
+
+this fixes the error of a missing symbol
+_ZNK5boost9gregorian10greg_month15as_short_stringEv
+in /usr/lib/libusrp-periphs.so.4 when building
+with Boost 1.71
+---
+ mpm/CMakeLists.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/mpm/CMakeLists.txt b/mpm/CMakeLists.txt
+index ce40b7caa..c41b3fce1 100644
+--- a/mpm/CMakeLists.txt
++++ b/mpm/CMakeLists.txt
+@@ -77,6 +77,7 @@ message(STATUS "Configuring Boost C++ Libraries...")
+ set(BOOST_REQUIRED_COMPONENTS
+     system
+     thread
++    date_time
+ )
+ # Same as with Python version: MPM might work with other versions of Boost,
+ # but we don't make any guarantees.
+-- 
+2.17.1
+

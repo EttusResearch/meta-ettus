@@ -1,0 +1,45 @@
+From 414469abeb2cc0038ccb4157593414b9ebc93830 Mon Sep 17 00:00:00 2001
+From: Martin Braun <martin.braun@ettus.com>
+Date: Fri, 7 Feb 2020 10:44:21 -0800
+Subject: [PATCH] mpm: catalina: Add thread.cpp from UHD to included files
+
+This avoids a linker error where set_thread_name and set_thread_priority
+cannot be found.
+---
+ mpm/lib/catalina/CMakeLists.txt | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/mpm/lib/catalina/CMakeLists.txt b/mpm/lib/catalina/CMakeLists.txt
+index 6f402f530..7780b738e 100644
+--- a/mpm/lib/catalina/CMakeLists.txt
++++ b/mpm/lib/catalina/CMakeLists.txt
+@@ -18,6 +18,18 @@ set (CMAKE_CATALINA_SOURCE_DIR
+     ${UHD_HOST_ROOT}/lib/usrp/common
+ )
+ 
++########################################################################
++# Setup defines for process scheduling (needed for thread.cpp)
++########################################################################
++
++message(STATUS "  Priority scheduling disabled.")
++set(THREAD_PRIO_DEFS HAVE_THREAD_PRIO_DUMMY)
++
++set_source_files_properties(
++    ${UHD_HOST_ROOT}/lib/utils/thread.cpp
++    PROPERTIES COMPILE_DEFINITIONS "${THREAD_PRIO_DEFS}"
++)
++
+ ########################################################################
+ # Setup UHD_VERSION and UHD_COMPONENT for version.cpp
+ ########################################################################
+@@ -41,6 +53,7 @@ set(catalina_sources
+     ${UHD_HOST_ROOT}/lib/types/serial.cpp
+     ${UHD_HOST_ROOT}/lib/property_tree.cpp
+     ${UHD_HOST_ROOT}/lib/utils/log.cpp
++    ${UHD_HOST_ROOT}/lib/utils/thread.cpp
+     ${CMAKE_BINARY_DIR}/lib/version.cpp
+ )
+ 
+-- 
+2.17.1
+
