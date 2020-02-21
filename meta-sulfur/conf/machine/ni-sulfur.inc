@@ -42,3 +42,7 @@ MACHINE_EXTRA_RRECOMMENDS = " \
 IMAGE_INSTALL_append_ni-sulfur = " kernel-image"
 
 PREFERRED_VERSION_u-boot = "2019.07"
+
+do_image_wic[depends] += " \
+    u-boot:do_deploy \
+    "

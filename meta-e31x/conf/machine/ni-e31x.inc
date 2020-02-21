@@ -37,3 +37,7 @@ MACHINE_EXTRA_RRECOMMENDS = " \
                             "
 
 IMAGE_INSTALL_append_ni-e31x = " kernel-image"
+
+do_image_wic[depends] += " \
+    u-boot:do_deploy \
+    "

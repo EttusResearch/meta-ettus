@@ -39,3 +39,7 @@ MACHINE_EXTRA_RRECOMMENDS = " \
                             "
 
 IMAGE_INSTALL_append_ni-neon = " kernel-image"
+
+do_image_wic[depends] += " \
+    u-boot:do_deploy \
+    "
