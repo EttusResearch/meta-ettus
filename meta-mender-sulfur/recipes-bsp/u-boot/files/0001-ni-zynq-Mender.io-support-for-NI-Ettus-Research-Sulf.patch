@@ -1,4 +1,4 @@
-From 622dc4cf25c0e5494fddcc6897ca1c97f196ebd7 Mon Sep 17 00:00:00 2001
+From feb504120e96c1b1d0ea7080afed666b2a411d68 Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 21 Jan 2019 18:07:59 -0800
 Subject: [PATCH] ni: zynq: Mender.io support for NI Ettus Research Sulfur Rev3
@@ -7,42 +7,43 @@ This involves adding bootcount in environment, as well as modifying
 the default bootconfiguration to run ${mender_setup} first.
 
 Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+
+[Adopted to u-boot 2019.07]
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
 ---
- configs/ni_sulfur_rev3_defconfig |  1 +
- include/configs/ni_sulfur_rev3.h | 16 ++++++++--------
- 2 files changed, 9 insertions(+), 8 deletions(-)
+ configs/ni_sulfur_rev3_defconfig |  5 +++++
+ include/configs/ni_sulfur_rev3.h | 15 +++++++--------
+ 2 files changed, 12 insertions(+), 8 deletions(-)
 
 diff --git a/configs/ni_sulfur_rev3_defconfig b/configs/ni_sulfur_rev3_defconfig
-index 9cd12a0fc0..592264b11a 100644
+index 9cd12a0fc0..f20c6b2e30 100644
 --- a/configs/ni_sulfur_rev3_defconfig
 +++ b/configs/ni_sulfur_rev3_defconfig
-@@ -14,6 +14,7 @@ CONFIG_FIT=y
- CONFIG_FIT_SIGNATURE=y
- CONFIG_IMAGE_FORMAT_LEGACY=y
- CONFIG_BOOTCOMMAND="run $modeboot || run distro_bootcmd"
-+CONFIG_SYS_EXTRA_OPTIONS="BOOTCOUNT_LIMIT,BOOTCOUNT_ENV"
- CONFIG_BOOTDELAY=5
- # CONFIG_DISPLAY_CPUINFO is not set
- CONFIG_SPL_STACK_R=y
+@@ -82,4 +82,9 @@ CONFIG_USB_GADGET_VENDOR_NUM=0x03FD
+ CONFIG_USB_GADGET_PRODUCT_NUM=0x0300
+ CONFIG_CI_UDC=y
+ CONFIG_USB_GADGET_DOWNLOAD=y
++CONFIG_ENV_SIZE=0x20000
++CONFIG_ENV_OFFSET=0x800000
++CONFIG_MMC=y
+ CONFIG_ENV_IS_IN_MMC=y
++CONFIG_BOOTCOUNT_LIMIT=y
++CONFIG_BOOTCOUNT_ENV=y
 diff --git a/include/configs/ni_sulfur_rev3.h b/include/configs/ni_sulfur_rev3.h
-index fa2e4f0127..070489b61e 100644
+index fa2e4f0127..f65c9eecb3 100644
 --- a/include/configs/ni_sulfur_rev3.h
 +++ b/include/configs/ni_sulfur_rev3.h
-@@ -9,10 +9,10 @@
- #ifndef __CONFIG_NI_SULFUR_REV3_H
+@@ -10,9 +10,7 @@
  #define __CONFIG_NI_SULFUR_REV3_H
-
-+#define CONFIG_ENV_IS_NOWHERE
+ 
  #include <configs/zynq-common.h>
 -#define CONFIG_SYS_MMC_ENV_DEV 0
--#define CONFIG_ENV_SECT_SIZE           CONFIG_ENV_SIZE
+ #define CONFIG_ENV_SECT_SIZE           CONFIG_ENV_SIZE
 -#define CONFIG_ENV_OFFSET              0xE0000
-+#undef CONFIG_ENV_SIZE
-+#undef CONFIG_ENV_IS_NOWHERE
-
+ 
  #undef CONFIG_EXTRA_ENV_SETTINGS
  #define CONFIG_EXTRA_ENV_SETTINGS	\
-@@ -22,8 +22,8 @@
+@@ -22,8 +20,8 @@
  	"variant=sulfur-rev3\0"	\
  	"mboard=sulfur-rev3\0"	\
  	"ec_disable_swsync=0\0"		\
@@ -53,7 +54,7 @@ index fa2e4f0127..070489b61e 100644
  	"expand_ec_image=setenv ec_image lib/firmware/ni/ec-${ec_mboard}-rev${ec_compat}.RW.bin\0" \
  	"load_addr=0x2000000\0"		\
  	"fit_size=0x800000\0"           \
-@@ -35,14 +35,14 @@
+@@ -35,14 +33,15 @@
  		"echo Loading FIT to RAM via DHCP/TFTP && " \
  		"dhcp ${load_addr} ${tftproot}/${fit_image} && "\
  		"bootm ${load_addr}#conf@zynq-ni-${variant}.dtb\0" \
@@ -61,8 +62,10 @@ index fa2e4f0127..070489b61e 100644
 +	"sdboot=run mender_setup; run swsync_sd; " \
  		"echo Copying FIT from SD to RAM... && " \
 -		"ext4load mmc 0:2 ${load_addr} ${fit_image} && " \
+-		"bootm ${load_addr}#conf@zynq-ni-${variant}.dtb\0" \
 +		"ext4load ${mender_uboot_root} ${load_addr} ${fit_image} && " \
- 		"bootm ${load_addr}#conf@zynq-ni-${variant}.dtb\0" \
++		"bootm ${load_addr}#conf@zynq-ni-${variant}.dtb; " \
++		"run mender_try_to_recover\0" \
  	"swsync_sd=if test ${ec_disable_swsync} = 0; then " \
  			"echo Copying MCU FW from SD to RAM... && " \
  			"run expand_ec_image; " \
@@ -71,5 +74,5 @@ index fa2e4f0127..070489b61e 100644
  			"crosec swsync ${load_addr} ${filesize}; fi;\0" \
  	"swsync_net=if test ${ec_disable_swsync} = 0; then " \
  			"echo Copying MCU FW to RAM via DHCP/TFTP... && " \
---
+-- 
 2.17.1
