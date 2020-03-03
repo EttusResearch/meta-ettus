@@ -1,0 +1,82 @@
+From 1b4939ec169a2bb76b4df03138f57fa5aee76f9e Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Tue, 3 Mar 2020 14:50:44 +0100
+Subject: [PATCH] Remove encoding option to msgpack calls
+
+Unpacker(encoding=...) is deprecated, Unpacker(raw=False) should be used
+instead.
+
+Packer(encoding=...) is deprecated, Packer(use_bin_type=True) should be
+used instead.
+---
+ mprpc/client.pyx |  7 +++----
+ mprpc/server.pyx | 10 ++++------
+ 2 files changed, 7 insertions(+), 10 deletions(-)
+
+diff --git a/mprpc/client.pyx b/mprpc/client.pyx
+index 13244ec..c9de8a0 100644
+--- a/mprpc/client.pyx
++++ b/mprpc/client.pyx
+@@ -63,9 +63,9 @@ cdef class RPCClient:
+         self._keep_alive = keep_alive
+         self._pack_params = pack_params or dict(use_bin_type=True)
+         self._unpack_encoding = unpack_encoding
+-        self._unpack_params = unpack_params or dict(use_list=False)
++        self._unpack_params = unpack_params or dict(use_list=False, raw=False)
+ 
+-        self._packer = msgpack.Packer(encoding=pack_encoding, **self._pack_params)
++        self._packer = msgpack.Packer(**self._pack_params)
+ 
+         if not lazy:
+             self.open()
+@@ -132,8 +132,7 @@ cdef class RPCClient:
+         cdef bytes data
+         self._socket.sendall(req)
+ 
+-        unpacker = msgpack.Unpacker(encoding=self._unpack_encoding,
+-                                    **self._unpack_params)
++        unpacker = msgpack.Unpacker(**self._unpack_params)
+         while True:
+             data = self._socket.recv(SOCKET_RECV_SIZE)
+             if not data:
+diff --git a/mprpc/server.pyx b/mprpc/server.pyx
+index c9dda88..0b719a3 100644
+--- a/mprpc/server.pyx
++++ b/mprpc/server.pyx
+@@ -47,12 +47,12 @@ cdef class RPCServer:
+         pack_params = kwargs.pop('pack_params', dict(use_bin_type=True))
+ 
+         self._unpack_encoding = kwargs.pop('unpack_encoding', 'utf-8')
+-        self._unpack_params = kwargs.pop('unpack_params', dict(use_list=False))
++        self._unpack_params = kwargs.pop('unpack_params', dict(use_list=False, raw=False))
+ 
+         self._tcp_no_delay = kwargs.pop('tcp_no_delay', False)
+         self._methods = {}
+ 
+-        self._packer = msgpack.Packer(encoding=pack_encoding, **pack_params)
++        self._packer = msgpack.Packer(**pack_params)
+ 
+         self._address = local()
+         self._address.client_host = None
+@@ -82,8 +82,7 @@ cdef class RPCServer:
+         cdef bytes data
+         cdef int msg_id
+ 
+-        unpacker = msgpack.Unpacker(encoding=self._unpack_encoding,
+-                                    **self._unpack_params)
++        unpacker = msgpack.Unpacker(**self._unpack_params)
+         while True:
+             data = conn.recv(SOCKET_RECV_SIZE)
+             if not data:
+@@ -98,8 +97,7 @@ cdef class RPCServer:
+             if type(req) not in (tuple, list):
+                 self._send_error("Invalid protocol", -1, conn)
+                 # reset unpacker as it might have garbage data
+-                unpacker = msgpack.Unpacker(encoding=self._unpack_encoding,
+-                                            **self._unpack_params)
++                unpacker = msgpack.Unpacker(**self._unpack_params)
+                 continue
+ 
+             (msg_id, method, args) = self._parse_request(req)
+-- 
+2.17.1
