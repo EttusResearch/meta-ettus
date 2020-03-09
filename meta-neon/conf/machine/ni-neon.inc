@@ -33,7 +33,6 @@ MACHINE_EXTRA_RRECOMMENDS = " \
                              eeprom-hostname-systemd \
                              gpsd \
                              gpsd-gpsctl \
-                             gps-utils \
                              gpsd-machine-conf \
                              haveged \
                             "
