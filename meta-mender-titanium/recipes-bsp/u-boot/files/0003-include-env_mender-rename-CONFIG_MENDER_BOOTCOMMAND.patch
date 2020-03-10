@@ -1,0 +1,35 @@
+From b6cf2d7f4d3b689ae177aa7ae0818c4872b447e3 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Wed, 18 Dec 2019 15:34:53 +0100
+Subject: [PATCH 3/3] include/env_mender: rename CONFIG_MENDER_BOOTCOMMAND
+
+Set it to MENDER_BOOTCOMMAND instead.
+
+Otherwise, the following error is generated when running
+do_compile:
+
+Error: You must add new CONFIG options using Kconfig
+The following new ad-hoc CONFIG options were detected:
+CONFIG_MENDER_BOOTCOMMAND
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ include/env_mender.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/env_mender.h b/include/env_mender.h
+index 0605f6a9fa..2a08788833 100644
+--- a/include/env_mender.h
++++ b/include/env_mender.h
+@@ -145,7 +145,7 @@
+     "load ${mender_uboot_root} ${kernel_addr_r} /boot/${mender_kernel_name}; "
+ #endif
+ 
+-#define CONFIG_MENDER_BOOTCOMMAND                                       \
++#define MENDER_BOOTCOMMAND                                       \
+     "run mender_setup; "                                                \
+     MENDER_BOOTARGS                                                     \
+     MENDER_LOAD_KERNEL_AND_FDT                                          \
+-- 
+2.17.1
+
