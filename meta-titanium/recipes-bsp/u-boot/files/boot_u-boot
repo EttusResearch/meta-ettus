@@ -1,0 +1,45 @@
+#!/bin/bash
+
+if [ -z "$(which xsct)" ]
+then
+  read -d '' ERRORMSG  <<- EOF
+Error: xsct was not found
+
+Please install the Xilinx Software Commmand-Line Toolkit (XSCT) which
+is available as part of the Xilinx Software Development Kit (SDK).
+The 2018.03 version is avilable here: [1]
+
+Also, you need to load the environment variables to your current shell
+by running:
+$ source /opt/Xilinx/SDK/2018.3/settings64.sh
+
+[1] https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/embedded-design-tools/2018-3.html
+EOF
+  echo "$ERRORMSG"
+  exit 1
+fi
+
+stm_uart=$(ls /dev/serial/by-id/usb-Digilent_Digilent_USB_Device_*-if02-port0 | head -n 1)
+zynq_uart=$(ls /dev/serial/by-id/usb-Digilent_Digilent_USB_Device_*-if03-port0 | head -n 1)
+
+echo "initializing SCU (STM32) UART"
+echo "using device: $stm_uart"
+stty -F "$stm_uart" cs8 -parenb -cstopb -clocal -echo raw speed 115200
+if [ "$?" != "0" ]; then exit 1; fi
+echo "initializing PS (Xilinx ZynqMP) UART"
+echo "using device: $zynq_uart"
+stty -F "$zynq_uart" cs8 -parenb -cstopb -clocal -echo raw speed 115200
+if [ "$?" != "0" ]; then exit 1; fi
+
+# reboot the zynq and boot it up
+echo reboot > "$stm_uart"
+sleep .5
+echo zynqmp bootmode jtag > "$stm_uart"
+sleep .5
+echo powerbtn > "$stm_uart"
+
+# download everything and load up u-boot
+xsct "boot_u-boot.tcl"
+if [ "$?" != "0" ]; then exit 1; fi
+
+screen "$zynq_uart" 115200
