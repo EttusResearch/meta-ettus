@@ -1,0 +1,4 @@
+BBMULTICONFIG = "ni-titanium-ec zynqmp-pmu ni-titanium"
+MACHINE ??= "ni-titanium-rev2"
+DISTRO = "Alchemy"
+INHERIT_remove = "uninative"

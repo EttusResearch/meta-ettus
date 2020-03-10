@@ -1,0 +1,5 @@
+DISTRO ?= "Alchemy"
+MACHINE ?= "ni-titanium-rev2"
+MENDER_ARTIFACT_NAME = "git"
+IMAGE_ROOTFS_EXTRA_SPACE = "0"
+HOSTTOOLS += "realpath"

@@ -1,0 +1,5 @@
+BBMULTICONFIG = "ni-titanium-ec zynqmp-pmu"
+INHERIT_remove = "uninative"
+HOSTTOOLS += "realpath"
+DISTRO ?= "Alchemy"
+MACHINE ?= "ni-titanium-rev2"

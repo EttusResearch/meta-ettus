@@ -1,0 +1,4 @@
+DISTRO = ""
+TCLIBC = "baremetal"
+MACHINE = "ni-titanium-ec-rev2"
+TMPDIR = "${TOPDIR}/tmp-stm32"

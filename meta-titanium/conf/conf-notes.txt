@@ -1,0 +1,34 @@
+
+### Shell environment set up for builds. ###
+
+Prepare the "multiconfig" configuration
+===========================================
+
+A "multiconfig" configuration is needed to be able to build the PMU firmware.
+u-boot depends on this, so building the filesystem image fails if PMU firmware
+was not built before (at least once).
+
+  $ mkdir -p conf/multiconfig
+  $ mv conf/local.conf conf/multiconfig/ni-titanium.conf
+  $ cp ../meta-ettus/meta-titanium/conf/multiconfig/zynqmp-pmu.conf.sample \
+      conf/multiconfig/zynqmp-pmu.conf
+
+III. Build the PMU firmware
+===========================
+
+Please run the following commands:
+
+  $ ln -sfn multiconfig/zynqmp-pmu.conf conf/local.conf
+  $ bitbake pmu-firmware
+
+IV. Build the filesystem image
+==============================
+
+  $ ln -sfn multiconfig/ni-titanium.conf conf/local.conf
+  $ bitbake <target>
+
+Supported targets are:
+
+- core-image-base (reduced image with only a few packets)
+- deployment-image (UHD/MPMD installed)
+- developer-image (UHD/MPMD installed + development environment)

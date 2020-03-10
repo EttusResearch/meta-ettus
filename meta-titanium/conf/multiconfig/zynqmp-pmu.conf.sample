@@ -1,0 +1,4 @@
+DISTRO="xilinx-standalone"
+MACHINE="zynqmp-pmu"
+GCCVERSION="7.%"
+TMPDIR="${TOPDIR}/tmp-xilinx"
