@@ -1,0 +1,25 @@
+From 657edbd691f8e3577b3c051642015c4786d22dcf Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Mon, 17 Aug 2020 11:54:59 -0500
+Subject: [PATCH 2/2] zynqmp_pmufw: signal shutdown by driving MIO 34 low
+
+---
+ lib/sw_apps/zynqmp_pmufw/src/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lib/sw_apps/zynqmp_pmufw/src/Makefile b/lib/sw_apps/zynqmp_pmufw/src/Makefile
+index d938b957c7..d68824a594 100644
+--- a/lib/sw_apps/zynqmp_pmufw/src/Makefile
++++ b/lib/sw_apps/zynqmp_pmufw/src/Makefile
+@@ -2,7 +2,7 @@
+ 
+ CC := mb-gcc
+ CC_FLAGS := -MMD -MP    -mlittle-endian -mxl-barrel-shift -mxl-pattern-compare -mcpu=v9.2 -mxl-soft-mul
+-CFLAGS := -Os -flto -ffat-lto-objects -DENABLE_EM -DENABLE_RECOVERY -DENABLE_ESCALATION
++CFLAGS := -Os -flto -ffat-lto-objects -DENABLE_EM -DENABLE_RECOVERY -DENABLE_ESCALATION -DBOARD_SHUTDOWN_PIN=2 -DBOARD_SHUTDOWN_PIN_STATE=0
+ LN_FLAGS := -Wl,--start-group,-lxil,-lgcc,-lc,--end-group -Wl,--start-group,-lxilfpga,-lxilsecure,-lxilskey,-lxil,-lgcc,-lc,--end-group -nostartfiles -Wl,--gc-sections
+ 
+ c_SOURCES := $(wildcard *.c)
+-- 
+2.25.1
+

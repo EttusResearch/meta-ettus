@@ -1,0 +1,25 @@
+From 272423303b1373f8e9fe08eecea3286a45f97080 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Mon, 17 Aug 2020 11:53:01 -0500
+Subject: [PATCH 1/2] zynqmp_pmufw: enable wdt
+
+---
+ lib/sw_apps/zynqmp_pmufw/src/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lib/sw_apps/zynqmp_pmufw/src/Makefile b/lib/sw_apps/zynqmp_pmufw/src/Makefile
+index 1750c0a329..d938b957c7 100644
+--- a/lib/sw_apps/zynqmp_pmufw/src/Makefile
++++ b/lib/sw_apps/zynqmp_pmufw/src/Makefile
+@@ -2,7 +2,7 @@
+ 
+ CC := mb-gcc
+ CC_FLAGS := -MMD -MP    -mlittle-endian -mxl-barrel-shift -mxl-pattern-compare -mcpu=v9.2 -mxl-soft-mul
+-CFLAGS := -Os -flto -ffat-lto-objects
++CFLAGS := -Os -flto -ffat-lto-objects -DENABLE_EM -DENABLE_RECOVERY -DENABLE_ESCALATION
+ LN_FLAGS := -Wl,--start-group,-lxil,-lgcc,-lc,--end-group -Wl,--start-group,-lxilfpga,-lxilsecure,-lxilskey,-lxil,-lgcc,-lc,--end-group -nostartfiles -Wl,--gc-sections
+ 
+ c_SOURCES := $(wildcard *.c)
+-- 
+2.25.1
+
