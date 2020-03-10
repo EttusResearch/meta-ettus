@@ -1,0 +1,30 @@
+From 0735bbc02e4b8b7ef376e7480316ee0052a9cb5c Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Fri, 28 Aug 2020 11:17:58 -0500
+Subject: [PATCH 04/11] board: zynqmp: make board_late_init weak
+
+Mark board_late_init weak to allow other ZynqMP base boards to easily
+override this functionality, while still leveraging the rest of the
+common functionality in zynqmp.c
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ board/xilinx/zynqmp/zynqmp.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/board/xilinx/zynqmp/zynqmp.c b/board/xilinx/zynqmp/zynqmp.c
+index b4e7301d50..f7ff6de662 100644
+--- a/board/xilinx/zynqmp/zynqmp.c
++++ b/board/xilinx/zynqmp/zynqmp.c
+@@ -547,7 +547,7 @@ static u8 zynqmp_get_bootmode(void)
+ 	return bootmode;
+ }
+ 
+-int board_late_init(void)
++__weak int board_late_init(void)
+ {
+ 	u8 bootmode;
+ 	struct udevice *dev;
+-- 
+2.29.2
+

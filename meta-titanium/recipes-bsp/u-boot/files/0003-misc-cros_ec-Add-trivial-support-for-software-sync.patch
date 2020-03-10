@@ -1,0 +1,237 @@
+From c0daa3efed950da772dfa8520b6381fcf49e3c60 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Mon, 29 Jul 2019 15:35:42 +0200
+Subject: [PATCH 03/11] misc: cros_ec: Add trivial support for software sync
+
+This adds basic support for 'software sync' - the technique
+used by Chromebooks to keep the EC software in sync with
+the rest of the software stack.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ cmd/cros_ec.c          |  11 +++
+ drivers/misc/cros_ec.c | 150 +++++++++++++++++++++++++++++++++++++++++
+ include/cros_ec.h      |   9 +++
+ 3 files changed, 170 insertions(+)
+
+diff --git a/cmd/cros_ec.c b/cmd/cros_ec.c
+index ce1f59a740..b166f8502d 100644
+--- a/cmd/cros_ec.c
++++ b/cmd/cros_ec.c
+@@ -148,6 +148,16 @@ static int do_cros_ec(struct cmd_tbl *cmdtp, int flag, int argc,
+ 			return 1;
+ 		}
+ 		printf("%d\n", image);
++	} else if (0 == strcmp("swsync", cmd)) {
++		unsigned long addr;
++		unsigned long size;
++		if (argc >= 3) {
++			addr = simple_strtoul(argv[2], NULL, 16);
++			debug("%s: addr = %lx\n", __func__, addr);
++			size = simple_strtoul(argv[3], NULL, 16);
++			debug("%s: size = %lx\n", __func__, size);
++			cros_ec_flash_sync_rw(dev, (uint8_t*)addr, size);
++		}
+ 	} else if (0 == strcmp("hash", cmd)) {
+ 		struct ec_response_vboot_hash hash;
+ 		int i;
+@@ -371,6 +381,7 @@ U_BOOT_CMD(
+ 	"crosec id                  Read CROS-EC ID\n"
+ 	"crosec info                Read CROS-EC info\n"
+ 	"crosec curimage            Read CROS-EC current image\n"
++	"crosec swsync <addr> <size> [hexstring] Sync CROS-EC image if required\n"
+ 	"crosec hash                Read CROS-EC hash\n"
+ 	"crosec reboot [rw | ro | cold]  Reboot CROS-EC\n"
+ 	"crosec events              Read CROS-EC host events\n"
+diff --git a/drivers/misc/cros_ec.c b/drivers/misc/cros_ec.c
+index a5534b1667..51dfe77c82 100644
+--- a/drivers/misc/cros_ec.c
++++ b/drivers/misc/cros_ec.c
+@@ -33,6 +33,9 @@
+ #include <dm/of_extra.h>
+ #include <dm/uclass-internal.h>
+ 
++#include <hash.h>
++#include <u-boot/sha256.h>
++
+ #ifdef DEBUG_TRACE
+ #define debug_trace(fmt, b...)	debug(fmt, #b)
+ #else
+@@ -1058,6 +1061,153 @@ int cros_ec_flash_update_rw(struct udevice *dev, const uint8_t *image,
+ 	return 0;
+ }
+ 
++int cros_ec_flash_checksum_match(struct udevice *dev, const uint8_t *image,
++				 int image_size)
++{
++	struct ec_response_vboot_hash hash;
++	uint8_t digest[SHA256_SUM_LEN];
++	int ret, i;
++
++	ret = cros_ec_read_hash(dev, EC_VBOOT_HASH_OFFSET_ACTIVE, &hash);
++	if (ret) {
++		debug("%s: Could not read hash\n", __func__);
++		return ret;
++	}
++
++	if (hash.hash_type != EC_VBOOT_HASH_TYPE_SHA256)
++		return -ENOTSUPP;
++
++	sha256_csum_wd(image, image_size, digest, CHUNKSZ_SHA256);
++
++	for (i = 0; i < hash.digest_size; i++)
++		if (hash.hash_digest[i] != digest[i])
++			return -EINVAL;
++
++	return 0;
++}
++
++static int cros_ec_flash_read_match(struct udevice *dev, const uint8_t *image,
++				    int offset, int size)
++{
++	uint8_t *verify_buf;
++	int ret;
++
++	verify_buf = malloc(size);
++	if (!verify_buf)
++		return -ENOMEM;
++
++	ret = cros_ec_flash_read(dev, verify_buf, offset, size);
++	if (ret)
++		goto out_free;
++
++	/* only if it matches do we actually jump there */
++	ret = memcmp(verify_buf, image, size);
++
++out_free:
++	free(verify_buf);
++	return ret;
++}
++
++int cros_ec_flash_sync_rw(struct udevice *dev, const uint8_t *image,
++			  int image_size)
++{
++	int ret;
++	enum ec_current_image cur_img;
++	uint32_t offset, size;
++	ulong start, duration;
++
++	/* check if we're running RO or RW, in case RW, make EC
++	 * jump into RO so we can overwrite RW */
++	ret = cros_ec_read_current_image(dev, &cur_img);
++	if (ret) {
++		debug("%s: Could not determine running EC image\n", __func__);
++		return ret;
++	}
++	printf("EC currently running %s image\n", cur_img == EC_IMAGE_RW ? "RW" : "RO");
++
++	/* read back the size early, so we can check the image we're given
++	 * against the size of the region we're trying to write to*/
++	ret = cros_ec_flash_offset(dev, EC_FLASH_REGION_ACTIVE, &offset, &size);
++	if (ret) {
++		printf("Could not read EC flash offset and size\n");
++		return ret;
++	}
++
++	/* if someone gave us an image that's too large, bail */
++	if (image_size > size) {
++		printf("EC image of size %08x is larger than EC's RW region: %08xu\n",
++			image_size, size);
++		return -EINVAL;
++	}
++
++	/* if we get an error when asking for the checksum, this might be because
++	 * the EC doesn't support CONFIG_VBOOT_HASH, so try the slow way,
++	 * and compare manually ...
++	 */
++	ret = cros_ec_flash_read_match(dev, image, offset, image_size);
++
++	if (!ret && cur_img == EC_IMAGE_RO) {
++		printf("EC flash images match, rebooting to RW\n");
++		return cros_ec_reboot(dev, EC_REBOOT_JUMP_RW, 0);
++	} else if (!ret) {
++		printf("EC flash images match, no SW Sync with EC required\n");
++		return 0;
++	}
++
++	if (ret == -ENOTSUPP)
++		return ret;
++	printf("EC flash not matching given EC flash image ... preparing sync ...\n");
++
++	debug("Reboting EC into RO mode ...\n");
++	if (EC_IMAGE_RW == cur_img) {
++		ret = cros_ec_reboot(dev, EC_REBOOT_JUMP_RO, 0);
++		if (ret) {
++			debug("%s: Could not reboot EC into RO mode\n",
++			      __func__);
++			return ret;
++		}
++	}
++
++	start = get_timer(0);
++	printf("Erasing EC flash at offset %08x->%08x ...\n", offset,
++	       offset + size);
++	ret = cros_ec_flash_erase(dev, offset, size);
++	if (ret) {
++		printf("Failed to erase EC flash RW region\n");
++		return ret;
++	}
++
++	printf("Overwriting EC flash at offset %08x->%08x...\n", offset,
++	       offset + image_size);
++	ret = cros_ec_flash_write(dev, (uint8_t*)image, offset, image_size);
++	if (ret) {
++		printf("Failed to write EC flash RW region with new image\n");
++		return ret;
++	}
++
++	printf("Verifying EC flash at offset %08x->%08x ...\n", offset, offset +
++	      image_size);
++	ret = cros_ec_flash_read_match(dev, image, offset, image_size);
++	if (ret) {
++		printf("Verification of EC image failed, bailing\n");
++		return -EINVAL;
++	}
++
++	debug("Reboting EC into RW ...\n");
++	ret = cros_ec_reboot(dev, EC_REBOOT_JUMP_RW, 0);
++	if (ret) {
++		printf("Could not reboot EC into RW mode\n");
++		return ret;
++	}
++
++	duration = get_timer(start);
++
++	printf("Finished full SW Sync with EC in %lu.%lus\n", duration / 1000,
++	       duration % 1000);
++
++	return ret;
++}
++
+ int cros_ec_read_nvdata(struct udevice *dev, uint8_t *block, int size)
+ {
+ 	struct ec_params_vbnvcontext p;
+diff --git a/include/cros_ec.h b/include/cros_ec.h
+index f4b9b7a5c2..ad5cfb6d2e 100644
+--- a/include/cros_ec.h
++++ b/include/cros_ec.h
+@@ -187,6 +187,15 @@ int cros_ec_flash_protect(struct udevice *dev, uint32_t set_mask,
+ 			  uint32_t set_flags,
+ 			  struct ec_response_flash_protect *resp);
+ 
++/**
++ * Execute a swsync with given address
++ * @param dev		CROS-EC device
++ * @param addr		Source Address
++ * @param size		Size
++ */
++int cros_ec_flash_sync_rw(struct udevice *dev, const uint8_t *addr,
++			  int size);
++
+ /**
+  * Notify EC of current boot mode
+  *
+-- 
+2.29.2
+

@@ -1,0 +1,38 @@
+From 897ba576b6e35d1cbc9901689dc3ce88a8426be2 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Thu, 30 Jan 2020 09:25:47 +0100
+Subject: [PATCH 10/11] x410: update config for Mender
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ include/configs/ni-x410.h | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/include/configs/ni-x410.h b/include/configs/ni-x410.h
+index 816822d323..c2e40734f9 100644
+--- a/include/configs/ni-x410.h
++++ b/include/configs/ni-x410.h
+@@ -26,14 +26,16 @@
+         "load_addr=0x2000000\0" \
+         "bootargs=uio_pdrv_genirq.of_id=usrp-uio at24.io_limit=64 rootwait clk_ignore_unused\0" \
+         "emmcboot=" \
++          "run mender_setup; " \
+           "setenv disk_name eMMC && " \
+-          "setenv uboot_root \"mmc 0:2\" && " \
+-          "setenv kernel_root \"/dev/mmcblk0p2\" && " \
++          "setenv uboot_root ${mender_uboot_root} && " \
++          "setenv kernel_root ${mender_kernel_root} && " \
+           "run disk_bootcmd\0" \
+         "sdboot=" \
++          "run mender_setup; " \
+           "setenv disk_name SD && " \
+-          "setenv uboot_root \"mmc 1:2\" && " \
+-          "setenv kernel_root \"/dev/mmcblk1p2\" && " \
++          "setenv uboot_root ${mender_uboot_root} && " \
++          "setenv kernel_root ${mender_kernel_root} && " \
+           "run disk_bootcmd\0" \
+         "disk_bootcmd=run swsync_disk; " \
+           "run update_overlays && " \
+-- 
+2.29.2
+
