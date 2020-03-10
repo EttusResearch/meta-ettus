@@ -1,0 +1,29 @@
+This README file contains information on the contents of the meta-mender-titanium layer.
+
+Please see the corresponding sections below for details.
+
+Dependencies
+============
+
+  URI: https://github.com/mendersoftware/meta-mender.git
+  layers: meta-mender-core
+  branch: master
+
+  URI: https://github.com/EttusResearch/meta-ettus.git
+  layers: meta-titanium
+  branch: master
+
+Patches
+=======
+
+Please submit any patches against the meta-mender-titanium layer as github pull request
+
+Table of Contents
+=================
+
+  I. Adding the meta-mender-titanium layer to your build
+
+I. Adding the meta-mender-titanium layer to your build
+=================================================
+
+Run 'bitbake-layers add-layer meta-mender-titanium'

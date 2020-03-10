@@ -1,0 +1,7 @@
+BBMULTICONFIG = "ni-titanium-ec zynqmp-pmu"
+INHERIT_remove = "uninative"
+HOSTTOOLS += "realpath"
+DISTRO ?= "Alchemy"
+MACHINE ?= "ni-titanium-rev5-mender"
+MENDER_ARTIFACT_NAME = "${DATETIME}"
+IMAGE_ROOTFS_EXTRA_SPACE = "0"
