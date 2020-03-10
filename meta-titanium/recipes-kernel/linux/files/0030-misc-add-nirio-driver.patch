@@ -1,0 +1,2576 @@
+From c99bcbb8e91952ff8d840c235bacf3d7359bea3c Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Mon, 13 Jul 2020 14:17:51 -0500
+Subject: [PATCH 30/47] misc: add nirio driver
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ drivers/misc/Kconfig      |    8 +
+ drivers/misc/Makefile     |    1 +
+ drivers/misc/nirio.c      | 2468 +++++++++++++++++++++++++++++++++++++
+ include/uapi/misc/nirio.h |   50 +
+ 4 files changed, 2527 insertions(+)
+ create mode 100644 drivers/misc/nirio.c
+ create mode 100644 include/uapi/misc/nirio.h
+
+diff --git a/drivers/misc/Kconfig b/drivers/misc/Kconfig
+index fafa8b0d8099..347a385bad3a 100644
+--- a/drivers/misc/Kconfig
++++ b/drivers/misc/Kconfig
+@@ -444,6 +444,14 @@ config XILINX_SDFEC
+ 
+ 	  If unsure, say N.
+ 
++config NIRIO
++	tristate "National Instruments RIO support"
++	depends on HAS_IOMEM
++	help
++	  This option enables support for the NI-RIO
++
++	  If unsure, say N.
++
+ config MISC_RTSX
+ 	tristate
+ 	default MISC_RTSX_PCI || MISC_RTSX_USB
+diff --git a/drivers/misc/Makefile b/drivers/misc/Makefile
+index d23231e73330..cb7b579ff187 100644
+--- a/drivers/misc/Makefile
++++ b/drivers/misc/Makefile
+@@ -57,3 +57,4 @@ obj-$(CONFIG_HABANA_AI)		+= habanalabs/
+ obj-$(CONFIG_UACCE)		+= uacce/
+ obj-$(CONFIG_XILINX_SDFEC)	+= xilinx_sdfec.o
+ obj-$(CONFIG_HISI_HIKEY_USB)	+= hisi_hikey_usb.o
++obj-$(CONFIG_NIRIO)		+= nirio.o
+diff --git a/drivers/misc/nirio.c b/drivers/misc/nirio.c
+new file mode 100644
+index 000000000000..e154d5263ce6
+--- /dev/null
++++ b/drivers/misc/nirio.c
+@@ -0,0 +1,2468 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (c) 2020 National Instruments Corporation
++ */
++
++#include <linux/cdev.h>
++#include <linux/circ_buf.h>
++#include <linux/delay.h>
++#include <linux/device.h>
++#include <linux/dma-buf.h>
++#include <linux/dma-mapping.h>
++#include <linux/iopoll.h>
++#include <linux/interrupt.h>
++#include <linux/module.h>
++#include <linux/of_address.h>
++#include <linux/of.h>
++#include <linux/pagemap.h>
++#include <linux/platform_device.h>
++#include <linux/slab.h>
++#include <linux/uaccess.h>
++#include <linux/vmalloc.h>
++#include <uapi/misc/nirio.h>
++
++#define DRV_NAME "nirio"
++
++static DEFINE_IDA(dev_nrs);
++static DEFINE_IDA(dev_minors);
++static int nirio_major;
++struct class *nirio_class;
++struct nirio_fifo;
++
++#define LVFPGA_FLAG_RESET_AUTO_CLEARS		BIT(0)
++#define LVFPGA_FLAG_RUN_WHEN_LOADED		BIT(1)
++
++#define LVFPGA_RESET_ENABLE	BIT(0)
++
++#define LVFPGA_CTRL_ENABLE_OUT	BIT(0)
++#define LVFPGA_CTRL_ENABLE_IN	BIT(1)
++#define LVFPGA_CTRL_ENABLE_CLR	BIT(2)
++#define LVFPGA_CTRL_TIMEOUT	BIT(4)
++#define LVFPGA_CTRL_LOST_CLOCK	BIT(6)
++#define LVFPGA_CTRL_PROTO_ERR	BIT(7)
++
++#define LVFPGA_DMA_CR		(0x0)
++#define LVFPGA_DMA_GRANT	(0x8)
++
++#define LVFPGA_DMA_CR_ENABLE	BIT(1)
++#define LVFPGA_DMA_CR_DISABLE	BIT(2)
++#define LVFPGA_DMA_CR_CLEAR	BIT(4)
++
++#define INCH_SIGNATURE		0xC0107AD0
++#define INCH_MAX_DMA_CHANNELS	64
++
++#define INCH_ID		(0x00)
++#define INCH_COREDR	(0x0C)
++#define INCH_DMABASE	(0x1C)
++#define INCH_IMR	(0x5C)
++#define INCH_ISR	(0x60)
++#define INCH_VISR	(0x68)
++#define INCH_IOFIFOCR	(0x90)
++
++#define INCH_IMR_CLR_IO0_IE	BIT(8)
++#define INCH_IMR_SET_IO0_IE	BIT(9)
++#define INCH_IMR_CLR_IO1_IE	BIT(10)
++#define INCH_IMR_SET_IO1_IE	BIT(11)
++#define INCH_IMR_CLR_CPU_IE	BIT(30)
++#define INCH_IMR_SET_CPU_IE	BIT(31)
++
++#define INCH_ISR_IO0		BIT(9)
++#define INCH_ISR_IO1		BIT(11)
++#define INCH_ISR_DMA		BIT(28)
++#define INCH_ISR_EXT		BIT(29)
++#define INCH_ISR_MORE_PENDING	BIT(30)
++#define INCH_ISR_PENDING	BIT(31)
++
++#define INCH_DMA_BR	(0x40)
++#define INCH_DMA_LAR	(0x48)
++#define INCH_DMA_LSR	(0x50)
++#define INCH_DMA_CR	(0x54)
++#define INCH_DMA_OR	(0x58)
++#define INCH_DMA_SR	(0x60)
++#define INCH_DMA_TTCCR	(0x90)
++#define INCH_DMA_TTCSR	(0xA0)
++
++#define INCH_DMA_BR_AXI_AXCACHE(x)	((x) & 0xF)
++#define INCH_DMA_BR_AXI_AXUSER(x)	(((x) & 0x1) << 4)
++#define INCH_DMA_BR_AXI_AXPROT(x)	(((x) & 0x7) << 5)
++
++#define INCH_DMA_CR_LINK_CHAIN	BIT(1)
++#define INCH_DMA_CR_NOTIFY_TC	BIT(25)
++
++#define INCH_DMA_OR_START	BIT(0)
++#define INCH_DMA_OR_STOP	BIT(1)
++#define INCH_DMA_OR_CLRTTC	BIT(2)
++#define INCH_DMA_OR_ARM_TC	BIT(25)
++
++#define INCH_DMA_SR_STREAM_MASK	(0xFFF)
++#define INCH_DMA_SR_READY	BIT(14)
++#define INCH_DMA_SR_DONE	BIT(15)
++#define INCH_DMA_SR_TC		BIT(25)
++
++#define INCH_DMA_BAR	(0x10)
++#define INCH_DMA_BSR	(0x18)
++
++#define INCH_DMA_CR_NORMAL	BIT(0)
++
++struct inch_dma;
++
++/**
++ * struct inch - InChWORM device struct
++ *
++ * @lock:		lock for remaining members
++ * @dev:		dma capable device
++ * @link_size:		maximum link size in bytes
++ * @dma_space:		address space per DMA channel
++ * @num_dma_channels:	number of DMA channels implemented
++ *
++ * @regs:		base inchworm regs
++ * @dma_base:		inchworm dma regs
++ *
++ * @dma_channel:	the dma channels
++ *
++ * @irq:		irq number
++ * @inch_io_irq:	io irq handlers and private data
++ */
++struct inch {
++	struct mutex lock;
++
++	struct device *dev;
++	unsigned int link_size;
++	unsigned int dma_space;
++	unsigned int num_dma_channels;
++
++	void __iomem *regs;
++	void __iomem *dma_base;
++
++	struct inch_dma *dma_channel[INCH_MAX_DMA_CHANNELS];
++
++	int irq;
++	struct inch_io_irq {
++		void (*handler)(int, void *);
++		void *priv;
++	} io_irqs[2];
++};
++
++/**
++ * struct inch_dma - InChWORM DMA channel
++ *
++ * @lock:		lock for this channel
++ * @dev:		dma capable device node
++ * @channel:		the number of this channel
++ * @link_size:		maximum link size in bytes
++ * @sgl_per_link:	number of sgl entries per link
++ * @regs:		registers for this channel
++ *
++ * The following members are set by inch_dma_configure:
++ * @cr:			control register value
++ * @direction:		dma transfer direction
++ * @dma_addr:		address of buffer or first link
++ * @dma_sz:		size of buffer or first link
++ *
++ * The following members are only used for link chaining:
++ * @link_pages:		pages for holding the links
++ * @num_link_pages:	size of above
++ * @link_sgt:		sgt for the links
++ *
++ * @irq:		interrupt
++ * @xfer_count:		completion for total count interrupt
++ */
++struct inch_dma {
++	struct mutex lock;
++
++	struct device *dev;
++	unsigned int channel;
++	unsigned int link_size;
++	unsigned int sgl_per_link;
++	void __iomem *regs;
++
++	u32 cr;
++	enum dma_data_direction direction;
++	dma_addr_t dma_addr;
++	unsigned int dma_sz;
++
++	struct page **link_pages;
++	unsigned int num_link_pages;
++	struct sg_table link_sgt;
++
++	struct completion xfer_count;
++};
++
++/**
++ * struct nirio_dev - represents a RIO device
++ *
++ * @dev:		device
++ * @cdev:		cdev
++ * @dev_id:		the device id, assigned sequentially
++ *
++ * @regs:		complete address space
++ *
++ * @fpga_base:		lvfpga registers start
++ * @fpga_size:		size of the lvfpga registers
++ * @signature_offset:	offset of signature reg
++ * @control_offset:	offset of control reg
++ * @reset_offset:	offset of reset reg
++ *
++ * @lvfpga_flags:	behavior flags
++ *
++ * @fpga_lock:		lock for fpga accesses
++ *
++ * @inch:		InChWORM device
++ * @fifos:		list of fifos
++ *
++ * @lock:		lock for the following:
++ * @open_count:		number of references, if negative disallow new sessions
++ *
++ * @irq_lock:		lock for irq_ctxs and irq registers
++ * @irq_ctxs:		contexts for irqs
++ */
++struct nirio_dev {
++	struct device dev;
++	struct cdev cdev;
++	int dev_id;
++
++	void __iomem *regs;
++	void __iomem *fpga_base;
++	size_t fpga_size;
++
++	uint32_t signature_offset;
++	uint32_t control_offset;
++	uint32_t reset_offset;
++	uint32_t irq_enable_offset;
++	uint32_t irq_mask_offset;
++	uint32_t irq_status_offset;
++	uint32_t expected_signature[4];
++
++	uint32_t lvfpga_flags;
++
++	struct mutex fpga_lock;
++
++	struct inch inch;
++	struct list_head fifos;
++
++	struct mutex lock;
++	int open_count;
++
++	struct mutex irq_lock;
++	struct idr irq_ctxs;
++};
++
++/**
++ * struct nirio_irq_ctx - represents an irq context
++ *
++ * @filp:		the file associated with this context
++ * @comp:		completion to block on
++ * @irq_mask:		irqs to wait on
++ * @asserted:		irqs asserted
++ */
++struct nirio_irq_ctx {
++	struct file *filp;
++	struct completion comp;
++	uint32_t irq_mask;
++	uint32_t asserted;
++};
++
++/**
++ * struct nirio_fifo - represents a RIO FIFO
++ *
++ * @lock:		lock for remaining members
++ * @dev:		device node for the FIFO
++ * @cdev:		cdev for the FIFO
++ * @node:		list node for membership in rio->fifos
++ *
++ * @dma:		InChWORM DMA channel for this FIFO
++ *
++ * @name:		name of fifo from device tree
++ * @channel:		channel number
++ * @regs:		registers for this fifo
++ * @log2_element_size:	log2(element size in bytes)
++ * @host_to_target:	true if transfer go to the device
++ *
++ * @is_open:		whether the fifo has been opened
++ * @is_running:		whether the fifo is running
++ *
++ * @num_elements:	number of elements in whole buffer
++ * @elements_granted:	elemented granted to hw
++ * @elements_txed:	elements txed by hw
++ * @elements_acquired:	elements acquired by host
++ *
++ * @direction:		direction of the transfer
++ *
++ * @dma_buf:		dma buf for the transfer
++ * @attach:		attachment of dma buf
++ * @table:		sgt for dma buf
++ * @abort:		true if polling should be stopped
++ *
++ * @wait_for_elements:	function to wait for elements
++ * @max_poll:		max time to poll for elements, in ms
++ */
++struct nirio_fifo {
++	struct mutex lock;
++	struct device dev;
++	struct cdev cdev;
++	struct list_head node;
++
++	struct inch_dma dma;
++
++	const char *name;
++	uint32_t channel;
++	void __iomem *regs;
++	uint32_t log2_element_size;
++	bool host_to_target;
++
++	bool is_open;
++	bool is_running;
++
++	uint64_t num_elements;
++	uint64_t elements_granted;
++	uint64_t elements_txed;
++	uint64_t elements_acquired;
++
++	enum dma_data_direction direction;
++
++	struct dma_buf *dma_buf;
++	struct dma_buf_attachment *attach;
++	struct sg_table *table;
++
++	uint32_t abort;
++
++	int (*wait_for_elements)(struct nirio_fifo *, uint64_t, uint32_t);
++	uint32_t max_poll;
++};
++
++#define INCH_LINK_FLAG_REUSE BIT(30)
++
++struct inch_link {
++	u32 next_link_size;
++	u32 flags;
++	u64 next_link_addr;
++	struct {
++		u32 size;
++		u32 reserved;
++		u64 addr;
++	} ent[0];
++};
++
++static void __inch_fill_link(struct inch_dma *dma, struct scatterlist **sg,
++			     struct inch_link *last_link,
++			     struct inch_link *this_link,
++			     dma_addr_t this_addr)
++{
++	uint32_t size;
++	int i;
++
++	for (i = 0; i < dma->sgl_per_link && *sg; i++) {
++		this_link->ent[i].size = sg_dma_len(*sg);
++		this_link->ent[i].addr = sg_dma_address(*sg);
++		this_link->ent[i].reserved = 0;
++		*sg = sg_next(*sg);
++	}
++
++	size = sizeof(*this_link) + i * sizeof(*this_link->ent);
++
++	last_link->next_link_size = size;
++	last_link->next_link_addr = this_addr;
++	last_link->flags = 0;
++}
++
++static int inch_request_io_irq(struct inch *inch, int which,
++			       void (*handler)(int, void *), void *priv)
++{
++	struct inch_io_irq *io_irq;
++
++	if (which > ARRAY_SIZE(inch->io_irqs))
++		return -EINVAL;
++
++	io_irq = inch->io_irqs + which;
++
++	if (io_irq->handler)
++		return -EINVAL;
++
++	io_irq->handler = handler;
++	io_irq->priv = priv;
++
++	writel(which ? INCH_IMR_SET_IO1_IE : INCH_IMR_SET_IO0_IE,
++	       inch->regs + INCH_IMR);
++
++	return 0;
++}
++
++static void inch_enable_interrupts(struct inch *inch)
++{
++	readl(inch->regs + INCH_IMR);
++	writel(INCH_IMR_SET_CPU_IE, inch->regs + INCH_IMR);
++}
++
++static void inch_disable_interrupts(struct inch *inch)
++{
++	writel(INCH_IMR_CLR_CPU_IE, inch->regs + INCH_IMR);
++	readl(inch->regs + INCH_IMR);
++}
++
++static void inch_dma_interrupt(struct inch_dma *dma, uint32_t sr)
++{
++	if (sr & INCH_DMA_SR_TC)
++		complete(&dma->xfer_count);
++}
++
++static irqreturn_t inch_irq(int irq, void *priv)
++{
++	struct inch *inch = priv;
++	uint32_t isr;
++
++	isr = readl(inch->regs + INCH_ISR);
++	if (!(isr & INCH_ISR_PENDING))
++		return IRQ_NONE;
++
++	inch_disable_interrupts(inch);
++
++	return IRQ_WAKE_THREAD;
++}
++
++static irqreturn_t inch_threaded_irq(int irq, void *priv)
++{
++	struct inch *inch = priv;
++	struct inch_io_irq *io_irq;
++	uint32_t visr, chan;
++
++	do {
++		visr = readl(inch->regs + INCH_VISR);
++
++		if (visr & INCH_ISR_DMA) {
++			chan = visr & INCH_DMA_SR_STREAM_MASK;
++			if (chan < INCH_MAX_DMA_CHANNELS)
++				inch_dma_interrupt(inch->dma_channel[chan], visr);
++		} else if (visr & INCH_ISR_EXT) {
++			if (visr & INCH_ISR_IO0) {
++				io_irq = inch->io_irqs + 0;
++				if (io_irq->handler)
++					io_irq->handler(0, io_irq->priv);
++			}
++
++			if (visr & INCH_ISR_IO1) {
++				io_irq = inch->io_irqs + 1;
++				if (io_irq->handler)
++					io_irq->handler(1, io_irq->priv);
++			}
++		}
++	} while (visr & INCH_ISR_MORE_PENDING);
++
++	inch_enable_interrupts(inch);
++
++	return IRQ_HANDLED;
++}
++
++static int inch_init(struct inch *inch, struct device *dev, void __iomem *regs,
++		     int irq)
++{
++	int err, i;
++	uint32_t val;
++	bool dma64;
++	void __iomem *dma_base;
++
++	mutex_init(&inch->lock);
++	inch->dev = dev;
++	inch->regs = regs;
++
++	if (readl(inch->regs + INCH_ID) != INCH_SIGNATURE) {
++		dev_err(dev, "InCh signature invalid!\n");
++		return -ENODEV;
++	}
++
++	val = readl(inch->regs + INCH_COREDR);
++
++	dma64 = val & BIT(5);
++	inch->link_size = 1UL << ((val >> 12) & 0xF);
++	inch->dma_space = 1UL << ((val >> 16) & 0xF);
++	inch->num_dma_channels = 1UL << ((val >> 20) & 0xF);
++
++	dev_info(dev, "InCh: channels: %u, %u-bit, link_sz: %u\n",
++		 inch->num_dma_channels, dma64 ? 64 : 32, inch->link_size);
++
++	err = dma_set_mask(dev, dma64 ? DMA_BIT_MASK(64) : DMA_BIT_MASK(32));
++	if (err && dma64)
++		err = dma_set_mask(dev, DMA_BIT_MASK(32));
++	if (err) {
++		dev_err(dev, "Failed to set DMA mask\n");
++		return err;
++	}
++
++	inch->dma_base = inch->regs + readl(inch->regs + INCH_DMABASE);
++	dma_base = inch->dma_base;
++	for (i = 0; i < inch->num_dma_channels; i++) {
++		/* TODO: only for AXI */
++		writeq(INCH_DMA_BR_AXI_AXCACHE(0xC) |
++		       INCH_DMA_BR_AXI_AXPROT(0x2), dma_base + INCH_DMA_BR);
++
++		writel(0, dma_base + INCH_DMA_CR);
++		writel(INCH_DMA_OR_STOP, dma_base + INCH_DMA_OR);
++		dma_base += inch->dma_space;
++	}
++
++	WARN_ON(inch->num_dma_channels > INCH_MAX_DMA_CHANNELS);
++	if (inch->num_dma_channels > INCH_MAX_DMA_CHANNELS) {
++		WARN_ON(1);
++		inch->num_dma_channels = INCH_MAX_DMA_CHANNELS;
++	}
++
++	inch->irq = irq;
++	err = devm_request_threaded_irq(dev, irq, inch_irq, inch_threaded_irq,
++					0, dev_name(dev), inch);
++	if (err)
++		goto out;
++
++	writel(0xA, inch->regs + INCH_IOFIFOCR);
++
++out:
++	return err;
++}
++
++/*
++ * This function cannot be called after inchworm interrupts are enabled.
++ */
++static int inch_dma_init(struct inch_dma *dma, struct inch *inch, int chan)
++{
++	int err;
++
++	err = mutex_lock_interruptible(&inch->lock);
++	if (err)
++		return err;
++
++	if (chan > inch->num_dma_channels) {
++		err = -EINVAL;
++		goto err;
++	}
++
++	if (inch->dma_channel[chan]) {
++		err = -EBUSY;
++		goto err;
++	}
++
++	mutex_init(&dma->lock);
++	init_completion(&dma->xfer_count);
++
++	dma->dev = inch->dev;
++	dma->channel = chan;
++	dma->link_size = inch->link_size;
++	dma->sgl_per_link = (dma->link_size - 16) / 16;
++	dma->regs = inch->dma_base + chan * inch->dma_space;
++
++	inch->dma_channel[chan] = dma;
++err:
++	mutex_unlock(&inch->lock);
++	return err;
++}
++
++static uint64_t inch_dma_bytes_transferred(struct inch_dma *dma)
++{
++	return readq(dma->regs + INCH_DMA_TTCSR);
++}
++
++static void inch_dma_notify_on_transfer_count(struct inch_dma *dma,
++					      uint64_t cnt)
++{
++	mutex_lock(&dma->lock);
++	writeq(cnt, dma->regs + INCH_DMA_TTCCR);
++	writel(INCH_DMA_OR_ARM_TC, dma->regs + INCH_DMA_OR);
++	writel(dma->cr | INCH_DMA_CR_NOTIFY_TC, dma->regs + INCH_DMA_CR);
++	mutex_unlock(&dma->lock);
++}
++
++static int inch_dma_wait_for_bytes_xfrd(struct inch_dma *dma, uint64_t cnt,
++					uint32_t timeout_ms)
++{
++	uint64_t available;
++	int err;
++
++	inch_dma_notify_on_transfer_count(dma, cnt);
++	if (timeout_ms == 0xFFFFFFFFU)
++		err = wait_for_completion_interruptible(&dma->xfer_count);
++	else
++		err = wait_for_completion_io_timeout(&dma->xfer_count,
++						     msecs_to_jiffies(timeout_ms));
++	writel(dma->cr, dma->regs + INCH_DMA_CR);
++	if (err < 0)
++		return err;
++
++	available = inch_dma_bytes_transferred(dma);
++
++	if (available < cnt) {
++		dev_info(dma->dev, "timeout ch %u: wanted %llu, avail: %llu",
++			 dma->channel, cnt, available);
++		return -ETIMEDOUT;
++	}
++
++	return 0;
++}
++
++static int __inch_wait_for_stop(struct inch_dma *dma)
++{
++	uint32_t reg;
++
++	if (readl_poll_timeout(dma->regs + INCH_DMA_OR, reg,
++			       reg & INCH_DMA_OR_STOP, 100, 1000000)) {
++		dev_err(dma->dev, "channel failed to stop\n");
++		dev_err(dma->dev, "chor: %08x, chsr: %08x\n",
++			readl(dma->regs + INCH_DMA_OR),
++			readl(dma->regs + INCH_DMA_SR));
++		return -EIO;
++	}
++
++	return 0;
++}
++
++static int inch_dma_stop(struct inch_dma *dma)
++{
++	int err;
++
++	err = mutex_lock_interruptible(&dma->lock);
++	if (err)
++		return err;
++
++	if (dma->direction == DMA_TO_DEVICE)
++		writel(INCH_DMA_OR_STOP, dma->regs + INCH_DMA_OR);
++
++	err = __inch_wait_for_stop(dma);
++	if (err) {
++		writel(INCH_DMA_OR_STOP, dma->regs + INCH_DMA_OR);
++		err = __inch_wait_for_stop(dma);
++	}
++
++	mutex_unlock(&dma->lock);
++
++	return err;
++}
++
++static int inch_dma_start(struct inch_dma *dma)
++{
++	uint32_t reg;
++	int err;
++
++	err = mutex_lock_interruptible(&dma->lock);
++	if (err)
++		return err;
++
++	if (dma->cr & INCH_DMA_CR_LINK_CHAIN) {
++		writeq(dma->dma_addr, dma->regs + INCH_DMA_LAR);
++		writel(dma->dma_sz, dma->regs + INCH_DMA_LSR);
++	} else {
++		writeq(dma->dma_addr, dma->regs + INCH_DMA_BAR);
++		writel(dma->dma_sz, dma->regs + INCH_DMA_BSR);
++	}
++
++	writel(dma->cr, dma->regs + INCH_DMA_CR);
++	writel(INCH_DMA_OR_START | INCH_DMA_OR_CLRTTC, dma->regs + INCH_DMA_OR);
++
++	if (dma->cr & INCH_DMA_CR_LINK_CHAIN) {
++		if (readl_poll_timeout(dma->regs + INCH_DMA_SR, reg,
++				       reg & INCH_DMA_SR_READY, 10, 1000)) {
++			dev_err(dma->dev, "FIFO not ready, reg: 0x%08x\n", reg);
++			err = -EIO;
++			goto err;
++		}
++	}
++
++err:
++	mutex_unlock(&dma->lock);
++	return err;
++}
++
++static bool __inch_dma_is_configured(struct inch_dma *dma)
++{
++	return ((dma->cr & INCH_DMA_CR_LINK_CHAIN) && dma->link_pages
++		&& dma->num_link_pages) || dma->dma_sz;
++}
++
++static bool inch_dma_is_configured(struct inch_dma *dma)
++{
++	bool ret;
++
++	mutex_lock(&dma->lock);
++	ret = __inch_dma_is_configured(dma);
++	mutex_unlock(&dma->lock);
++
++	return ret;
++}
++
++static int inch_dma_unconfigure(struct inch_dma *dma)
++{
++	int i, err;
++
++	err = mutex_lock_interruptible(&dma->lock);
++	if (err)
++		return err;
++
++	if (!__inch_dma_is_configured(dma)) {
++		err = -EALREADY;
++		goto err;
++
++	}
++
++	if (dma->cr & INCH_DMA_CR_LINK_CHAIN) {
++		dma_unmap_sg(dma->dev, dma->link_sgt.sgl, dma->link_sgt.nents,
++			     DMA_TO_DEVICE);
++
++		sg_free_table(&dma->link_sgt);
++
++		for (i = 0; i < dma->num_link_pages; i++)
++			put_page(dma->link_pages[i]);
++
++		vfree(dma->link_pages);
++
++		dma->link_pages = NULL;
++		dma->num_link_pages = 0;
++	}
++
++	dma->dma_addr = 0;
++	dma->dma_sz = 0;
++
++err:
++	mutex_unlock(&dma->lock);
++	return err;
++}
++
++static int inch_dma_configure_normal(struct inch_dma *dma, dma_addr_t addr,
++				     unsigned int size,
++				     enum dma_data_direction dir)
++{
++	int err;
++
++	err = mutex_lock_interruptible(&dma->lock);
++	if (err)
++		return err;
++
++	if (__inch_dma_is_configured(dma)) {
++		err = -EALREADY;
++		goto err_unlock;
++	}
++
++	dev_dbg(dma->dev, "configure normal\n");
++
++	dma->cr = INCH_DMA_CR_NORMAL;
++	dma->direction = dir;
++	dma->dma_addr = addr;
++	dma->dma_sz = size;
++
++err_unlock:
++	mutex_unlock(&dma->lock);
++	return err;
++}
++
++/*
++ * This configures an InCh DMA channel for a continuous circular transfer to
++ * the provided sgt, which should already be mapped.
++ */
++static int inch_dma_configure(struct inch_dma *dma, struct sg_table *sgt,
++			      enum dma_data_direction direction)
++{
++	struct scatterlist *data_sg, *link_sg;
++	struct inch_link *last_link;
++	unsigned int num_links;
++	dma_addr_t link_addr;
++	unsigned int link_sz;
++	void *v, *this_link;
++	int i, err;
++
++	err = mutex_lock_interruptible(&dma->lock);
++	if (err)
++		return err;
++
++	if (__inch_dma_is_configured(dma)) {
++		err = -EALREADY;
++		goto err_unlock;
++	}
++
++	dev_dbg(dma->dev, "configure sgl\n");
++
++	dma->direction = direction;
++	dma->cr = INCH_DMA_CR_LINK_CHAIN;
++
++	num_links = DIV_ROUND_UP(sgt->nents, dma->sgl_per_link);
++	dma->num_link_pages = DIV_ROUND_UP(num_links, PAGE_SIZE / dma->link_size);
++
++	dma->link_pages = vzalloc(dma->num_link_pages * sizeof(struct page *));
++	if (!dma->link_pages) {
++		err = -ENOMEM;
++		goto err_unlock;
++	}
++
++	for (i = 0; i < dma->num_link_pages; i++) {
++		dma->link_pages[i] = alloc_page(GFP_KERNEL | GFP_DMA32);
++		if (!dma->link_pages[i]) {
++			err = -ENOMEM;
++			goto err_pages;
++		}
++	}
++
++	err = sg_alloc_table_from_pages(&dma->link_sgt, dma->link_pages,
++					dma->num_link_pages, 0,
++					SCATTERLIST_MAX_SEGMENT, GFP_KERNEL);
++	if (err)
++		goto err_pages;
++
++	if (!dma_map_sg(dma->dev, dma->link_sgt.sgl, dma->link_sgt.nents,
++			 DMA_TO_DEVICE)) {
++		err = -ENOMEM;
++		goto err_table;
++	}
++
++	dma_sync_sg_for_cpu(dma->dev, dma->link_sgt.sgl, dma->link_sgt.nents,
++			    DMA_TO_DEVICE);
++
++	v = vmap(dma->link_pages, dma->num_link_pages, VM_MAP, PAGE_KERNEL);
++	if (!v) {
++		err = -ENOMEM;
++		goto err_unmap;
++	}
++
++	if (num_links == 1)
++		num_links++;
++
++	this_link = v;
++	last_link = v + (dma->link_size * (num_links - 1));
++
++	data_sg = sgt->sgl;
++	link_sg = dma->link_sgt.sgl;
++	link_addr = sg_dma_address(link_sg);
++	link_sz = sg_dma_len(link_sg);
++
++	for (i = 0; data_sg; i++) {
++		__inch_fill_link(dma, &data_sg, last_link, this_link, link_addr);
++
++		if (!data_sg && i == 0)
++			data_sg = sgt->sgl;
++
++		last_link = this_link;
++		this_link += dma->link_size;
++
++		link_addr += dma->link_size;
++		link_sz -= dma->link_size;
++
++		if (!link_sz && data_sg) {
++			link_sg = sg_next(link_sg);
++			WARN_ON(!link_sg);
++			link_addr = sg_dma_address(link_sg);
++			link_sz = sg_dma_len(link_sg);
++		}
++	}
++
++	if (num_links == 2)
++		last_link->flags = INCH_LINK_FLAG_REUSE;
++
++	dma->dma_addr = last_link->next_link_addr;
++	dma->dma_sz = last_link->next_link_size;
++
++	vunmap(v);
++
++	dma_sync_sg_for_device(dma->dev, dma->link_sgt.sgl,
++			       dma->link_sgt.nents, DMA_TO_DEVICE);
++
++	mutex_unlock(&dma->lock);
++	return 0;
++err_unmap:
++	dma_unmap_sg(dma->dev, dma->link_sgt.sgl, dma->link_sgt.nents,
++		     DMA_TO_DEVICE);
++err_table:
++	sg_free_table(&dma->link_sgt);
++err_pages:
++	for (i = 0; i < dma->num_link_pages; i++)
++		put_page(dma->link_pages[i]);
++	vfree(dma->link_pages);
++err_unlock:
++	mutex_unlock(&dma->lock);
++	return err;
++}
++
++static uint32_t nirio_read32(struct nirio_dev *rio, uint32_t offset)
++{
++	WARN_ON(offset > rio->fpga_size);
++	return readl(rio->fpga_base + offset);
++}
++
++static void nirio_write32(struct nirio_dev *rio, uint32_t offset, uint32_t val)
++{
++	WARN_ON(offset > rio->fpga_size);
++	writel(val, rio->fpga_base + offset);
++}
++
++/* lvfpga_ prefixed functions interact with lvfpga stuff */
++
++static int lvfpga_read_signature(struct nirio_dev *rio, uint32_t *sig)
++{
++	uint32_t i;
++	int err;
++
++	err = mutex_lock_interruptible(&rio->fpga_lock);
++	if (err)
++		return err;
++
++	for (i = 0; i < 4; i++)
++		sig[i] = nirio_read32(rio, rio->signature_offset);
++
++	mutex_unlock(&rio->fpga_lock);
++
++	return 0;
++}
++
++static int lvfpga_check_signature(struct nirio_dev *rio)
++{
++	uint32_t *ex_sig = rio->expected_signature;
++	uint32_t sig[4];
++	int i, err;
++
++	err = lvfpga_read_signature(rio, sig);
++	if (err)
++		return err;
++
++	for (i = 0; i < ARRAY_SIZE(sig); i++)
++		if (sig[i] != ex_sig[i])
++			goto fail;
++
++	return 0;
++fail:
++	dev_err(&rio->dev, "signature mismatch: expected %08x%08x%08x%08x, got %08x%08x%08x%08x\n",
++		ex_sig[0], ex_sig[1], ex_sig[2], ex_sig[3],
++		sig[0], sig[1], sig[2], sig[3]);
++	return -EINVAL;
++}
++
++static int __lvfpga_read_control(struct nirio_dev *rio, int *started,
++				 int *finished)
++{
++	u32 control;
++	int err = 0;
++
++	control = nirio_read32(rio, rio->control_offset);
++
++	if (started)
++		*started = !!(control & LVFPGA_CTRL_ENABLE_IN);
++	if (finished)
++		*finished = !!(control & LVFPGA_CTRL_ENABLE_OUT);
++
++	if (control & LVFPGA_CTRL_TIMEOUT)
++		err = -ETIMEDOUT;
++	else if (control & LVFPGA_CTRL_LOST_CLOCK)
++		err = -ENOLCK;
++	else if (control & LVFPGA_CTRL_PROTO_ERR)
++		err = -EPROTO;
++
++	if (err) {
++		dev_err(&rio->dev, "control register error, 0x%08x\n", control);
++		return err;
++	}
++
++	return 0;
++}
++
++static int __lvfpga_wait_for_reset_clear(struct nirio_dev *rio)
++{
++	int err;
++	u32 reg;
++
++	err = readl_poll_timeout(rio->fpga_base + rio->reset_offset, reg,
++				 !(reg & LVFPGA_RESET_ENABLE), 100, 25000);
++	if (err) {
++		dev_err(&rio->dev, "reset failed to clear %u\n", reg);
++		return -EIO;
++	}
++
++	return 0;
++}
++
++static int __lvfpga_wait_until_running(struct nirio_dev *rio)
++{
++	unsigned long poll_end;
++	int started;
++	int expired;
++	int err;
++
++	poll_end = jiffies + msecs_to_jiffies(50);
++	do {
++		expired = time_after(jiffies, poll_end);
++		err = __lvfpga_read_control(rio, &started, NULL);
++		if (err)
++			return err;
++	} while (!expired && !started);
++
++	if (!started) {
++		dev_err(&rio->dev, "VI failed to run\n");
++		return -EIO;
++	}
++
++	return 0;
++}
++
++static void __lvfpga_stop_vi(struct nirio_dev *rio)
++{
++	nirio_write32(rio, rio->control_offset, LVFPGA_CTRL_ENABLE_CLR);
++	nirio_write32(rio, rio->control_offset, 0);
++}
++
++static int __lvfpga_start_vi(struct nirio_dev *rio)
++{
++	__lvfpga_stop_vi(rio);
++
++	nirio_write32(rio, rio->control_offset, LVFPGA_CTRL_ENABLE_IN);
++
++	return __lvfpga_wait_until_running(rio);
++}
++
++// TODO: reorganize to remove forward decl
++static int __fifo_stop(struct nirio_fifo *fifo);
++
++static int lvfpga_abort_and_reset_vi(struct nirio_dev *rio, bool reset)
++{
++	struct nirio_fifo *fifo;
++	int err;
++
++	err = mutex_lock_interruptible(&rio->fpga_lock);
++	if (err)
++		return err;
++
++	list_for_each_entry(fifo, &rio->fifos, node) {
++		fifo->abort = 1;
++
++		err = mutex_lock_interruptible(&fifo->lock);
++		if (err)
++			goto unlock_fifos;
++	}
++
++	list_for_each_entry(fifo, &rio->fifos, node)
++		__fifo_stop(fifo);
++
++	__lvfpga_stop_vi(rio);
++	if (reset) {
++		nirio_write32(rio, rio->reset_offset, LVFPGA_RESET_ENABLE);
++		if (rio->lvfpga_flags & LVFPGA_FLAG_RESET_AUTO_CLEARS) {
++			err = __lvfpga_wait_for_reset_clear(rio);
++			if (err)
++				goto unlock_fifos;
++		} else {
++			nirio_write32(rio, rio->reset_offset, 0);
++		}
++	}
++
++unlock_fifos:
++	list_for_each_entry_continue_reverse(fifo, &rio->fifos, node) {
++		mutex_unlock(&fifo->lock);
++	}
++
++	mutex_unlock(&rio->fpga_lock);
++	return err;
++}
++
++static ssize_t fpga_size_show(struct device *dev, struct device_attribute *attr,
++			      char *buf)
++{
++	struct nirio_dev *rio = dev_get_drvdata(dev);
++
++	return scnprintf(buf, PAGE_SIZE, "%zu\n", rio->fpga_size);
++}
++DEVICE_ATTR_RO(fpga_size);
++
++static ssize_t signature_show(struct device *dev, struct device_attribute *attr,
++			      char *buf)
++{
++	struct nirio_dev *rio = dev_get_drvdata(dev);
++	uint32_t sig[4];
++	int err;
++
++	err = lvfpga_read_signature(rio, sig);
++	if (err)
++		return err;
++
++	return scnprintf(buf, PAGE_SIZE, "%08x%08x%08x%08x\n",
++			 sig[0], sig[1], sig[2], sig[3]);
++}
++DEVICE_ATTR_RO(signature);
++
++static ssize_t vi_started_show(struct device *dev, struct device_attribute *attr,
++			       char *buf)
++{
++	struct nirio_dev *rio = dev_get_drvdata(dev);
++	int started;
++	int err;
++
++	err = __lvfpga_read_control(rio, &started, NULL);
++	if (err)
++		return err;
++
++	return scnprintf(buf, PAGE_SIZE, "%d\n", started);
++}
++DEVICE_ATTR_RO(vi_started);
++
++static ssize_t vi_finished_show(struct device *dev,
++				struct device_attribute *attr, char *buf)
++{
++	struct nirio_dev *rio = dev_get_drvdata(dev);
++	int finished;
++	int err;
++
++	err = __lvfpga_read_control(rio, NULL, &finished);
++	if (err)
++		return err;
++
++	return scnprintf(buf, PAGE_SIZE, "%d\n", finished);
++}
++DEVICE_ATTR_RO(vi_finished);
++
++static ssize_t run_vi_store(struct device *dev, struct device_attribute *attr,
++			    const char *buf, size_t count)
++{
++	struct nirio_dev *rio = dev_get_drvdata(dev);
++	int started, finished, running;
++	unsigned long run_vi;
++	int err;
++
++	if (kstrtoul(buf, 10, &run_vi) || run_vi > 1)
++		return -EINVAL;
++
++	err = mutex_lock_interruptible(&rio->fpga_lock);
++	if (err)
++		return err;
++
++	err = __lvfpga_read_control(rio, &started, &finished);
++	if (err)
++		goto err;
++
++	running = started && !finished;
++	if ((run_vi && running) || (!run_vi && !running)) {
++		err = -EALREADY;
++		goto err;
++	}
++
++	if (run_vi) {
++		err = __lvfpga_start_vi(rio);
++		if (err)
++			goto err;
++	} else {
++		__lvfpga_stop_vi(rio);
++	}
++
++err:
++	mutex_unlock(&rio->fpga_lock);
++	return err ?: count;
++}
++DEVICE_ATTR_WO(run_vi);
++
++static ssize_t reset_vi_store(struct device *dev, struct device_attribute *attr,
++			      const char *buf, size_t count)
++{
++	struct nirio_dev *rio = dev_get_drvdata(dev);
++	unsigned long reset;
++	int err;
++
++	if (kstrtoul(buf, 10, &reset) || reset != 1)
++		return -EINVAL;
++
++	err = lvfpga_abort_and_reset_vi(rio, true);
++	if (err)
++		return err;
++
++	return count;
++}
++DEVICE_ATTR_WO(reset_vi);
++
++static ssize_t abort_vi_store(struct device *dev, struct device_attribute *attr,
++			      const char *buf, size_t count)
++{
++	struct nirio_dev *rio  = dev_get_drvdata(dev);
++	unsigned long abort;
++	int err;
++
++	if (kstrtoul(buf, 10, &abort) || abort != 1)
++		return -EINVAL;
++
++	err = lvfpga_abort_and_reset_vi(rio, false);
++	if (err)
++		return err;
++
++	return count;
++}
++DEVICE_ATTR_WO(abort_vi);
++
++static ssize_t session_count_show(struct device *dev,
++				  struct device_attribute *attr, char *buf)
++{
++	struct nirio_dev *rio = dev_get_drvdata(dev);
++	int count;
++
++	mutex_lock(&rio->lock);
++	count = rio->open_count;
++	mutex_unlock(&rio->lock);
++
++	return scnprintf(buf, PAGE_SIZE, "%d\n", count);
++}
++DEVICE_ATTR_RO(session_count);
++
++static struct attribute *lvfpga_attrs[] = {
++	&dev_attr_fpga_size.attr,
++	&dev_attr_signature.attr,
++	&dev_attr_vi_started.attr,
++	&dev_attr_vi_finished.attr,
++	&dev_attr_run_vi.attr,
++	&dev_attr_reset_vi.attr,
++	&dev_attr_abort_vi.attr,
++	&dev_attr_session_count.attr,
++	NULL
++};
++
++static const struct attribute_group lvfpga_group = {
++	.attrs = lvfpga_attrs,
++};
++
++static const struct attribute_group *lvfpga_groups[] = {
++	&lvfpga_group,
++	NULL
++};
++
++static int nirio_open(struct inode *inode, struct file *filp)
++{
++	struct nirio_dev *rio;
++	int err = 0;
++
++	rio = container_of(inode->i_cdev, struct nirio_dev, cdev);
++	filp->private_data = rio;
++
++	mutex_lock(&rio->lock);
++	if (rio->open_count < 0) {
++		err = -ECONNREFUSED;
++		goto err;
++	}
++	rio->open_count++;
++
++err:
++	mutex_unlock(&rio->lock);
++	return 0;
++}
++
++static int nirio_release(struct inode *inode, struct file *filp)
++{
++	struct nirio_dev *rio = filp->private_data;
++	struct nirio_irq_ctx *ctx;
++	int id, err = 0;
++
++	mutex_lock(&rio->irq_lock);
++	idr_for_each_entry(&rio->irq_ctxs, ctx, id) {
++		if (ctx->filp == filp) {
++			idr_remove(&rio->irq_ctxs, id);
++			kfree(ctx);
++		}
++	}
++	mutex_unlock(&rio->irq_lock);
++
++	mutex_lock(&rio->lock);
++	rio->open_count--;
++	mutex_unlock(&rio->lock);
++
++	return err;
++}
++
++static int nirio_mmap(struct file *filp, struct vm_area_struct *vma)
++{
++	struct nirio_dev *rio = filp->private_data;
++	unsigned long offset, size, pfn;
++	struct page *page;
++
++	offset = vma->vm_pgoff << PAGE_SHIFT;
++	size = vma->vm_end - vma->vm_start;
++
++	if (offset + size > rio->fpga_size)
++		return -EINVAL;
++
++	vma->vm_flags |= VM_LOCKED | VM_DONTCOPY | VM_DONTEXPAND | VM_IO;
++	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
++
++	/* TODO: vmalloc to page? that seems wrong... */
++	page = vmalloc_to_page(rio->fpga_base + offset);
++	pfn = page_to_phys(page) >> PAGE_SHIFT;
++
++	return io_remap_pfn_range(vma, vma->vm_start, pfn, size, vma->vm_page_prot);
++}
++
++static int nirio_ioctl_array_rw(struct nirio_dev *rio, unsigned int cmd,
++				struct ioctl_nirio_array __user *array)
++{
++	uint32_t offset, count, val, i;
++	int err;
++
++	if (get_user(offset, &array->offset))
++		return -EFAULT;
++	if (get_user(count, &array->count))
++		return -EFAULT;
++	if (!access_ok(array, sizeof(*array) + count * sizeof(*array->data)))
++		return -EFAULT;
++
++	offset &= ~0x3;
++
++	err = mutex_lock_interruptible(&rio->fpga_lock);
++	if (err)
++		return err;
++
++	if (cmd == NIRIO_IOC_READ_ARRAY) {
++		for (i = 0; i < count; i++) {
++			val = nirio_read32(rio, offset);
++			__put_user(val, &array->data[i]);
++		}
++	} else {
++		for (i = 0; i < count; i++) {
++			__get_user(val, &array->data[i]);
++			nirio_write32(rio, offset, val);
++		}
++	}
++
++	mutex_unlock(&rio->fpga_lock);
++	return err;
++}
++
++static long nirio_ioctl_irq_ctx_alloc(struct nirio_dev *rio, struct file *filp,
++				      __u32 __user *ctx_id)
++{
++	struct nirio_irq_ctx *ctx;
++	int err;
++
++	if (!access_ok(ctx_id, sizeof(*ctx_id)))
++		return -EFAULT;
++
++	ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
++	if (!ctx)
++		return -ENOMEM;
++
++	ctx->filp = filp;
++	init_completion(&ctx->comp);
++
++	err = idr_alloc(&rio->irq_ctxs, ctx, 0, 4096, GFP_KERNEL);
++	if (err < 0) {
++		kfree(ctx);
++		return -ENOSPC;
++	}
++
++	__put_user((uint32_t)err, ctx_id);
++
++	return 0;
++}
++
++static long nirio_ioctl_irq_ctx_free(struct nirio_dev *rio, __u32 __user *ctx_id)
++{
++	struct nirio_irq_ctx *ctx;
++	int id;
++
++	if (get_user(id, ctx_id))
++		return -EFAULT;
++
++	mutex_lock(&rio->irq_lock);
++	// TODO: adjust the mask?
++	ctx = idr_remove(&rio->irq_ctxs, id);
++	mutex_unlock(&rio->irq_lock);
++	if (!ctx)
++		return -EINVAL;
++
++	kfree(ctx);
++
++	return 0;
++}
++
++static long nirio_ioctl_irq_wait(struct nirio_dev *rio,
++				 struct ioctl_nirio_irq_wait __user *wait)
++{
++	struct nirio_irq_ctx *ctx;
++	uint32_t reg, mask, timeout;
++	long err;
++	int id;
++
++	if (!access_ok(wait, sizeof(*wait)))
++		return -EFAULT;
++
++	__get_user(mask, &wait->mask);
++	__get_user(timeout, &wait->timeout_ms);
++
++	reg = nirio_read32(rio, rio->irq_status_offset);
++	if (reg & mask) {
++		__put_user(0, &wait->timed_out);
++		__put_user(reg & mask, &wait->asserted);
++		return 0;
++	}
++
++	if (timeout == 0) {
++		__put_user(1, &wait->timed_out);
++		__put_user(0, &wait->asserted);
++	}
++
++	__get_user(id, &wait->ctx);
++
++	mutex_lock(&rio->irq_lock);
++	ctx = idr_find(&rio->irq_ctxs, id);
++	if (!ctx) {
++		mutex_unlock(&rio->irq_lock);
++		return -EINVAL;
++	}
++
++	ctx->irq_mask = mask;
++	reg = nirio_read32(rio, rio->irq_mask_offset);
++	nirio_write32(rio, rio->irq_mask_offset, reg | mask);
++	nirio_write32(rio, rio->irq_enable_offset, 1);
++	mutex_unlock(&rio->irq_lock);
++
++	err = wait_for_completion_io_timeout(&ctx->comp,
++					     msecs_to_jiffies(timeout));
++	if (err < 0)
++		return err;
++
++	__put_user(err == 0, &wait->timed_out);
++	__put_user(ctx->asserted, &wait->asserted);
++
++	return 0;
++}
++
++static long nirio_ioctl_irq_ack(struct nirio_dev *rio,
++				__u32 __user *ack)
++{
++	uint32_t mask;
++
++	if (get_user(mask, ack))
++		return -EFAULT;
++
++	nirio_write32(rio, rio->irq_status_offset, mask);
++
++	return 0;
++}
++
++static long nirio_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
++{
++	struct nirio_dev *rio = filp->private_data;
++	void __user *argp = (void __user *)arg;
++	int err = 0;
++
++	switch (cmd) {
++	case NIRIO_IOC_READ_ARRAY:
++	case NIRIO_IOC_WRITE_ARRAY:
++		return nirio_ioctl_array_rw(rio, cmd, argp);
++	case NIRIO_IOC_RESET_ON_LAST_REF:
++		mutex_lock(&rio->lock);
++		if (rio->open_count == 1)
++			err = lvfpga_abort_and_reset_vi(rio, true);
++		else
++			err = -EBUSY;
++		mutex_unlock(&rio->lock);
++		return err;
++	case NIRIO_IOC_FORCE_REDOWNLOAD:
++		mutex_lock(&rio->lock);
++		if (rio->open_count == 1)
++			rio->open_count = -1;
++		else
++			err = -EBUSY;
++		mutex_unlock(&rio->lock);
++		return err;
++	case NIRIO_IOC_IRQ_CTX_ALLOC:
++		return nirio_ioctl_irq_ctx_alloc(rio, filp, argp);
++	case NIRIO_IOC_IRQ_CTX_FREE:
++		return nirio_ioctl_irq_ctx_free(rio, argp);
++	case NIRIO_IOC_IRQ_WAIT:
++		return nirio_ioctl_irq_wait(rio, argp);
++	case NIRIO_IOC_IRQ_ACK:
++		return nirio_ioctl_irq_ack(rio, argp);
++	default:
++		return -ENOTTY;
++	}
++};
++
++static const struct file_operations nirio_fops = {
++	.owner		= THIS_MODULE,
++	.open		= nirio_open,
++	.release	= nirio_release,
++	.mmap		= nirio_mmap,
++	.unlocked_ioctl	= nirio_ioctl,
++	.compat_ioctl	= nirio_ioctl,
++};
++
++static uint64_t __fifo_get_elements_available(struct nirio_fifo *fifo,
++					      bool update)
++{
++	uint64_t val;
++
++	if (update)
++		fifo->elements_txed = inch_dma_bytes_transferred(&fifo->dma) >>
++			fifo->log2_element_size;
++
++
++	val = fifo->num_elements - fifo->elements_granted
++		+ fifo->elements_txed - fifo->elements_acquired;
++
++	return val;
++}
++
++static uint64_t __fifo_elements_to_bytes(struct nirio_fifo *fifo, uint64_t cnt)
++{
++	uint64_t byte_cnt;
++
++	byte_cnt = cnt + fifo->elements_granted + fifo->elements_acquired -
++		fifo->num_elements;
++	byte_cnt <<= fifo->log2_element_size;
++
++	return byte_cnt;
++}
++
++static int nirio_fifo_wait_poll(struct nirio_fifo *fifo, uint64_t cnt,
++				uint32_t timeout_ms)
++{
++	uint64_t byte_cnt, transferred;
++
++	byte_cnt = __fifo_elements_to_bytes(fifo, cnt);
++
++	/* mildly abusive use of readx_poll_timeout: */
++	return readx_poll_timeout(inch_dma_bytes_transferred, &fifo->dma,
++				  transferred, (transferred >= byte_cnt),
++				  50, timeout_ms * 1000);
++}
++
++static int nirio_fifo_wait_interrupt(struct nirio_fifo *fifo, uint64_t cnt,
++				     uint32_t timeout_ms)
++{
++	uint64_t byte_cnt;
++
++	byte_cnt = __fifo_elements_to_bytes(fifo, cnt);
++
++	if (inch_dma_bytes_transferred(&fifo->dma) >= byte_cnt)
++		return 0;
++
++	return inch_dma_wait_for_bytes_xfrd(&fifo->dma, byte_cnt, timeout_ms);
++}
++
++static int nirio_fifo_wait_hybrid(struct nirio_fifo *fifo, uint64_t cnt,
++				  uint32_t timeout_ms)
++{
++	uint32_t poll_timeout;
++	uint32_t max_poll = 100;
++	int err;
++
++	poll_timeout = min(max_poll, timeout_ms);
++	if (poll_timeout >= timeout_ms)
++		timeout_ms = 0;
++	else if (timeout_ms != 0xFFFFFFFF)
++		timeout_ms -= poll_timeout;
++
++	err = nirio_fifo_wait_poll(fifo, cnt, poll_timeout);
++	if (err == -ETIMEDOUT)
++		err = nirio_fifo_wait_interrupt(fifo, cnt, timeout_ms);
++
++	return err;
++}
++
++static void __fifo_grant_elements(struct nirio_fifo *fifo, uint64_t cnt)
++{
++	uint64_t bytes;
++
++	bytes = cnt << fifo->log2_element_size;
++
++	writel(bytes, fifo->regs + LVFPGA_DMA_GRANT);
++
++	fifo->elements_granted += cnt;
++}
++
++static bool __fifo_has_buffer(struct nirio_fifo *fifo)
++{
++	return inch_dma_is_configured(&fifo->dma) && fifo->dma_buf;
++}
++
++static bool __fifo_is_running(struct nirio_fifo *fifo)
++{
++	return fifo->is_running;
++}
++
++/*
++ * Acquires elements for software's use. After calling this, usermode can
++ * read/write the acquired region
++ */
++static int nirio_fifo_acquire_elements(struct nirio_fifo *fifo, uint64_t cnt,
++				       uint32_t timeout_ms, uint64_t *available)
++{
++	int err;
++
++	err = mutex_lock_interruptible(&fifo->lock);
++	if (err)
++		return err;
++
++	if (!__fifo_is_running(fifo)) {
++		err = -EINVAL;
++		goto out;
++	}
++
++	if (cnt > fifo->num_elements) {
++		err = -EINVAL;
++		goto out;
++	}
++
++	*available = __fifo_get_elements_available(fifo, true);
++	if (cnt > *available) {
++		err = fifo->wait_for_elements(fifo, cnt, timeout_ms);
++		if (err)
++			goto out;
++	}
++
++	fifo->elements_acquired += cnt;
++
++	err = dma_buf_begin_cpu_access(fifo->dma_buf, fifo->direction);
++out:
++	*available = __fifo_get_elements_available(fifo, true);
++
++	if (err == -ETIMEDOUT && fifo->abort)
++		err = -EPERM;
++
++	mutex_unlock(&fifo->lock);
++	return err;
++}
++
++/*
++ * Releases elements for software's use and back to hardware
++ */
++static int nirio_fifo_release_elements(struct nirio_fifo *fifo, uint64_t cnt)
++{
++	int err;
++
++	err = mutex_lock_interruptible(&fifo->lock);
++	if (err)
++		return err;
++
++	if (!__fifo_is_running(fifo)) {
++		err = -EINVAL;
++		goto err;
++	}
++
++	if (cnt > fifo->elements_acquired) {
++		err = -EINVAL;
++		goto err;
++	}
++
++	err = dma_buf_end_cpu_access(fifo->dma_buf, fifo->direction);
++	if (err)
++		goto err;
++
++	__fifo_grant_elements(fifo, cnt);
++	fifo->elements_acquired -= cnt;
++
++err:
++	mutex_unlock(&fifo->lock);
++	return err;
++}
++
++static int __fifo_start(struct nirio_fifo *fifo)
++{
++	int err;
++
++	if (!__fifo_has_buffer(fifo))
++		return -ENOTCONN;
++
++	if (__fifo_is_running(fifo))
++		return -EALREADY;
++
++	fifo->elements_acquired = 0;
++	fifo->elements_granted = 0;
++	fifo->elements_txed = 0;
++
++	writel(LVFPGA_DMA_CR_ENABLE | LVFPGA_DMA_CR_CLEAR,
++	       fifo->regs + LVFPGA_DMA_CR);
++
++	err = inch_dma_start(&fifo->dma);
++	if (err)
++		return err;
++
++	fifo->abort = 0;
++	fifo->is_running = 1;
++
++	if (!fifo->host_to_target)
++		__fifo_grant_elements(fifo, fifo->num_elements);
++
++	return 0;
++}
++
++static int nirio_fifo_start(struct nirio_fifo *fifo)
++{
++	int err;
++
++	err = mutex_lock_interruptible(&fifo->lock);
++	if (err)
++		return err;
++
++	err = __fifo_start(fifo);
++
++	mutex_unlock(&fifo->lock);
++	return err;
++}
++
++static int __fifo_stop(struct nirio_fifo *fifo)
++{
++	int err;
++
++	if (!__fifo_has_buffer(fifo))
++		return -ENOTCONN;
++
++	if (!__fifo_is_running(fifo))
++		return -EALREADY;
++
++	if (!fifo->host_to_target)
++		writel(LVFPGA_DMA_CR_DISABLE, fifo->regs + LVFPGA_DMA_CR);
++
++	err = inch_dma_stop(&fifo->dma);
++	if (err)
++		return err;
++
++	fifo->is_running = 0;
++
++	return 0;
++}
++
++static int nirio_fifo_stop(struct nirio_fifo *fifo)
++{
++	int err;
++
++	err = mutex_lock_interruptible(&fifo->lock);
++	if (err)
++		return err;
++
++	err = __fifo_stop(fifo);
++
++	mutex_unlock(&fifo->lock);
++	return err;
++}
++
++static ssize_t name_show(struct device *dev, struct device_attribute *attr,
++			 char *buf)
++{
++	struct nirio_fifo *fifo = dev_get_drvdata(dev);
++
++	return scnprintf(buf, PAGE_SIZE, "%s\n", fifo->name);
++}
++DEVICE_ATTR_RO(name);
++
++static ssize_t direction_show(struct device *dev, struct device_attribute *attr,
++			      char *buf)
++{
++	struct nirio_fifo *fifo = dev_get_drvdata(dev);
++
++	return scnprintf(buf, PAGE_SIZE, "%s\n", fifo->host_to_target ?
++			 "host to target" : "target to host");
++}
++DEVICE_ATTR_RO(direction);
++
++static ssize_t element_bytes_show(struct device *dev,
++				  struct device_attribute *attr, char *buf)
++{
++	struct nirio_fifo *fifo = dev_get_drvdata(dev);
++
++	return scnprintf(buf, PAGE_SIZE, "%u\n", 1U << fifo->log2_element_size);
++}
++DEVICE_ATTR_RO(element_bytes);
++
++static ssize_t baggage_show(struct device *dev,
++			    struct device_attribute *attr, char *buf)
++{
++	struct nirio_fifo *fifo = dev_get_drvdata(dev);
++	unsigned long long baggage;
++
++	baggage = readq(fifo->dma.regs + INCH_DMA_BR);
++
++	return scnprintf(buf, PAGE_SIZE, "0x%llx\n", baggage);
++}
++
++static ssize_t baggage_store(struct device *dev, struct device_attribute *attr,
++			     const char *buf, size_t count)
++{
++	struct nirio_fifo *fifo = dev_get_drvdata(dev);
++	unsigned long baggage;
++
++	if (kstrtoul(buf, 0, &baggage))
++		return -EINVAL;
++
++	writeq(baggage, fifo->dma.regs + INCH_DMA_BR);
++
++	return count;
++}
++DEVICE_ATTR_RW(baggage);
++
++static const struct {
++	const char *name;
++	int (*func)(struct nirio_fifo *, uint64_t, uint32_t);
++} strategies[] = {
++	{ "interrupt", nirio_fifo_wait_interrupt },
++	{ "poll", nirio_fifo_wait_poll },
++	{ "hybrid", nirio_fifo_wait_hybrid },
++};
++
++static ssize_t wait_strategy_show(struct device *dev,
++				  struct device_attribute *attr, char *buf)
++{
++	struct nirio_fifo *fifo = dev_get_drvdata(dev);
++	const char *name = "unknown";
++	int err, i;
++
++	err = mutex_lock_interruptible(&fifo->lock);
++	if (err)
++		return err;
++
++	for (i = 0; i < ARRAY_SIZE(strategies); i++)
++		if (strategies[i].func == fifo->wait_for_elements) {
++			name = strategies[i].name;
++			break;
++		}
++
++	mutex_unlock(&fifo->lock);
++
++	return scnprintf(buf, PAGE_SIZE, "%s\n", name);
++}
++
++static ssize_t wait_strategy_store(struct device *dev,
++				   struct device_attribute *attr,
++				   const char *buf, size_t count)
++{
++	struct nirio_fifo *fifo = dev_get_drvdata(dev);
++	int err, i;
++
++	err = mutex_lock_interruptible(&fifo->lock);
++	if (err)
++		return err;
++
++	for (i = 0; i < ARRAY_SIZE(strategies); i++)
++		if (!strcmp(strategies[i].name, buf)) {
++			fifo->wait_for_elements = strategies[i].func;
++			break;
++		}
++
++	mutex_unlock(&fifo->lock);
++
++	return (i == ARRAY_SIZE(strategies)) ? -EINVAL : count;
++}
++DEVICE_ATTR_RW(wait_strategy);
++
++static ssize_t max_poll_show(struct device *dev, struct device_attribute *attr,
++			     char *buf)
++{
++	struct nirio_fifo *fifo = dev_get_drvdata(dev);
++
++	return scnprintf(buf, PAGE_SIZE, "%u\n", fifo->max_poll);
++}
++
++static ssize_t max_poll_store(struct device *dev, struct device_attribute *attr,
++			      const char *buf, size_t count)
++{
++	struct nirio_fifo *fifo = dev_get_drvdata(dev);
++	unsigned long max_poll;
++
++	if (kstrtoul(buf, 0, &max_poll))
++		return -EINVAL;
++
++	fifo->max_poll = max_poll;
++
++	return count;
++}
++DEVICE_ATTR_RW(max_poll);
++
++static struct attribute *fifo_attrs[] = {
++	&dev_attr_name.attr,
++	&dev_attr_direction.attr,
++	&dev_attr_element_bytes.attr,
++	&dev_attr_baggage.attr,
++	&dev_attr_wait_strategy.attr,
++	&dev_attr_max_poll.attr,
++	NULL
++};
++
++static const struct attribute_group fifo_group = {
++	.attrs = fifo_attrs,
++};
++
++static const struct attribute_group *fifo_groups[] = {
++	&fifo_group,
++	NULL
++};
++
++static int nirio_fifo_open(struct inode *inode, struct file *filp)
++{
++	struct nirio_fifo *fifo;
++	int err;
++
++	fifo = container_of(inode->i_cdev, struct nirio_fifo, cdev);
++
++	err = mutex_lock_interruptible(&fifo->lock);
++	if (err)
++		return err;
++
++	if (fifo->is_open)
++		err = -EBUSY;
++
++	mutex_unlock(&fifo->lock);
++
++	filp->private_data = fifo;
++
++	return err;
++}
++
++static int __fifo_attach_buf(struct nirio_fifo *fifo, int fd)
++{
++	struct scatterlist *sgl;
++	size_t total_size = 0;
++	int i, err;
++
++	fifo->dma_buf = dma_buf_get(fd);
++	if (IS_ERR(fifo->dma_buf)) {
++		dev_err(&fifo->dev, "dma_buf_get failed\n");
++		err = PTR_ERR(fifo->dma_buf);
++		goto err;
++	}
++
++	fifo->attach = dma_buf_attach(fifo->dma_buf, fifo->dma.dev);
++	if (IS_ERR(fifo->attach)) {
++		dev_err(&fifo->dev, "dma_buf_attach failed\n");
++		err = PTR_ERR(fifo->attach);
++		goto err_attach;
++	}
++
++	fifo->table = dma_buf_map_attachment(fifo->attach, fifo->direction);
++	if (IS_ERR(fifo->table)) {
++		dev_err(&fifo->dev, "dma_buf_map failed\n");
++		err = PTR_ERR(fifo->table);
++		goto err_map;
++	}
++
++	sgl = fifo->table->sgl;
++	for (i = 0; i < fifo->table->nents; i++) {
++		total_size += sgl->length;
++		sgl = sg_next(sgl);
++	}
++
++	fifo->num_elements = total_size >> fifo->log2_element_size;
++	WARN_ON(total_size != (fifo->num_elements << fifo->log2_element_size));
++
++	sgl = fifo->table->sgl;
++	if (fifo->table->nents == 1)
++		err = inch_dma_configure_normal(&fifo->dma, sg_dma_address(sgl),
++						sg_dma_len(sgl),
++						fifo->direction);
++	else
++		err = inch_dma_configure(&fifo->dma, fifo->table,
++					 fifo->direction);
++
++	if (err) {
++		dev_err(&fifo->dev, "dma configure failed: %d\n", err);
++		goto err_map;
++	}
++
++	return 0;
++err_map:
++	dma_buf_detach(fifo->dma_buf, fifo->attach);
++err_attach:
++	dma_buf_put(fifo->dma_buf);
++
++	fifo->dma_buf = NULL;
++	fifo->attach = NULL;
++	fifo->table = NULL;
++err:
++	return err;
++}
++
++static int __fifo_detach_buf(struct nirio_fifo *fifo)
++{
++	int err;
++
++	err = inch_dma_unconfigure(&fifo->dma);
++	if (err)
++		goto err;
++
++	if (fifo->table) {
++		dma_buf_unmap_attachment(fifo->attach, fifo->table,
++					 fifo->direction);
++		fifo->table = NULL;
++	}
++
++	if (fifo->attach) {
++		dma_buf_detach(fifo->dma_buf, fifo->attach);
++		fifo->attach = NULL;
++	}
++
++	if (fifo->dma_buf) {
++		dma_buf_put(fifo->dma_buf);
++		fifo->dma_buf = NULL;
++	}
++
++err:
++	return err;
++}
++
++static int nirio_fifo_ioctl_set_buf(struct nirio_fifo *fifo, void __user *argp)
++{
++	struct ioctl_nirio_fifo_set_buf buf_info;
++	int err;
++
++	if (copy_from_user(&buf_info, argp, sizeof(buf_info)))
++		return -EFAULT;
++
++	err = mutex_lock_interruptible(&fifo->lock);
++
++	if (buf_info.fd)
++		err = __fifo_attach_buf(fifo, buf_info.fd);
++	else
++		err = __fifo_detach_buf(fifo);
++
++	mutex_unlock(&fifo->lock);
++
++	return err;
++}
++
++static int nirio_fifo_ioctl_acquire(struct nirio_fifo *fifo, void __user *argp)
++{
++	struct ioctl_nirio_fifo_acquire acq;
++	int err;
++
++	if (copy_from_user(&acq, argp, sizeof(acq)))
++		return -EFAULT;
++
++	acq.timed_out = 0;
++	acq.available = 0;
++
++	err = nirio_fifo_acquire_elements(fifo, acq.elements, acq.timeout_ms,
++					  &acq.available);
++	if (err == -ETIMEDOUT) {
++		acq.timed_out = 1;
++		err = 0;
++	}
++
++	if (copy_to_user(argp, &acq, sizeof(acq)))
++		return -EFAULT;
++
++	return err;
++}
++
++static int nirio_fifo_ioctl_release(struct nirio_fifo *fifo,
++				    uint64_t __user *argp)
++{
++	uint64_t elements;
++
++	if (get_user(elements, argp))
++		return -EFAULT;
++
++	return nirio_fifo_release_elements(fifo, elements);
++}
++
++static int nirio_fifo_ioctl_get_available(struct nirio_fifo *fifo,
++					  uint64_t __user *argp)
++{
++	uint64_t available;
++	int err;
++
++	err = mutex_lock_interruptible(&fifo->lock);
++	if (err)
++		return err;
++
++	available = __fifo_get_elements_available(fifo, true);
++	mutex_unlock(&fifo->lock);
++
++	dev_dbg(&fifo->dev, "get available: %llu\n", available);
++
++	if (put_user(available, argp))
++		return -EFAULT;
++
++	return err;
++}
++
++static long nirio_fifo_ioctl(struct file *filp, unsigned int cmd,
++			     unsigned long arg)
++{
++	struct nirio_fifo *fifo = filp->private_data;
++	void __user *argp = (void __user *)arg;
++
++	switch (cmd) {
++	case NIRIO_IOC_FIFO_STOP:
++		return nirio_fifo_stop(fifo);
++	case NIRIO_IOC_FIFO_START:
++		return nirio_fifo_start(fifo);
++	case NIRIO_IOC_FIFO_SET_BUF:
++		return nirio_fifo_ioctl_set_buf(fifo, argp);
++	case NIRIO_IOC_FIFO_ACQUIRE:
++		return nirio_fifo_ioctl_acquire(fifo, argp);
++	case NIRIO_IOC_FIFO_RELEASE:
++		return nirio_fifo_ioctl_release(fifo, argp);
++	case NIRIO_IOC_FIFO_GET_AVAIL:
++		return nirio_fifo_ioctl_get_available(fifo, argp);
++	default:
++		return -ENOTTY;
++	};
++}
++
++static int nirio_fifo_release(struct inode *inode, struct file *filp)
++{
++	struct nirio_fifo *fifo = filp->private_data;
++	int err;
++
++	mutex_lock(&fifo->lock);
++
++	if (__fifo_is_running(fifo)) {
++		err = __fifo_stop(fifo);
++		if (err)
++			dev_err(&fifo->dev, "stop failed\n");
++	}
++
++	// TODO: Reconsider this...
++	if (__fifo_has_buffer(fifo)) {
++		if (fifo->table)
++			__fifo_detach_buf(fifo);
++	}
++
++	fifo->is_open = false;
++
++	mutex_unlock(&fifo->lock);
++
++	return 0;
++}
++
++static const struct file_operations nirio_fifo_fops = {
++	.owner		= THIS_MODULE,
++	.open		= nirio_fifo_open,
++	.release	= nirio_fifo_release,
++	.unlocked_ioctl	= nirio_fifo_ioctl,
++	.compat_ioctl	= nirio_fifo_ioctl,
++};
++
++static void nirio_irq(int io_irq, void *priv)
++{
++	struct nirio_dev *rio = priv;
++	struct nirio_irq_ctx *ctx;
++	uint32_t irqs, new_mask = 0;
++	int id;
++
++	mutex_lock(&rio->irq_lock);
++
++	nirio_write32(rio, rio->irq_mask_offset, 0);
++	irqs = nirio_read32(rio, rio->irq_status_offset);
++
++	idr_for_each_entry(&rio->irq_ctxs, ctx, id) {
++		if (irqs & ctx->irq_mask) {
++			ctx->asserted = irqs & ctx->irq_mask;
++			ctx->irq_mask = 0;
++			complete(&ctx->comp);
++		} else {
++			new_mask |= ctx->irq_mask;
++		}
++	}
++	nirio_write32(rio, rio->irq_mask_offset, new_mask);
++
++	mutex_unlock(&rio->irq_lock);
++}
++
++static void nirio_fifo_dev_release(struct device *dev)
++{
++	struct nirio_fifo *fifo = container_of(dev, struct nirio_fifo, dev);
++
++	dev_dbg(dev, "fifo_dev_release\n");
++	kfree(fifo);
++}
++
++static int nirio_fifo_parse_of(struct nirio_fifo *fifo, struct device_node *np)
++{
++	uint32_t bits;
++	int err;
++
++	err = of_property_read_string(np, "label", &fifo->name);
++	if (err)
++		return err;
++
++	err = of_property_read_u32(np, "dma-channel", &fifo->channel);
++	if (err)
++		return err;
++
++	err = of_property_read_u32(np, "bits-per-element", &bits);
++	if (err)
++		return err;
++	fifo->log2_element_size = ilog2(bits / 8);
++
++	fifo->host_to_target = of_property_read_bool(np, "ni,host-to-target");
++	fifo->direction = fifo->host_to_target
++		? DMA_TO_DEVICE : DMA_FROM_DEVICE;
++
++	if (fifo->host_to_target &&
++	    of_property_read_bool(np, "ni,target-to-host"))
++		return -EINVAL;
++
++	return 0;
++}
++
++static int nirio_fifo_probe(struct nirio_dev *rio, struct device_node *np)
++{
++	struct nirio_fifo *fifo;
++	int err;
++
++	fifo = kzalloc(sizeof(*fifo), GFP_KERNEL);
++	if (!fifo)
++		return -ENOMEM;
++
++	mutex_init(&fifo->lock);
++
++	device_initialize(&fifo->dev);
++	dev_set_drvdata(&fifo->dev, fifo);
++	fifo->dev.parent = &rio->dev;
++	fifo->dev.release = nirio_fifo_dev_release;
++	fifo->dev.class = nirio_class;
++	fifo->dev.groups = fifo_groups;
++
++	err = nirio_fifo_parse_of(fifo, np);
++	if (err)
++		goto err;
++
++	/*
++	 * TODO: This assume that DMA channel is the same as the FIFO number,
++	 * which I think is valid. Double check this, though.
++	 */
++	err = dev_set_name(&fifo->dev, "nirio%dfifo%d", rio->dev_id,
++			   fifo->channel);
++	if (err)
++		goto err;
++
++	err = inch_dma_init(&fifo->dma, &rio->inch, fifo->channel);
++	if (err)
++		goto err;
++
++	fifo->regs = of_iomap(np, 0);
++	if (!fifo->regs) {
++		dev_err(&rio->dev, "failed to map dma regs!\n");
++		err = -ENOMEM;
++		goto err;
++	}
++
++	err = ida_alloc(&dev_minors, GFP_KERNEL);
++	if (err < 0)
++		goto err_unmap;
++
++	fifo->wait_for_elements = nirio_fifo_wait_interrupt;
++	fifo->max_poll = 10;
++
++	fifo->dev.devt = MKDEV(nirio_major, err);
++	cdev_init(&fifo->cdev, &nirio_fifo_fops);
++	fifo->cdev.owner = THIS_MODULE;
++
++	list_add_tail(&fifo->node, &rio->fifos);
++
++	dev_info(&rio->dev, "registered %u-bit %s DMA FIFO %u, %scoherent\n",
++		 8 << fifo->log2_element_size,
++		 fifo->host_to_target ? "host-to-target" : "target-to-host",
++		 fifo->channel, of_dma_is_coherent(np) ? "" : "non-");
++
++	return cdev_device_add(&fifo->cdev, &fifo->dev);
++err_unmap:
++	iounmap(fifo->regs);
++err:
++	put_device(&fifo->dev);
++	return err;
++}
++
++static void nirio_fifo_remove(struct nirio_fifo *fifo)
++{
++	ida_free(&dev_minors, MINOR(fifo->dev.devt));
++	cdev_device_del(&fifo->cdev, &fifo->dev);
++	put_device(&fifo->dev);
++}
++
++
++static int nirio_parse_of(struct nirio_dev *rio, struct device_node *np)
++{
++	if (of_property_read_bool(np, "ni,reset-auto-clears"))
++		rio->lvfpga_flags |= LVFPGA_FLAG_RESET_AUTO_CLEARS;
++
++	// TODO: Implement run-when-loaded
++	if (of_property_read_bool(np, "ni,run-when-loaded"))
++		rio->lvfpga_flags |= LVFPGA_FLAG_RUN_WHEN_LOADED;
++
++	of_property_read_u32(np, "control-offset", &rio->control_offset);
++	of_property_read_u32(np, "signature-offset", &rio->signature_offset);
++	of_property_read_u32(np, "reset-offset", &rio->reset_offset);
++
++	of_property_read_u32(np, "irq-enable-offset", &rio->irq_enable_offset);
++	of_property_read_u32(np, "irq-mask-offset", &rio->irq_mask_offset);
++	of_property_read_u32(np, "irq-status-offset", &rio->irq_status_offset);
++
++	if (of_property_read_u32_array(np, "signature", rio->expected_signature, 4))
++		dev_err(&rio->dev, "failed to read expected signature\n");
++
++	if (!rio->control_offset || !rio->signature_offset || !rio->reset_offset) {
++		dev_err(&rio->dev, "failed to read core register offsets\n");
++		return -EINVAL;
++	}
++
++	if (!rio->irq_enable_offset || !rio->irq_mask_offset || !rio->irq_status_offset) {
++		dev_err(&rio->dev, "failed to read irq register offsets\n");
++		return -EINVAL;
++	}
++
++	return 0;
++}
++
++static void nirio_dev_release(struct device *dev)
++{
++	struct nirio_dev *rio = container_of(dev, struct nirio_dev, dev);
++
++	dev_info(dev, "release\n");
++	kfree(rio);
++}
++
++static int nirio_probe(struct platform_device *pdev)
++{
++	struct nirio_fifo *fifo, *tmp;
++	struct device_node *np;
++	struct nirio_dev *rio;
++	struct resource *res;
++	int err;
++	int irq;
++
++	rio = kzalloc(sizeof(*rio), GFP_KERNEL);
++	if (!rio)
++		return -ENOMEM;
++	platform_set_drvdata(pdev, rio);
++
++	mutex_init(&rio->lock);
++	mutex_init(&rio->fpga_lock);
++	mutex_init(&rio->irq_lock);
++	INIT_LIST_HEAD(&rio->fifos);
++	idr_init(&rio->irq_ctxs);
++
++	device_initialize(&rio->dev);
++	rio->dev.parent = &pdev->dev;
++	rio->dev.release = nirio_dev_release;
++	rio->dev.class = nirio_class;
++	rio->dev.groups = lvfpga_groups;
++	dev_set_drvdata(&rio->dev, rio);
++
++	err = ida_alloc(&dev_nrs, GFP_KERNEL);
++	if (err < 0)
++		goto err_out;
++	rio->dev_id = err;
++
++	irq = platform_get_irq(pdev, 0);
++	if (irq < 0) {
++		dev_err(&pdev->dev, "failed to request irq\n");
++		err = irq;
++		goto err_free_id;
++	}
++
++	err = dev_set_name(&rio->dev, "nirio%d", rio->dev_id);
++	if (err)
++		goto err_free_id;
++
++	err = ida_alloc(&dev_minors, GFP_KERNEL);
++	if (err < 0)
++		goto err_free_id;
++
++	rio->dev.devt = MKDEV(nirio_major, err);
++	cdev_init(&rio->cdev, &nirio_fops);
++	rio->cdev.owner = THIS_MODULE;
++
++	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++	rio->regs = devm_ioremap_resource(&rio->dev, res);
++	if (IS_ERR(rio->regs)) {
++		err = PTR_ERR(rio->regs);
++		goto err_free_minor;
++	}
++
++	// TODO: should source from device tree
++	rio->fpga_base = rio->regs + 0x40000;
++	rio->fpga_size = 0x80000;
++
++	err = nirio_parse_of(rio, pdev->dev.of_node);
++	if (err)
++		goto err_free_minor;
++
++	err = inch_init(&rio->inch, &pdev->dev, rio->regs, irq);
++	if (err)
++		goto err_free_minor;
++
++	err = lvfpga_check_signature(rio);
++	if (err)
++		goto err_free_minor;
++
++	err = cdev_device_add(&rio->cdev, &rio->dev);
++	if (err)
++		goto err_free_minor;
++
++	for_each_child_of_node(pdev->dev.of_node, np)
++		if (of_device_is_compatible(np, "ni,rio-fifo")) {
++			err = nirio_fifo_probe(rio, np);
++			if (err)
++				goto err_free_fifos;
++		}
++
++	err = inch_request_io_irq(&rio->inch, 0, nirio_irq, rio);
++	if (err)
++		goto err_free_fifos;
++
++	inch_enable_interrupts(&rio->inch);
++
++	return err;
++err_free_fifos:
++	list_for_each_entry_safe(fifo, tmp, &rio->fifos, node)
++		nirio_fifo_remove(fifo);
++err_free_minor:
++	ida_free(&dev_minors, MINOR(rio->dev.devt));
++err_free_id:
++	ida_free(&dev_nrs, rio->dev_id);
++err_out:
++	put_device(&rio->dev);
++	return err;
++}
++
++static int nirio_remove(struct platform_device *pdev)
++{
++	struct nirio_dev *rio = platform_get_drvdata(pdev);
++	struct nirio_fifo *fifo, *tmp;
++
++	inch_disable_interrupts(&rio->inch);
++	synchronize_irq(rio->inch.irq);
++
++	list_for_each_entry_safe(fifo, tmp, &rio->fifos, node)
++		nirio_fifo_remove(fifo);
++
++	idr_destroy(&rio->irq_ctxs);
++	ida_free(&dev_minors, MINOR(rio->dev.devt));
++	ida_free(&dev_nrs, rio->dev_id);
++	cdev_device_del(&rio->cdev, &rio->dev);
++	put_device(&rio->dev);
++
++	return 0;
++}
++
++static const struct of_device_id nirio_of_match[] = {
++	{ .compatible = "ni,rio", },
++	{}
++};
++
++static struct platform_driver nirio_driver = {
++	.driver = {
++		.name = KBUILD_MODNAME,
++		.of_match_table = nirio_of_match,
++	},
++	.probe = nirio_probe,
++	.remove = nirio_remove,
++};
++module_platform_driver(nirio_driver);
++
++static int __init nirio_dev_init(void)
++{
++	int err;
++	dev_t dev_num;
++
++	err = alloc_chrdev_region(&dev_num, 0, MINORMASK, DRV_NAME);
++	if (err)
++		goto err_out;
++	nirio_major = MAJOR(dev_num);
++
++	nirio_class = class_create(THIS_MODULE, DRV_NAME);
++	if (IS_ERR(nirio_class)) {
++		err = PTR_ERR(nirio_class);
++		goto err_unreg;
++	}
++
++	return 0;
++err_unreg:
++	unregister_chrdev_region(dev_num, MINORMASK);
++err_out:
++	return err;
++}
++core_initcall(nirio_dev_init);
++
++MODULE_LICENSE("GPL v2");
++MODULE_AUTHOR("Michael Auchter <michael.auchter@ni.com>");
+diff --git a/include/uapi/misc/nirio.h b/include/uapi/misc/nirio.h
+new file mode 100644
+index 000000000000..e432d76cb90d
+--- /dev/null
++++ b/include/uapi/misc/nirio.h
+@@ -0,0 +1,50 @@
++/* SPDX-License-Identifier: GPL-2.0+ WITH Linux-syscall-note */
++#ifndef __NIRIO_H__
++#define __NIRIO_H__
++
++#include <linux/types.h>
++
++#define NIRIO_IOC_MAGIC		(93)
++
++struct ioctl_nirio_array {
++	__u32 offset;
++	__u32 count;
++	__u32 data[0];
++};
++
++struct ioctl_nirio_fifo_set_buf {
++	__u32 fd;
++};
++
++struct ioctl_nirio_fifo_acquire {
++	__aligned_u64 elements;
++	__aligned_u64 available;
++	__u32 timeout_ms;
++	__u32 timed_out;
++};
++
++struct ioctl_nirio_irq_wait {
++	__u32 ctx;
++	__u32 mask;
++	__u32 timeout_ms;
++	__u32 asserted;
++	__u32 timed_out;
++};
++
++#define NIRIO_IOC_READ_ARRAY		_IOR(NIRIO_IOC_MAGIC, 0, struct ioctl_nirio_array)
++#define NIRIO_IOC_WRITE_ARRAY		_IOW(NIRIO_IOC_MAGIC, 1, struct ioctl_nirio_array)
++#define NIRIO_IOC_FIFO_STOP		_IO(NIRIO_IOC_MAGIC, 2)
++#define NIRIO_IOC_FIFO_START		_IO(NIRIO_IOC_MAGIC, 3)
++#define NIRIO_IOC_FIFO_SET_BUF		_IOW(NIRIO_IOC_MAGIC, 4, struct ioctl_nirio_fifo_set_buf)
++#define NIRIO_IOC_FIFO_ACQUIRE		_IOWR(NIRIO_IOC_MAGIC, 5, struct ioctl_nirio_fifo_acquire)
++#define NIRIO_IOC_FIFO_RELEASE		_IOW(NIRIO_IOC_MAGIC, 6, __u64)
++#define NIRIO_IOC_FIFO_GET_AVAIL	_IOR(NIRIO_IOC_MAGIC, 7, __u64)
++#define NIRIO_IOC_RESET_ON_LAST_REF _IO(NIRIO_IOC_MAGIC, 8)
++#define NIRIO_IOC_FORCE_REDOWNLOAD  _IO(NIRIO_IOC_MAGIC, 9)
++#define NIRIO_IOC_IRQ_CTX_ALLOC		_IOR(NIRIO_IOC_MAGIC, 10, __u32)
++#define NIRIO_IOC_IRQ_CTX_FREE		_IOW(NIRIO_IOC_MAGIC, 11, __u32)
++#define NIRIO_IOC_IRQ_WAIT		_IOWR(NIRIO_IOC_MAGIC, 12, struct ioctl_nirio_irq_wait)
++#define NIRIO_IOC_IRQ_ACK		_IOW(NIRIO_IOC_MAGIC, 13, __u32)
++
++
++#endif
+-- 
+2.29.2
+

@@ -1,0 +1,49 @@
+From 77b5a9fd7f1e9326929f1d8c071795eae5a1e54f Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Tue, 22 Sep 2020 13:13:55 -0500
+Subject: [PATCH 09/47] iio: dac: ad5686: add of_match_table
+
+Add of_match_table to this driver, so devices can be probed based on
+device tree contents.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ drivers/iio/dac/ad5696-i2c.c | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/drivers/iio/dac/ad5696-i2c.c b/drivers/iio/dac/ad5696-i2c.c
+index 89e7b063b7bb..a39eda7c02d2 100644
+--- a/drivers/iio/dac/ad5696-i2c.c
++++ b/drivers/iio/dac/ad5696-i2c.c
+@@ -88,9 +88,28 @@ static const struct i2c_device_id ad5686_i2c_id[] = {
+ };
+ MODULE_DEVICE_TABLE(i2c, ad5686_i2c_id);
+ 
++static const struct of_device_id ad5686_of_match[] = {
++	{ .compatible = "adi,ad5311r" },
++	{ .compatible = "adi,ad5338r" },
++	{ .compatible = "adi,ad5671r" },
++	{ .compatible = "adi,ad5675r" },
++	{ .compatible = "adi,ad5691r" },
++	{ .compatible = "adi,ad5692r" },
++	{ .compatible = "adi,ad5693" },
++	{ .compatible = "adi,ad5693r" },
++	{ .compatible = "adi,ad5694" },
++	{ .compatible = "adi,ad5694r" },
++	{ .compatible = "adi,ad5695r" },
++	{ .compatible = "adi,ad5696" },
++	{ .compatible = "adi,ad5696r" },
++	{}
++};
++MODULE_DEVICE_TABLE(of, ad5686_of_match);
++
+ static struct i2c_driver ad5686_i2c_driver = {
+ 	.driver = {
+ 		.name = "ad5696",
++		.of_match_table = ad5686_of_match,
+ 	},
+ 	.probe = ad5686_i2c_probe,
+ 	.remove = ad5686_i2c_remove,
+-- 
+2.29.2
+

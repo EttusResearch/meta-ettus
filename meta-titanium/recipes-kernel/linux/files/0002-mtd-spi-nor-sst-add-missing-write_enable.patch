@@ -1,0 +1,40 @@
+From 587048223af1384c29dd33f1a42c2eea7f52383d Mon Sep 17 00:00:00 2001
+From: Marco Felsch <m.felsch@pengutronix.de>
+Date: Fri, 11 Sep 2020 16:47:02 +0200
+Subject: [PATCH 02/47] mtd: spi-nor: sst: add missing write_enable
+
+According the datasheet [1] the WEL is automatically reset after the
+Byte-Program instruction completion. So if we program the device with
+byte-size set to 32 and starting from an odd address only the first and
+the last byte is written. Fix this by (re-)anble the write support for
+the first SPINOR_OP_AAI_WP sequence.
+
+[1] http://ww1.microchip.com/downloads/en/DeviceDoc/20005044C.pdf;
+    "4.3.2 WRITE ENABLE LATCH (WEL)"
+
+Signed-off-by: Marco Felsch <m.felsch@pengutronix.de>
+---
+ drivers/mtd/spi-nor/sst.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/drivers/mtd/spi-nor/sst.c b/drivers/mtd/spi-nor/sst.c
+index 0ab07624fb73..cfdc61a3ffb2 100644
+--- a/drivers/mtd/spi-nor/sst.c
++++ b/drivers/mtd/spi-nor/sst.c
+@@ -80,6 +80,13 @@ static int sst_write(struct mtd_info *mtd, loff_t to, size_t len,
+ 
+ 	/* Write out most of the data here. */
+ 	for (; actual < len - 1; actual += 2) {
++		/* Enable write support if odd address was written before */
++		if (actual == 1) {
++			ret = spi_nor_write_enable(nor);
++			if (ret)
++				goto out;
++		}
++
+ 		nor->program_opcode = SPINOR_OP_AAI_WP;
+ 
+ 		/* write two bytes. */
+-- 
+2.29.2
+

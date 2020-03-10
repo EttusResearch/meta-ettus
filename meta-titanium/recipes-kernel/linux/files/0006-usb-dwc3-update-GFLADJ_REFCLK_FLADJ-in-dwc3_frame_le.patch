@@ -1,0 +1,101 @@
+From fc250c737bdbce666e3e3a1caae3620b2095e110 Mon Sep 17 00:00:00 2001
+From: Subbaraya Sundeep Bhatta <subbaraya.sundeep.bhatta@xilinx.com>
+Date: Thu, 23 Jan 2020 19:50:51 +0530
+Subject: [PATCH 06/47] usb: dwc3: update GFLADJ_REFCLK_FLADJ in
+ dwc3_frame_length_adjustment
+
+Modified dwc3_frame_length_adjustment function to update
+GFLADJ_REFCLK_FLADJ field as per dts
+
+Signed-off-by: Subbaraya Sundeep Bhatta <subbaraya.sundeep.bhatta@xilinx.com>
+Signed-off-by: Michal Simek <michal.simek@xilinx.com>
+Signed-off-by: Anurag Kumar Vulisha <anurag.kumar.vulisha@xilinx.com>
+Signed-off-by: Piyush Mehta <piyush.mehta@xilinx.com>
+State: pending
+---
+ drivers/usb/dwc3/core.c | 20 ++++++++++++++++++--
+ drivers/usb/dwc3/core.h |  3 +++
+ 2 files changed, 21 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/usb/dwc3/core.c b/drivers/usb/dwc3/core.c
+index 71d52a65ee93..d412500bf65d 100644
+--- a/drivers/usb/dwc3/core.c
++++ b/drivers/usb/dwc3/core.c
+@@ -307,7 +307,7 @@ static int dwc3_core_soft_reset(struct dwc3 *dwc)
+  */
+ static void dwc3_frame_length_adjustment(struct dwc3 *dwc)
+ {
+-	u32 reg;
++	u32 reg, gfladj;
+ 	u32 dft;
+ 
+ 	if (DWC3_VER_IS_PRIOR(DWC3, 250A))
+@@ -316,13 +316,27 @@ static void dwc3_frame_length_adjustment(struct dwc3 *dwc)
+ 	if (dwc->fladj == 0)
+ 		return;
+ 
++	/* Save the initial DWC3_GFLADJ register value */
+ 	reg = dwc3_readl(dwc->regs, DWC3_GFLADJ);
++	gfladj = reg;
++
++	if (dwc->refclk_fladj) {
++		if ((reg & DWC3_GFLADJ_REFCLK_FLADJ) !=
++				    (dwc->fladj & DWC3_GFLADJ_REFCLK_FLADJ)) {
++			reg &= ~DWC3_GFLADJ_REFCLK_FLADJ;
++			reg |= (dwc->fladj & DWC3_GFLADJ_REFCLK_FLADJ);
++		}
++	}
++
+ 	dft = reg & DWC3_GFLADJ_30MHZ_MASK;
+ 	if (dft != dwc->fladj) {
+ 		reg &= ~DWC3_GFLADJ_30MHZ_MASK;
+ 		reg |= DWC3_GFLADJ_30MHZ_SDBND_SEL | dwc->fladj;
+-		dwc3_writel(dwc->regs, DWC3_GFLADJ, reg);
+ 	}
++
++	/* Update DWC3_GFLADJ if there is any change from initial value */
++	if (reg != gfladj)
++		dwc3_writel(dwc->regs, DWC3_GFLADJ, reg);
+ }
+ 
+ /**
+@@ -1378,6 +1392,8 @@ static void dwc3_get_properties(struct dwc3 *dwc)
+ 	device_property_read_u32(dev, "snps,quirk-frame-length-adjustment",
+ 				 &dwc->fladj);
+ 
++	dwc->refclk_fladj = device_property_read_bool(dev,
++						      "snps,refclk_fladj");
+ 	dwc->enable_guctl1_resume_quirk = device_property_read_bool(dev,
+ 				"snps,enable_guctl1_resume_quirk");
+ 	dwc->enable_guctl1_ipd_quirk = device_property_read_bool(dev,
+diff --git a/drivers/usb/dwc3/core.h b/drivers/usb/dwc3/core.h
+index 38269c92f986..495b0f41da51 100644
+--- a/drivers/usb/dwc3/core.h
++++ b/drivers/usb/dwc3/core.h
+@@ -378,6 +378,7 @@
+ /* Global Frame Length Adjustment Register */
+ #define DWC3_GFLADJ_30MHZ_SDBND_SEL		BIT(7)
+ #define DWC3_GFLADJ_30MHZ_MASK			0x3f
++#define DWC3_GFLADJ_REFCLK_FLADJ		(0x3fff << 8)
+ 
+ /* Global User Control Register 1 */
+ #define DWC3_GUCTL1_RESUME_QUIRK		(1 << 10)
+@@ -960,6 +961,7 @@ struct dwc3_scratchpad_array {
+  * @regs: base address for our registers
+  * @regs_size: address space size
+  * @fladj: frame length adjustment
++ * @refclk_fladj: boolean to update GFLADJ_REFCLK_FLADJ field also
+  * @irq_gadget: peripheral controller's IRQ number
+  * @otg_irq: IRQ number for OTG IRQs
+  * @current_otg_role: current role of operation while using the OTG block
+@@ -1126,6 +1128,7 @@ struct dwc3 {
+ 	enum usb_dr_mode	role_switch_default_mode;
+ 
+ 	u32			fladj;
++	bool			refclk_fladj;
+ 	u32			irq_gadget;
+ 	u32			otg_irq;
+ 	u32			current_otg_role;
+-- 
+2.29.2
+

@@ -1,0 +1,39 @@
+From fd8e451c5bea5c5eb313ce9f28d15ece4dc4347a Mon Sep 17 00:00:00 2001
+From: Geert Uytterhoeven <geert+renesas@glider.be>
+Date: Tue, 14 Jan 2020 20:32:15 +0100
+Subject: [PATCH 22/47] kbuild: Create a rule for validating device tree
+ overlay files
+
+This allows to validate device tree overlays using "make dtbs_check",
+just like plain device trees.
+
+Signed-off-by: Geert Uytterhoeven <geert+renesas@glider.be>
+---
+ scripts/Makefile.lib | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index fc2ab569f0a2..c02fe3dabcf3 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -86,6 +86,7 @@ extra-$(CONFIG_OF_ALL_DTBS)	+= $(dtb-)
+ 
+ ifneq ($(CHECK_DTBS),)
+ extra-y += $(patsubst %.dtb,%.dt.yaml, $(dtb-y))
++extra-y += $(patsubst %.dtbo,%.dto.yaml, $(dtbo-y))
+ extra-$(CONFIG_OF_ALL_DTBS) += $(patsubst %.dtb,%.dt.yaml, $(dtb-))
+ endif
+ 
+@@ -348,6 +349,9 @@ endef
+ $(obj)/%.dt.yaml: $(src)/%.dts $(DTC) $(DT_TMP_SCHEMA) FORCE
+ 	$(call if_changed_rule,dtc,yaml)
+ 
++$(obj)/%.dto.yaml: $(src)/%.dtso $(DTC) $(DT_TMP_SCHEMA) FORCE
++	$(call if_changed_rule,dtc,yaml)
++
+ dtc-tmp = $(subst $(comma),_,$(dot-target).dts.tmp)
+ 
+ # Bzip2
+-- 
+2.29.2
+

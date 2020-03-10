@@ -1,0 +1,117 @@
+From 033ff94cca776569ffd1ecf16bc17cd19ff71718 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Thu, 10 Dec 2020 16:42:06 -0600
+Subject: [PATCH 43/47] fpga: add led trigger for operating state
+
+This adds an LED trigger to fpga-mgr that indicates whether an FPGA is
+in the operating state.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ drivers/fpga/Kconfig          |  8 ++++++++
+ drivers/fpga/fpga-mgr.c       | 18 ++++++++++++++++++
+ include/linux/fpga/fpga-mgr.h |  5 +++++
+ 3 files changed, 31 insertions(+)
+
+diff --git a/drivers/fpga/Kconfig b/drivers/fpga/Kconfig
+index 5645226ca3ce..9b8bf6f8b3ad 100644
+--- a/drivers/fpga/Kconfig
++++ b/drivers/fpga/Kconfig
+@@ -12,6 +12,14 @@ menuconfig FPGA
+ 
+ if FPGA
+ 
++config FPGA_MGR_LEDS
++	bool "Enable FPGA operating state LED trigger"
++	depends on LEDS_CLASS
++	select LEDS_TRIGGERS
++	help
++	  This option enables an LED trigger to indicate when the FPGA is in
++	  the operating state.
++
+ config FPGA_MGR_SOCFPGA
+ 	tristate "Altera SOCFPGA FPGA Manager"
+ 	depends on ARCH_SOCFPGA || COMPILE_TEST
+diff --git a/drivers/fpga/fpga-mgr.c b/drivers/fpga/fpga-mgr.c
+index f630689bb62c..5d5582c087cd 100644
+--- a/drivers/fpga/fpga-mgr.c
++++ b/drivers/fpga/fpga-mgr.c
+@@ -24,6 +24,12 @@ static struct class *fpga_mgr_class;
+ static void fpga_mgr_set_state(struct fpga_manager *mgr,
+ 			       enum fpga_mgr_states state)
+ {
++#ifdef CONFIG_FPGA_MGR_LEDS
++	if (mgr->state != state)
++		led_trigger_event(mgr->operating_led,
++				  state == FPGA_MGR_STATE_OPERATING ? LED_FULL : LED_OFF);
++#endif
++
+ 	mgr->state = state;
+ }
+ 
+@@ -685,6 +691,10 @@ int fpga_mgr_register(struct fpga_manager *mgr)
+ {
+ 	int ret;
+ 
++#ifdef CONFIG_FPGA_MGR_LEDS
++	led_trigger_register_simple(dev_name(&mgr->dev), &mgr->operating_led);
++#endif
++
+ 	/*
+ 	 * Initialize framework state by requesting low level driver read state
+ 	 * from device.  FPGA may be in reset mode or may have been programmed
+@@ -703,6 +713,10 @@ int fpga_mgr_register(struct fpga_manager *mgr)
+ error_device:
+ 	ida_simple_remove(&fpga_mgr_ida, mgr->dev.id);
+ 
++#ifdef CONFIG_FPGA_MGR_LEDS
++	led_trigger_unregister_simple(mgr->operating_led);
++#endif
++
+ 	return ret;
+ }
+ EXPORT_SYMBOL_GPL(fpga_mgr_register);
+@@ -717,6 +731,10 @@ void fpga_mgr_unregister(struct fpga_manager *mgr)
+ {
+ 	dev_info(&mgr->dev, "%s %s\n", __func__, mgr->name);
+ 
++#ifdef CONFIG_FPGA_MGR_LEDS
++	led_trigger_unregister_simple(mgr->operating_led);
++#endif
++
+ 	/*
+ 	 * If the low level driver provides a method for putting fpga into
+ 	 * a desired state upon unregister, do it.
+diff --git a/include/linux/fpga/fpga-mgr.h b/include/linux/fpga/fpga-mgr.h
+index e8ca62b2cb5b..994845bfe8a7 100644
+--- a/include/linux/fpga/fpga-mgr.h
++++ b/include/linux/fpga/fpga-mgr.h
+@@ -10,6 +10,7 @@
+ 
+ #include <linux/mutex.h>
+ #include <linux/platform_device.h>
++#include <linux/leds.h>
+ 
+ struct fpga_manager;
+ struct sg_table;
+@@ -162,6 +163,7 @@ struct fpga_compat_id {
+  * @state: state of fpga manager
+  * @compat_id: FPGA manager id for compatibility check.
+  * @mops: pointer to struct of fpga manager ops
++ * @operating_led: led trigger to indicate operating state
+  * @priv: low level driver private date
+  */
+ struct fpga_manager {
+@@ -171,6 +173,9 @@ struct fpga_manager {
+ 	enum fpga_mgr_states state;
+ 	struct fpga_compat_id *compat_id;
+ 	const struct fpga_manager_ops *mops;
++#ifdef CONFIG_FPGA_MGR_LEDS
++	struct led_trigger *operating_led;
++#endif
+ 	void *priv;
+ };
+ 
+-- 
+2.29.2
+

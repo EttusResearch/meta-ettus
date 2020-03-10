@@ -1,0 +1,246 @@
+From d74141e5bd57d0f310b8e78ce219e5f2646c403e Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Thu, 12 Sep 2019 16:46:25 -0500
+Subject: [PATCH 24/47] nitlv_nvmem: tlv nvmem proxy
+
+This adds an nvmem driver that's able to interpret the tag-length-value
+format used on X410. This driver is essentially an nvmem proxy: it
+expects to consume an nvmem cell that provides access to the TLV eeprom
+format, and it exports cells that can be consumed by client drivers.
+This is done by overloading the offset parameter to instead be the tag.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ drivers/nvmem/Kconfig       |   7 ++
+ drivers/nvmem/Makefile      |   2 +
+ drivers/nvmem/nitlv_nvmem.c | 188 ++++++++++++++++++++++++++++++++++++
+ 3 files changed, 197 insertions(+)
+ create mode 100644 drivers/nvmem/nitlv_nvmem.c
+
+diff --git a/drivers/nvmem/Kconfig b/drivers/nvmem/Kconfig
+index 954d3b4a52ab..cfd2bda56595 100644
+--- a/drivers/nvmem/Kconfig
++++ b/drivers/nvmem/Kconfig
+@@ -259,6 +259,13 @@ config NVMEM_ZYNQMP
+ 
+ 	  If sure, say yes. If unsure, say no.
+ 
++config NVMEM_NITLV
++	bool "National Instruments TLV nvmem support"
++	help
++	  This is a driver to access values stored as TLV in an eeprom.
++
++	  If sure, say yes. If unsure, say no.
++
+ config SPRD_EFUSE
+ 	tristate "Spreadtrum SoC eFuse Support"
+ 	depends on ARCH_SPRD || COMPILE_TEST
+diff --git a/drivers/nvmem/Makefile b/drivers/nvmem/Makefile
+index a7c377218341..de4351e1f190 100644
+--- a/drivers/nvmem/Makefile
++++ b/drivers/nvmem/Makefile
+@@ -53,5 +53,7 @@ obj-$(CONFIG_SC27XX_EFUSE)	+= nvmem-sc27xx-efuse.o
+ nvmem-sc27xx-efuse-y		:= sc27xx-efuse.o
+ obj-$(CONFIG_NVMEM_ZYNQMP)	+= nvmem_zynqmp_nvmem.o
+ nvmem_zynqmp_nvmem-y		:= zynqmp_nvmem.o
++obj-$(CONFIG_NVMEM_NITLV)       += nvmem_nitlv_nvmem.o
++nvmem_nitlv_nvmem-y             := nitlv_nvmem.o
+ obj-$(CONFIG_SPRD_EFUSE)	+= nvmem_sprd_efuse.o
+ nvmem_sprd_efuse-y		:= sprd-efuse.o
+diff --git a/drivers/nvmem/nitlv_nvmem.c b/drivers/nvmem/nitlv_nvmem.c
+new file mode 100644
+index 000000000000..d2f4c1284c66
+--- /dev/null
++++ b/drivers/nvmem/nitlv_nvmem.c
+@@ -0,0 +1,188 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Copyright (C) 2019 National Instruments Corporation
++ */
++
++#include <linux/module.h>
++#include <linux/nvmem-provider.h>
++#include <linux/nvmem-consumer.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/crc32.h>
++#include <linux/of_platform.h>
++
++struct tlv_eeprom {
++	__le32 magic;
++	__le32 crc;
++	__le32 size;
++	uint8_t data[0];
++} __attribute__((packed));
++
++struct tlv {
++	uint8_t tag;
++	uint8_t len;
++	uint8_t val[0];
++} __attribute__((packed));
++
++static const struct tlv *tlv_next(const struct tlv *tlv, const void *end)
++{
++	const void *p = &tlv->val;
++
++	p += tlv->len;
++	if (p >= end)
++		return NULL;
++	return p;
++}
++
++static const struct tlv *tlv_find(const void *start, const void *end,
++				  uint8_t tag)
++{
++	const struct tlv *tlv = start;
++
++	do {
++		if (tlv->tag == tag)
++			break;
++	} while ((tlv = tlv_next(tlv, end)));
++
++	return tlv;
++}
++
++struct nitlv_nvmem_data {
++	struct device *dev;
++	struct nvmem_device *nvmem;
++	struct tlv_eeprom *eeprom;
++};
++
++static int nitlv_nvmem_fail_read(void *context, unsigned int offset, void *val,
++				 size_t bytes)
++{
++	return -ENXIO;
++}
++
++static int nitlv_nvmem_read(void *context, unsigned int offset,
++			     void *val, size_t bytes)
++{
++	struct nitlv_nvmem_data *priv = context;
++	const struct tlv *tlv;
++	const void *end;
++
++	end = priv->eeprom->data + le32_to_cpu(priv->eeprom->size);
++	tlv = tlv_find(priv->eeprom->data, end, offset);
++	if (!tlv) {
++		dev_err(priv->dev, "failed to find tag\n");
++		return -ENXIO;
++	}
++	if (bytes != tlv->len) {
++		dev_err(priv->dev, "wrong len: %zu vs %u\n", bytes, tlv->len);
++		return -ENXIO;
++	}
++	if (((void *)tlv->val + bytes) > end) {
++		dev_err(priv->dev, "would read past end of buf\n");
++		return -ENXIO;
++	}
++
++	memcpy(val, tlv->val, bytes);
++
++	return 0;
++}
++
++static struct nvmem_config econfig = {
++	.name = "nitlv-nvmem",
++	.owner = THIS_MODULE,
++	.word_size = 1,
++	.size = 1,
++	.read_only = true,
++};
++
++static const struct of_device_id nitlv_nvmem_match[] = {
++	{ .compatible = "ni,tlv-nvmem", },
++	{ /* sentinel */ },
++};
++MODULE_DEVICE_TABLE(of, nitlv_nvmem_match);
++
++static bool tlv_eeprom_valid(struct device *dev, struct tlv_eeprom *eeprom,
++			     size_t size)
++{
++	uint32_t crc;
++	uint32_t eeprom_size;
++
++	if (le32_to_cpu(eeprom->magic) != 0x55535250) {
++		dev_err(dev, "wrong magic: %08x\n", le32_to_cpu(eeprom->magic));
++		return false;
++	}
++
++	eeprom_size = le32_to_cpu(eeprom->size);
++
++	if (eeprom_size > size - sizeof(*eeprom)) {
++		dev_err(dev, "invalid size: %u\n", eeprom_size);
++		return false;
++	}
++
++	crc = crc32(0, &eeprom->size, sizeof(eeprom->size) + eeprom_size);
++
++	if (le32_to_cpu(eeprom->crc) != crc) {
++		dev_err(dev, "crc mismatch, read: %08x, expected: %08x\n",
++			le32_to_cpu(eeprom->crc), crc);
++		return false;
++	}
++
++	return true;
++}
++
++static int nitlv_nvmem_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct nitlv_nvmem_data *priv;
++	struct nvmem_cell *cell;
++	void *tlv_data;
++	size_t size;
++
++	priv = devm_kzalloc(dev, sizeof(struct nitlv_nvmem_data), GFP_KERNEL);
++	if (!priv)
++		return -ENOMEM;
++
++	priv->dev = dev;
++
++	cell = devm_nvmem_cell_get(dev, "tlv");
++	if (IS_ERR(cell)) {
++		if (PTR_ERR(cell) == -EPROBE_DEFER)
++			return -EPROBE_DEFER;
++		return -ENODEV;
++	}
++
++	tlv_data = nvmem_cell_read(cell, &size);
++	if (IS_ERR(tlv_data))
++		return PTR_ERR(tlv_data);
++
++	priv->eeprom = devm_kzalloc(dev, size, GFP_KERNEL);
++	if (!priv->eeprom)
++		return -ENOMEM;
++	memcpy(priv->eeprom, tlv_data, size);
++	devm_nvmem_cell_put(dev, cell);
++
++	econfig.dev = dev;
++	econfig.priv = priv;
++
++	if (tlv_eeprom_valid(dev, priv->eeprom, size))
++		econfig.reg_read = nitlv_nvmem_read;
++	else
++		econfig.reg_read = nitlv_nvmem_fail_read;
++
++	priv->nvmem = devm_nvmem_register(dev, &econfig);
++
++	return PTR_ERR_OR_ZERO(priv->nvmem);
++}
++
++static struct platform_driver nitlv_nvmem_driver = {
++	.probe = nitlv_nvmem_probe,
++	.driver = {
++		.name = "nitlv-nvmem",
++		.of_match_table = nitlv_nvmem_match,
++	},
++};
++
++module_platform_driver(nitlv_nvmem_driver);
++
++MODULE_AUTHOR("Michael Auchter <michael.auchter@ni.com>");
++MODULE_DESCRIPTION("NI TLV NVMEM provider");
++MODULE_LICENSE("GPL");
+-- 
+2.29.2
+

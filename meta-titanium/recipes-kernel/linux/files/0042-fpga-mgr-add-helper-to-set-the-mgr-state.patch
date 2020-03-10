@@ -1,0 +1,120 @@
+From 0f4db805005ad29c1282533879597a4f2c332325 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Thu, 10 Dec 2020 16:23:31 -0600
+Subject: [PATCH 42/47] fpga: mgr: add helper to set the mgr state
+
+---
+ drivers/fpga/fpga-mgr.c | 30 ++++++++++++++++++------------
+ 1 file changed, 18 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/fpga/fpga-mgr.c b/drivers/fpga/fpga-mgr.c
+index f38bab01432e..f630689bb62c 100644
+--- a/drivers/fpga/fpga-mgr.c
++++ b/drivers/fpga/fpga-mgr.c
+@@ -21,6 +21,12 @@
+ static DEFINE_IDA(fpga_mgr_ida);
+ static struct class *fpga_mgr_class;
+ 
++static void fpga_mgr_set_state(struct fpga_manager *mgr,
++			       enum fpga_mgr_states state)
++{
++	mgr->state = state;
++}
++
+ /**
+  * fpga_image_info_alloc - Allocate a FPGA image info struct
+  * @dev: owning device
+@@ -77,7 +83,7 @@ static int fpga_mgr_write_init_buf(struct fpga_manager *mgr,
+ {
+ 	int ret;
+ 
+-	mgr->state = FPGA_MGR_STATE_WRITE_INIT;
++	fpga_mgr_set_state(mgr, FPGA_MGR_STATE_WRITE_INIT);
+ 	if (!mgr->mops->initial_header_size)
+ 		ret = mgr->mops->write_init(mgr, info, NULL, 0);
+ 	else
+@@ -86,7 +92,7 @@ static int fpga_mgr_write_init_buf(struct fpga_manager *mgr,
+ 
+ 	if (ret) {
+ 		dev_err(&mgr->dev, "Error preparing FPGA for writing\n");
+-		mgr->state = FPGA_MGR_STATE_WRITE_INIT_ERR;
++		fpga_mgr_set_state(mgr, FPGA_MGR_STATE_WRITE_INIT_ERR);
+ 		return ret;
+ 	}
+ 
+@@ -142,14 +148,14 @@ static int fpga_mgr_write_complete(struct fpga_manager *mgr,
+ {
+ 	int ret;
+ 
+-	mgr->state = FPGA_MGR_STATE_WRITE_COMPLETE;
++	fpga_mgr_set_state(mgr, FPGA_MGR_STATE_WRITE_COMPLETE);
+ 	ret = mgr->mops->write_complete(mgr, info);
+ 	if (ret) {
+ 		dev_err(&mgr->dev, "Error after writing image data to FPGA\n");
+-		mgr->state = FPGA_MGR_STATE_WRITE_COMPLETE_ERR;
++		fpga_mgr_set_state(mgr, FPGA_MGR_STATE_WRITE_COMPLETE_ERR);
+ 		return ret;
+ 	}
+-	mgr->state = FPGA_MGR_STATE_OPERATING;
++	fpga_mgr_set_state(mgr, FPGA_MGR_STATE_OPERATING);
+ 
+ 	return 0;
+ }
+@@ -182,7 +188,7 @@ static int fpga_mgr_buf_load_sg(struct fpga_manager *mgr,
+ 		return ret;
+ 
+ 	/* Write the FPGA image to the FPGA. */
+-	mgr->state = FPGA_MGR_STATE_WRITE;
++	fpga_mgr_set_state(mgr, FPGA_MGR_STATE_WRITE);
+ 	if (mgr->mops->write_sg) {
+ 		ret = mgr->mops->write_sg(mgr, sgt);
+ 	} else {
+@@ -199,7 +205,7 @@ static int fpga_mgr_buf_load_sg(struct fpga_manager *mgr,
+ 
+ 	if (ret) {
+ 		dev_err(&mgr->dev, "Error while writing image data to FPGA\n");
+-		mgr->state = FPGA_MGR_STATE_WRITE_ERR;
++		fpga_mgr_set_state(mgr, FPGA_MGR_STATE_WRITE_ERR);
+ 		return ret;
+ 	}
+ 
+@@ -219,11 +225,11 @@ static int fpga_mgr_buf_load_mapped(struct fpga_manager *mgr,
+ 	/*
+ 	 * Write the FPGA image to the FPGA.
+ 	 */
+-	mgr->state = FPGA_MGR_STATE_WRITE;
++	fpga_mgr_set_state(mgr, FPGA_MGR_STATE_WRITE);
+ 	ret = mgr->mops->write(mgr, buf, count);
+ 	if (ret) {
+ 		dev_err(&mgr->dev, "Error while writing image data to FPGA\n");
+-		mgr->state = FPGA_MGR_STATE_WRITE_ERR;
++		fpga_mgr_set_state(mgr, FPGA_MGR_STATE_WRITE_ERR);
+ 		return ret;
+ 	}
+ 
+@@ -326,11 +332,11 @@ static int fpga_mgr_firmware_load(struct fpga_manager *mgr,
+ 
+ 	dev_info(dev, "writing %s to %s\n", image_name, mgr->name);
+ 
+-	mgr->state = FPGA_MGR_STATE_FIRMWARE_REQ;
++	fpga_mgr_set_state(mgr, FPGA_MGR_STATE_FIRMWARE_REQ);
+ 
+ 	ret = request_firmware(&fw, image_name, dev);
+ 	if (ret) {
+-		mgr->state = FPGA_MGR_STATE_FIRMWARE_REQ_ERR;
++		fpga_mgr_set_state(mgr, FPGA_MGR_STATE_FIRMWARE_REQ_ERR);
+ 		dev_err(dev, "Error requesting firmware %s\n", image_name);
+ 		return ret;
+ 	}
+@@ -684,7 +690,7 @@ int fpga_mgr_register(struct fpga_manager *mgr)
+ 	 * from device.  FPGA may be in reset mode or may have been programmed
+ 	 * by bootloader or EEPROM.
+ 	 */
+-	mgr->state = mgr->mops->state(mgr);
++	fpga_mgr_set_state(mgr, mgr->mops->state(mgr));
+ 
+ 	ret = device_add(&mgr->dev);
+ 	if (ret)
+-- 
+2.29.2
+

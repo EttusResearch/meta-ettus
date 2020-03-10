@@ -1,0 +1,320 @@
+From 4073e84563fec44fe0d0f854d01a66ab9bb37a4a Mon Sep 17 00:00:00 2001
+From: Virendra Kakade <virendra.kakade@ni.com>
+Date: Tue, 26 Nov 2019 15:25:08 -0600
+Subject: [PATCH 26/47] x410: iio based cros-ec temperature sensor driver
+
+This driver adds support for registering the temperature sensors
+connected to cros-ec as iio devices of channel type IIO_TEMP.
+This enables the user to query the temperature values from the sensors
+via sysfs.
+The process for registering temperature sensors is dynamic i.e. if a
+sensor is absent or reports an error during driver load; it will not be
+registered as a device.
+
+Signed-off-by: Virendra Kakade <virendra.kakade@ni.com>
+---
+ drivers/iio/temperature/Kconfig        |   9 +
+ drivers/iio/temperature/Makefile       |   1 +
+ drivers/iio/temperature/cros_ec_temp.c | 260 +++++++++++++++++++++++++
+ 3 files changed, 270 insertions(+)
+ create mode 100644 drivers/iio/temperature/cros_ec_temp.c
+
+diff --git a/drivers/iio/temperature/Kconfig b/drivers/iio/temperature/Kconfig
+index f1f2a1499c9e..db1696405599 100644
+--- a/drivers/iio/temperature/Kconfig
++++ b/drivers/iio/temperature/Kconfig
+@@ -129,4 +129,13 @@ config MAX31856
+ 	  This driver can also be built as a module.  If so, the module
+ 	  will be called max31856.
+ 
++config IIO_CROS_EC_TEMP
++	tristate "ChromeOS EC Temperature Sensor"
++	depends on CROS_EC
++	help
++	  Say yes here to build support for the Temperature sensor when
++	  presented by the ChromeOS EC Sensor hub.
++
++	  To compile this driver as a module, choose M here: the module
++	  will be called cros_ec_temp.
+ endmenu
+diff --git a/drivers/iio/temperature/Makefile b/drivers/iio/temperature/Makefile
+index 90c113115422..924188ab57e5 100644
+--- a/drivers/iio/temperature/Makefile
++++ b/drivers/iio/temperature/Makefile
+@@ -6,6 +6,7 @@
+ obj-$(CONFIG_IQS620AT_TEMP) += iqs620at-temp.o
+ obj-$(CONFIG_LTC2983) += ltc2983.o
+ obj-$(CONFIG_HID_SENSOR_TEMP) += hid-sensor-temperature.o
++obj-$(CONFIG_IIO_CROS_EC_TEMP) += cros_ec_temp.o
+ obj-$(CONFIG_MAXIM_THERMOCOUPLE) += maxim_thermocouple.o
+ obj-$(CONFIG_MAX31856) += max31856.o
+ obj-$(CONFIG_MLX90614) += mlx90614.o
+diff --git a/drivers/iio/temperature/cros_ec_temp.c b/drivers/iio/temperature/cros_ec_temp.c
+new file mode 100644
+index 000000000000..426ad81958d4
+--- /dev/null
++++ b/drivers/iio/temperature/cros_ec_temp.c
+@@ -0,0 +1,260 @@
++#include <linux/device.h>
++#include <linux/err.h>
++#include <linux/iio/iio.h>
++#include <linux/kernel.h>
++#include <linux/platform_data/cros_ec_proto.h>
++#include <linux/platform_data/cros_ec_commands.h>
++#include <linux/module.h>
++#include <linux/platform_device.h>
++#include <linux/slab.h>
++
++struct cros_ec_temp {
++	struct iio_chan_spec channel;
++	struct cros_ec_device *ec;
++	char sensor_name[32];
++	uint8_t id;
++};
++
++static int cros_ec_temp_run_ec_command(struct cros_ec_device *ec_dev,
++					struct cros_ec_command *msg)
++{
++	int ret;
++
++	ret = cros_ec_cmd_xfer_status(ec_dev, msg);
++
++	if (ret < 0 || ret != msg->insize) {
++		/*
++		 * Suppress printing warning when we get EC_RES_ERROR
++		 * because that is expected in the case when we query
++		 * outside of valid sensor id range.
++		 */
++		if (msg->result != EC_RES_ERROR)
++			dev_warn(ec_dev->dev,
++				"Error occurred while running EC command. Got \
++				EC response %d.\n",
++				msg->result);
++		ret = -EPROTO;
++	}
++
++	return ret;
++}
++
++static int cros_ec_temp_read_measurement(struct cros_ec_device *ec_dev,
++					int sensor_id)
++{
++	struct ec_params_read_memmap *params;
++	struct cros_ec_command *msg;
++	size_t result_size = 0x1; /* 1 byte memory-mapped temperature */
++	int ret = 0;
++
++	msg = kzalloc(sizeof(*msg) + max(result_size, sizeof(*params)),
++			GFP_KERNEL);
++	if (!msg)
++		return -ENOMEM;
++
++	msg->version = 0;
++	msg->command = EC_CMD_READ_MEMMAP;
++	msg->outsize = sizeof(*params);
++	msg->insize = result_size;
++	params = (struct ec_params_read_memmap *)msg->data;
++	/*
++	 * Memory-mapped temperatures are stored at contiguous locations
++	 * at sensor_id offset from the EC_MEMMAP_TEMP_SENSOR base.
++	 */
++	params->offset = EC_MEMMAP_TEMP_SENSOR + sensor_id;
++	params->size = result_size;
++
++	ret = cros_ec_temp_run_ec_command(ec_dev, msg);
++
++	if (ret >= 0) {
++		uint8_t mem_mapped_temp = msg->data[0];
++		if (mem_mapped_temp == EC_TEMP_SENSOR_NOT_PRESENT ||
++			mem_mapped_temp == EC_TEMP_SENSOR_ERROR ||
++			mem_mapped_temp == EC_TEMP_SENSOR_NOT_POWERED ||
++			mem_mapped_temp == EC_TEMP_SENSOR_NOT_CALIBRATED) {
++
++			ret = -ENODEV;
++		} else {
++			ret = mem_mapped_temp + EC_TEMP_SENSOR_OFFSET;
++		}
++	}
++
++	kfree(msg);
++	return ret;
++}
++
++static int cros_ec_temp_read(struct iio_dev *indio_dev,
++			    struct iio_chan_spec const *channel, int *val,
++			    int *val2, long mask)
++{
++	switch (mask) {
++	case IIO_CHAN_INFO_RAW:
++		if (channel->type == IIO_TEMP) {
++			struct cros_ec_temp *ctdev = iio_priv(indio_dev);
++			int ret;
++
++			ret = cros_ec_temp_read_measurement(ctdev->ec,
++							ctdev->channel.channel);
++
++			if (ret < 0)
++				return ret;
++
++			*val = ret;
++
++			return IIO_VAL_INT;
++		}
++		return -EINVAL;
++	case IIO_CHAN_INFO_SCALE:
++		*val = 1000;
++		return IIO_VAL_INT;
++	case IIO_CHAN_INFO_OFFSET:
++		*val = -273;
++		return IIO_VAL_INT;
++	default:
++		return -EINVAL;
++	}
++}
++
++static const struct iio_info cros_ec_temp_info = {
++	.read_raw = cros_ec_temp_read,
++};
++
++static int cros_ec_temp_probe(struct platform_device *pdev)
++{
++	struct cros_ec_device *ec = dev_get_drvdata(pdev->dev.parent);
++	struct ec_response_temp_sensor_get_info *response;
++	struct ec_params_temp_sensor_get_info *params;
++	size_t result_size = sizeof(*response);
++	struct device *dev = &pdev->dev;
++	struct iio_chan_spec *channel;
++	struct cros_ec_command *msg;
++	struct cros_ec_temp *ctdev;
++	struct iio_dev *indio_dev;
++	uint8_t sensor_count = 0;
++	int ret = 0;
++	int i;
++
++	msg = kzalloc(sizeof(*msg) + max(result_size, sizeof(*params)),
++			GFP_KERNEL);
++	if (!msg)
++		return -ENOMEM;
++
++	msg->version = 0;
++	msg->command = EC_CMD_TEMP_SENSOR_GET_INFO;
++	msg->outsize = sizeof(*params);
++	msg->insize = result_size;
++	params = (struct ec_params_temp_sensor_get_info *)msg->data;
++
++	/*
++	 * The supported temperature sensors table on the EC is static and
++	 * there is currently no way to find out what the size of this list is
++	 * from the AP. So we query the entire possible list of sensor ids i.e.
++	 * from 0 to (EC_TEMP_SENSOR_ENTRIES - 1) and then only register the
++	 * sensors corresponding to the ids actually physically present. This
++	 * is done by first querying sensor information and then actually trying
++	 * to read measurement from them. Note that while the sensor may be
++	 * present on the static table it may not actually be populated on the
++	 * board.
++	 */
++	for (i = 0; i < EC_TEMP_SENSOR_ENTRIES; i++) {
++		/* Set sensor id to query */
++		params->id = i;
++
++		/* Query sensor information; if that fails try next sensor */
++		ret = cros_ec_temp_run_ec_command(ec, msg);
++
++		/*
++		 * Getting EC_RES_ERROR indicates that we have reached the end
++		 * of valid sensor ids supported by EC; exit.
++		 */
++		if (ret == -EPROTO && msg->result == EC_RES_ERROR)
++			break;
++
++		if (ret < 0)
++			continue;
++
++		/*
++		 * Try querying the sensor data, if it doesn't physically exist
++		 * try the next one.
++		 */
++		ret = cros_ec_temp_read_measurement(ec, i);
++		if (ret < 0)
++			continue;
++
++		response = (struct ec_response_temp_sensor_get_info *)msg->data;
++
++		indio_dev = devm_iio_device_alloc(dev, sizeof(*ctdev));
++		if (!indio_dev) {
++			kfree(msg);
++			return -ENOMEM;
++		}
++
++		ctdev = iio_priv(indio_dev);
++		ctdev->ec = ec;
++
++		memcpy(ctdev->sensor_name,
++			response->sensor_name,
++			sizeof(response->sensor_name));
++		ctdev->id = i;
++
++		channel = &ctdev->channel;
++
++		/* Channel Configuration */
++		channel->type = IIO_TEMP;
++		channel->info_mask_separate = BIT(IIO_CHAN_INFO_RAW) |
++						BIT(IIO_CHAN_INFO_SCALE) |
++						BIT(IIO_CHAN_INFO_OFFSET);
++		channel->channel = ctdev->id;
++
++		indio_dev->info = &cros_ec_temp_info;
++		indio_dev->channels = channel;
++		indio_dev->num_channels = 1;
++		indio_dev->name = ctdev->sensor_name;
++
++		ret = devm_iio_device_register(dev, indio_dev);
++
++		if (ret < 0) {
++			dev_warn(dev, "Error %d occurred when registering \
++				iio device for %s sensor.\n",
++				ret,
++				ctdev->sensor_name);
++			//devm_iio_device_free(dev, indio_dev);
++		} else {
++			sensor_count++;
++		}
++	}
++
++	kfree(msg);
++	dev_info(dev, "Registered %d temperature sensor(s).", sensor_count);
++	return 0;
++}
++
++static const struct platform_device_id cros_ec_temp_ids[] = {
++	{
++		.name = "cros-ec-temp",
++	},
++	{ /* sentinel */ }
++};
++MODULE_DEVICE_TABLE(platform, cros_ec_temp_ids);
++
++static const struct of_device_id cros_ec_temp_of_ids[] = {
++	{
++		.compatible = "ni,cros-ec-temp",
++	},
++	{ /* sentinel */ }
++};
++MODULE_DEVICE_TABLE(of, cros_ec_temp_of_ids);
++
++static struct platform_driver cros_ec_temp_driver = {
++	.driver = {
++		.name = "cros-ec-temp",
++		.of_match_table = cros_ec_temp_of_ids,
++	},
++	.probe = cros_ec_temp_probe,
++	.id_table = cros_ec_temp_ids,
++};
++module_platform_driver(cros_ec_temp_driver);
++
++MODULE_AUTHOR("Virendra Kakade <virendra.kakade@ni.com>");
++MODULE_DESCRIPTION("ChromeOS EC temperature sensor driver");
++MODULE_LICENSE("GPL v2");
+-- 
+2.29.2
+

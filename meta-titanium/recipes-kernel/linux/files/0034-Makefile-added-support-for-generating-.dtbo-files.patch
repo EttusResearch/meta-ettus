@@ -1,0 +1,36 @@
+From 5dd2b7427e192d95a221531337a935f13f06bbd4 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Mon, 19 Aug 2019 09:18:20 +0200
+Subject: [PATCH 34/47] Makefile: added support for generating .dtbo files
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ Makefile | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+index cb76f64abb6d..2cfdee9cfac7 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1342,6 +1342,9 @@ ifneq ($(dtstree),)
+ %.dtb: include/config/kernel.release scripts_dtc
+ 	$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/$@
+ 
++%.dtbo: include/config/kernel.release scripts_dtc
++	$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/$@
++
+ PHONY += dtbs dtbs_install dtbs_check
+ dtbs: include/config/kernel.release scripts_dtc
+ 	$(Q)$(MAKE) $(build)=$(dtstree)
+@@ -1820,7 +1823,7 @@ clean: $(clean-dirs)
+ 	$(call cmd,rmfiles)
+ 	@find $(if $(KBUILD_EXTMOD), $(KBUILD_EXTMOD), .) $(RCS_FIND_IGNORE) \
+ 		\( -name '*.[aios]' -o -name '*.ko' -o -name '.*.cmd' \
+-		-o -name '*.ko.*' \
++		-o -name '*.ko.*' -o -name '*.dtbo' \
+ 		-o -name '*.dtb' -o -name '*.dtb.S' -o -name '*.dt.yaml' \
+ 		-o -name '*.dwo' -o -name '*.lst' \
+ 		-o -name '*.su' -o -name '*.mod' \
+-- 
+2.29.2
+

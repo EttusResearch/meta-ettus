@@ -1,0 +1,106 @@
+From b857ca4816546a744ffa99caa243c74380ca4c7f Mon Sep 17 00:00:00 2001
+From: Marco Felsch <m.felsch@pengutronix.de>
+Date: Fri, 11 Sep 2020 16:47:03 +0200
+Subject: [PATCH 03/47] mtd: spi-nor: sst: move sst_write_second to local
+ driver
+
+Don't mess the spi-nor core with details only relating to this specific
+device. Handle the addr_width locally and drop the sst related stuff
+from the spi-nor core to clean it up.
+
+Signed-off-by: Marco Felsch <m.felsch@pengutronix.de>
+---
+ drivers/mtd/spi-nor/core.c  |  3 ---
+ drivers/mtd/spi-nor/sst.c   | 10 ++++++----
+ include/linux/mtd/spi-nor.h |  2 --
+ 3 files changed, 6 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/mtd/spi-nor/core.c b/drivers/mtd/spi-nor/core.c
+index 0af22960a64f..531f734eb279 100644
+--- a/drivers/mtd/spi-nor/core.c
++++ b/drivers/mtd/spi-nor/core.c
+@@ -173,9 +173,6 @@ static ssize_t spi_nor_spimem_write_data(struct spi_nor *nor, loff_t to,
+ 	op.addr.buswidth = spi_nor_get_protocol_addr_nbits(nor->write_proto);
+ 	op.data.buswidth = spi_nor_get_protocol_data_nbits(nor->write_proto);
+ 
+-	if (nor->program_opcode == SPINOR_OP_AAI_WP && nor->sst_write_second)
+-		op.addr.nbytes = 0;
+-
+ 	if (spi_nor_spimem_bounce(nor, &op))
+ 		memcpy(nor->bouncebuf, buf, op.data.nbytes);
+ 
+diff --git a/drivers/mtd/spi-nor/sst.c b/drivers/mtd/spi-nor/sst.c
+index cfdc61a3ffb2..b18f0ea089aa 100644
+--- a/drivers/mtd/spi-nor/sst.c
++++ b/drivers/mtd/spi-nor/sst.c
+@@ -59,10 +59,9 @@ static int sst_write(struct mtd_info *mtd, loff_t to, size_t len,
+ 	if (ret)
+ 		goto out;
+ 
+-	nor->sst_write_second = false;
+-
+ 	/* Start write from odd address. */
+ 	if (to % 2) {
++		nor->addr_width = 3;
+ 		nor->program_opcode = SPINOR_OP_BP;
+ 
+ 		/* write one byte. */
+@@ -87,6 +86,8 @@ static int sst_write(struct mtd_info *mtd, loff_t to, size_t len,
+ 				goto out;
+ 		}
+ 
++		/* Send address only once for each AAI_WP cycle */
++		nor->addr_width = (actual > 1) ? 0 : 3;
+ 		nor->program_opcode = SPINOR_OP_AAI_WP;
+ 
+ 		/* write two bytes. */
+@@ -98,9 +99,7 @@ static int sst_write(struct mtd_info *mtd, loff_t to, size_t len,
+ 		if (ret)
+ 			goto out;
+ 		to += 2;
+-		nor->sst_write_second = true;
+ 	}
+-	nor->sst_write_second = false;
+ 
+ 	ret = spi_nor_write_disable(nor);
+ 	if (ret)
+@@ -116,6 +115,7 @@ static int sst_write(struct mtd_info *mtd, loff_t to, size_t len,
+ 		if (ret)
+ 			goto out;
+ 
++		nor->addr_width = 3;
+ 		nor->program_opcode = SPINOR_OP_BP;
+ 		ret = spi_nor_write_data(nor, to, 1, buf + actual);
+ 		if (ret < 0)
+@@ -130,6 +130,8 @@ static int sst_write(struct mtd_info *mtd, loff_t to, size_t len,
+ 		ret = spi_nor_write_disable(nor);
+ 	}
+ out:
++	/* Set to default in case no trailing bytes are written */
++	nor->addr_width = 3;
+ 	*retlen += actual;
+ 	spi_nor_unlock_and_unprep(nor);
+ 	return ret;
+diff --git a/include/linux/mtd/spi-nor.h b/include/linux/mtd/spi-nor.h
+index 60bac2c0ec45..4368c0c41fda 100644
+--- a/include/linux/mtd/spi-nor.h
++++ b/include/linux/mtd/spi-nor.h
+@@ -343,7 +343,6 @@ struct spi_nor_flash_parameter;
+  * @read_opcode:	the read opcode
+  * @read_dummy:		the dummy needed by the read operation
+  * @program_opcode:	the program opcode
+- * @sst_write_second:	used by the SST write operation
+  * @flags:		flag options for the current SPI NOR (SNOR_F_*)
+  * @read_proto:		the SPI protocol for read operations
+  * @write_proto:	the SPI protocol for write operations
+@@ -374,7 +373,6 @@ struct spi_nor {
+ 	enum spi_nor_protocol	read_proto;
+ 	enum spi_nor_protocol	write_proto;
+ 	enum spi_nor_protocol	reg_proto;
+-	bool			sst_write_second;
+ 	u32			flags;
+ 
+ 	const struct spi_nor_controller_ops *controller_ops;
+-- 
+2.29.2
+
