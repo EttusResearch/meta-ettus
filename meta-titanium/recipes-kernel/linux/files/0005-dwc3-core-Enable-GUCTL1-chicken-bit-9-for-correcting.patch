@@ -1,0 +1,91 @@
+From 414db468944b51252bcc5367384051b88a8acf74 Mon Sep 17 00:00:00 2001
+From: Anurag Kumar Vulisha <anurag.kumar.vulisha@xilinx.com>
+Date: Thu, 23 Jan 2020 19:50:43 +0530
+Subject: [PATCH 05/47] dwc3: core: Enable GUCTL1 chicken bit 9 for correcting
+ Inter Packet Delay(IPD)
+
+SNPS controller when configureed in HOST mode maintains Inter Packet
+Delay (IPD) of ~380ns which works with most of super-speed hubs except
+VIA-LAB hubs. When IPD is ~380ns HOST controller fails to enumerate FS/LS
+devices when connected behind VIA-LAB hubs.
+Enabling bit 9 of GUCTL1 enables the workaround in HW to reduce the ULPI
+clock latency by 1 cycle, thus reducing the IPD (~360ns) and making
+controller enumerate FS/LS devices connected behind VIA-LAB.
+This patch fixes the same.
+
+Signed-off-by: Anurag Kumar Vulisha <anuragku@xilinx.com>
+Signed-off-by: Anurag Kumar Vulisha <anurag.kumar.vulisha@xilinx.com>
+Signed-off-by: Michal Simek <michal.simek@xilinx.com>
+Signed-off-by: Piyush Mehta <piyush.mehta@xilinx.com>
+State: pending
+---
+ drivers/usb/dwc3/core.c | 16 ++++++++++++++++
+ drivers/usb/dwc3/core.h |  4 ++++
+ 2 files changed, 20 insertions(+)
+
+diff --git a/drivers/usb/dwc3/core.c b/drivers/usb/dwc3/core.c
+index 063bb96302c3..71d52a65ee93 100644
+--- a/drivers/usb/dwc3/core.c
++++ b/drivers/usb/dwc3/core.c
+@@ -1023,6 +1023,20 @@ static int dwc3_core_init(struct dwc3 *dwc)
+ 		dwc3_writel(dwc->regs, DWC3_GUCTL1, reg);
+ 	}
+ 
++	/* SNPS controller when configureed in HOST mode maintains Inter Packet
++	 * Delay (IPD) of ~380ns which works with most of the super-speed hubs
++	 * except VIA-LAB hubs. When IPD is ~380ns HOST controller fails to
++	 * enumerate FS/LS devices when connected behind VIA-LAB hubs.
++	 * Enabling bit 9 of GUCTL1 enables the workaround in HW to reduce the
++	 * ULPI clock latency by 1 cycle, thus reducing the IPD (~360ns) and
++	 * making controller enumerate FS/LS devices connected behind VIA-LAB.
++	 */
++	if (dwc->enable_guctl1_ipd_quirk) {
++		reg = dwc3_readl(dwc->regs, DWC3_GUCTL1);
++		reg |= DWC3_GUCTL1_IPD_QUIRK;
++		dwc3_writel(dwc->regs, DWC3_GUCTL1, reg);
++	}
++
+ 	if (!DWC3_VER_IS_PRIOR(DWC3, 250A)) {
+ 		reg = dwc3_readl(dwc->regs, DWC3_GUCTL1);
+ 
+@@ -1366,6 +1380,8 @@ static void dwc3_get_properties(struct dwc3 *dwc)
+ 
+ 	dwc->enable_guctl1_resume_quirk = device_property_read_bool(dev,
+ 				"snps,enable_guctl1_resume_quirk");
++	dwc->enable_guctl1_ipd_quirk = device_property_read_bool(dev,
++				"snps,enable_guctl1_ipd_quirk");
+ 	dwc->dis_metastability_quirk = device_property_read_bool(dev,
+ 				"snps,dis_metastability_quirk");
+ 
+diff --git a/drivers/usb/dwc3/core.h b/drivers/usb/dwc3/core.h
+index 8d8a7b3449f8..38269c92f986 100644
+--- a/drivers/usb/dwc3/core.h
++++ b/drivers/usb/dwc3/core.h
+@@ -381,6 +381,7 @@
+ 
+ /* Global User Control Register 1 */
+ #define DWC3_GUCTL1_RESUME_QUIRK		(1 << 10)
++#define DWC3_GUCTL1_IPD_QUIRK			(1 << 9)
+ 
+ /* Global User Control Register 2 */
+ #define DWC3_GUCTL2_RST_ACTBITLATER		BIT(14)
+@@ -1052,6 +1053,8 @@ struct dwc3_scratchpad_array {
+  *			change quirk.
+  * @enable_guctl1_resume_quirk: Set if we enable quirk for fixing improper crc
+  *			generation after resume from suspend.
++ * @enable_guctl1_ipd_quirk: set if we enable quirk for reducing timing of inter
++ *			packet delay(ipd).
+  * @dis_tx_ipgap_linecheck_quirk: set if we disable u2mac linestate
+  *			check during HS transmit.
+  * @parkmode_disable_ss_quirk: set if we need to disable all SuperSpeed
+@@ -1250,6 +1253,7 @@ struct dwc3 {
+ 	unsigned		dis_u2_freeclk_exists_quirk:1;
+ 	unsigned		dis_del_phy_power_chg_quirk:1;
+ 	unsigned		enable_guctl1_resume_quirk:1;
++	unsigned		enable_guctl1_ipd_quirk:1;
+ 	unsigned		dis_tx_ipgap_linecheck_quirk:1;
+ 	unsigned		parkmode_disable_ss_quirk:1;
+ 
+-- 
+2.29.2
+

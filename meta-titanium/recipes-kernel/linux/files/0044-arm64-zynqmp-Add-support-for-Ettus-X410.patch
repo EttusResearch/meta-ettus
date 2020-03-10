@@ -1,0 +1,1454 @@
+From e19351b8b94d1dc773520a4da92322d723eb4ae6 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Wed, 22 May 2019 14:22:58 -0500
+Subject: [PATCH 44/47] arm64: zynqmp: Add support for Ettus X410
+
+Co-Authored-By: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Co-Authored-By: Virendra Kakade <virendra.kakade@ni.com>
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ arch/arm64/boot/dts/Makefile                  |   1 +
+ arch/arm64/boot/dts/ni/Makefile               |  19 +
+ arch/arm64/boot/dts/ni/x410-rev2.dts          | 597 ++++++++++++++++++
+ arch/arm64/boot/dts/ni/x410-rev3.dts          |  77 +++
+ arch/arm64/boot/dts/ni/x410-rev4.dts          |  54 ++
+ arch/arm64/boot/dts/ni/x410-rev5.dts          |  43 ++
+ .../boot/dts/ni/x4xx-clkaux-0x4004-rev1.dtso  |  50 ++
+ .../boot/dts/ni/x4xx-clkaux-0x4004-rev2.dtso  |  77 +++
+ .../boot/dts/ni/x4xx-clkaux-0x4005-rev1.dtso  |  46 ++
+ .../boot/dts/ni/x4xx-clkaux-0x4005-rev2.dtso  |  73 +++
+ arch/arm64/boot/dts/ni/x4xx-db-helpers.dtsi   |  17 +
+ arch/arm64/boot/dts/ni/x4xx-db-iftest.dtsi    |  68 ++
+ arch/arm64/boot/dts/ni/x4xx-db-rfchar.dtsi    |  64 ++
+ .../boot/dts/ni/x4xx-db0-0x4001-rev1.dtso     |   7 +
+ .../boot/dts/ni/x4xx-db0-0x4006-rev1.dtso     |   7 +
+ arch/arm64/boot/dts/ni/x4xx-db0-db-flash.dtso |  11 +
+ .../boot/dts/ni/x4xx-db1-0x4001-rev1.dtso     |   7 +
+ .../boot/dts/ni/x4xx-db1-0x4006-rev1.dtso     |   7 +
+ arch/arm64/boot/dts/ni/x4xx-db1-db-flash.dtso |  11 +
+ .../boot/dts/ni/x4xx-dioaux-0x4003-rev1.dtso  |  40 ++
+ 20 files changed, 1276 insertions(+)
+ create mode 100644 arch/arm64/boot/dts/ni/Makefile
+ create mode 100644 arch/arm64/boot/dts/ni/x410-rev2.dts
+ create mode 100644 arch/arm64/boot/dts/ni/x410-rev3.dts
+ create mode 100644 arch/arm64/boot/dts/ni/x410-rev4.dts
+ create mode 100644 arch/arm64/boot/dts/ni/x410-rev5.dts
+ create mode 100644 arch/arm64/boot/dts/ni/x4xx-clkaux-0x4004-rev1.dtso
+ create mode 100644 arch/arm64/boot/dts/ni/x4xx-clkaux-0x4004-rev2.dtso
+ create mode 100644 arch/arm64/boot/dts/ni/x4xx-clkaux-0x4005-rev1.dtso
+ create mode 100644 arch/arm64/boot/dts/ni/x4xx-clkaux-0x4005-rev2.dtso
+ create mode 100644 arch/arm64/boot/dts/ni/x4xx-db-helpers.dtsi
+ create mode 100644 arch/arm64/boot/dts/ni/x4xx-db-iftest.dtsi
+ create mode 100644 arch/arm64/boot/dts/ni/x4xx-db-rfchar.dtsi
+ create mode 100644 arch/arm64/boot/dts/ni/x4xx-db0-0x4001-rev1.dtso
+ create mode 100644 arch/arm64/boot/dts/ni/x4xx-db0-0x4006-rev1.dtso
+ create mode 100644 arch/arm64/boot/dts/ni/x4xx-db0-db-flash.dtso
+ create mode 100644 arch/arm64/boot/dts/ni/x4xx-db1-0x4001-rev1.dtso
+ create mode 100644 arch/arm64/boot/dts/ni/x4xx-db1-0x4006-rev1.dtso
+ create mode 100644 arch/arm64/boot/dts/ni/x4xx-db1-db-flash.dtso
+ create mode 100644 arch/arm64/boot/dts/ni/x4xx-dioaux-0x4003-rev1.dtso
+
+diff --git a/arch/arm64/boot/dts/Makefile b/arch/arm64/boot/dts/Makefile
+index 9b1170658d60..879b3956c7ee 100644
+--- a/arch/arm64/boot/dts/Makefile
++++ b/arch/arm64/boot/dts/Makefile
+@@ -18,6 +18,7 @@ subdir-y += lg
+ subdir-y += marvell
+ subdir-y += mediatek
+ subdir-y += microchip
++subdir-y += ni
+ subdir-y += nvidia
+ subdir-y += qcom
+ subdir-y += realtek
+diff --git a/arch/arm64/boot/dts/ni/Makefile b/arch/arm64/boot/dts/ni/Makefile
+new file mode 100644
+index 000000000000..dc31ee479b50
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/Makefile
+@@ -0,0 +1,19 @@
++# SPDX-License-Identifier: GPL-2.0
++dtb-$(CONFIG_ARCH_ZYNQMP) += x410-rev2.dtb
++dtb-$(CONFIG_ARCH_ZYNQMP) += x410-rev3.dtb
++dtb-$(CONFIG_ARCH_ZYNQMP) += x410-rev4.dtb
++dtb-$(CONFIG_ARCH_ZYNQMP) += x410-rev5.dtb
++dtb-$(CONFIG_ARCH_ZYNQMP) += x4xx-db0-db-flash.dtbo
++dtb-$(CONFIG_ARCH_ZYNQMP) += x4xx-db1-db-flash.dtbo
++
++dtb-$(CONFIG_ARCH_ZYNQMP) += x4xx-clkaux-0x4004-rev1.dtbo
++dtb-$(CONFIG_ARCH_ZYNQMP) += x4xx-clkaux-0x4004-rev2.dtbo
++dtb-$(CONFIG_ARCH_ZYNQMP) += x4xx-clkaux-0x4005-rev1.dtbo
++dtb-$(CONFIG_ARCH_ZYNQMP) += x4xx-clkaux-0x4005-rev2.dtbo
++
++dtb-$(CONFIG_ARCH_ZYNQMP) += x4xx-dioaux-0x4003-rev1.dtbo
++
++dtb-$(CONFIG_ARCH_ZYNQMP) += x4xx-db0-0x4001-rev1.dtbo
++dtb-$(CONFIG_ARCH_ZYNQMP) += x4xx-db1-0x4001-rev1.dtbo
++dtb-$(CONFIG_ARCH_ZYNQMP) += x4xx-db0-0x4006-rev1.dtbo
++dtb-$(CONFIG_ARCH_ZYNQMP) += x4xx-db1-0x4006-rev1.dtbo
+diff --git a/arch/arm64/boot/dts/ni/x410-rev2.dts b/arch/arm64/boot/dts/ni/x410-rev2.dts
+new file mode 100644
+index 000000000000..2e1d5765c913
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x410-rev2.dts
+@@ -0,0 +1,597 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * dts file for Ettus X410
++ *
++ * (C) Copyright 2019, National Instruments
++ */
++
++/dts-v1/;
++
++#include "../xilinx/zynqmp.dtsi"
++#include "../xilinx/zynqmp-clk-ccf.dtsi"
++#include <dt-bindings/input/input.h>
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/interrupt-controller/irq.h>
++#include <dt-bindings/phy/phy.h>
++
++/ {
++	model = "Ettus USRP X410 (Rev. B)";
++	compatible = "ettus,x410", "xlnx,zynqmp";
++
++	aliases {
++		serial0 = &uart1;
++		serial1 = &uart0;
++		mmc0 = &sdhci0;
++		ethernet0 = &gem3;
++	};
++
++	chosen {
++		bootargs = "earlycon";
++		stdout-path = "serial0:115200n8";
++	};
++
++	memory@0 {
++		device_type = "memory";
++		reg = <0x0 0x0 0x0 0x80000000>, <0x8 0x00000000 0x0 0x80000000>;
++	};
++
++	nvmem_tlv {
++		compatible = "ni,tlv-nvmem";
++		#address-cells = <1>;
++		#size-cells = <1>;
++
++		nvmem-cells = <&mb_tlv>;
++		nvmem-cell-names = "tlv";
++
++		eth0_addr: eth0_addr {
++			reg = <0xa0 0x6>;
++		};
++
++		eth1_addr: eth1_addr {
++			reg = <0xa1 0x6>;
++		};
++
++		eth2_addr: eth2_addr {
++			reg = <0xa2 0x6>;
++		};
++
++		eth3_addr: eth3_addr {
++			reg = <0xa3 0x6>;
++		};
++
++		eth4_addr: eth4_addr {
++			reg = <0xa4 0x6>;
++		};
++
++		eth5_addr: eth5_addr {
++			reg = <0xa5 0x6>;
++		};
++
++		eth6_addr: eth6_addr {
++			reg = <0xa6 0x6>;
++		};
++
++		eth7_addr: eth7_addr {
++			reg = <0xa7 0x6>;
++		};
++
++		eth8_addr: eth8_addr {
++			reg = <0xa8 0x6>;
++		};
++
++		eth9_addr: eth9_addr {
++			reg = <0xa9 0x6>;
++		};
++
++		eth10_addr: eth10_addr {
++			reg = <0xaa 0x6>;
++		};
++	};
++
++	ioex_fixed: fixedregulator-ioex {
++		compatible = "regulator-fixed";
++		regulator-name = "ioex_fixed";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-always-on;
++		regulator-boot-on;
++	};
++
++	reg_3v3_mcu: reg-3v3-mcu {
++		compatible = "regulator-fixed";
++		regulator-name = "3v3_mcu";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-always-on;
++		regulator-boot-on;
++	};
++
++	leds: leds {
++		compatible = "gpio-leds";
++		heartbeat {
++			label = "heartbeat";
++			gpios = <&gpio 40 GPIO_ACTIVE_HIGH>;
++			linux,default-trigger = "heartbeat";
++		};
++
++		led0_g {
++			label = "led0_g";
++			gpios = <&ec_gpio 2 GPIO_ACTIVE_LOW>;
++		};
++
++		led0_r {
++			label = "led0_r";
++			gpios = <&ec_gpio 3 GPIO_ACTIVE_LOW>;
++		};
++
++		led1_g {
++			label = "led1_g";
++			gpios = <&ec_gpio 9 GPIO_ACTIVE_LOW>;
++		};
++
++		led1_r {
++			label = "led1_r";
++			gpios = <&ec_gpio 10 GPIO_ACTIVE_LOW>;
++		};
++
++		led2_g {
++			label = "led2_g";
++			gpios = <&ec_gpio 0 GPIO_ACTIVE_LOW>;
++		};
++
++		led2_r {
++			label = "led2_r";
++			gpios = <&ec_gpio 1 GPIO_ACTIVE_LOW>;
++		};
++	};
++
++	zynqmp_ipi {
++		compatible = "xlnx,zynqmp-ipi-mailbox";
++		interrupt-parent = <&gic>;
++		interrupts = <0 29 4>;
++		xlnx,ipi-id = <0>;
++		#address-cells = <2>;
++		#size-cells = <2>;
++		ranges;
++
++		/* APU<->RPU0 IPI mailbox controller */
++		ipi_mailbox_rpu0: mailbox@ff990400 {
++			reg = <0x0 0xff990400 0x0 0x20>,
++			      <0x0 0xff990420 0x0 0x20>,
++			      <0x0 0xff990080 0x0 0x20>,
++			      <0x0 0xff9900a0 0x0 0x20>;
++			reg-names = "local_request_region",
++				    "local_response_region",
++				    "remote_request_region",
++				    "remote_response_region";
++			#mbox-cells = <1>;
++			xlnx,ipi-id = <1>;
++		};
++		/* APU<->RPU1 IPI mailbox controller */
++		ipi_mailbox_rpu1: mailbox@ff990440 {
++			reg = <0x0 0xff990440 0x0 0x20>,
++			      <0x0 0xff990460 0x0 0x20>,
++			      <0x0 0xff990280 0x0 0x20>,
++			      <0x0 0xff9902a0 0x0 0x20>;
++			reg-names = "local_request_region",
++				    "local_response_region",
++				    "remote_request_region",
++				    "remote_response_region";
++			#mbox-cells = <1>;
++			xlnx,ipi-id = <2>;
++		};
++	};
++
++	reserved-memory {
++		#address-cells = <2>;
++		#size-cells = <2>;
++		ranges;
++		/* R5 0 firmware memory in DDR */
++		rproc_0_fw_reserved: rproc@30000000 {
++			no-map;
++			reg = <0x0 0x30000000 0x0 0x00100000>;
++		};
++		/* DMA shared memory between APU, RPU, and FPGA */
++		rproc_0_dma_reserved: rproc@30100000 {
++			compatible = "shared-dma-pool";
++			no-map;
++			reg = <0x0 0x30100000 0x0 0x00100000>;
++		};
++
++		/* R5 1 firmware memory in DDR */
++		rproc_1_fw_reserved: rproc@30200000 {
++			no-map;
++			reg = <0x0 0x30200000 0x0 0x00100000>;
++		};
++		/* DMA shared memory between APU, RPU, and FPGA */
++		rproc_1_dma_reserved: rproc@30300000 {
++			compatible = "shared-dma-pool";
++			no-map;
++			reg = <0x0 0x30300000 0x0 0x00100000>;
++		};
++	};
++
++	tcm_0_a: tcm_0a@FFE00000 {
++		reg = <0x0 0xFFE00000 0x0 0x10000>;
++		pnode-id = <0xf>;
++		compatible = "xlnx,tcm";
++	};
++	tcm_0_b: tcm_0b@FFE20000 {
++		reg = <0x0 0xFFE20000 0x0 0x10000>;
++		pnode-id = <0x10>;
++		compatible = "xlnx,tcm";
++	};
++	tcm_1_a: tcm_1a@FFE90000 {
++		reg = <0x0 0xFFE90000 0x0 0x10000>;
++		pnode-id = <0x11>;
++		compatible = "xlnx,tcm";
++	};
++	tcm_1_b: tcm_1b@FFEB0000 {
++		reg = <0x0 0xFFEB0000 0x0 0x10000>;
++		pnode-id = <0x12>;
++		compatible = "xlnx,tcm";
++	};
++
++	zynqmp-r5-remoteproc@0 {
++		compatible = "xlnx,zynqmp-r5-remoteproc";
++		#address-cells = <2>;
++		#size-cells = <2>;
++		ranges;
++		r5_0: r5@0 {
++			#address-cells = <2>;
++			#size-cells = <2>;
++			ranges;
++			memory-regions = <&rproc_0_fw_reserved>,
++					 <&rproc_0_dma_reserved>;
++			meta-memory-regions = <&tcm_0_a>, <&tcm_0_b>;
++			pnode-id = <0x7>;
++			mboxes = <&ipi_mailbox_rpu0 0>,
++				 <&ipi_mailbox_rpu0 1>;
++			mbox-names = "tx", "rx";
++		};
++
++		r5_1: r5@1 {
++			#address-cells = <2>;
++			#size-cells = <2>;
++			ranges;
++			memory-regions = <&rproc_1_fw_reserved>,
++					 <&rproc_1_dma_reserved>;
++			meta-memory-regions = <&tcm_1_a>, <&tcm_1_b>;
++			pnode-id = <0x8>;
++			mboxes = <&ipi_mailbox_rpu1 0>,
++				 <&ipi_mailbox_rpu1 1>;
++			mbox-names = "tx", "rx";
++		};
++	};
++};
++
++&i2c0 {
++	status = "okay";
++	clock-frequency = <400000>;
++
++	cros-ec@3c {
++		reg = <0x3c>;
++		compatible = "google,cros-ec-i2c";
++		interrupts = <42 IRQ_TYPE_LEVEL_LOW>;
++		interrupt-parent = <&gpio>;
++
++		ec_gpio: ec-gpio {
++			compatible = "ni,cros-ec-gpio";
++			#gpio-cells = <2>;
++			gpio-controller;
++		};
++
++		db0_i2c: i2c-tunnel0 {
++			compatible = "google,cros-ec-i2c-tunnel";
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			google,remote-bus = <10>;
++
++			db0_eeprom: eeprom@50 {
++				compatible = "atmel,24c02";
++				reg = <0x50>;
++				vcc-supply = <&reg_3v3_mcu>;
++			};
++		};
++
++		db1_i2c: i2c-tunnel1 {
++			compatible = "google,cros-ec-i2c-tunnel";
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			google,remote-bus = <12>;
++
++			db1_eeprom: eeprom@50 {
++				compatible = "atmel,24c02";
++				reg = <0x50>;
++				vcc-supply = <&reg_3v3_mcu>;
++			};
++		};
++
++		i2c-tunnel2 {
++			compatible = "google,cros-ec-i2c-tunnel";
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			google,remote-bus = <14>;
++		};
++
++		scu_rtc_i2c: i2c-tunnel3 {
++			compatible = "google,cros-ec-i2c-tunnel";
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			google,remote-bus = <16>;
++
++			mb_eeprom: eeprom@50 {
++				compatible = "atmel,24c02";
++				reg = <0x50>;
++				vcc-supply = <&reg_3v3_mcu>;
++
++				#address-cells = <1>;
++				#size-cells = <1>;
++
++				mb_tlv: mb_tlv {
++					reg = <0x0 0x100>;
++				};
++			};
++		};
++
++		pwraux_i2c: i2c-tunnel4 {
++			compatible = "google,cros-ec-i2c-tunnel";
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			google,remote-bus = <17>;
++
++			pwraux_eeprom: eeprom@50 {
++				compatible = "atmel,24c02";
++				reg = <0x50>;
++				vcc-supply = <&reg_3v3_mcu>;
++			};
++		};
++
++		keyboard-controller {
++			compatible = "google,cros-ec-keyb";
++			keypad,num-rows = <1>;
++			keypad,num-columns = <1>;
++			google,needs-ghost-filter;
++			linux,keymap =
++				<MATRIX_KEY(0x00, 0x00, KEY_POWER)>;
++		};
++
++		cros-temp {
++			compatible = "ni,cros-ec-temp";
++			#address-cells = <1>;
++			#size-cells = <0>;
++		};
++	};
++};
++
++&i2c1 {
++	status = "okay";
++
++	i2c-mux@70 {
++		compatible = "nxp,pca9548";
++		#address-cells = <1>;
++		#size-cells = <0>;
++		reg = <0x70>;
++		reset-gpios = <&gpio 39 GPIO_ACTIVE_LOW>;
++
++		qsfp0_i2c: i2c@0 {
++			#address-cells = <1>;
++			#size-cells = <0>;
++			reg = <0>;
++			/* QSFP 0 */
++		};
++
++		qsfp1_i2c: i2c@1 {
++			#address-cells = <1>;
++			#size-cells = <0>;
++			reg = <1>;
++		};
++
++		dioaux_i2c: i2c@2 {
++			#address-cells = <1>;
++			#size-cells = <0>;
++			reg = <2>;
++
++			dioaux_eeprom: eeprom@50 {
++				compatible = "atmel,24c02";
++				reg = <0x50>;
++				vcc-supply = <&reg_3v3_mcu>;
++			};
++		};
++
++		clkaux_i2c: i2c@3 {
++			#address-cells = <1>;
++			#size-cells = <0>;
++			reg = <3>;
++
++			clkaux_eeprom: eeprom@50 {
++				compatible = "atmel,24c02";
++				reg = <0x50>;
++				vcc-supply = <&reg_3v3_mcu>;
++			};
++		};
++
++		rpll_i2c: i2c@4 {
++			#address-cells = <1>;
++			#size-cells = <0>;
++			reg = <4>;
++		};
++
++		i2c@5 {
++			#address-cells = <1>;
++			#size-cells = <0>;
++			reg = <5>;
++			typec_otg: tusb320@61 {
++				status = "okay";
++				compatible = "ti,tusb320";
++				reg = <0x61>;
++				interrupt-parent = <&gpio>;
++				interrupts = <27 GPIO_ACTIVE_LOW>;
++			};
++		};
++
++		i2c@6 {
++			#address-cells = <1>;
++			#size-cells = <0>;
++			reg = <6>;
++			gpio@20 {
++				compatible = "ti,tca6416";
++				reg = <0x20>;
++				gpio-controller;
++				vcc-supply = <&ioex_fixed>;
++				#gpio-cells = <2>;
++				gpio-line-names = "PHASE-DAC-CLEAR",
++						  "BASE-REFERENCE-CLOCK-SELECT",
++						  "SAMPLE-CLOCK-PLL-RESET",
++						  "SAMPLE-CLOCK-PLL-VCXO-SELECT",
++						  "REFERENCE-CLOCK-PLL-STATUS-0",
++						  "REFERENCE-CLOCK-PLL-STATUS-1",
++						  "REFERENCE-CLOCK-PLL-PWRDOWN",
++						  "",
++						  "QSFP0_MODSEL_n",
++						  "QSFP1_MODSEL_n";
++			};
++		};
++
++		/* 7 is not connected */
++	};
++};
++
++&spi1 {
++	status = "okay";
++	num-cs = <7>;
++	is-decoded-cs = <1>;
++
++	mb_cpld: spidev@0 {
++		status = "okay";
++		compatible = "rohm,dh2228fv";
++		reg = <0>;
++		spi-max-frequency = <1000000>;
++	};
++
++	spll: spidev@1 {
++		status = "okay";
++		compatible = "rohm,dh2228fv";
++		reg = <1>;
++		spi-max-frequency = <1000000>;
++	};
++
++	spidev@2 {
++		status = "disabled";
++		/* TODO: The TPM probably shouldn't be exposed as a
++		 * generic spidev, but rather have an actual compatible
++		 * string */
++		compatible = "rohm,dh2228fv";
++		reg = <2>;
++		spi-max-frequency = <1000000>;
++	};
++
++	db0_flash: sst25vf016b@4 {
++		status = "disabled";
++		#address-cells = <1>;
++		#size-cells = <1>;
++		compatible = "jedec,spi-nor";
++		reg = <4>;
++		spi-max-frequency = <1000000>;
++		partitions {
++			compatible = "fixed-partitions";
++			#address-cells = <1>;
++			#size-cells = <1>;
++			partition@0 {
++				label = "db0_flash";
++				reg = <0x000000 0x200000>;
++			};
++		};
++	};
++
++	db1_flash: sst25vf016b@5 {
++		status = "disabled";
++		#address-cells = <1>;
++		#size-cells = <1>;
++		compatible = "jedec,spi-nor";
++		reg = <5>;
++		spi-max-frequency = <1000000>;
++		partitions {
++			compatible = "fixed-partitions";
++			#address-cells = <1>;
++			#size-cells = <1>;
++			partition@0 {
++				label = "db1_flash";
++				reg = <0x000000 0x200000>;
++			};
++		};
++	};
++};
++
++&sdhci0 {
++	status = "okay";
++	bus-width = <8>;
++};
++
++&uart1 {
++	status = "okay";
++};
++
++&gem3 {
++	status = "okay";
++	phy-handle = <&phy0>;
++	phy-mode = "rgmii-id";
++
++	nvmem-cells = <&eth0_addr>;
++	nvmem-cell-names = "mac-address";
++
++	phy0: phy@7 {
++		reg = <0x7>;
++		#phy-cells = <1>;
++	};
++};
++
++&usb0 {
++	status = "okay";
++	maximum-speed = "high-speed";
++	snps,quirk-frame-length-adjustment = <0x20>;
++	snps,refclk_fladj;
++	snps,enable_guctl1_resume_quirk;
++	snps,enable_guctl1_ipd_quirk;
++	snps,xhci-stream-quirk;
++	extcon = <&typec_otg>;
++	dr_mode = "otg";
++};
++
++&gpio {
++	status = "okay";
++	gpio-line-names =
++		/* MIO00-MIO07 */ "", "KRN_LED_0", "", "", "", "", "", "",
++		/* MIO08-MIO15 */ "", "", "", "", "", "", "", "",
++		/* MIO16-MIO23 */ "", "", "", "", "", "", "", "",
++		/* MIO24-MIO31 */ "DIO_INT0", "DIO_INT1", "", "", "", "", "", "",
++		/* MIO32-MIO39 */ "", "", "", "", "", "", "", "",
++		/* MIO40-MIO47 */ "", "", "", "", "", "", "", "",
++		/* MIO48-MIO55 */ "", "", "", "", "", "", "", "",
++		/* MIO56-MIO63 */ "", "", "", "", "", "", "", "",
++		/* MIO64-MIO71 */ "", "", "", "", "", "", "", "",
++		/* MIO72-MIO77 */ "", "", "", "", "", "",
++
++		/* EMIO00-EMIO07 */ "", "", "", "", "", "", "", "",
++		/* EMIO08-EMIO15 */ "", "", "", "", "", "", "", "",
++		/* EMIO16-EMIO23 */ "", "", "", "", "", "", "", "",
++		/* EMIO24-EMIO31 */ "", "", "", "", "QSFP0_MODPRS", "QSFP1_MODPRS", "", "",
++		/* EMIO32-EMIO39 */ "", "", "", "", "", "", "", "",
++		/* EMIO40-EMIO47 */ "", "", "", "", "", "", "", "",
++		/* EMIO48-EMIO55 */ "", "", "", "", "", "", "", "",
++		/* EMIO56-EMIO63 */ "", "", "", "", "", "", "", "",
++		/* EMIO64-EMIO71 */ "", "", "", "", "", "", "", "",
++		/* EMIO72-EMIO79 */ "", "", "", "", "", "", "", "",
++		/* EMIO80-EMIO87 */ "", "", "", "", "", "", "", "",
++		/* EMIO88-EMIO95 */ "", "", "", "", "", "", "", "";
++};
++
++&watchdog0 {
++	status = "okay";
++	reset-on-timeout;
++};
+diff --git a/arch/arm64/boot/dts/ni/x410-rev3.dts b/arch/arm64/boot/dts/ni/x410-rev3.dts
+new file mode 100644
+index 000000000000..0338508c7d8c
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x410-rev3.dts
+@@ -0,0 +1,77 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * dts file for Ettus X410
++ *
++ * (C) Copyright 2019, National Instruments
++ */
++
++/dts-v1/;
++
++#include "x410-rev2.dts"
++
++/ {
++	model = "Ettus USRP X410 (Rev. C)";
++	compatible = "ettus,x410", "xlnx,zynqmp";
++};
++
++&leds {
++	heartbeat {
++		gpios = <&gpio 1 GPIO_ACTIVE_HIGH>;
++	};
++};
++
++&sdhci1 {
++	status = "okay";
++	disable-wp;
++};
++
++&i2c0 {
++	compatible = "i2c-gpio";
++	status = "okay";
++	gpios = <&gpio 2 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>,
++		<&gpio 3 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
++	i2c-gpio,delay-us = <10>;
++
++	/delete-property/ interrupt-parent;
++	/delete-property/ interrupts;
++	/delete-property/ reg;
++
++	cros-ec@3c {
++		interrupts = <4 IRQ_TYPE_LEVEL_LOW>;
++		interrupt-parent = <&gpio>;
++	};
++};
++
++&i2c1 {
++	compatible = "i2c-gpio";
++	status = "okay";
++	gpios = <&gpio 36 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>,
++		<&gpio 37 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
++	i2c-gpio,delay-us = <10>;
++
++	/delete-property/ interrupt-parent;
++	/delete-property/ interrupts;
++	/delete-property/ reg;
++
++	i2c-mux@70 {
++		reset-gpios = <&gpio 29 GPIO_ACTIVE_LOW>;
++	};
++};
++
++&scu_rtc_i2c {
++	rtc@68 {
++		compatible = "dallas,ds1374";
++		reg = <0x68>;
++		trickle-resistor-ohms = <250>;
++		trickle-diode-disable;
++	};
++};
++
++&spi1 {
++	clkaux_spi: spidev@6 {
++		status = "disabled";
++		compatible = "rohm,dh2228fv";
++		reg = <6>;
++		spi-max-frequency = <1000000>;
++	};
++};
+diff --git a/arch/arm64/boot/dts/ni/x410-rev4.dts b/arch/arm64/boot/dts/ni/x410-rev4.dts
+new file mode 100644
+index 000000000000..75bc3c855b85
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x410-rev4.dts
+@@ -0,0 +1,54 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * dts file for Ettus X410
++ *
++ * (C) Copyright 2019, National Instruments
++ */
++
++/dts-v1/;
++
++#include "x410-rev2.dts"
++
++/ {
++	model = "Ettus USRP X410 (Rev. D)";
++	compatible = "ettus,x410", "xlnx,zynqmp";
++};
++
++&leds {
++	heartbeat {
++		gpios = <&gpio 1 GPIO_ACTIVE_HIGH>;
++	};
++};
++
++&i2c0 {
++	cros-ec@3c {
++		interrupts = <4 IRQ_TYPE_LEVEL_LOW>;
++		interrupt-parent = <&gpio>;
++	};
++};
++
++&i2c1 {
++	i2c-mux@70 {
++		reset-gpios = <&gpio 29 GPIO_ACTIVE_LOW>;
++	};
++};
++
++&scu_rtc_i2c {
++	rtc@68 {
++		compatible = "dallas,ds1374";
++		reg = <0x68>;
++		trickle-resistor-ohms = <250>;
++		trickle-diode-disable;
++		interrupts = <26 IRQ_TYPE_LEVEL_LOW>;
++		interrupt-parent = <&gpio>;
++	};
++};
++
++&spi1 {
++	clkaux_spi: spidev@6 {
++		status = "disabled";
++		compatible = "rohm,dh2228fv";
++		reg = <6>;
++		spi-max-frequency = <1000000>;
++	};
++};
+diff --git a/arch/arm64/boot/dts/ni/x410-rev5.dts b/arch/arm64/boot/dts/ni/x410-rev5.dts
+new file mode 100644
+index 000000000000..552e95ced5dc
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x410-rev5.dts
+@@ -0,0 +1,43 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * dts file for Ettus X410
++ *
++ * (C) Copyright 2020, National Instruments
++ */
++
++/dts-v1/;
++
++#include "x410-rev4.dts"
++
++/ {
++	model = "Ettus USRP X410";
++	compatible = "ettus,x410", "xlnx,zynqmp";
++};
++
++&gpio {
++	status = "okay";
++	gpio-line-names =
++		/* MIO00-MIO07 */ "", "KRN_LED_0", "", "", "", "QSFP0_INTR_n", "", "",
++		/* MIO08-MIO15 */ "", "", "", "", "QSFP1_INTR_n", "", "", "",
++		/* MIO16-MIO23 */ "", "", "", "", "", "", "", "",
++		/* MIO24-MIO31 */ "DIO_INT0", "DIO_INT1", "", "", "", "", "", "",
++		/* MIO32-MIO39 */ "", "", "", "", "", "", "", "",
++		/* MIO40-MIO47 */ "", "", "", "", "", "", "", "",
++		/* MIO48-MIO55 */ "", "", "", "", "", "", "", "",
++		/* MIO56-MIO63 */ "", "", "", "", "", "", "", "",
++		/* MIO64-MIO71 */ "", "", "", "", "", "", "", "",
++		/* MIO72-MIO77 */ "", "", "", "", "", "",
++
++		/* EMIO00-EMIO07 */ "", "", "", "", "", "", "", "",
++		/* EMIO08-EMIO15 */ "", "", "", "", "", "", "", "",
++		/* EMIO16-EMIO23 */ "", "", "", "", "", "", "", "",
++		/* EMIO24-EMIO31 */ "", "", "", "", "QSFP0_MODPRS", "QSFP1_MODPRS", "", "",
++		/* EMIO32-EMIO39 */ "", "", "", "", "", "", "", "",
++		/* EMIO40-EMIO47 */ "", "", "", "", "", "", "", "",
++		/* EMIO48-EMIO55 */ "", "", "", "", "", "", "", "",
++		/* EMIO56-EMIO63 */ "", "", "", "", "", "", "", "",
++		/* EMIO64-EMIO71 */ "", "", "", "", "", "", "", "",
++		/* EMIO72-EMIO79 */ "", "", "", "", "", "", "", "",
++		/* EMIO80-EMIO87 */ "", "", "", "", "", "", "", "",
++		/* EMIO88-EMIO95 */ "", "", "", "", "", "", "", "";
++};
+diff --git a/arch/arm64/boot/dts/ni/x4xx-clkaux-0x4004-rev1.dtso b/arch/arm64/boot/dts/ni/x4xx-clkaux-0x4004-rev1.dtso
+new file mode 100644
+index 000000000000..c59a0f735c5e
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x4xx-clkaux-0x4004-rev1.dtso
+@@ -0,0 +1,50 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * dtso file for Ettus X410 for GPSDO clkaux board
++ *
++ * (C) Copyright 2019, National Instruments
++ */
++
++/dts-v1/;
++/plugin/;
++
++&clkaux_i2c {
++	#address-cells = <1>;
++	#size-cells = <0>;
++
++	clkaux_gpio: gpio@20 {
++		compatible = "ti,tca6416";
++		reg = <0x20>;
++		gpio-controller;
++		#gpio-cells = <2>;
++		gpio-line-names = "CLKAUX_REF_CLK_SEL_USR",
++				  "CLKAUX_GPS_PHASELOCK",
++				  "CLKAUX_GPS_WARMUP",
++				  "CLKAUX_GPS_SURVEY",
++				  "CLKAUX_GPS_LOCK",
++				  "CLKAUX_GPS_ALARM",
++				  "CLKAUX_GPS_INITSRVn",
++				  "CLKAUX_GPS_RSTn",
++				  "CLKAUX_WP",
++				  "CLKAUX_3V3_CLK_PG",
++				  "CLKAUX_PPS_TERM",
++				  "CLKAUX_TRIG_OEn",
++				  "CLKAUX_TRIG_DIR",
++				  "CLKAUX_REF_LCK",
++				  "CLKAUX_MBRefCLK_En",
++				  "CLKAUX_ExportClk_En";
++	};
++
++	freq_dac@0c {
++		compatible = "adi,ad5338r";
++		reg = <0x0c>;
++	};
++};
++
++&clkaux_eeprom {
++	wp-gpios = <&clkaux_gpio 8 0>;
++};
++
++&uart0 {
++	status = "okay";
++};
+diff --git a/arch/arm64/boot/dts/ni/x4xx-clkaux-0x4004-rev2.dtso b/arch/arm64/boot/dts/ni/x4xx-clkaux-0x4004-rev2.dtso
+new file mode 100644
+index 000000000000..f81c265e822b
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x4xx-clkaux-0x4004-rev2.dtso
+@@ -0,0 +1,77 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * dtso file for Ettus X410 for GPSDO clkaux board
++ *
++ * (C) Copyright 2020, National Instruments
++ */
++
++/dts-v1/;
++/plugin/;
++
++&clkaux_i2c {
++	#address-cells = <1>;
++	#size-cells = <0>;
++
++	clkaux_gpio: gpio@20 {
++		compatible = "ti,tca6416";
++		reg = <0x20>;
++		gpio-controller;
++		#gpio-cells = <2>;
++		gpio-line-names = "CLKAUX_UsrRefSel",
++				  "CLKAUX_GPS_PHASELOCK",
++				  "CLKAUX_GPS_WARMUP",
++				  "CLKAUX_GPS_SURVEY",
++				  "CLKAUX_GPS_LOCK",
++				  "CLKAUX_GPS_ALARM",
++				  "CLKAUX_GPS_INITSURVn",
++				  "CLKAUX_GPS_RSTn",
++				  "CLKAUX_EEPROM_WP",
++				  "CLKAUX_3V3_CLK_PG",
++				  "CLKAUX_PPS_TERM",
++				  "CLKAUX_TRIG_OEn",
++				  "CLKAUX_TRIG_DIR",
++				  "CLKAUX_REF_LCK",
++				  "CLKAUX_MBRefCLK_Bias",
++				  "CLKAUX_ExportClk_Bias";
++	};
++
++	clkaux_nsync_gpio: gpio@21 {
++		compatible = "ti,tca6416";
++		reg = <0x21>;
++		gpio-controller;
++		#gpio-cells = <2>;
++		gpio-line-names = "CLKAUX_TCXO_EN",
++				  "CLKAUX_EXP_CLK_EN",
++				  "CLKAUX_NSYNC_REFSEL",
++				  "CLKAUX_NSYNC_PDN",
++				  "CLKAUX_REF_CLK_SEL_NET",
++				  "CLKAUX_NSYNC_GPIO0",
++				  "CLKAUX_NSYNC_STATUS1",
++				  "CLKAUX_NSYNC_STATUS0",
++				  "CLKAUX_FPGA_CLK_SEL",
++				  "CLKAUX_05318Ref_Bias",
++				  "",
++				  "",
++				  "",
++				  "",
++				  "",
++				  "";
++	};
++
++	freq_dac@0c {
++		compatible = "adi,ad5338r";
++		reg = <0x0c>;
++	};
++};
++
++&clkaux_eeprom {
++	wp-gpios = <&clkaux_gpio 8 0>;
++};
++
++&uart0 {
++	status = "okay";
++};
++
++&clkaux_spi {
++	status = "okay";
++};
+diff --git a/arch/arm64/boot/dts/ni/x4xx-clkaux-0x4005-rev1.dtso b/arch/arm64/boot/dts/ni/x4xx-clkaux-0x4005-rev1.dtso
+new file mode 100644
+index 000000000000..b7c854221c6b
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x4xx-clkaux-0x4005-rev1.dtso
+@@ -0,0 +1,46 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * dtso file for Ettus X410 for clkaux board
++ *
++ * (C) Copyright 2019, National Instruments
++ */
++
++/dts-v1/;
++/plugin/;
++
++&clkaux_i2c {
++	#address-cells = <1>;
++	#size-cells = <0>;
++
++	clkaux_gpio: gpio@20 {
++		compatible = "ti,tca6416";
++		reg = <0x20>;
++		gpio-controller;
++		#gpio-cells = <2>;
++		gpio-line-names = "CLKAUX_REF_CLK_SEL_USR",
++				  "",
++				  "",
++				  "",
++				  "",
++				  "",
++				  "",
++				  "",
++				  "CLKAUX_WP",
++				  "CLKAUX_3V3_CLK_PG",
++				  "CLKAUX_PPS_TERM",
++				  "CLKAUX_TRIG_OEn",
++				  "CLKAUX_TRIG_DIR",
++				  "CLKAUX_REF_LCK",
++				  "CLKAUX_MBRefCLK_En",
++				  "CLKAUX_ExportClk_En";
++	};
++
++	freq_dac@0c {
++		compatible = "adi,ad5338r";
++		reg = <0x0c>;
++	};
++};
++
++&clkaux_eeprom {
++	wp-gpios = <&clkaux_gpio 8 0>;
++};
+diff --git a/arch/arm64/boot/dts/ni/x4xx-clkaux-0x4005-rev2.dtso b/arch/arm64/boot/dts/ni/x4xx-clkaux-0x4005-rev2.dtso
+new file mode 100644
+index 000000000000..79ad188ec3d7
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x4xx-clkaux-0x4005-rev2.dtso
+@@ -0,0 +1,73 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * dtso file for Ettus X410 for clkaux board
++ *
++ * (C) Copyright 2020, National Instruments
++ */
++
++/dts-v1/;
++/plugin/;
++
++&clkaux_i2c {
++	#address-cells = <1>;
++	#size-cells = <0>;
++
++	clkaux_gpio: gpio@20 {
++		compatible = "ti,tca6416";
++		reg = <0x20>;
++		gpio-controller;
++		#gpio-cells = <2>;
++		gpio-line-names = "CLKAUX_UsrRefSel",
++				  "",
++				  "",
++				  "",
++				  "",
++				  "",
++				  "",
++				  "",
++				  "CLKAUX_EEPROM_WP",
++				  "CLKAUX_3V3_CLK_PG",
++				  "CLKAUX_PPS_TERM",
++				  "CLKAUX_TRIG_OEn",
++				  "CLKAUX_TRIG_DIR",
++				  "CLKAUX_REF_LCK",
++				  "CLKAUX_MBRefCLK_Bias",
++				  "CLKAUX_ExportClk_Bias";
++	};
++
++	clkaux_nsync_gpio: gpio@21 {
++		compatible = "ti,tca6416";
++		reg = <0x21>;
++		gpio-controller;
++		#gpio-cells = <2>;
++		gpio-line-names = "CLKAUX_TCXO_EN",
++				  "CLKAUX_EXP_CLK_EN",
++				  "CLKAUX_NSYNC_REFSEL",
++				  "CLKAUX_NSYNC_PDN",
++				  "CLKAUX_REF_CLK_SEL_NET",
++				  "CLKAUX_NSYNC_GPIO0",
++				  "CLKAUX_NSYNC_STATUS1",
++				  "CLKAUX_NSYNC_STATUS0",
++				  "CLKAUX_FPGA_CLK_SEL",
++				  "CLKAUX_05318Ref_Bias",
++				  "",
++				  "",
++				  "",
++				  "",
++				  "",
++				  "";
++	};
++
++	freq_dac@0c {
++		compatible = "adi,ad5338r";
++		reg = <0x0c>;
++	};
++};
++
++&clkaux_eeprom {
++	wp-gpios = <&clkaux_gpio 8 0>;
++};
++
++&clkaux_spi {
++	status = "okay";
++};
+diff --git a/arch/arm64/boot/dts/ni/x4xx-db-helpers.dtsi b/arch/arm64/boot/dts/ni/x4xx-db-helpers.dtsi
+new file mode 100644
+index 000000000000..030b1a33e638
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x4xx-db-helpers.dtsi
+@@ -0,0 +1,17 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * common helpers for RF daughterboards
++ *
++ * (C) Copyright 2019, National Instruments
++ */
++
++#if !defined(RFDB_SLOT) || RFDB_SLOT != 0 && RFDB_SLOT != 1
++#error "You must define RFDB_SLOT to either 0 or 1"
++#endif
++
++#define __RFDB_CONCAT(x, y) x ## y
++#define __RFDB_STR2(x) #x
++#define __RFDB_STR(x) __RFDB_STR2(x)
++#define RFDB_CONCAT(x, y) __RFDB_CONCAT(x, y)
++#define RFDB_PREFIX(x) RFDB_CONCAT(RFDB_CONCAT(db, RFDB_SLOT), RFDB_CONCAT(_, x))
++#define RFDB_PREFIX_STR(x) __RFDB_STR(RFDB_CONCAT(RFDB_CONCAT(DB, RFDB_SLOT), RFDB_CONCAT(_, x)))
+diff --git a/arch/arm64/boot/dts/ni/x4xx-db-iftest.dtsi b/arch/arm64/boot/dts/ni/x4xx-db-iftest.dtsi
+new file mode 100644
+index 000000000000..c4a8f712bdbc
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x4xx-db-iftest.dtsi
+@@ -0,0 +1,68 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * dtso file for Ettus X410 for IF Test daughterboard
++ *
++ * (C) Copyright 2020, National Instruments
++ */
++
++
++#include "x4xx-db-helpers.dtsi"
++
++/dts-v1/;
++/plugin/;
++
++&RFDB_PREFIX(i2c) {
++	#address-cells = <1>;
++	#size-cells = <0>;
++
++	RFDB_PREFIX(gpio): gpio@20 {
++		compatible = "ti,tca6416";
++		reg = <0x20>;
++		gpio-controller;
++		#gpio-cells = <2>;
++		gpio-line-names = RFDB_PREFIX_STR(TX0_2p_1_3n),
++				  RFDB_PREFIX_STR(RX0_2p_1_3n),
++				  RFDB_PREFIX_STR(RX_MUX_0p_2n),
++				  RFDB_PREFIX_STR(RX_MUX_1p_3n),
++				  RFDB_PREFIX_STR(TX_MUX_0p_2n),
++				  RFDB_PREFIX_STR(TX_MUX_1p_3n),
++				  RFDB_PREFIX_STR(REF_CLK_SEL_USR),
++				  RFDB_PREFIX_STR(VCM_MB_nDAC),
++				  RFDB_PREFIX_STR(1V8_LOAD),
++				  RFDB_PREFIX_STR(2V5_LOAD),
++				  RFDB_PREFIX_STR(3V3_LOAD),
++				  RFDB_PREFIX_STR(3V3_MCU_LOAD),
++				  RFDB_PREFIX_STR(3V7_LOAD),
++				  RFDB_PREFIX_STR(12V_LOAD),
++				  RFDB_PREFIX_STR(WP),
++				  RFDB_PREFIX_STR(NC_P17);
++	};
++
++	adc@23 {
++		compatible = "adi,ad7291";
++		reg = <0x23>;
++		label = RFDB_PREFIX_STR(ADC_U3);
++	};
++
++	adc@2c {
++		compatible = "adi,ad7291";
++		reg = <0x2c>;
++		label = RFDB_PREFIX_STR(ADC_U1);
++	};
++
++	adc@2f {
++		compatible = "adi,ad7291";
++		reg = <0x2f>;
++		label = RFDB_PREFIX_STR(ADC_U16);
++	};
++
++	dac@0c {
++		compatible = "adi,ad5338r";
++		reg = <0x0c>;
++		label = RFDB_PREFIX_STR(DAC_U5);
++	};
++};
++
++&RFDB_PREFIX(eeprom) {
++	wp-gpios = <&RFDB_PREFIX(gpio) 14 0>;
++};
+diff --git a/arch/arm64/boot/dts/ni/x4xx-db-rfchar.dtsi b/arch/arm64/boot/dts/ni/x4xx-db-rfchar.dtsi
+new file mode 100644
+index 000000000000..d21c3b7b8cde
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x4xx-db-rfchar.dtsi
+@@ -0,0 +1,64 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * dtso file for Ettus X410 for characterization daughterboard
++ *
++ * (C) Copyright 2019, National Instruments
++ */
++
++
++#include "x4xx-db-helpers.dtsi"
++
++/dts-v1/;
++/plugin/;
++
++&RFDB_PREFIX(i2c) {
++	#address-cells = <1>;
++	#size-cells = <0>;
++
++	RFDB_PREFIX(gpio): gpio@20 {
++		compatible = "ti,tca6416";
++		reg = <0x20>;
++		gpio-controller;
++		#gpio-cells = <2>;
++		gpio-line-names = RFDB_PREFIX_STR(TRXA_CTRL),
++				  RFDB_PREFIX_STR(TRXB_CTRL),
++				  RFDB_PREFIX_STR(RXA_MUX_CTRL),
++				  RFDB_PREFIX_STR(RXB_MUX_CTRL),
++				  RFDB_PREFIX_STR(TXA_MUX_CTRL),
++				  RFDB_PREFIX_STR(TXB_MUX_CTRL),
++				  RFDB_PREFIX_STR(REF_CLK_SEL_USR),
++				  RFDB_PREFIX_STR(SHORT_EN),
++				  RFDB_PREFIX_STR(RXA2_LED),
++				  RFDB_PREFIX_STR(RXA_LED),
++				  RFDB_PREFIX_STR(TXA_LED),
++				  RFDB_PREFIX_STR(RXB2_LED),
++				  RFDB_PREFIX_STR(RXB_LED),
++				  RFDB_PREFIX_STR(TXB_LED),
++				  RFDB_PREFIX_STR(WP),
++				  RFDB_PREFIX_STR(RFGPIO_P17);
++	};
++
++	sensor@48 {
++		compatible = "ti,tmp112";
++		reg = <0x48>;
++	};
++
++	sensor@49 {
++		compatible = "ti,tmp112";
++		reg = <0x49>;
++	};
++
++	adc@2c {
++		compatible = "adi,ad7291";
++		reg = <0x2c>;
++	};
++
++	adc@2f {
++		compatible = "adi,ad7291";
++		reg = <0x2f>;
++	};
++};
++
++&RFDB_PREFIX(eeprom) {
++	wp-gpios = <&RFDB_PREFIX(gpio) 14 0>;
++};
+diff --git a/arch/arm64/boot/dts/ni/x4xx-db0-0x4001-rev1.dtso b/arch/arm64/boot/dts/ni/x4xx-db0-0x4001-rev1.dtso
+new file mode 100644
+index 000000000000..2be80e33cc47
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x4xx-db0-0x4001-rev1.dtso
+@@ -0,0 +1,7 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * (C) Copyright 2019, National Instruments
++ */
++
++#define RFDB_SLOT 0
++#include "x4xx-db-rfchar.dtsi"
+diff --git a/arch/arm64/boot/dts/ni/x4xx-db0-0x4006-rev1.dtso b/arch/arm64/boot/dts/ni/x4xx-db0-0x4006-rev1.dtso
+new file mode 100644
+index 000000000000..591f24db6827
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x4xx-db0-0x4006-rev1.dtso
+@@ -0,0 +1,7 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * (C) Copyright 2020, National Instruments
++ */
++
++#define RFDB_SLOT 0
++#include "x4xx-db-iftest.dtsi"
+diff --git a/arch/arm64/boot/dts/ni/x4xx-db0-db-flash.dtso b/arch/arm64/boot/dts/ni/x4xx-db0-db-flash.dtso
+new file mode 100644
+index 000000000000..c6a6e40a19a4
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x4xx-db0-db-flash.dtso
+@@ -0,0 +1,11 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * (C) Copyright 2019, National Instruments
++ */
++
++/dts-v1/;
++/plugin/;
++
++&db0_flash {
++	status = "okay";
++};
+diff --git a/arch/arm64/boot/dts/ni/x4xx-db1-0x4001-rev1.dtso b/arch/arm64/boot/dts/ni/x4xx-db1-0x4001-rev1.dtso
+new file mode 100644
+index 000000000000..b10e88ac28e9
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x4xx-db1-0x4001-rev1.dtso
+@@ -0,0 +1,7 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * (C) Copyright 2019, National Instruments
++ */
++
++#define RFDB_SLOT 1
++#include "x4xx-db-rfchar.dtsi"
+diff --git a/arch/arm64/boot/dts/ni/x4xx-db1-0x4006-rev1.dtso b/arch/arm64/boot/dts/ni/x4xx-db1-0x4006-rev1.dtso
+new file mode 100644
+index 000000000000..318594697066
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x4xx-db1-0x4006-rev1.dtso
+@@ -0,0 +1,7 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * (C) Copyright 2020, National Instruments
++ */
++
++#define RFDB_SLOT 1
++#include "x4xx-db-iftest.dtsi"
+diff --git a/arch/arm64/boot/dts/ni/x4xx-db1-db-flash.dtso b/arch/arm64/boot/dts/ni/x4xx-db1-db-flash.dtso
+new file mode 100644
+index 000000000000..3937262ce25c
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x4xx-db1-db-flash.dtso
+@@ -0,0 +1,11 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * (C) Copyright 2019, National Instruments
++ */
++
++/dts-v1/;
++/plugin/;
++
++&db1_flash {
++	status = "okay";
++};
+diff --git a/arch/arm64/boot/dts/ni/x4xx-dioaux-0x4003-rev1.dtso b/arch/arm64/boot/dts/ni/x4xx-dioaux-0x4003-rev1.dtso
+new file mode 100644
+index 000000000000..09d3ca6351ed
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x4xx-dioaux-0x4003-rev1.dtso
+@@ -0,0 +1,40 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * dtso file for Ettus X410 for DIO daughterboard
++ *
++ * (C) Copyright 2019, National Instruments
++ */
++
++/dts-v1/;
++/plugin/;
++
++&dioaux_i2c {
++	#address-cells = <1>;
++	#size-cells = <0>;
++
++	dioaux_gpio: gpio@20 {
++		compatible = "ti,tca6416";
++		reg = <0x20>;
++		gpio-controller;
++		#gpio-cells = <2>;
++		gpio-line-names = "DIOAUX_LED0_GREEN",
++				  "DIOAUX_LED0_RED",
++				  "DIOAUX_LED1_GREEN",
++				  "DIOAUX_LED1_RED",
++				  "DIOAUX_PORTA_ENABLE",
++				  "DIOAUX_PORTA_3V3",
++				  "DIOAUX_PORTA_2V5",
++				  "DIOAUX_PORTA_ENABLE_EXT_PWR",
++				  "DIOAUX_PORTB_ENABLE",
++				  "DIOAUX_PORTB_3V3",
++				  "DIOAUX_PORTB_2V5",
++				  "DIOAUX_PORTB_ENABLE_EXT_PWR",
++				  "DIOAUX_WP",
++				  "DIOAUX_PORTA_PWR_GOOD",
++				  "DIOAUX_PORTB_PWR_GOOD";
++	};
++};
++
++&dioaux_eeprom {
++	wp-gpios = <&dioaux_gpio 12 0>;
++};
+-- 
+2.29.2
+

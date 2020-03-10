@@ -1,0 +1,42 @@
+From 0214daaa196c092ba788019f29093cbd9d616b28 Mon Sep 17 00:00:00 2001
+From: Geert Uytterhoeven <geert+renesas@glider.be>
+Date: Fri, 8 May 2015 16:23:36 +0200
+Subject: [PATCH 21/47] kbuild: Create a rule for building device tree overlay
+ objects
+
+Modify "cmd_dtc" to use the "dtb" output format for ".dtbo" files.
+Add a rule to build ".dtbo" files from ".dtso" files.
+
+This allows to handle device tree overlays like plain device trees.
+
+Signed-off-by: Geert Uytterhoeven <geert+renesas@glider.be>
+---
+ scripts/Makefile.lib | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index 52a92754bb26..fc2ab569f0a2 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -321,7 +321,7 @@ endif
+ 
+ quiet_cmd_dtc = DTC     $@
+ cmd_dtc = $(HOSTCC) -E $(dtc_cpp_flags) -x assembler-with-cpp -o $(dtc-tmp) $< ; \
+-	$(DTC) -O $(patsubst .%,%,$(suffix $@)) -o $@ -b 0 \
++	$(DTC) -O $(patsubst %o,%,$(patsubst .%,%,$(suffix $@))) -o $@ -b 0 \
+ 		$(addprefix -i,$(dir $<) $(DTC_INCLUDE)) $(DTC_FLAGS) \
+ 		-d $(depfile).dtc.tmp $(dtc-tmp) ; \
+ 	cat $(depfile).pre.tmp $(depfile).dtc.tmp > $(depfile)
+@@ -329,6 +329,9 @@ cmd_dtc = $(HOSTCC) -E $(dtc_cpp_flags) -x assembler-with-cpp -o $(dtc-tmp) $< ;
+ $(obj)/%.dtb: $(src)/%.dts $(DTC) FORCE
+ 	$(call if_changed_dep,dtc)
+ 
++$(obj)/%.dtbo: $(src)/%.dtso $(DTC) FORCE
++	$(call if_changed_dep,dtc)
++
+ DT_CHECKER ?= dt-validate
+ DT_BINDING_DIR := Documentation/devicetree/bindings
+ # DT_TMP_SCHEMA may be overridden from Documentation/devicetree/bindings/Makefile
+-- 
+2.29.2
+

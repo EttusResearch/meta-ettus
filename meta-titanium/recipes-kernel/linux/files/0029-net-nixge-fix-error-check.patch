@@ -1,0 +1,29 @@
+From caaaeb8cab4a35d569408bd3815a83d9454c70af Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Wed, 10 Mar 2021 11:01:03 -0600
+Subject: [PATCH 29/47] net: nixge: fix error check
+
+nixge_get_nvmem_address() can return either NULL or an ERR_PTR on
+failure, so update the check to handle the ERR_PTR case.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ drivers/net/ethernet/ni/nixge.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
+index 018513854c6b..03989f8a2e79 100755
+--- a/drivers/net/ethernet/ni/nixge.c
++++ b/drivers/net/ethernet/ni/nixge.c
+@@ -1369,7 +1369,7 @@ static int nixge_probe(struct platform_device *pdev)
+ 	ndev->max_mtu = NIXGE_JUMBO_MTU;
+ 
+ 	mac_addr = nixge_get_nvmem_address(&pdev->dev);
+-	if (mac_addr && is_valid_ether_addr(mac_addr)) {
++	if (!IS_ERR_OR_NULL(mac_addr) && is_valid_ether_addr(mac_addr)) {
+ 		ether_addr_copy(ndev->dev_addr, mac_addr);
+ 		kfree(mac_addr);
+ 	} else {
+-- 
+2.29.2
+

@@ -1,0 +1,53 @@
+From 83a3ad90aa3ad3bcb42375dd2ec2288366a59edf Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Fri, 7 May 2021 13:47:46 -0500
+Subject: [PATCH 1/2] net: nixge: start dma chans after request_irq
+
+Make sure we've requested IRQs before starting the DMA channels,
+otherwise an interrupt may arrive before a handler was registered.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ drivers/net/ethernet/ni/nixge.c | 15 +++++++++------
+ 1 file changed, 9 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
+index 03989f8a2e79..b6a68d5d0c98 100755
+--- a/drivers/net/ethernet/ni/nixge.c
++++ b/drivers/net/ethernet/ni/nixge.c
+@@ -413,12 +413,6 @@ static void nixge_device_reset(struct net_device *ndev)
+ 
+ 	__nixge_device_reset(priv, XAXIDMA_TX_CR_OFFSET);
+ 	__nixge_device_reset(priv, XAXIDMA_RX_CR_OFFSET);
+-
+-	if (nixge_hw_dma_bd_init(ndev))
+-		netdev_err(ndev, "%s: descriptor allocation failed\n",
+-			   __func__);
+-
+-	netif_trans_update(ndev);
+ }
+ 
+ static void nixge_tx_skb_unmap(struct nixge_priv *priv,
+@@ -880,10 +874,19 @@ static int nixge_open(struct net_device *ndev)
+ 	if (ret)
+ 		goto err_rx_irq;
+ 
++	ret = nixge_hw_dma_bd_init(ndev);
++	if (ret) {
++		netdev_err(ndev, "%s: descriptor allocation failed\n", __func__);
++		goto err_bd_init;
++	}
++
++	netif_trans_update(ndev);
+ 	netif_start_queue(ndev);
+ 
+ 	return 0;
+ 
++err_bd_init:
++	free_irq(priv->rx_irq, ndev);
+ err_rx_irq:
+ 	free_irq(priv->tx_irq, ndev);
+ err_tx_irq:
+-- 
+2.29.2
+

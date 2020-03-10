@@ -1,0 +1,122 @@
+From b9ba16feeb66ec83b23545e849ebba2706264fe9 Mon Sep 17 00:00:00 2001
+From: Ben Levinsky <ben.levinsky@xilinx.com>
+Date: Mon, 19 Oct 2020 15:40:04 -0700
+Subject: [PATCH 36/47] firmware: xilinx: Add shutdown/wakeup APIs
+
+Add shutdown/wakeup a resource eemi operations to shutdown
+or bringup a resource.
+
+Note alignment of args matches convention of other fn's in this file.
+The reason being that the long fn name results in aligned args that
+otherwise go over 80 chars so shift right to avoid this
+
+Signed-off-by: Ben Levinsky <ben.levinsky@xilinx.com>
+---
+ drivers/firmware/xilinx/zynqmp.c     | 35 ++++++++++++++++++++++++++++
+ include/linux/firmware/xlnx-zynqmp.h | 23 ++++++++++++++++++
+ 2 files changed, 58 insertions(+)
+
+diff --git a/drivers/firmware/xilinx/zynqmp.c b/drivers/firmware/xilinx/zynqmp.c
+index fd95edeb702b..6bcdaccb240f 100644
+--- a/drivers/firmware/xilinx/zynqmp.c
++++ b/drivers/firmware/xilinx/zynqmp.c
+@@ -876,6 +876,41 @@ int zynqmp_pm_release_node(const u32 node)
+ }
+ EXPORT_SYMBOL_GPL(zynqmp_pm_release_node);
+ 
++/**
++ * zynqmp_pm_force_pwrdwn - PM call to request for another PU or subsystem to
++ *             be powered down forcefully
++ * @node:  Node ID of the targeted PU or subsystem
++ * @ack:   Flag to specify whether acknowledge is requested
++ *
++ * Return: status, either success or error+reason
++ */
++int zynqmp_pm_force_pwrdwn(const u32 node,
++			   const enum zynqmp_pm_request_ack ack)
++{
++	return zynqmp_pm_invoke_fn(PM_FORCE_POWERDOWN, node, ack, 0, 0, NULL);
++}
++EXPORT_SYMBOL_GPL(zynqmp_pm_force_pwrdwn);
++
++/**
++ * zynqmp_pm_request_wake - PM call to wake up selected master or subsystem
++ * @node:  Node ID of the master or subsystem
++ * @set_addr:  Specifies whether the address argument is relevant
++ * @address:   Address from which to resume when woken up
++ * @ack:   Flag to specify whether acknowledge requested
++ *
++ * Return: status, either success or error+reason
++ */
++int zynqmp_pm_request_wake(const u32 node,
++			   const bool set_addr,
++			   const u64 address,
++			   const enum zynqmp_pm_request_ack ack)
++{
++	/* set_addr flag is encoded into 1st bit of address */
++	return zynqmp_pm_invoke_fn(PM_REQUEST_WAKEUP, node, address | set_addr,
++				   address >> 32, ack, NULL);
++}
++EXPORT_SYMBOL_GPL(zynqmp_pm_request_wake);
++
+ /**
+  * zynqmp_pm_set_requirement() - PM call to set requirement for PM slaves
+  * @node:		Node ID of the slave
+diff --git a/include/linux/firmware/xlnx-zynqmp.h b/include/linux/firmware/xlnx-zynqmp.h
+index e6920eba710e..e50369894996 100644
+--- a/include/linux/firmware/xlnx-zynqmp.h
++++ b/include/linux/firmware/xlnx-zynqmp.h
+@@ -12,6 +12,7 @@
+ 
+ #ifndef __FIRMWARE_ZYNQMP_H__
+ #define __FIRMWARE_ZYNQMP_H__
++#include <linux/types.h>
+ 
+ #define ZYNQMP_PM_VERSION_MAJOR	1
+ #define ZYNQMP_PM_VERSION_MINOR	0
+@@ -60,6 +61,8 @@
+ 
+ enum pm_api_id {
+ 	PM_GET_API_VERSION = 1,
++	PM_FORCE_POWERDOWN = 8,
++	PM_REQUEST_WAKEUP = 10,
+ 	PM_SYSTEM_SHUTDOWN = 12,
+ 	PM_REQUEST_NODE = 13,
+ 	PM_RELEASE_NODE,
+@@ -372,6 +375,12 @@ int zynqmp_pm_write_pggs(u32 index, u32 value);
+ int zynqmp_pm_read_pggs(u32 index, u32 *value);
+ int zynqmp_pm_system_shutdown(const u32 type, const u32 subtype);
+ int zynqmp_pm_set_boot_health_status(u32 value);
++int zynqmp_pm_force_pwrdwn(const u32 target,
++			   const enum zynqmp_pm_request_ack ack);
++int zynqmp_pm_request_wake(const u32 node,
++			   const bool set_addr,
++			   const u64 address,
++			   const enum zynqmp_pm_request_ack ack);
+ #else
+ static inline struct zynqmp_eemi_ops *zynqmp_pm_get_eemi_ops(void)
+ {
+@@ -522,6 +531,20 @@ static inline int zynqmp_pm_set_boot_health_status(u32 value)
+ {
+ 	return -ENODEV;
+ }
++
++static inline int zynqmp_pm_force_pwrdwn(const u32 target,
++					 const enum zynqmp_pm_request_ack ack)
++{
++	return -ENODEV;
++}
++
++static inline int zynqmp_pm_request_wake(const u32 node,
++					 const bool set_addr,
++					 const u64 address,
++					 const enum zynqmp_pm_request_ack ack)
++{
++	return -ENODEV;
++}
+ #endif
+ 
+ #endif /* __FIRMWARE_ZYNQMP_H__ */
+-- 
+2.29.2
+

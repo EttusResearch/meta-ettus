@@ -1,0 +1,88 @@
+From 72440d73f46ea8a4f2a639c6f5ef068959020d64 Mon Sep 17 00:00:00 2001
+From: Anurag Kumar Vulisha <anurag.kumar.vulisha@xilinx.com>
+Date: Thu, 23 Jan 2020 19:50:42 +0530
+Subject: [PATCH 04/47] dwc3: core: Enable GUCTL1 chicken bit 10 for fixing crc
+ error after resume bug
+
+When configured in HOST mode, after issuing U3/L2 exit controller fails to
+send proper CRC checksum in CRC5 feild. Because of this behaviour
+Transaction Error is generated, resulting in reset and re-enumeration of
+usb device attached. Enabling chicken bit 10 of GUCTL1 will correct this
+problem. This patch does the same.
+
+Signed-off-by: Anurag Kumar Vulisha <anuragku@xilinx.com>
+Signed-off-by: Anurag Kumar Vulisha <anurag.kumar.vulisha@xilinx.com>
+Signed-off-by: Michal Simek <michal.simek@xilinx.com>
+Signed-off-by: Piyush Mehta <piyush.mehta@xilinx.com>
+State: pending
+---
+ drivers/usb/dwc3/core.c | 14 ++++++++++++++
+ drivers/usb/dwc3/core.h |  6 ++++++
+ 2 files changed, 20 insertions(+)
+
+diff --git a/drivers/usb/dwc3/core.c b/drivers/usb/dwc3/core.c
+index 3101f0dcf6ae..063bb96302c3 100644
+--- a/drivers/usb/dwc3/core.c
++++ b/drivers/usb/dwc3/core.c
+@@ -1011,6 +1011,18 @@ static int dwc3_core_init(struct dwc3 *dwc)
+ 		dwc3_writel(dwc->regs, DWC3_GUCTL2, reg);
+ 	}
+ 
++	/* When configured in HOST mode, after issuing U3/L2 exit controller
++	 * fails to send proper CRC checksum in CRC5 feild. Because of this
++	 * behaviour Transaction Error is generated, resulting in reset and
++	 * re-enumeration of usb device attached. Enabling bit 10 of GUCTL1
++	 * will correct this problem
++	 */
++	if (dwc->enable_guctl1_resume_quirk) {
++		reg = dwc3_readl(dwc->regs, DWC3_GUCTL1);
++		reg |= DWC3_GUCTL1_RESUME_QUIRK;
++		dwc3_writel(dwc->regs, DWC3_GUCTL1, reg);
++	}
++
+ 	if (!DWC3_VER_IS_PRIOR(DWC3, 250A)) {
+ 		reg = dwc3_readl(dwc->regs, DWC3_GUCTL1);
+ 
+@@ -1352,6 +1364,8 @@ static void dwc3_get_properties(struct dwc3 *dwc)
+ 	device_property_read_u32(dev, "snps,quirk-frame-length-adjustment",
+ 				 &dwc->fladj);
+ 
++	dwc->enable_guctl1_resume_quirk = device_property_read_bool(dev,
++				"snps,enable_guctl1_resume_quirk");
+ 	dwc->dis_metastability_quirk = device_property_read_bool(dev,
+ 				"snps,dis_metastability_quirk");
+ 
+diff --git a/drivers/usb/dwc3/core.h b/drivers/usb/dwc3/core.h
+index 1b241f937d8f..8d8a7b3449f8 100644
+--- a/drivers/usb/dwc3/core.h
++++ b/drivers/usb/dwc3/core.h
+@@ -379,6 +379,9 @@
+ #define DWC3_GFLADJ_30MHZ_SDBND_SEL		BIT(7)
+ #define DWC3_GFLADJ_30MHZ_MASK			0x3f
+ 
++/* Global User Control Register 1 */
++#define DWC3_GUCTL1_RESUME_QUIRK		(1 << 10)
++
+ /* Global User Control Register 2 */
+ #define DWC3_GUCTL2_RST_ACTBITLATER		BIT(14)
+ 
+@@ -1047,6 +1050,8 @@ struct dwc3_scratchpad_array {
+  *			provide a free-running PHY clock.
+  * @dis_del_phy_power_chg_quirk: set if we disable delay phy power
+  *			change quirk.
++ * @enable_guctl1_resume_quirk: Set if we enable quirk for fixing improper crc
++ *			generation after resume from suspend.
+  * @dis_tx_ipgap_linecheck_quirk: set if we disable u2mac linestate
+  *			check during HS transmit.
+  * @parkmode_disable_ss_quirk: set if we need to disable all SuperSpeed
+@@ -1244,6 +1249,7 @@ struct dwc3 {
+ 	unsigned		dis_rxdet_inp3_quirk:1;
+ 	unsigned		dis_u2_freeclk_exists_quirk:1;
+ 	unsigned		dis_del_phy_power_chg_quirk:1;
++	unsigned		enable_guctl1_resume_quirk:1;
+ 	unsigned		dis_tx_ipgap_linecheck_quirk:1;
+ 	unsigned		parkmode_disable_ss_quirk:1;
+ 
+-- 
+2.29.2
+

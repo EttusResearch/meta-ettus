@@ -1,0 +1,27 @@
+From 17cbb2f6ba96069e4aa9fad823c19adf991a6a12 Mon Sep 17 00:00:00 2001
+From: Pantelis Antoniou <pantelis.antoniou@konsulko.com>
+Date: Fri, 21 Feb 2014 18:49:29 +0200
+Subject: [PATCH 12/47] gitignore: Ignore DTB files
+
+Signed-off-by: Pantelis Antoniou <pantelis.antoniou@konsulko.com>
+[geert: Just add *.dtbo near the existing dtb entries]
+Signed-off-by: Geert Uytterhoeven <geert+renesas@glider.be>
+---
+ .gitignore | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/.gitignore b/.gitignore
+index d01cda8e1177..025d7a63d3f5 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -19,6 +19,7 @@
+ *.dt.yaml
+ *.dtb
+ *.dtb.S
++*.dtbo
+ *.dwo
+ *.elf
+ *.gcno
+-- 
+2.29.2
+

@@ -1,0 +1,64 @@
+From 9386a8147f00ba9c5eebdeefc950e48beb7acb15 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Thu, 19 Nov 2020 16:39:26 -0600
+Subject: [PATCH 33/47] extcon: tusb320: soft reset device on probe
+
+Perform a soft-reset of the device at probe time to ensure it's in a
+good state.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ drivers/extcon/extcon-usbc-tusb320.c | 23 +++++++++++++++++++++++
+ 1 file changed, 23 insertions(+)
+
+diff --git a/drivers/extcon/extcon-usbc-tusb320.c b/drivers/extcon/extcon-usbc-tusb320.c
+index 805af73b4152..4d9b0fa15bba 100644
+--- a/drivers/extcon/extcon-usbc-tusb320.c
++++ b/drivers/extcon/extcon-usbc-tusb320.c
+@@ -24,6 +24,9 @@
+ #define TUSB320_ATTACHED_STATE_UFP		0x2
+ #define TUSB320_ATTACHED_STATE_ACC		0x3
+ 
++#define TUSB320_REGA				0xA
++#define TUSB320_REGA_SOFT_RESET			BIT(3)
++
+ struct tusb320_priv {
+ 	struct device *dev;
+ 	struct regmap *regmap;
+@@ -62,6 +65,22 @@ static int tusb320_check_signature(struct tusb320_priv *priv)
+ 	return 0;
+ }
+ 
++static int tusb320_soft_reset(struct tusb320_priv *priv)
++{
++	unsigned val;
++	int ret;
++
++	regmap_write(priv->regmap, TUSB320_REGA, TUSB320_REGA_SOFT_RESET);
++
++	ret = regmap_read_poll_timeout(priv->regmap, TUSB320_REGA, val,
++				       !(val & TUSB320_REGA_SOFT_RESET),
++				       1000, 100000);
++	if (ret)
++		return ret;
++
++	return tusb320_check_signature(priv);
++}
++
+ static irqreturn_t tusb320_irq_handler(int irq, void *dev_id)
+ {
+ 	struct tusb320_priv *priv = dev_id;
+@@ -125,6 +144,10 @@ static int tusb320_extcon_probe(struct i2c_client *client,
+ 	if (ret)
+ 		return ret;
+ 
++	ret = tusb320_soft_reset(priv);
++	if (ret)
++		return ret;
++
+ 	priv->edev = devm_extcon_dev_allocate(priv->dev, tusb320_extcon_cable);
+ 	if (IS_ERR(priv->edev)) {
+ 		dev_err(priv->dev, "failed to allocate extcon device\n");
+-- 
+2.29.2
+

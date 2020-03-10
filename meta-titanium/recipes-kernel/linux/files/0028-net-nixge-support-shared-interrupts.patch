@@ -1,0 +1,75 @@
+From 0d2292e9d342e7f9074e67e49792905f63faf671 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Thu, 11 Feb 2021 14:21:04 -0600
+Subject: [PATCH 28/47] net: nixge: support shared interrupts
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ drivers/net/ethernet/ni/nixge.c | 22 ++++++++++++----------
+ 1 file changed, 12 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
+index f47cf9d426d2..018513854c6b 100755
+--- a/drivers/net/ethernet/ni/nixge.c
++++ b/drivers/net/ethernet/ni/nixge.c
+@@ -688,15 +688,15 @@ static irqreturn_t nixge_tx_irq(int irq, void *_ndev)
+ 	u32 cr;
+ 
+ 	status = nixge_dma_read_reg(priv, XAXIDMA_TX_SR_OFFSET);
++	if (!(status & XAXIDMA_IRQ_ALL_MASK))
++		return IRQ_NONE;
++
+ 	if (status & (XAXIDMA_IRQ_IOC_MASK | XAXIDMA_IRQ_DELAY_MASK)) {
+ 		nixge_dma_write_reg(priv, XAXIDMA_TX_SR_OFFSET, status);
+ 		nixge_start_xmit_done(priv->ndev);
+ 		goto out;
+ 	}
+-	if (!(status & XAXIDMA_IRQ_ALL_MASK)) {
+-		netdev_err(ndev, "No interrupts asserted in Tx path\n");
+-		return IRQ_NONE;
+-	}
++
+ 	if (status & XAXIDMA_IRQ_ERROR_MASK) {
+ 		phys = nixge_hw_dma_bd_get_addr(&priv->tx_bd_v[priv->tx_bd_ci],
+ 						phys);
+@@ -732,6 +732,9 @@ static irqreturn_t nixge_rx_irq(int irq, void *_ndev)
+ 	u32 cr;
+ 
+ 	status = nixge_dma_read_reg(priv, XAXIDMA_RX_SR_OFFSET);
++	if (!(status & XAXIDMA_IRQ_ALL_MASK))
++		return IRQ_NONE;
++
+ 	if (status & (XAXIDMA_IRQ_IOC_MASK | XAXIDMA_IRQ_DELAY_MASK)) {
+ 		/* Turn of IRQs because NAPI */
+ 		nixge_dma_write_reg(priv, XAXIDMA_RX_SR_OFFSET, status);
+@@ -743,10 +746,7 @@ static irqreturn_t nixge_rx_irq(int irq, void *_ndev)
+ 			__napi_schedule(&priv->napi);
+ 		goto out;
+ 	}
+-	if (!(status & XAXIDMA_IRQ_ALL_MASK)) {
+-		netdev_err(ndev, "No interrupts asserted in Rx path\n");
+-		return IRQ_NONE;
+-	}
++
+ 	if (status & XAXIDMA_IRQ_ERROR_MASK) {
+ 		phys = nixge_hw_dma_bd_get_addr(&priv->rx_bd_v[priv->rx_bd_ci],
+ 						phys);
+@@ -870,11 +870,13 @@ static int nixge_open(struct net_device *ndev)
+ 	napi_enable(&priv->napi);
+ 
+ 	/* Enable interrupts for Axi DMA Tx */
+-	ret = request_irq(priv->tx_irq, nixge_tx_irq, 0, ndev->name, ndev);
++	ret = request_irq(priv->tx_irq, nixge_tx_irq, IRQF_SHARED, ndev->name,
++			  ndev);
+ 	if (ret)
+ 		goto err_tx_irq;
+ 	/* Enable interrupts for Axi DMA Rx */
+-	ret = request_irq(priv->rx_irq, nixge_rx_irq, 0, ndev->name, ndev);
++	ret = request_irq(priv->rx_irq, nixge_rx_irq, IRQF_SHARED, ndev->name,
++			  ndev);
+ 	if (ret)
+ 		goto err_rx_irq;
+ 
+-- 
+2.29.2
+

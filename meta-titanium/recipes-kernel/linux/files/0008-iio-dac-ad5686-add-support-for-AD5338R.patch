@@ -1,0 +1,101 @@
+From f5ab4b9d371c0cd229343f856707247219dd2587 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Tue, 22 Sep 2020 13:12:32 -0500
+Subject: [PATCH 08/47] iio: dac: ad5686: add support for AD5338R
+
+The AD5338R is a 10-bit DAC with 2 outputs and an internal 2.5V
+reference (enabled by default). The register configuration is nearly
+identical to the AD5696R DAC that's already supported by this driver,
+with the channel selection bits being the only thing different.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ drivers/iio/dac/Kconfig      |  7 ++++---
+ drivers/iio/dac/ad5686.c     | 13 +++++++++++++
+ drivers/iio/dac/ad5686.h     |  1 +
+ drivers/iio/dac/ad5696-i2c.c |  1 +
+ 4 files changed, 19 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/iio/dac/Kconfig b/drivers/iio/dac/Kconfig
+index dae8d27e772d..6f6074a5d3db 100644
+--- a/drivers/iio/dac/Kconfig
++++ b/drivers/iio/dac/Kconfig
+@@ -141,9 +141,10 @@ config AD5696_I2C
+ 	depends on I2C
+ 	select AD5686
+ 	help
+-	  Say yes here to build support for Analog Devices AD5671R, AD5675R,
+-	  AD5694, AD5694R, AD5695R, AD5696, AD5696R Voltage Output Digital to
+-	  Analog Converter.
++	  Say yes here to build support for Analog Devices AD5311R, AD5338R,
++	  AD5671R, AD5675R, AD5691R, AD5692R, AD5693, AD5693R, AD5694, AD5694R,
++	  AD5695R, AD5696, and AD5696R Digital to Analog converters.
++
+ 	  To compile this driver as a module, choose M here: the module will be
+ 	  called ad5696.
+ 
+diff --git a/drivers/iio/dac/ad5686.c b/drivers/iio/dac/ad5686.c
+index 148d9541f517..0a372809fcb0 100644
+--- a/drivers/iio/dac/ad5686.c
++++ b/drivers/iio/dac/ad5686.c
+@@ -210,6 +210,12 @@ static const struct iio_chan_spec name[] = {			\
+ 		AD5868_CHANNEL(0, 0, bits, _shift),		\
+ }
+ 
++#define DECLARE_AD5338_CHANNELS(name, bits, _shift)		\
++static struct iio_chan_spec name[] = {				\
++		AD5868_CHANNEL(0, 1, bits, _shift),		\
++		AD5868_CHANNEL(1, 8, bits, _shift),		\
++}
++
+ #define DECLARE_AD5686_CHANNELS(name, bits, _shift)		\
+ static const struct iio_chan_spec name[] = {			\
+ 		AD5868_CHANNEL(0, 1, bits, _shift),		\
+@@ -252,6 +258,7 @@ static const struct iio_chan_spec name[] = {			\
+ 
+ DECLARE_AD5693_CHANNELS(ad5310r_channels, 10, 2);
+ DECLARE_AD5693_CHANNELS(ad5311r_channels, 10, 6);
++DECLARE_AD5338_CHANNELS(ad5338r_channels, 10, 6);
+ DECLARE_AD5676_CHANNELS(ad5672_channels, 12, 4);
+ DECLARE_AD5679_CHANNELS(ad5674r_channels, 12, 4);
+ DECLARE_AD5676_CHANNELS(ad5676_channels, 16, 0);
+@@ -276,6 +283,12 @@ static const struct ad5686_chip_info ad5686_chip_info_tbl[] = {
+ 		.num_channels = 1,
+ 		.regmap_type = AD5693_REGMAP,
+ 	},
++	[ID_AD5338R] = {
++		.channels = ad5338r_channels,
++		.int_vref_mv = 2500,
++		.num_channels = 2,
++		.regmap_type = AD5686_REGMAP,
++	},
+ 	[ID_AD5671R] = {
+ 		.channels = ad5672_channels,
+ 		.int_vref_mv = 2500,
+diff --git a/drivers/iio/dac/ad5686.h b/drivers/iio/dac/ad5686.h
+index a15f2970577e..d9c8ba413fe9 100644
+--- a/drivers/iio/dac/ad5686.h
++++ b/drivers/iio/dac/ad5686.h
+@@ -52,6 +52,7 @@
+ enum ad5686_supported_device_ids {
+ 	ID_AD5310R,
+ 	ID_AD5311R,
++	ID_AD5338R,
+ 	ID_AD5671R,
+ 	ID_AD5672R,
+ 	ID_AD5674R,
+diff --git a/drivers/iio/dac/ad5696-i2c.c b/drivers/iio/dac/ad5696-i2c.c
+index ccf794caef43..89e7b063b7bb 100644
+--- a/drivers/iio/dac/ad5696-i2c.c
++++ b/drivers/iio/dac/ad5696-i2c.c
+@@ -72,6 +72,7 @@ static int ad5686_i2c_remove(struct i2c_client *i2c)
+ 
+ static const struct i2c_device_id ad5686_i2c_id[] = {
+ 	{"ad5311r", ID_AD5311R},
++	{"ad5338r", ID_AD5338R},
+ 	{"ad5671r", ID_AD5671R},
+ 	{"ad5675r", ID_AD5675R},
+ 	{"ad5691r", ID_AD5691R},
+-- 
+2.29.2
+

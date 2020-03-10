@@ -1,0 +1,29 @@
+From 30284ecfd70a3a4e26ed9107e7261e25d87db5d5 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Wed, 28 Oct 2020 09:03:38 -0500
+Subject: [PATCH 40/47] remoteproc: zynqmp: set auto_boot to false
+
+This suppresses the errors on the kernel log that occur when the
+remoteproc core tries to automatically boot the core, before we've
+supplied the firmware.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ drivers/remoteproc/zynqmp_r5_remoteproc.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/remoteproc/zynqmp_r5_remoteproc.c b/drivers/remoteproc/zynqmp_r5_remoteproc.c
+index 7a34f72c2373..62ce20b33a9d 100644
+--- a/drivers/remoteproc/zynqmp_r5_remoteproc.c
++++ b/drivers/remoteproc/zynqmp_r5_remoteproc.c
+@@ -626,6 +626,7 @@ static int zynqmp_r5_probe(struct platform_device *pdev,
+ 	z_rproc->rproc = rproc_ptr;
+ 	z_rproc->dev = &rproc_ptr->dev;
+ 	z_rproc->dev->of_node = node;
++	rproc_ptr->auto_boot = false;
+ 
+ 	/* Set up DMA mask */
+ 	ret = dma_set_coherent_mask(dev, DMA_BIT_MASK(32));
+-- 
+2.29.2
+

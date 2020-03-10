@@ -1,0 +1,51 @@
+From 42fcd773cb754af715eae92fb790d23102e22f36 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Fri, 7 May 2021 13:51:05 -0500
+Subject: [PATCH 2/2] net: nixge: use nixge_device_reset helper
+
+Now that this purely resets the device, call it from the error IRQ
+handler.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ drivers/net/ethernet/ni/nixge.c | 9 +++------
+ 1 file changed, 3 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
+index b6a68d5d0c98..a1160958840a 100755
+--- a/drivers/net/ethernet/ni/nixge.c
++++ b/drivers/net/ethernet/ni/nixge.c
+@@ -407,10 +407,8 @@ static void __nixge_device_reset(struct nixge_priv *priv, off_t offset)
+ 		netdev_err(priv->ndev, "%s: DMA reset timeout!\n", __func__);
+ }
+ 
+-static void nixge_device_reset(struct net_device *ndev)
++static void nixge_device_reset(struct nixge_priv *priv)
+ {
+-	struct nixge_priv *priv = netdev_priv(ndev);
+-
+ 	__nixge_device_reset(priv, XAXIDMA_TX_CR_OFFSET);
+ 	__nixge_device_reset(priv, XAXIDMA_RX_CR_OFFSET);
+ }
+@@ -773,8 +771,7 @@ static void nixge_dma_err_handler(struct tasklet_struct *t)
+ 	struct nixge_tx_skb *tx_skb;
+ 	u32 cr, i;
+ 
+-	__nixge_device_reset(lp, XAXIDMA_TX_CR_OFFSET);
+-	__nixge_device_reset(lp, XAXIDMA_RX_CR_OFFSET);
++	nixge_device_reset(lp);
+ 
+ 	for (i = 0; i < TX_BD_NUM; i++) {
+ 		cur_p = &lp->tx_bd_v[i];
+@@ -848,7 +845,7 @@ static int nixge_open(struct net_device *ndev)
+ 	int err;
+ 	int ret;
+ 
+-	nixge_device_reset(ndev);
++	nixge_device_reset(priv);
+ 
+ 	err = phylink_of_phy_connect(priv->phylink, priv->phy_node, 0);
+ 	if (err) {
+-- 
+2.29.2
+
