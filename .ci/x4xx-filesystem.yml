@@ -1,0 +1,424 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- titanium-zeus
+
+pr:
+  branches:
+    include:
+    - titanium-zeus
+
+schedules:
+- cron: "0 19 * * *"
+  displayName: 'Daily build'
+  branches:
+    include:
+    - titanium-zeus
+
+variables:
+  SITECONF_FILE: '$(Agent.WorkFolder)/site.conf'
+  ARTIFACTIGNORE: '$(Agent.WorkFolder)/artifactignore.sh'
+  BRANCH_SHORTNAME_SCRIPT: '$(Agent.BuildDirectory)/meta-ettus/.ci/scripts/branch_shortname.sh'
+  IMAGE_VERSION_SUFFIX: '-$(Build.BuildNumber)'
+  MANIFEST_URL: 'git@github.com:EttusResearch/oe-manifest-dev.git'
+  MANIFEST_BRANCH: 'zeus-dev'
+  MANIFEST_FILE: 'head-titanium-dev.xml'
+  TESTREULTS_DIR: 'Agent.BuildDirectory)/$(config.BUILD_DIR)/testresults'
+
+resources:
+  repositories:
+    - repository: chromium-ec-rev4
+      type: github
+      name: EttusResearch/chromium-ec
+      ref: refs/heads/titanium-rev4
+      endpoint: EttusResearch
+    - repository: chromium-ec
+      type: github
+      name: EttusResearch/chromium-ec
+      ref: refs/heads/titanium
+      endpoint: EttusResearch
+    - repository: u-boot
+      type: github
+      name: EttusResearch/u-boot
+      ref: refs/heads/titanium-2020.10-mender
+      endpoint: EttusResearch
+    - repository: linuxdev
+      type: github
+      name: EttusResearch/linuxdev
+      ref: refs/heads/titanium-v5.10
+      endpoint: EttusResearch
+    - repository: uhddev
+      type: github
+      name: EttusResearch/uhddev
+      ref: refs/heads/titanium-master
+      endpoint: EttusResearch
+    - repository: libnifpga
+      type: git
+      name: Users/mauchter-libnifpga
+    - repository: ettools
+      type: github
+      name: EttusResearch/ettools
+      ref: refs/heads/master
+      endpoint: EttusResearch
+  pipelines:
+    - pipeline: uhddev-fpga-export-titanium-master
+      source: 'EttusResearch.uhddev FPGA export'
+      branch: titanium-master
+
+jobs:
+- job: 'build'
+  timeoutInMinutes: 600
+  cancelTimeoutInMinutes: 10
+  strategy:
+    matrix: $[ variables.Devices ]
+
+  pool:
+    name: de-dre-lab
+    demands:
+    - openembedded
+
+  variables:
+    MENDER_ARTIFACT_NAME: '$(Build.BuildNumber)_$(System.JobName)'
+
+  steps:
+
+  - checkout: self
+    path: meta-ettus
+    displayName: 'Checkout meta-ettus'
+
+  - script: |
+      if (echo $SYSTEM_JOBNAME | grep -q -e "-nomender$"); then
+        DEVICE=${SYSTEM_JOBNAME:0:-9}
+        TEMPLATECONF_DIR="meta-ettus/conf/without-mender/$DEVICE"
+      else
+        DEVICE=$SYSTEM_JOBNAME
+        TEMPLATECONF_DIR="meta-ettus/conf/with-mender/$DEVICE"
+      fi
+      BRANCH_SHORTNAME=$($BRANCH_SHORTNAME_SCRIPT $BUILD_SOURCEBRANCH)
+      if [ "$BRANCH_SHORTNAME" = "titanium-zeus" ] && [ "$(Build.Reason)" = "Manual" ] && [ "$(MarkBuildAsScheduled)" != "true" ]; then
+        BRANCH_SHORTNAME="${BRANCH_SHORTNAME}_manual"
+      fi
+      BUILD_DIR="$DEVICE/$BRANCH_SHORTNAME/build-$BUILD_BUILDNUMBER" # relative to Agent.BuildDirectory
+      TESTRESULTS_DIR="$BUILD_DIR/testresults" # relative to Agent.BuildDirectory
+      IMAGE_VERSION_SUFFIX="-$BUILD_BUILDNUMBER"
+      # set variables to be used in the pipeline
+      echo "###vso[task.setVariable variable=Device;isOutput=true]$DEVICE"
+      echo "###vso[task.setVariable variable=TemplateConf_Dir;isOutput=true]$TEMPLATECONF_DIR"
+      echo "###vso[task.setVariable variable=Build_Dir;isOutput=true]$BUILD_DIR"
+      echo "###vso[task.setVariable variable=TESTRESULTS_DIR;isOutput=true]$TESTRESULTS_DIR"
+      echo "###vso[task.setVariable variable=Image_Version_Suffix;isOutput=true]$IMAGE_VERSION_SUFFIX"
+    name: config
+
+  - script: env
+    displayName: 'Print environment'
+
+  - script: ssh -T git@github.com || true
+    displayName: 'Test github authentication'
+
+  - script: |
+      cd $AGENT_BUILDDIRECTORY
+      repo init -u $MANIFEST_URL -b $MANIFEST_BRANCH -m $MANIFEST_FILE
+      # sed -i "s|\(<project.*meta-ettus.* />\)|<\!--\1-->|" .repo/manifest.xml
+      mkdir -p .repo/local_manifests
+      cat > .repo/local_manifests/remove-meta-ettus-dev.xml <<EOF
+      <?xml version="1.0" encoding="UTF-8"?>
+      <manifest>
+        <remove-project name="meta-ettus-dev" />
+      </manifest>
+      EOF
+      repo forall -c git clean -fd
+      repo forall -c git reset --hard
+      repo sync --force-sync
+      if [ -x .repo/manifests/apply-patches.sh ]; then
+        .repo/manifests/apply-patches.sh
+      fi
+      sed -i 's|\(aftertask\) = "do_provide_mender_defines"|\1 = "do_unpack"|' $(Agent.BuildDirectory)/meta-mender/meta-mender-core/recipes-bsp/u-boot/u-boot-mender.inc
+      # # fix an issue in the meta-mender layer
+      # sed -i 's/\(cp -l "\$file" "\$destfile"\)/\1 || cp "\$file" "\$destfile"/' \
+      #   meta-mender/meta-mender-core/classes/mender-helpers.bbclass
+    displayName: 'Checkout other layers'
+
+  - checkout: ettools
+    path: ettools
+    displayName: 'Checkout ettools'
+
+  - script: |
+      cd $AGENT_BUILDDIRECTORY
+      mkdir -p $PWD/$CONFIG_BUILD_DIR
+      export TEMPLATECONF=$PWD/$CONFIG_TEMPLATECONF_DIR
+      if [ -d $CONFIG_BUILD_DIR/conf ]; then
+        rm -rv $CONFIG_BUILD_DIR/conf
+      fi
+      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
+      if [ -n "$SITECONF_FILE" ]; then
+        cp -v $SITECONF_FILE conf/site.conf
+        DEPLOY_DIR_BASE=$(grep -e "^DEPLOY_DIR_BASE\s*=" conf/site.conf | sed "s|^.*=\s*\"\(\S*\)\"$|\1|")
+        if [ -n "$DEPLOY_DIR_BASE" ]; then
+          DEPLOY_DIR="$DEPLOY_DIR_BASE/${SYSTEM_DEFINITIONNAME}/${CONFIG_BUILD_DIR}"
+          echo "###vso[task.setVariable variable=DEPLOY_DIR]$DEPLOY_DIR"
+          echo "Setting DEPLOY_DIR to $DEPLOY_DIR"
+          echo "DEPLOY_DIR = \"$DEPLOY_DIR\"" >> conf/local.conf
+          PACKAGE_FEED_BASE_PATHS="$(realpath -m --relative-to="$DEPLOY_DIR_BASE" "$DEPLOY_DIR/ipk")"
+          echo "Setting PACKAGE_FEED_BASE_PATHS to $PACKAGE_FEED_BASE_PATHS"
+          echo "PACKAGE_FEED_BASE_PATHS = \"$PACKAGE_FEED_BASE_PATHS\"" >> conf/local.conf
+          echo "Setting PMU_FIRMWARE_DEPLOY_DIR to $DEPLOY_DIR/images/zynqmp-pmu"
+          echo "PMU_FIRMWARE_DEPLOY_DIR = \"$DEPLOY_DIR/images/zynqmp-pmu\"" >> conf/local.conf
+        fi
+        echo 'UHD_BASE_URL = "http://orbitty.amer.corp.natinst.com:9090/binaries/cache"' >> conf/local.conf
+        UHDDEV_FPGA_EXPORT_ARTIFACT_DIR="$(Agent.BuildDirectory)/uhddev-fpga-export-titanium-master"
+        UHDDEV_FPGA_EXPORT_ARTIFACT_PV="4.0+$(resources.pipeline.uhddev-fpga-export-titanium-master.runName)"
+        echo "TESTRESULTS_DIR = \"$(Agent.BuildDirectory)/$(config.TESTRESULTS_DIR)\"" >> conf/local.conf
+        echo "###vso[task.setVariable variable=OE_LOCALCONF]$(realpath conf/local.conf)"
+        echo "CORE_IMAGE_EXTRA_INSTALL += \"libniusrp2\"" >> conf/local.conf
+        echo "CORE_IMAGE_EXTRA_INSTALL += \"libnifpga\"" >> conf/local.conf
+        echo "CORE_IMAGE_EXTRA_INSTALL += \"uhd-cpld-images\"" >> conf/local.conf
+      fi
+      for FILE in $TEMPLATECONF/multiconfig/*.sample; do
+        mkdir -p conf/multiconfig
+        cp -v $FILE conf/multiconfig/$(basename $FILE .sample)
+      done
+      echo "MENDER_ARTIFACT_NAME = \"$MENDER_ARTIFACT_NAME\"" >> conf/local.conf
+      bitbake-layers add-layer "$(Agent.BuildDirectory)/ettools/meta-ettus-internal"
+      for FILE in $(find conf -name "*.conf"); do
+        echo "*** content of file $FILE: ***"
+        cat $FILE
+      done
+
+    displayName: 'Setup environment'
+
+  - template: templates/oe_localconf_externalsrc_pipeline.yml
+    parameters:
+      pipeline: uhddev-fpga-export-titanium-master
+      artifacts:
+        - "FPGA image X410_XG_100"
+        - "FPGA image X410_X4_200"
+      packages:
+        - uhd-fpga-images
+      pv_override: "4.0+$(resources.pipeline.uhddev-fpga-export-titanium-master.runName)"
+      flatten: true
+
+  - template: templates/oe_localconf_externalsrc_pipeline.yml
+    parameters:
+      pipeline: uhddev-fpga-export-titanium-master
+      artifacts:
+        - "MB CPLD image"
+        - "ZR CPLD image"
+      packages:
+        - uhd-cpld-images
+      pv_override: "4.0+$(resources.pipeline.uhddev-fpga-export-titanium-master.runName)"
+      flatten: true
+
+  - template: templates/oe_localconf_externalsrc.yml
+    parameters:
+      condition: eq(variables['System.JobName'], 'x4xx-rev4')
+      repository: chromium-ec-rev4
+      build_in_src: true
+      packages:
+        - chromium-ec
+        - chromium-ec-utils
+
+  - template: templates/oe_localconf_externalsrc.yml
+    parameters:
+      condition: eq(variables['System.JobName'], 'x4xx-rev5')
+      repository: chromium-ec
+      build_in_src: true
+      packages:
+        - chromium-ec
+        - chromium-ec-utils
+
+  - template: templates/oe_localconf_externalsrc.yml
+    parameters:
+      repository: u-boot
+      packages:
+        - u-boot
+        - u-boot-fw-utils
+
+  - template: templates/oe_localconf_externalsrc.yml
+    parameters:
+      repository: linuxdev
+      packages:
+        - linux-titanium-stable
+
+  - template: templates/oe_localconf_externalsrc.yml
+    parameters:
+      repository: libnifpga
+      packages:
+        - libnifpga
+
+  - template: templates/oe_localconf_externalsrc.yml
+    parameters:
+      repository: uhddev
+      package_paths:
+        - package: uhd
+          path: host
+        - package: mpmd
+          path: mpm
+
+  - script: |
+      cd $AGENT_BUILDDIRECTORY
+      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
+      bitbake -p || exit $?
+    displayName: 'Parse recipes'
+
+  - script: |
+      cd $AGENT_BUILDDIRECTORY
+      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
+      bitbake -e multiconfig:ni-titanium-ec:chromium-ec > chromium-ec.env
+      bitbake multiconfig:ni-titanium-ec:chromium-ec:do_build || exit $?
+      DEPLOY_DIR_IMAGE=$(grep -e "^DEPLOY_DIR_IMAGE=" chromium-ec.env | sed "s|^.*=\s*\"\(\S*\)\"$|\1|")
+      # prepare artifact
+      $ARTIFACTIGNORE $DEPLOY_DIR_IMAGE
+      echo "###vso[task.setVariable variable=Deploy_Dir_Image;isOutput=true]$DEPLOY_DIR_IMAGE"
+      # set correct CROS_EC_DEPLOY_DIR_IMAGE path in local.conf
+      echo "CROS_EC_DEPLOY_DIR_IMAGE_pn-linux-firmware = \"$DEPLOY_DIR_IMAGE\"" >> conf/local.conf
+    name: 'build_scu'
+    # displayName: 'Build SCU firmware'
+    condition: and(succeeded(), not(eq(variables.ImageOnly, 'true')))
+
+  - script: |
+      cd $AGENT_BUILDDIRECTORY
+      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
+      bitbake x4xx-pyrats-bitfiles:do_package_write_ipk || exit $?
+    displayName: 'Build x4xx-pyrats-bitfiles'
+
+  - script: |
+      cd $AGENT_BUILDDIRECTORY
+      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
+      bitbake niusrp2-bitfiles:do_package_write_ipk || exit $?
+    displayName: 'Build niusrp2-bitfiles'
+
+  - script: |
+      cd $AGENT_BUILDDIRECTORY
+      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
+      bitbake -e multiconfig:zynqmp-pmu:pmu-firmware > pmu-firmware.env
+      bitbake multiconfig:zynqmp-pmu:pmu-firmware:do_build || exit $?
+      DEPLOY_DIR_IMAGE=$(grep -e "^DEPLOY_DIR_IMAGE=" pmu-firmware.env | sed "s|^.*=\s*\"\(\S*\)\"$|\1|")
+      # prepare artifact
+      $ARTIFACTIGNORE $DEPLOY_DIR_IMAGE
+      echo "###vso[task.setVariable variable=Deploy_Dir_Image;isOutput=true]$DEPLOY_DIR_IMAGE"
+      # set correct ZYNQMP_PMU_DEPLOY_DIR_IMAGE path in local.conf
+      echo "ZYNQMP_PMU_DEPLOY_DIR_IMAGE_pn-u-boot = \"$DEPLOY_DIR_IMAGE\"" >> conf/local.conf
+    name: build_pmu
+    # displayName: 'Build PMU Firmware'
+    condition: and(succeeded(), not(eq(variables.ImageOnly, 'true')))
+
+  - script: |
+      cd $AGENT_BUILDDIRECTORY
+      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
+      bitbake u-boot:do_package_write_ipk || exit $?
+    displayName: 'Build u-boot'
+    condition: and(succeeded(), not(eq(variables.ImageOnly, 'true')))
+
+  - script: |
+      cd $AGENT_BUILDDIRECTORY
+      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
+      bitbake virtual/kernel:do_package_write_ipk || exit $?
+    displayName: 'Build Kernel'
+    condition: and(succeeded(), not(eq(variables.ImageOnly, 'true')))
+
+  - script: |
+      cd $AGENT_BUILDDIRECTORY
+      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
+      bitbake uhd:do_package_write_ipk || exit $?
+      bitbake uhd-fpga-images:do_package_write_ipk || exit $?
+      bitbake uhd-cpld-images:do_package_write_ipk || exit $?
+      bitbake mpmd:do_package_write_ipk || exit $?
+    displayName: 'Build UHD, MPMD'
+    condition: and(succeeded(), not(eq(variables.ImageOnly, 'true')))
+
+  - script: |
+      cd $AGENT_BUILDDIRECTORY
+      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
+      bitbake uhd:do_run_tests || exit $?
+    displayName: 'Run UHD tests'
+    continueOnError: true
+    condition: and(succeeded(), not(eq(variables.ImageOnly, 'true')))
+
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'cTest'
+      testResultsFiles: '**/Test.xml'
+      testRunTitle: 'UHD tests'
+      searchFolder: '$(Agent.BuildDirectory)/$(config.TESTRESULTS_DIR)/uhd'
+    displayName: 'Publish UHD tests results'
+    continueOnError: true
+    condition: and(succeeded(), not(eq(variables.ImageOnly, 'true')))
+
+  - script: |
+      cd $AGENT_BUILDDIRECTORY
+      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
+      bitbake -e $(Image) > $(Image).env
+      bitbake $(Image):do_build || exit $?
+      DEPLOY_DIR_IMAGE=$(grep -e "^DEPLOY_DIR_IMAGE=" $(Image).env | sed "s|^.*=\s*\"\(\S*\)\"$|\1|")
+      $ARTIFACTIGNORE $DEPLOY_DIR_IMAGE "**/*.ext4* **/*.wic* **/*.sdimg* **/*.dataimg* **/*.mender*"
+      echo "###vso[task.setVariable variable=Deploy_Dir_Image;isOutput=true]$DEPLOY_DIR_IMAGE"
+    displayName: 'Build $(Image)'
+
+  # This task builds the SDK
+  # Enabled only if a variable BUILD_SDK=true is set
+  - script: |
+      cd $AGENT_BUILDDIRECTORY
+      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
+      bitbake $(Image):do_populate_sdk || exit $?
+    displayName: 'Build $(Image) SDK'
+    condition: and(succeeded(), eq(variables.BUILD_SDK, 'true'))
+
+  - script: |
+      cd $AGENT_BUILDDIRECTORY
+      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
+      bitbake package-index package-feed || exit $?
+    displayName: 'Create package index and feed'
+
+  - script: |
+      cd $AGENT_BUILDDIRECTORY
+      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
+      grep -e "^IMAGE_NAME=" -e "^IMAGE_LINK_NAME=" -e "^IMAGE_FSTYPES=" \
+        -e "^DEPLOY_DIR_IMAGE=" -e "^DEPLOY_DIR_IPK=" -e "^DEPLOY_DIR_BASE=" \
+        -e "^PACKAGE_FEED_URIS=" $(Image).env \
+         > image.variables
+      source image.variables
+      for CAND in sdimg sdimg.gz sdimg.bz2 wic wic.gz wic.bz2; do
+        if (grep -q -e "^IMAGE_FSTYPES.*[\" ]$CAND[\" ]" image.variables); then
+          EXT="$CAND"
+        fi
+      done
+      mkdir -p $BUILD_STAGINGDIRECTORY/$SYSTEM_JOBNAME
+      cp image.variables $BUILD_STAGINGDIRECTORY/$SYSTEM_JOBNAME
+      cp $DEPLOY_DIR_IPK/base-feeds.conf $BUILD_STAGINGDIRECTORY/$SYSTEM_JOBNAME
+      if [ -z "$DEPLOY_DIR_BASE" ]; then
+        echo "ERROR: variable DEPLOY_DIR_BASE is not defined"
+        exit 1
+      elif [ -z "$PACKAGE_FEED_URIS" ]; then
+        echo "ERROR: variable PACKAGE_FEED_URIS is not defined"
+        exit 1
+      else
+        DEPLOY_DIR_MAPPING="s|$DEPLOY_DIR_BASE|$PACKAGE_FEED_URIS|"
+        echo $DEPLOY_DIR_IMAGE | sed "$DEPLOY_DIR_MAPPING" \
+          > $BUILD_STAGINGDIRECTORY/$SYSTEM_JOBNAME/images.url
+        echo $DEPLOY_DIR_IPK | sed "$DEPLOY_DIR_MAPPING" \
+          > $BUILD_STAGINGDIRECTORY/$SYSTEM_JOBNAME/ipk.url
+        echo $DEPLOY_DIR_IMAGE/$IMAGE_LINK_NAME.$EXT | sed "$DEPLOY_DIR_MAPPING" \
+          > $BUILD_STAGINGDIRECTORY/$SYSTEM_JOBNAME/filesystem-image.url
+      fi
+    displayName: 'Create Image URLs'
+    continueOnError: True
+
+  - publish: $(Build.StagingDirectory)/$(System.JobName)
+    artifact: '$(System.JobName)-urls'
+    displayName: 'Publish Image URL $(System.JobName)'
+    continueOnError: True
+
+  - script: |
+      if [ -x $(Agent.WorkFolder)/cleanup ]; then
+        $(Agent.WorkFolder)/cleanup $AGENT_BUILDDIRECTORY/$CONFIG_BUILD_DIR
+      fi
+    displayName: cleanup
+    condition: succeeded()
+
+  - script: |
+      mv $(DEPLOY_DIR) $(DEPLOY_DIR)_attempt_$(System.JobAttempt)
+    condition: failed()
+    displayName: rename deploy dir if build failed
