@@ -1,0 +1,11 @@
+[Unit]
+Description=Setting unique (s/n based) hostname
+Before=systemd-networkd.service
+Before=avahi-daemon.service
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/usrp_hostname
+
+[Install]
+WantedBy=multi-user.target
