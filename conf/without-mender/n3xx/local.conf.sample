@@ -1,3 +1,5 @@
 DISTRO ?= "Alchemy"
 MACHINE ?= "ni-sulfur-rev11"
 IMAGE_ROOTFS_EXTRA_SPACE = "0"
+WKS_FILE = "sdimage-4G.wks"
+IMAGE_FSTYPES += "wic wic.bmap"
