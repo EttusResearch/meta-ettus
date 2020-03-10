@@ -18,5 +18,5 @@ BBLAYERS ?= " \
   ##OEROOT##/../meta-ettus/meta-sulfur \
   ##OEROOT##/../meta-ettus/meta-mender-sulfur \
   ##OEROOT##/../meta-sdr \
-  ##OEROOT##/../meta-qt4 \
+  ##OEROOT##/../meta-qt5 \
   "

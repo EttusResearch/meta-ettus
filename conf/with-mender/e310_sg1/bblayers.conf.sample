@@ -18,5 +18,5 @@ BBLAYERS ?= " \
   ##OEROOT##/../meta-ettus/meta-e31x \
   ##OEROOT##/../meta-ettus/meta-mender-e31x \
   ##OEROOT##/../meta-sdr \
-  ##OEROOT##/../meta-qt4 \
+  ##OEROOT##/../meta-qt5 \
   "
