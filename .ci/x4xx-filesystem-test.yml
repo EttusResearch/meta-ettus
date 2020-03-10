@@ -1,0 +1,49 @@
+# no CI triggers
+trigger: none
+
+# no PR triggers
+pr: none
+
+variables:
+  ScriptDir: '$(Build.SourcesDirectory)/contrib/test'
+  ConfigFile: '$(Agent.WorkFolder)/config.conf'
+  ImageUrlFile: '$(Agent.BuildDirectory)/x4xx-filesystem-artifacts/$(System.JobName)-urls/filesystem-image.url'
+  ImagesDirectory: '$(Agent.WorkFolder)/images'
+  USRP_EMB_FTDI_SERIAL: '2516351FE64E'
+
+# pipeline triggers
+resources:
+  pipelines:
+  - pipeline: x4xx-filesystem-artifacts
+    source: 'x4xx-filesystem'
+    branch: titanium-zeus
+    trigger:
+      # workaround if no additional branch filter is specified
+      enabled: True
+
+pool:
+  demands:
+  - openembedded-test -equals $(System.JobName)
+
+jobs:
+- job: 'test'
+  timeoutInMinutes: 120
+  strategy:
+    matrix: $[ variables.Devices ]
+
+  steps:
+  - checkout: self
+
+  - download: x4xx-filesystem-artifacts
+    artifact: $(System.JobName)-urls
+    condition: not(variables['ImageUrl'])
+
+  - template: templates/usrp_emb_setup.yml
+  - template: templates/usrp_emb_flash.yml
+  - template: templates/usrp_emb_run_embedded_tests.yml
+  - template: templates/usrp_emb_boot.yml
+  - template: templates/steps_run_test.yml
+  - template: templates/steps_run_rio_test.yml
+  - template: templates/steps_run_mpm_test.yml
+  - template: templates/steps_run_bist.yml
+  - template: templates/steps_run_usrp2_c_test.yml

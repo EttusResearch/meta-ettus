@@ -11,5 +11,5 @@ steps:
     inputs:
       testResultsFormat: 'JUnit'
       testResultsFiles: '**/TEST-*.xml'
-      testRunTitle: 'MPM Unit Tests'
+      testRunTitle: 'MPM Unit Tests  $(System.JobName)'
       searchFolder: '$(Agent.BuildDirectory)/mpm_test_run'

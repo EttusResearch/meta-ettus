@@ -1,0 +1,15 @@
+steps:
+
+  - script: |
+      rm -rf devtests_test_run
+      $(ScriptDir)/run_devtests_embedded -t $(System.JobName) -c $(ConfigFile)
+    displayName: 'Run devtests - embedded mode'
+    workingDirectory: $(Agent.BuildDirectory)
+    continueOnError: true
+
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/TEST-*.xml'
+      testRunTitle: 'Devtests - embedded mode'
+      searchFolder: '$(Agent.BuildDirectory)/devtests_test_run'

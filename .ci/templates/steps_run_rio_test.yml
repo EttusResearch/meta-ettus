@@ -1,0 +1,14 @@
+steps:
+  - script: |
+      rm -rf rio_tests
+      $(ScriptDir)/run_rio_tests -t $(System.JobName) -c $(ConfigFile)
+    displayName: 'Run RIO Tests on Device'
+    workingDirectory: $(Agent.BuildDirectory)
+    continueOnError: true
+
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/TEST-*.xml'
+      testRunTitle: 'RIO Tests $(System.JobName)'
+      searchFolder: '$(Agent.BuildDirectory)/rio_tests'

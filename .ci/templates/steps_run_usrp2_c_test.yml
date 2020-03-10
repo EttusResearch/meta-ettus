@@ -1,0 +1,6 @@
+steps:
+  - script: |
+      $(ScriptDir)/run_usrp2_c_tests -t $(System.JobName) -c $(ConfigFile)
+    workingDirectory: $(Agent.BuildDirectory)
+    displayName: 'Running NI-USRP C Tests'
+    continueOnError: true
