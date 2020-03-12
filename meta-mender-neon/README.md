@@ -7,11 +7,11 @@ Dependencies
 
 - URI: https://github.com/mendersoftware/meta-mender.git
   - layers: meta-mender-core
-  - branch: thud
+  - branch: zeus
 
 - URI: https://github.com/EttusResearch/meta-ettus.git
   - layers: meta-neon
-  - branch: thud
+  - branch: zeus
 
 Patches
 =======

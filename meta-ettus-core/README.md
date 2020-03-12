@@ -6,19 +6,19 @@ Dependencies
 ============
 
 - URI: git://git.openembedded.org/bitbake.git
-  - branch: thud
+  - branch: zeus
 
 - URI: git://git.openembedded.org/openembedded-core.git
   - layers: meta
-  - branch: thud
+  - branch: zeus
 
 - URI: git://git.openembedded.org/meta-openembedded.git
   - layers: meta-oe meta-python meta-filesystems meta-networking
-  - branch: thud
+  - branch: zeus
 
 - URI: https://github.com/balister/meta-sdr.git
   - layers: meta-sdr (parent directory)
-  - branch: thud
+  - branch: zeus
 
 Patches
 =======

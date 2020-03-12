@@ -6,15 +6,15 @@ Dependencies
 ============
 
 - URI: git://git.openembedded.org/bitbake.git
-  - branch: thud
+  - branch: zeus
 
 - URI: git://git.openembedded.org/openembedded-core.git
   - layers: meta
-  - branch: thud
+  - branch: zeus
 
 - URI: git://git.openembedded.org/meta-openembedded.git
   - layers: meta-oe
-  - branch: thud
+  - branch: zeus
 
 Patches
 =======

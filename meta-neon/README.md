@@ -7,7 +7,7 @@ Dependencies
 
 - URI: https://github.com/EttusResearch/meta-ettus.git
   - layers: meta-ettus-core
-  - branch: thud
+  - branch: zeus
 
 Patches
 =======
