@@ -1,42 +1,42 @@
 
 IMAGE_INSTALL += "\
     ${CORE_IMAGE_BASE_INSTALL} \
-    i2c-tools \
-    devmem2 \
-    screen \
-    vim \
-    vim-vimrc \
-    git \
-    swig \
     boost \
     cmake \
-    gsl \
-    htop \
-    glib-2.0 \
-    mpmd \
-    orc \
-    overlay-script \
-    libudev \
-    iperf3 \
-    openocd \
-    openssh-sftp \
-    openssh-sftp-server \
-    fftwf-wisdom \
-    uhd \
-    uhd-examples \
-    python3-pip \
+    devmem2 \
     ethtool \
-    sshfs-fuse \
-    tzdata \
-    trousers \
-    tpm-tools \
-    salt-minion \
+    fftwf-wisdom \
+    git \
+    glib-2.0 \
     gps-utils-cgps \
     gps-utils-gps2udp \
     gps-utils-gpsmon \
-    rsync \
+    gsl \
+    htop \
+    i2c-tools \
+    iperf3 \
+    libudev \
+    mpmd \
     nfs-utils-mount \
+    openocd \
+    openssh-sftp \
+    openssh-sftp-server \
+    orc \
+    overlay-script \
+    python3-pip \
     python3-uhd \
+    rsync \
+    salt-minion \
+    screen \
+    sshfs-fuse \
+    swig \
+    tpm-tools \
+    trousers \
+    tzdata \
+    uhd \
+    uhd-examples \
+    vim \
+    vim-vimrc \
     "
 
 # including linux-firmware-ni-{e31x,sulfur,neon} with dev-pkgs feature enabled
