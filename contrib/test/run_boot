@@ -4,55 +4,31 @@ from serial import Serial
 import sys
 import io
 import time
-import netifaces
-from args_parser import parse_args
-from config_parser import parse_config
+from enum import IntEnum
+from utils import check_open_filehandles
 from utils import remove_ansi
 from utils import remove_ansi2
-from utils import check_required_params
-from utils import update_config
+from utils import get_config
 
-def main(argv):
+class UBootState(IntEnum):
+    Idle = 0
+    UbootSplStarted = 1
+    UbootStarted = 2
+    PromptEntered = 3
+    WaitForNetwork = 4
+    SetServerIP = 5
+    SetNfsRoot = 6
+    SetTftpRoot = 7
+    SetFitImage = 8
+    RunBoot = 9
+    BootCmdSent = 10
 
-    parsed_args = parse_args(argv)
-    parsed_config = parse_config(parsed_args["configfile"])
-    device_type = device_type = parsed_args["devicetype"]
-
-    if not device_type in parsed_config:
-        print("Error: section {} (equivalent to devicetype) not found in configuration file {}".format(device_type, parsed_args["configfile"]))
-        sys.exit(2)
-
-    gw_iface = gw_iface=netifaces.gateways()['default'][netifaces.AF_INET][1]
-    if not gw_iface:
-        print("Error: could auto-detect default gateway")
-        sys.exit(2)
-    serverip = serverip=netifaces.ifaddresses(gw_iface)[netifaces.AF_INET][0]['addr']
-    if not serverip:
-        print("Error: could auto-detect serverip")
-        sys.exit(2)
-
-    config = {
-        "zynq_uart": '',
-        "stm_uart": '',
-        "stm_start_command": 'powerbtn',
-        "prompt": '',
-        "default_timeout": 0.2,
-        "boot_timeout": 12,
-        "modeboot": '',
-        "serverip": serverip,
-        "nfsroot": '',
-        "tftproot": '',
-        "boot_logfile": 'boot.log'
-    }
-
-    required_params = ["zynq_uart", "stm_uart", "prompt", "modeboot", "nfsroot", "tftproot"]
-    check_required_params(required_params, parsed_config, device_type)
-    update_config(config, parsed_config, device_type)
-
-    print("Using configuration: " + str(config))
+def main(config):
 
     try:
+        check_open_filehandles(config['stm_uart'])
         stm_uart = Serial(config['stm_uart'], 115200, timeout=config['default_timeout'])
+        check_open_filehandles(config['zynq_uart'])
         zynq_uart = Serial(config['zynq_uart'], 115200, timeout=config['default_timeout'])
     except Exception as inst:
         print(inst)
@@ -67,7 +43,7 @@ def main(argv):
     f = open(config['boot_logfile'], "w")
 
     timeout=0
-    boot_cmd_sent=False
+    uboot_state=UBootState(0)
     login_detected=False
     ifconfig_sent=False
     while True:
@@ -84,37 +60,61 @@ def main(argv):
         if len(line_utf8)>0:
             print(line_utf8, end='')
             f.write(line)
-            #print(line)
             timeout = 0
         else:
             timeout += config['default_timeout']
 
-        #print(str(timeout))
+        if uboot_state == UBootState.Idle:
+            if line_utf8.startswith("U-Boot SPL"):
+                uboot_state = UBootState.UbootSplStarted
+        elif uboot_state == UBootState.UbootSplStarted:
+            if line_utf8.startswith("U-Boot"):
+                uboot_state = UBootState.UbootStarted
+        elif uboot_state == UBootState.UbootStarted:
+            if line_utf8.startswith("Hit any key"):
+                zynq_uart.write(b"q")
+                uboot_state = UBootState.PromptEntered
 
-        if line_utf8.startswith("Hit any key"):
-            zynq_uart.write(b"q\n")
+            if line_utf8.startswith("Enter 'noautoboot'"):
+                zynq_uart.write(b"noautoboot")
+                uboot_state = UBootState.PromptEntered
+        elif (uboot_state >= UBootState.PromptEntered) and (uboot_state < UBootState.BootCmdSent):
+            if line_utf8.startswith(config['prompt']):
+                if uboot_state == UBootState.PromptEntered:
+                    zynq_uart.write(b"# prompt entered\n")
+                if uboot_state == UBootState.WaitForNetwork:
+                    # wait until network is up
+                    zynq_uart.write(b"# wait for network\n")
+                    time.sleep(1.5)
+                elif uboot_state == UBootState.SetServerIP:
+                    zynq_uart.write(b"setenv serverip "+config['serverip'].encode("utf-8")+b"\n")
+                elif uboot_state == UBootState.SetNfsRoot:
+                    zynq_uart.write(b"setenv nfsroot "+config['nfsroot'].encode("utf-8")+b"\n")
+                elif uboot_state == UBootState.SetTftpRoot:
+                    zynq_uart.write(b"setenv tftproot "+config['tftproot'].encode("utf-8")+b"\n")
+                elif uboot_state == UBootState.SetFitImage:
+                    zynq_uart.write(b"setenv fit_image "+config['fit_image'].encode("utf-8")+b"\n")
+                elif uboot_state == UBootState.RunBoot:
+                    zynq_uart.write(b"run "+config['modeboot'].encode("utf-8")+b"\n")
+                uboot_state = UBootState(uboot_state.value + 1)
+        elif uboot_state == UBootState.BootCmdSent:
+            if line_utf8.startswith(config['prompt']):
+                # boot command was sent but the u-boot prompt appeared again means
+                # that the boot procedure was not successful
+                break
 
-        if line_utf8.startswith("Enter 'noautoboot'"):
-            zynq_uart.write(b"noautoboot\n")
+            if line_utf8.find(" login: ") != -1:
+                zynq_uart.write(b"root\n")
+                login_detected = True
 
-        if line_utf8.startswith(config['prompt']) and not boot_cmd_sent:
-            time.sleep(1.5)
-            zynq_uart.write(b"setenv serverip "+config['serverip'].encode("utf-8")+b"\n")
-            zynq_uart.write(b"setenv nfsroot "+config['nfsroot'].encode("utf-8")+b"\n")
-            zynq_uart.write(b"setenv tftproot "+config['tftproot'].encode("utf-8")+b"\n")
-            zynq_uart.write(b"run "+config['modeboot'].encode("utf-8")+b"\n")
-            boot_cmd_sent=True
+            if line.startswith("root@") and ":~# " in line and not ifconfig_sent:
+                zynq_uart.write(b"dmesg --console-off\n")
+                zynq_uart.write(b"ifconfig eth0\n")
+                zynq_uart.write(b"dmesg --console-on\n")
+                ifconfig_sent = True
 
-        if line_utf8.find(" login: ") != -1:
-            zynq_uart.write(b"root\n")
-            login_detected = True
-
-        if line.startswith("root@") and ":~# " in line and not ifconfig_sent:
-            zynq_uart.write(b"ifconfig eth0\n")
-            ifconfig_sent = True
-
-        if not login_detected and timeout>1:
-            zynq_uart.write(b"\n")
+            if not login_detected and timeout>1:
+                zynq_uart.write(b"\n")
 
         if timeout>config['boot_timeout']:
             break
@@ -123,7 +123,9 @@ def main(argv):
         print("\n\n*** Boot was successful ***")
     else:
         print("\n\n*** Boot was not successful, aborting ***")
+        print("*** U-Boot state: {} ***".format(uboot_state.name))
         exit(1)
 
 if __name__ == "__main__":
-   main(sys.argv)
+    config = get_config(sys.argv)
+    main(config)

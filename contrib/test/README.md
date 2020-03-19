@@ -173,3 +173,7 @@ The following tests are executed by `usrp_test.py`:
 - **test_uhd_config_info**
     - Pass criteria: `uhd_config_info --print-all` executes successfully (return code 0, etc.)
     - Output is written to log files
+
+- **test_usb_detected**
+    - Pass criteria: `lsusb` executes successfully and returns correct number of USB devices. Also check `dmesg` output to confirm that the USB storage device is detected.
+    - Output is written to log files

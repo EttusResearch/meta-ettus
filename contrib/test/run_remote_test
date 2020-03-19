@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+"""
+This script runs MPM unit tests. It creates a directory from which to run the
+tests, which is also where the test result XML files are written. The script
+copies the result files from the device under test to the host.
+
+Usage:
+./install_packages -s <ipk_dir> -c <config_file> -t <device_type>
+"""
+import sys
+from utils import delete_ssh_key
+from utils import get_config
+from utils import run_command
+
+def main(config):
+    ip = config['targetip']
+
+    print("\nStep 1: delete old SSH key", flush=True)
+    delete_ssh_key(ip)
+
+    print("\nStep 2: run tests", flush=True)
+    ret = run_command(['linux-user-chroot', config['sourcedir'], '/usr/bin/python3',
+                       '/usr/lib/uhd/tests/devtest/run_testsuite.py', '--args', 'addr='+ip, '--build-dir',
+                       '/usr/lib/uhd/', '--src-dir', '/usr/lib/uhd/tests/devtest', '-p',
+                       config['devtest_device_name'], '--xml'])
+
+    sys.exit(ret)
+
+
+if __name__ == "__main__":
+    config = get_config(sys.argv)
+    main(config)

@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+
+import sys
+import subprocess
+from utils import get_config
+from utils import Ssh
+
+def main(config):
+    ssh = Ssh('root', config['targetip'])
+
+    ssh.exec("opkg update && opkg install niusrp2-bitfiles")
+    ssh.exec("cd /usr/share/niusrp2-bitfiles && niusrpTxRxLoopbackTest", stderr=subprocess.STDOUT)
+
+
+if __name__ == "__main__":
+    config = get_config(sys.argv)
+    main(config)

@@ -1,0 +1,24 @@
+#!/bin/bash
+
+set -e
+set -x
+
+VENV=/data/rio_tests_venv
+NIPYPI=ni-pypi.amer.corp.natinst.com
+
+opkg update
+opkg install x4xx-pyrats-bitfiles
+
+rm -rf "$VENV"
+
+python3 -m venv --system-site-packages $VENV
+source $VENV/bin/activate
+
+pip install unittest-xml-reporting
+
+# Install tests and dependencies
+pip install --pre -i http://$NIPYPI/simple --trusted-host $NIPYPI \
+	riodrivertests==20.7.0.dev146 \
+
+# Run the tests
+python -m xmlrunner discover -v .

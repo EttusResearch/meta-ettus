@@ -27,7 +27,9 @@ class TestUsrpMethods(TestCommon):
     def test_boot_kernel(self):
 
         def filter_known_fails(lines):
-            pattern="^(OF: overlay: WARNING: memory leak will occur if overlay removed, property:.*)$"
+            pattern="^(reg-userspace-consumer db[01]_supply: Failed to get supplies: -517" \
+                    "|dwc3 fe200000.usb: Failed to get clk 'ref': -2" \
+                    "|OF: overlay: WARNING: memory leak will occur if overlay removed, property:.*)$"
             prog = re.compile(pattern)
             to_be_removed = []
             for (i,line) in enumerate(lines):
@@ -184,10 +186,12 @@ class TestUsrpMethods(TestCommon):
         self.assertTrue(found_domain, "\nresolv.conf: No domain (parameter \"search\" or \"domain\") was configured:\n"+output)
 
     def test_mpm_init_status(self):
+        connected = False
+        methods_added = 0
+        command_executed = False
         proc = subprocess.run("echo \"get_init_status\" | mpm_shell.py -c localhost", shell=True, timeout=10, capture_output=True)
         self.assertEqual(type(proc), subprocess.CompletedProcess)
         output = proc.stdout.decode('utf-8').splitlines()
-        command_executed = False
         for line in output:
             if line == "Connection successful.":
                 connected = True
@@ -210,7 +214,7 @@ class TestUsrpMethods(TestCommon):
 
     def test_hostname(self):
         hostname = subprocess.check_output("hostnamectl --static status", shell=True).decode("utf-8").splitlines()[0]
-        match = re.match("ni-{e31x|e320|n3xx}-\w{7}", hostname)
+        match = re.match("ni-{e31x|e320|n3xx|x4xx}-\w{7}", hostname)
         self.assertNotEqual(match, "None")
 
     def test_lsb_release(self):
@@ -218,6 +222,18 @@ class TestUsrpMethods(TestCommon):
 
     def test_uhd_config_info(self):
         self.run_command_and_write_log('uhd_config_info', ['uhd_config_info', '--print-all'])
+
+    def test_usb_detected(self):
+        (output, _) = self.run_command_and_write_log('lsusb', ['lsusb'])
+        # root@ni-x4xx-<serial>:~# lsusb
+        # Bus 002 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
+        # Bus 001 Device 002: ID 0781:5597 SanDisk Corp.  SanDisk 3.2Gen1
+        # Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+        num_of_devices = len(output.splitlines())
+        self.assertGreater(num_of_devices, 2) # expect at least 3 entries.
+        search_string = "USB Mass Storage device detected"
+        output = subprocess.check_output("dmesg").decode("utf-8")
+        self.assertTrue(search_string in output)
 
 class TestGnuradio(TestCommon):
 

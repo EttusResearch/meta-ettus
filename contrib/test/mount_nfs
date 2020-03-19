@@ -1,37 +1,10 @@
 #!/usr/bin/env python3
 
 import sys
-import io
-from args_parser import parse_args
-from config_parser import parse_config
 import subprocess
+from utils import get_config
 
 def main(argv):
-
-    parsed_args = parse_args(argv)
-    parsed_config = parse_config(parsed_args["configfile"])
-    device_type = device_type = parsed_args["devicetype"]
-
-    if not device_type in parsed_config:
-        print("Error: section {} (equivalent to devicetype) not found in configuration file {}".format(device_type, parsed_args["configfile"]))
-        sys.exit(2)
-
-    config = {
-        "nfsroot": '',
-    }
-
-    for param in ["nfsroot"]:
-        if param not in parsed_config[device_type]:
-            print("Error: required parameter {} was not configured in configuration file {}, section {}".format(param, parsed_args["configfile"],device_type))
-            sys.exit(2)
-
-    for param in parsed_config[device_type]:
-        if param in ["nfsroot"]:
-            # string parameters
-            config[param] = parsed_config.get(device_type, param)
-        elif param in [ ]:
-            config[param] = parsed_config.getfloat(device_type, param)
-
     mountpoint = config["nfsroot"]
 
     print("mounting {}".format(mountpoint))
@@ -42,4 +15,5 @@ def main(argv):
     output = subprocess.run(["sudo", "ln", "-s", "/proc/net/pnp", "{}/etc/resolv.conf".format(mountpoint)])
 
 if __name__ == "__main__":
-    main(sys.argv)
+    config = get_config(sys.argv)
+    main(config)

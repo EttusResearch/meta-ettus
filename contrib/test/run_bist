@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+
+import json
+import subprocess
+import sys
+from junit_xml import TestSuite, TestCase
+from utils import get_config
+from utils import Ssh
+
+
+def bist_json_to_xml(j, output):
+    cases = []
+    for k, v in j.items():
+        case = TestCase(f'bist_{k}', stdout=v)
+        success = 'status' in v and v['status']
+        if not success:
+            msg = "bist failed"
+            if 'error_msg' in v:
+                msg = v['error_msg']
+            case.add_failure_info(msg)
+        cases.append(case)
+    ts = TestSuite('bist', cases)
+    with open(output, 'w') as f:
+        f.write(TestSuite.to_xml_string([ts]))
+
+
+def main(config):
+    ssh = Ssh('root', config['targetip'])
+
+    bist_results = 'bist_results.json'
+
+    bist_tests = [
+        'ref_clock_mboard',
+        'ref_clock_nsync',
+        'nsync_fabric',
+        'nsync_rpll_config',
+        'clkaux_fpga_aux_ref',
+        'nsync_gty',
+        'ref_clock_int',
+        'gpio',
+        'qsfp',
+        'temp',
+        'fan',
+        'spi_flash_integrity',
+        'spi_flash_speed',
+    ]
+
+    bist_cmd = ['x4xx_bist'] + bist_tests + ['>' + bist_results]
+    ssh.unchecked_exec(bist_cmd)
+
+    j = ssh.get_text(bist_results)
+
+    # sigh. Remove once bist is unborked:
+    j = j[j.find('{'):]
+
+    with open(bist_results, 'w') as f:
+        f.write(j)
+
+    j = json.loads(j)
+    bist_json_to_xml(j, "bist_results.xml")
+
+
+if __name__ == '__main__':
+    config = get_config(sys.argv)
+    main(config)

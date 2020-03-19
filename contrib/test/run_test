@@ -1,81 +1,30 @@
 #!/usr/bin/env python3
 
 import sys
-import re
 import subprocess
-from os.path import expanduser
-from args_parser import parse_args
-from config_parser import parse_config
-from utils import check_required_params
-from utils import update_config
-from utils import get_ip_addr_from_log
+from utils import get_config
+from utils import Ssh
 
-def run_command(cmd, stdout=None, stderr=None):
-    print("running command: ", cmd, flush=True)
-    return subprocess.run(cmd, stdout=stdout, stderr=stderr).returncode
-
-def main(argv):
-
-    parsed_args = parse_args(argv)
-    parsed_config = parse_config(parsed_args["configfile"])
-    device_type = parsed_args["devicetype"]
-
-    if device_type not in parsed_config:
-        print("Error: section {} (equivalent to devicetype) not found in configuration file {}".format(device_type, parsed_args["configfile"]))
-        sys.exit(2)
-
-    config = {
-        'boot_logfile': '',
-        'targetip': '',
-        'test_src_folder': parsed_args['sourcedir'],
-        'test_dst_folder': '~/usrp_test',
-        'tests_folder': 'tests',
-    }
-
-    update_config(config, parsed_config, device_type)
-    print("Using configuration: " + str(config))
-
-    # First see if a targetip has been specified, if not, parse it from the log
-    try:
-        required_params = ['targetip']
-        check_required_params(required_params, parsed_config, device_type)
-        ip = config['targetip']
-    except RuntimeError:
-        required_params = ["boot_logfile"]
-        check_required_params(required_params, parsed_config, device_type)
-        ip = get_ip_addr_from_log(config['boot_logfile'])
-
-    if len(ip) == 0:
-        print("Error: no IP address was found")
-        sys.exit(1)
-
-    print(config['test_src_folder'])
-    user = 'root'
-    opts = '-o StrictHostKeyChecking=no'
-    ssh_opts = '-tt'
-
-    print("\nStep 1: delete old SSH key", flush=True)
-    run_command(['ssh-keygen', '-f', expanduser("~")+'/.ssh/known_hosts', '-R', ip])
+def main(config):
+    ssh = Ssh('root', config['targetip'])
 
     print("\nStep 2: delete old test directory")
-    run_command(['ssh', opts, ssh_opts, '{user}@{ip}'.format(user=user, ip=ip),
-                'rm -rf {dst} && mkdir -p {dst}'.format(dst=config['test_dst_folder'])])
+    ssh.exec(['rm -rf {dst} && mkdir -p {dst}'.format(dst=config['test_dst_folder'])])
 
     print("\nStep 3: copy test files")
-    run_command(['scp', opts, '-r', '{src}/{tests}'.format(src=config['test_src_folder'], tests=config['tests_folder']),
-                     '{user}@{ip}:{dst}'.format(user=user, ip=ip, dst=config['test_dst_folder'])])
+    ssh.copy_to('{src}/{tests}'.format(src=config['test_src_folder'], tests=config['tests_folder']),
+            config['test_dst_folder'])
 
     print("\nStep 4: run test", flush=True)
-    ret = run_command(['ssh', opts, ssh_opts, '{user}@{ip}'.format(user=user, ip=ip), \
-                     'pip3 install unittest-xml-reporting && ' \
-                     'cd {dst} && python3 -m xmlrunner discover {tests} -v'.format( \
-                      dst=config['test_dst_folder'], tests=config['tests_folder'])],
-                      stderr=subprocess.STDOUT)
+    ret = ssh.unchecked_exec(['pip3 install {deps} && '.format(deps=config['tests_deps']),
+        'cd {dst}/{tests} && {cmd}'.format( dst=config['test_dst_folder'],
+        tests=config['tests_folder'], cmd=config['tests_command'])], stderr=subprocess.STDOUT)
 
     print("\nStep 5: copy test results", flush=True)
-    run_command(['scp', opts, '-r', '{user}@{ip}:{dst}'.format(user=user, ip=ip, dst=config['test_dst_folder']), '.'])
+    ssh.copy(config['test_dst_folder'], '.')
 
     sys.exit(ret)
 
 if __name__ == "__main__":
-   main(sys.argv)
+    config = get_config(sys.argv)
+    main(config)

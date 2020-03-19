@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+
+import sys
+import subprocess
+from utils import get_config
+from utils import Ssh
+
+def main(config):
+    ssh = Ssh('root', config['targetip'])
+
+    print("\nStep 2: update sfp IPs", flush=True)
+    config_sfp = ['sfp0', 'sfp1']
+    for sfp in config_sfp:
+        if config.get(sfp,'').strip():
+            print("\nUpdating {sfp}".format(sfp=sfp), flush=True)
+            ssh.exec(['ip link set {sfp} down && '.format(sfp=sfp), \
+                     'ip addr add {ip}/24 dev {sfp} &&'.format(ip=config[sfp], sfp=sfp), \
+                     'ip link set {sfp} up &&'.format(sfp=sfp), \
+                     'ifconfig {sfp}'.format(sfp=sfp)],
+                      stderr=subprocess.STDOUT)
+
+
+if __name__ == "__main__":
+    config = get_config(sys.argv)
+    main(config)

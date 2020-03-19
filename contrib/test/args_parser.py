@@ -6,7 +6,7 @@ from os.path import dirname, realpath
 
 
 def print_usage(script):
-    print('usage: {} [-c <configfile>] [-s <sourcedir>] [-t <devicetype>] '.format(script))
+    print('usage: {} [-c <configfile>] [-s <sourcedir>] [-t <devicetype>] [-p <pythondeps>] [-e <execcmd>] [-f <testfolder>] [-b <bitfile>] [-a <localaddress>]'.format(script))
 
 
 def parse_args(argv):
@@ -16,7 +16,10 @@ def parse_args(argv):
         "sourcedir": realpath(dirname(__file__)),
     }
     try:
-        opts, args = getopt.getopt(argv[1:], "hc:s:t:", ["configfile=", "sourcedir=", "devicetype="])
+        opts, args = getopt.getopt(argv[1:], "hc:s:t:p:e:f:b:a:",
+                                   ["configfile=", "sourcedir=", "devicetype=", "pythondeps=",
+                                     "execcmd=", "testfolder=", "bitfile=", "addr=",
+                                    "args="])
     except getopt.GetoptError:
         print_usage(argv[0])
         sys.exit(2)
@@ -30,6 +33,18 @@ def parse_args(argv):
             config["devicetype"] = arg
         elif opt in ("-s", "--sourcedir"):
             config["sourcedir"] = arg
+        elif opt in ("-p", "--pythondeps"):
+            config["pythondeps"] = arg
+        elif opt in ("-e", "--execcmd"):
+            config["cmd"] = arg
+        elif opt in ("-f", "--testfolder"):
+            config["testfolder"] = arg
+        elif opt in ("-b", "--bitfile"):
+            config["bitfile"] = arg
+        elif opt in ("-a", "--addr"):
+            config["addr"] = arg
+        elif opt in ("--args"):
+            config["args"] = arg
 
     if config["configfile"] == '':
         config["configfile"] = config["sourcedir"] + '/config.conf'
