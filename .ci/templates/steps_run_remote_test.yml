@@ -1,0 +1,28 @@
+steps:
+  - script: |
+      cp x4xx-uhddev-oe-for-host-artifacts/$(UHDForHostArtifactName)/base-feeds.conf opkg.conf
+      echo -e "arch all 1\narch core2-64 6\narch qemux86_64 11" >> opkg.conf
+      rm -rf rootfs
+      opkg -f opkg.conf -o uhd-rootfs update && opkg -f opkg.conf -o uhd-rootfs install uhd uhd-examples uhd-tests
+      echo "**" > uhd-rootfs/.artifactignore
+      echo "!log_*.log" >> uhd-rootfs/.artifactignore
+      echo "!results_*.log" >> uhd-rootfs/.artifactignore
+    workingDirectory: $(Agent.BuildDirectory)
+    displayName: 'Install UHD'
+
+  - script: |
+      $(ScriptDir)/run_remote_test -t $(System.JobName) -c $(ConfigFile) -s $PWD/uhd-rootfs
+    displayName: 'Run remote Tests'
+    workingDirectory: $(Agent.BuildDirectory)
+    continueOnError: true
+
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/TEST-*.xml'
+      testRunTitle: 'Remote Tests'
+      searchFolder: '$(Agent.BuildDirectory)/uhd-rootfs'
+
+  - publish: '$(Agent.BuildDirectory)/uhd-rootfs'
+    artifact: 'usrp_remote_test'
+    displayName: 'Publish Artifact'

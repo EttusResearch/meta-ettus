@@ -9,6 +9,7 @@ variables:
   ConfigFile: '$(Agent.WorkFolder)/config.conf'
   ImageUrlFile: '$(Agent.BuildDirectory)/usrp-filesystem-artifacts/$(System.JobName)-urls/filesystem-image.url'
   ImagesDirectory: '$(Agent.WorkFolder)/images'
+  UHDForHostArtifactName: 'qemux86-64-feed'
 
 # pipeline triggers
 resources:
@@ -19,10 +20,16 @@ resources:
     trigger:
       # workaround if no additional branch filter is specified
       enabled: True
+  - pipeline: 'x4xx-uhddev-oe-for-host-artifacts'
+    source: 'x4xx-uhddev-oe-for-host'
+    branch: titanium-master
+    trigger:
+      # workaround if no additional branch filter is specified
+      enabled: False
 
 pool:
   demands:
-  - openembedded-test -equals $(System.JobName)
+  - 'openembedded-test'
 
 jobs:
 - job: 'test'
@@ -36,10 +43,15 @@ jobs:
     artifact: $(System.JobName)-urls
     condition: not(variables['ImageUrl'])
 
+  - download: 'x4xx-uhddev-oe-for-host-artifacts'
+    artifact: '$(UHDForHostArtifactName)'
+    displayName: 'Download artifact $(UHDForHostArtifactName)'
+
   - template: templates/steps_load_image.yml
   - template: templates/steps_mount_image.yml
   - template: templates/steps_run_boot.yml
   - template: templates/steps_run_test.yml
+  - template: templates/steps_run_remote_test.yml
   - template: templates/steps_run_mpm_test.yml
   - template: templates/steps_run_poweroff.yml
   - template: templates/steps_unmount_image.yml
