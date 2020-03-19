@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+
+import sys
+import subprocess
+from utils import get_config
+from utils import Ssh
+
+def main(config):
+    ssh = Ssh('root', config['targetip'])
+    ssh.exec('uhd_image_loader --args=type={type},mgmt_addr={addr} --fpga='
+             '/usr/share/uhd/images/{bitfile}'.format(type=config['uhd_type'],
+             bitfile=config['bitfile'], addr=config['addr']),
+             stderr=subprocess.STDOUT)
+
+if __name__ == "__main__":
+    config = get_config(sys.argv)
+    main(config)

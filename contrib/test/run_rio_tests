@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+
+import sys
+import subprocess
+from utils import get_config
+from utils import Ssh
+
+def main(config):
+    ssh = Ssh('root', config['targetip'])
+
+    print(config['test_src_folder'])
+
+    ssh.exec('rm -rf {dst}'.format(dst=config['rio_tests_folder']))
+
+    ssh.copy_to('{src}/{tests}'.format(src=config['test_src_folder'], tests=config['rio_tests_folder']),
+            config['rio_tests_folder'])
+
+    ret = ssh.unchecked_exec(['cd {dst} && bash ./setup_and_run_rio_tests'.format(dst=config['rio_tests_folder'])], stderr=subprocess.STDOUT)
+
+    ssh.copy(config['rio_tests_folder'], '.')
+
+    sys.exit(ret)
+
+if __name__ == "__main__":
+    config = get_config(sys.argv)
+    main(config)

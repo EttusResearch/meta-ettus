@@ -2,54 +2,26 @@
 
 from serial import Serial
 import sys
-import io
-import time
-import subprocess
-from args_parser import parse_args
-from config_parser import parse_config
+import traceback
+from enum import IntEnum
+from utils import check_open_filehandles
+from utils import get_config
 from utils import remove_ansi
 from utils import remove_ansi2
-from utils import check_required_params
-from utils import update_config
 
-def main(argv):
+class PoweroffState(IntEnum):
+    DetectState = 0
+    LoggingIn = 1
+    PoweringOff = 2
+    PowerOffPending = 3
+    PowerOffDone = 4
 
-    parsed_args = parse_args(argv)
-    parsed_config = parse_config(parsed_args["configfile"])
-    device_type = device_type = parsed_args["devicetype"]
 
-    if not device_type in parsed_config:
-        print("Error: section {} (equivalent to devicetype) not found in configuration file {}".format(device_type, parsed_args["configfile"]))
-        sys.exit(2)
-
-    config = {
-        "zynq_uart": '',
-        "stm_uart": '',
-        "stm_shutdown_command": 'reboot',
-        "default_timeout": 0.2,
-        "poweroff_timeout": 12,
-        "poweroff_logfile": 'poweroff.log'
-    }
-
-    required_params = ["zynq_uart", "stm_uart"]
-    check_required_params(required_params, parsed_config, device_type)
-    update_config(config, parsed_config, device_type)
-
-    print("Using configuration: " + str(config))
-
-    try:
-        stm_uart = Serial(config['stm_uart'], 115200, timeout=config['default_timeout'])
-        zynq_uart = Serial(config['zynq_uart'], 115200, timeout=config['default_timeout'])
-    except Exception as inst:
-        print(inst)
-        exit(1)
-
+def try_poweroff(config, stm_uart, zynq_uart):
     f = open(config['poweroff_logfile'], "w")
 
+    poweroff_state = PoweroffState(0)
     timeout=0
-    last_timeout=0
-    enter_sent = False
-    deferred_shutdown = False
     errors_during_shutdown = False
     stop_job_running = False
     while True:
@@ -70,45 +42,71 @@ def main(argv):
             print(line_utf8, end='')
             f.write(line)
             timeout = 0
-            if deferred_shutdown:
-                errors_during_shutdown = True
         else:
             timeout += config['default_timeout']
 
         #print(str(timeout))
 
-        if not enter_sent:
-            zynq_uart.write(b"\n\n")
-            enter_sent = True
+        if (poweroff_state >= PoweroffState.DetectState) and \
+           (poweroff_state < PoweroffState.PoweringOff):
+            if timeout > config['poweroff_timeout']:
+                stm_uart.write(config['stm_shutdown_command'].encode()+b"\n")
+                break
+            if len(line_utf8) == 0:
+                zynq_uart.write(b"\n")
+            elif line.find(" login: ") != -1:
+                zynq_uart.write(b"root\n")
+                poweroff_state = PoweroffState.LoggingIn
+            elif line.startswith("root@") and line.endswith(":~# "):
+                zynq_uart.write(b"poweroff\n")
+                poweroff_state = PoweroffState.PoweringOff
+        elif poweroff_state == PoweroffState.PoweringOff:
+            if line.find("A stop job is running") != -1:
+                stop_job_running = True
 
-        if line.find(" login: ") != -1:
-            zynq_uart.write(b"root\n")
+            if line.endswith("reboot: Power down\r\n") or \
+                line.endswith("All filesystems unmounted.\r\n"):
+                poweroff_state = PoweroffState.PowerOffPending
 
-        if line.startswith("root@") and line.endswith(":~# "):
-            zynq_uart.write(b"poweroff\n")
-            # print("found login prompt")
-            # sys.exit(2)
+            if timeout>config['poweroff_timeout']:
+                stm_uart.write(config['stm_shutdown_command'].encode()+b"\n")
+                break
+        elif poweroff_state == PoweroffState.PowerOffPending:
+            if len(line_utf8) >= 14 and not (line_utf8[0] == '[' and line_utf8[13] == ']'):
+                errors_during_shutdown = True
 
-        if line.find("A stop job is running") != -1:
-            stop_job_running = True
-
-        if line.endswith("reboot: Power down\r\n"):
-            deferred_shutdown = True
-
-        if deferred_shutdown and timeout>config['poweroff_timeout']:
-            stm_uart.write(config['stm_shutdown_command'].encode()+b"\n")
-            break
+            if timeout>config['poweroff_timeout']:
+                poweroff_state = PoweroffState.PowerOffDone
+                stm_uart.write(config['stm_shutdown_command'].encode()+b"\n")
+                break
 
     f.close()
 
-    if errors_during_shutdown:
-        print("\n\n*** poweroff command not successful (errors during shutdown) ***")
-        exit(1)
+    if poweroff_state != PoweroffState.PowerOffDone:
+        raise RuntimeError("*** poweroff command not successful (stuck in state: {}) ***".format(poweroff_state.name))
+    elif errors_during_shutdown:
+        raise RuntimeError("*** poweroff command not successful (errors during shutdown) ***")
     elif stop_job_running:
-        print("\n\n*** poweroff command not successful (a stop job was running late) ***")
-        exit(1)
+        raise RuntimeError("*** poweroff command not successful (a stop job was running late) ***")
     else:
         print("\n\n*** poweroff command was successful ***")
 
+
+def main(config):
+    check_open_filehandles(config['stm_uart'])
+    stm_uart = Serial(config['stm_uart'], 115200, timeout=config['default_timeout'])
+    check_open_filehandles(config['zynq_uart'])
+    zynq_uart = Serial(config['zynq_uart'], 115200, timeout=config['default_timeout'])
+
+    try:
+        try_poweroff(config, stm_uart, zynq_uart)
+    except Exception:
+        print("Caught exception when trying to power off")
+        traceback.print_exc()
+        print("Going to reboot the SCU to force power off")
+        stm_uart.write(b"\nreboot\n")
+
+
 if __name__ == "__main__":
-   main(sys.argv)
+    config = get_config(sys.argv)
+    main(config)

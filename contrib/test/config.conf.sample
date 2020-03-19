@@ -14,6 +14,7 @@ default_timeout = 0.1
 boot_logfile = n310-boot.log
 poweroff_logfile = n310-poweroff.log
 unittest_device_name = n3xx
+devtest_device_name = n3x0
 
 [e320]
 
@@ -31,3 +32,22 @@ default_timeout = 0.1
 boot_logfile = e320-boot.log
 poweroff_logfile = e320-poweroff.log
 unittest_device_name = e320
+devtest_device_name = e320
+
+[x4xx-rev2]
+
+zynq_uart = /dev/serial/by-id/usb-Digilent_Digilent_USB_Device_000000000000-if03-port0
+stm_uart  = /dev/serial/by-id/usb-Digilent_Digilent_USB_Device_000000000000-if02-port0
+stm_shutdown_command = apshutdown
+stm_start_command = powerbtn
+prompt    = ZynqMP>
+modeboot  = netboot
+nfsroot   = /nfs/x4xx-rev2
+tftproot  = x4xx-rev2
+boot_timeout = 10
+poweroff_timeout = 10
+default_timeout = 0.1
+boot_logfile = x4xx-rev2-boot.log
+poweroff_logfile = x4xx-rev2-poweroff.log
+unittest_device_name = x4xx
+devtest_device_name = x4x0

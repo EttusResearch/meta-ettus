@@ -10,50 +10,27 @@ Usage:
 import sys
 import subprocess
 import glob
-from utils import check_required_params
-from utils import get_ip_addr_from_log
-from args_parser import parse_args
-from config_parser import parse_config
-
-
-def run_command(cmd, stdout=None, stderr=None):
-    print("running command: ", cmd, flush=True)
-    return subprocess.run(cmd, stdout=stdout, stderr=stderr).returncode
-
+from utils import get_config
+from utils import Ssh
 
 def main(argv):
-    parsed_args = parse_args(argv)
-    parsed_config = parse_config(parsed_args["configfile"])
-    device_type = parsed_args["devicetype"]
-
-    required_params = ["boot_logfile"]
-    check_required_params(required_params, parsed_config, device_type)
-
-    boot_log_file = parsed_config.get(device_type, 'boot_logfile')
-    ip = get_ip_addr_from_log(boot_log_file)
-
-    user = 'root'
-    opts = '-o StrictHostKeyChecking=no'
+    ssh = Ssh('root', config['targetip'])
 
     print("\nStep 1: create directory for ipk files", flush=True)
-    ipk_dir = '~/ipk'.format(user=user, ip=ip)
-    run_command(['ssh', opts, '{user}@{ip}'.format(user=user, ip=ip),
-                 'if [ -d {d} ]; then rm -rf {d}; fi'.format(d=ipk_dir)])
-    run_command(['ssh', opts, '{user}@{ip}'.format(user=user, ip=ip),
-                 'mkdir {d}'.format(d=ipk_dir)])
+    ipk_dir = '~/ipk'
+    ssh.exec(['if [ -d {d} ]; then rm -rf {d}; fi'.format(d=ipk_dir)])
+    ssh.exec('mkdir {d}'.format(d=ipk_dir))
 
     print("\nStep 2: copy ipk files", flush=True)
-    src_dir = parsed_args['sourcedir']
+    src_dir = config['sourcedir']
     files = glob.glob('{src}/*.ipk'.format(src=src_dir))
     for file in files:
-        run_command(['scp', opts, file, '{user}@{ip}:~/ipk'.format(user=user, ip=ip)])
+        ssh.copy_to(file, ipk_dir)
 
     print("\nStep 3: install packages", flush=True)
-    ret = run_command(['ssh', opts, '{user}@{ip}'.format(user=user, ip=ip),
-                       'opkg', 'install', '--force_reinstall', '{d}/*.ipk'.format(d=ipk_dir)])
-
-    sys.exit(ret)
+    ssh.exec(['opkg', 'install', '--force_reinstall', '--force_depends','{d}/*.ipk'.format(d=ipk_dir)])
 
 
 if __name__ == "__main__":
-    main(sys.argv)
+    config = get_config(sys.argv)
+    main(config)

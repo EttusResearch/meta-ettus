@@ -5,6 +5,7 @@ import time
 import unittest
 from utils import package_installed
 
+
 def run_ectool(*args):
     return subprocess.check_output(['ectool', *args]).decode('utf-8')
 

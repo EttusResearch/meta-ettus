@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+
+import sys
+from utils import get_config
+from utils import get_target_ip
+from utils import Ssh
+
+def main(config):
+    ssh = Ssh('root', config['targetip'])
+
+    print("\nStep 2: delete old test directory")
+    ssh.exec('rm -rf {dst} && mkdir -p {dst}'.format(dst=config['devtests_test_folder']))
+
+    print("\nStep 3: run tests", flush=True)
+    cmd = ['cd', config['devtests_test_folder'], ';',
+           'python3', '/usr/lib/uhd/tests/devtest/run_testsuite.py',
+           '--args=addr=169.254.0.2,mgmt_addr=127.0.0.1', '--devtest-pattern=x4x0', '--xml']
+    ret = ssh.unchecked_exec(cmd)
+
+    print("\nStep 4: copy results", flush=True)
+    ssh.copy(config['devtests_test_folder'], '.')
+
+    sys.exit(ret)
+
+if __name__ == "__main__":
+    config = get_config(sys.argv)
+    main(config)
