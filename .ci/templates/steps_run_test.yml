@@ -10,9 +10,9 @@ steps:
     inputs:
       testResultsFormat: 'JUnit'
       testResultsFiles: '**/TEST-*.xml'
-      testRunTitle: 'Embedded Tests'
+      testRunTitle: 'Embedded Tests $(System.JobName)'
       searchFolder: '$(Agent.BuildDirectory)/usrp_test'
 
   - publish: '$(Agent.BuildDirectory)/usrp_test'
     artifact: 'usrp_test $(System.JobName)'
-    displayName: 'Publish Artifact'
+    displayName: 'Publish usrp_test'

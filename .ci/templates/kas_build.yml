@@ -1,0 +1,82 @@
+# kas_build: template for running a build using kas
+# outputs:
+#   KAS_CONFIG: set to the : separated list of kas_configs
+#   KAS_DEPLOY_DIR: the actual deploy dir from the build
+
+parameters:
+  # The list of config files to pass to kas
+  - name: kas_config
+    type: object
+  # Whether to build the default targets from the kas configuration
+  - name: build_default_targets
+    type: boolean
+    default: true
+  # Whether to build the package feed and package indexes
+  - name: build_package_feed
+    type: boolean
+    default: false
+  # The list of additional targets to build
+  - name: targets
+    type: object
+    default: []
+  # The path to the auto.conf file that should be used for the build
+  - name: auto_conf
+    type: string
+    default: ""
+  # The path to the site.conf file that should be used for the build
+  - name: site_conf
+    type: string
+    default: ""
+
+steps:
+  - script: |
+      echo "###vso[task.setVariable variable=KAS_CONFIG]${{ join(':', parameters.kas_config) }}"
+      rm -rf build
+      mkdir -p build/conf
+
+      if [ -n "${{ parameters.auto_conf }}" ]; then
+        cp "${{ parameters.auto_conf }}" build/conf/auto.conf
+      fi
+
+      if [ -n "${{ parameters.site_conf }}" ]; then
+        cp "${{ parameters.site_conf }}" build/conf/site.conf
+      fi
+    workingDirectory: $(Agent.BuildDirectory)
+    displayName: Setup bitbake configs
+  - script: |
+      kas build $KAS_CONFIG
+    displayName: Build default targets
+    workingDirectory: $(Agent.BuildDirectory)
+    condition: and(succeeded(), ${{ parameters.build_default_targets }})
+  - script: |
+      kas shell $KAS_CONFIG -c "bitbake -e" > bitbake.env
+      export KAS_DEPLOY_DIR=$(grep '^DEPLOY_DIR=' bitbake.env | sed 's/[^"]*"\([^"]*\)"/\1/')
+      echo "###vso[task.setVariable variable=KAS_DEPLOY_DIR]"$KAS_DEPLOY_DIR
+    displayName: Dump environment
+    workingDirectory: $(Agent.BuildDirectory)
+  - ${{ each target in parameters.targets }}:
+    - script: |
+        kas shell -k $KAS_CONFIG -c "bitbake ${{ target }}"
+      displayName: "Build ${{ target }}"
+      workingDirectory: $(Agent.BuildDirectory)
+  - script: |
+      kas shell -k $KAS_CONFIG -c "bitbake package-index package-feed"
+    displayName: Build package index and feed
+    condition: and(succeeded(), ${{ parameters.build_package_feed }})
+    workingDirectory: $(Agent.BuildDirectory)
+  - script: |
+      rm -rf ./logs
+      mkdir logs
+      cp build/conf/*.conf ./logs
+      find build -name 'log.*' -type l -exec cp --parents -L {} ./logs \;
+      find build -name 'run.*' -type l -exec cp --parents -L {} ./logs \;
+      rm -f logs.tar*
+      tar cf logs.tar ./logs
+      bzip2 logs.tar
+    displayName: Aggregate bitbake logs and scripts
+    workingDirectory: $(Agent.BuildDirectory)
+    condition: always()
+  - publish: $(Agent.BuildDirectory)/logs.tar.bz2
+    artifact: "$(System.JobName)-oe-confs-$(System.JobAttempt)"
+    displayName: Publish OE configs and logs
+    condition: always()

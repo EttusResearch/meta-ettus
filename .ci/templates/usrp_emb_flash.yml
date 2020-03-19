@@ -1,0 +1,12 @@
+
+steps:
+  - template: usrp_emb_venv_run.yml
+    parameters:
+      displayName: Flash SCU
+      script: |
+        usrp_emb_x4xx_flash_scu
+  - template: usrp_emb_venv_run.yml
+    parameters:
+      displayName: Flash eMMC
+      script: |
+        usrp_emb_x4xx_flash_emmc

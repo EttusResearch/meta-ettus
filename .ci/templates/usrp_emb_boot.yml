@@ -1,0 +1,8 @@
+steps:
+  - template: usrp_emb_venv_run.yml
+    parameters:
+      displayName: Boot target, get IP
+      script: |
+        USRP_EMB_TARGET_IP=$(usrp_emb_x4xx_boot_linux)
+        echo Target IP is $USRP_EMB_TARGET_IP
+        echo '##vso[task.setvariable variable=USRP_EMB_TARGET_IP]'$USRP_EMB_TARGET_IP

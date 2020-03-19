@@ -1,57 +1,65 @@
 # no CI triggers
 trigger: none
 
-# no PR triggers
-pr: none
+pr:
+  branches:
+    include:
+      - zeus-ci
+  paths:
+    include:
+      - .ci
+      - contrib/test
 
 variables:
   ScriptDir: '$(Build.SourcesDirectory)/contrib/test'
   ConfigFile: '$(Agent.WorkFolder)/config.conf'
-  ImageUrlFile: '$(Agent.BuildDirectory)/usrp-filesystem-artifacts/$(System.JobName)-urls/filesystem-image.url'
   ImagesDirectory: '$(Agent.WorkFolder)/images'
   UHDForHostArtifactName: 'qemux86-64-feed'
 
 # pipeline triggers
 resources:
   pipelines:
-  - pipeline: usrp-filesystem-artifacts
-    source: 'usrp-filesystem'
-    branch: zeus
+  - pipeline: x4xx-filesystem-artifacts
+    source: 'x4xx-filesystem'
+    branch: zeus-ci
     trigger:
       # workaround if no additional branch filter is specified
-      enabled: True
+      enabled: False
   - pipeline: 'x4xx-uhddev-oe-for-host-artifacts'
     source: 'x4xx-uhddev-oe-for-host'
     branch: titanium-master
     trigger:
       # workaround if no additional branch filter is specified
-      enabled: False
-
+      enabled: True
 pool:
   demands:
-  - 'openembedded-test'
+  - openembedded-test -equals $(System.JobName)
 
 jobs:
 - job: 'test'
   strategy:
     matrix: $[ variables.Devices ]
 
+  workspace:
+    clean: all
+
   steps:
   - checkout: self
-
-  - download: usrp-filesystem-artifacts
-    artifact: $(System.JobName)-urls
-    condition: not(variables['ImageUrl'])
 
   - download: 'x4xx-uhddev-oe-for-host-artifacts'
     artifact: '$(UHDForHostArtifactName)'
     displayName: 'Download artifact $(UHDForHostArtifactName)'
 
-  - template: templates/steps_load_image.yml
+  # - template: templates/steps_load_image.yml
   - template: templates/steps_mount_image.yml
   - template: templates/steps_run_boot.yml
-  - template: templates/steps_run_test.yml
+
+  - script: |
+      sleep 30
+    displayName: 'Wait for device initialization'
+
+  - template: templates/steps_update_bitfile.yml
+  # - template: templates/steps_run_mpm_test.yml
   - template: templates/steps_run_remote_test.yml
-  - template: templates/steps_run_mpm_test.yml
   - template: templates/steps_run_poweroff.yml
   - template: templates/steps_unmount_image.yml

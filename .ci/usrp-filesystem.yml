@@ -1,207 +1,74 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger:
   branches:
     include:
-    - 'zeus-ci'
-
+      - 'zeus-ci'
 pr:
   branches:
     include:
-    - 'zeus-ci'
-    - '*/zeus/*'
+      - 'zeus-ci'
+      - '*/zeus/*'
 
 schedules:
-- cron: "19 10 * * *"
-  displayName: 'Daily build'
-  branches:
-    include:
-    - 'zeus-ci'
-  always: true
+  - cron: "19 10 * * *"
+    displayName: 'Daily build'
+    branches:
+      include:
+        - 'zeus-ci'
+    always: true
 
-variables:
-  SITECONF_FILE: '$(Agent.WorkFolder)/site.conf'
-  ARTIFACTIGNORE: '$(Agent.WorkFolder)/artifactignore.sh'
-  MANIFEST_URL: git@github.com:EttusResearch/oe-manifest-dev.git
-  MANIFEST_BRANCH: zeus-dev
-  MANIFEST_FILE: default.xml
-  IMAGE_VERSION_SUFFIX: '-$(Build.BuildNumber)'
+parameters:
+  - name: release_build
+    displayName: Build for release (disables caching, publishes archives)
+    type: boolean
+    default: false
+  - name: cache_sstate
+    displayName: Use pipeline caching for sstate-cache
+    type: boolean
+    default: true
+  - name: cache_downloads
+    displayName: Use pipeline caching for downloads
+    type: boolean
+    default: false
+  - name: build_e310_sg1
+    displayName: Build e310_sg1
+    type: boolean
+    default: true
+  - name: build_e310_sg3
+    displayName: Build e310_sg3
+    type: boolean
+    default: true
+  - name: build_e320
+    displayName: Build e320
+    type: boolean
+    default: true
+  - name: build_n3xx
+    displayName: Build n3xx
+    type: boolean
+    default: true
+  - name: build_x4xx
+    displayName: Build x4xx
+    type: boolean
+    default: false
+
+resources:
+  pipelines:
+    - pipeline: usrp-kas-pipeline
+      source: 'usrp-kas'
 
 jobs:
-- job: 'build'
-  timeoutInMinutes: 600
-  cancelTimeoutInMinutes: 10
-  strategy:
-    matrix: $[ variables.Devices ]
-
-  pool:
-    demands:
-    - openembedded
-
-  variables:
-    MENDER_ARTIFACT_NAME: '$(Build.BuildNumber)_$(System.JobName)'
-
-  steps:
-
-  - script: |
-      if (echo $SYSTEM_JOBNAME | grep -q -e "-nomender$"); then
-        DEVICE=${SYSTEM_JOBNAME:0:-9}
-        TEMPLATECONF_DIR="meta-ettus/conf/without-mender/$DEVICE"
-      else
-        DEVICE=$SYSTEM_JOBNAME
-        TEMPLATECONF_DIR="meta-ettus/conf/with-mender/$DEVICE"
-      fi
-      BUILD_DIR="$DEVICE/build-$BUILD_BUILDNUMBER"
-      IMAGE_VERSION_SUFFIX="-$BUILD_BUILDNUMBER"
-      # set variables to be used in the pipeline
-      echo "###vso[task.setVariable variable=Device;isOutput=true]$DEVICE"
-      echo "###vso[task.setVariable variable=TemplateConf_Dir;isOutput=true]$TEMPLATECONF_DIR"
-      echo "###vso[task.setVariable variable=Build_Dir;isOutput=true]$BUILD_DIR"
-      echo "###vso[task.setVariable variable=Image_Version_Suffix;isOutput=true]$IMAGE_VERSION_SUFFIX"
-    name: config
-
-  - script: env
-    displayName: 'Print environment'
-
-  - script: ssh -T git@github.com || true
-    displayName: 'Test github authentication'
-
-  - script: |
-      cd $AGENT_BUILDDIRECTORY
-      repo init -u $MANIFEST_URL -b $MANIFEST_BRANCH -m $MANIFEST_FILE
-      sed -i "s|\(<project.*meta-ettus.* />\)|<\!--\1-->|" .repo/manifest.xml
-      repo forall -c git clean -fd
-      repo forall -c git reset --hard
-      repo sync --force-sync
-      # fix an issue in the meta-mender layer
-      # sed -i 's/\(cp -l "\$file" "\$destfile"\)/\1 || cp "\$file" "\$destfile"/' \
-      #   meta-mender/meta-mender-core/classes/mender-helpers.bbclass
-      if [ -x .repo/manifests/apply-patches.sh ]; then
-        .repo/manifests/apply-patches.sh
-      fi
-    displayName: 'Checkout other layers'
-
-  - checkout: self
-    path: meta-ettus
-    displayName: 'Checkout meta-ettus'
-
-  - script: |
-      cd $AGENT_BUILDDIRECTORY
-      mkdir -p $PWD/$CONFIG_BUILD_DIR
-      export TEMPLATECONF=$PWD/$CONFIG_TEMPLATECONF_DIR
-      if [ -d $CONFIG_BUILD_DIR/conf ]; then
-        rm -rv $CONFIG_BUILD_DIR/conf
-      fi
-      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
-      if [ -n "$SITECONF_FILE" ]; then
-        cp -v $SITECONF_FILE conf/site.conf
-        DEPLOY_DIR_BASE=$(grep -e "^DEPLOY_DIR_BASE\s*=" conf/site.conf | sed "s|^.*=\s*\"\(\S*\)\"$|\1|")
-        if [ -n "$DEPLOY_DIR_BASE" ]; then
-          DEPLOY_DIR="$DEPLOY_DIR_BASE/${SYSTEM_DEFINITIONNAME}/${CONFIG_BUILD_DIR}"
-          echo "Setting DEPLOY_DIR to $DEPLOY_DIR"
-          echo "DEPLOY_DIR = \"$DEPLOY_DIR\"" >> conf/local.conf
-        fi
-      fi
-      echo "MENDER_ARTIFACT_NAME = \"$MENDER_ARTIFACT_NAME\"" >> conf/local.conf
-      if [ -n "$EXTRALOCALCONF1" ]; then
-        echo $EXTRALOCALCONF1 >> conf/local.conf
-      fi
-      if [ -n "$EXTRALOCALCONF2" ]; then
-        echo $EXTRALOCALCONF2 >> conf/local.conf
-      fi
-      if [ -n "$EXTRALOCALCONF3" ]; then
-        echo $EXTRALOCALCONF3 >> conf/local.conf
-      fi
-    displayName: 'Setup environment'
-
-  - script: |
-      cd $AGENT_BUILDDIRECTORY
-      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
-      bitbake -p || exit $?
-    displayName: 'Parse recipes'
-
-  - script: |
-      cd $AGENT_BUILDDIRECTORY
-      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
-      bitbake u-boot:do_build || exit $?
-    displayName: 'Build u-boot'
-
-  - script: |
-      cd $AGENT_BUILDDIRECTORY
-      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
-      bitbake linux-yocto:do_build || exit $?
-    displayName: 'Build Kernel'
-
-  - script: |
-      cd $AGENT_BUILDDIRECTORY
-      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
-      bitbake \
-        uhd:do_build \
-        uhd-fpga-images:do_build \
-        mpmd:do_build \
-      || exit $?
-    displayName: 'Build UHD, MPMD'
-
-  - script: |
-      cd $AGENT_BUILDDIRECTORY
-      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
-      bitbake \
-        gnuradio:do_cleansstate \
-        gr-ettus:do_cleansstate || exit $?
-      bitbake -e $(Image) > $(Image).env
-      bitbake $(Image):do_build || exit $?
-      DEPLOY_DIR_IMAGE=$(grep -e "^DEPLOY_DIR_IMAGE=" $(Image).env | sed "s|^.*=\s*\"\(\S*\)\"$|\1|")
-      $ARTIFACTIGNORE $DEPLOY_DIR_IMAGE "**/*.ext4* **/*.wic* **/*.sdimg* **/*.dataimg* **/*.mender*"
-      echo "###vso[task.setVariable variable=Deploy_Dir_Image;isOutput=true]$DEPLOY_DIR_IMAGE"
-    displayName: 'Build $(Image)'
-
-  # This task builds the SDK
-  # Enabled only if a variable BUILD_SDK=true is set
-  - script: |
-      cd $AGENT_BUILDDIRECTORY
-      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
-      bitbake $(Image) -cpopulate_sdk || exit $?
-    displayName: 'Build $(Image) SDK'
-    condition: eq(variables.BUILD_SDK, 'true')
-
-  - script: |
-      cd $AGENT_BUILDDIRECTORY
-      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
-      bitbake package-index || exit $?
-    displayName: 'Create package index'
-
-  - script: |
-      cd $AGENT_BUILDDIRECTORY
-      source oe-core/oe-init-build-env $CONFIG_BUILD_DIR
-      grep -e "^IMAGE_NAME=" -e "^IMAGE_LINK_NAME=" -e "^IMAGE_FSTYPES=" \
-        -e "^DEPLOY_DIR_IMAGE=" -e "^DEPLOY_DIR_IPK=" $(Image).env \
-         > image.variables
-      source image.variables
-      for CAND in sdimg sdimg.gz sdimg.bz2 wic wic.gz wic.bz2; do
-        if (grep -q -e "^IMAGE_FSTYPES.*[\" ]$CAND[\" ]" image.variables); then
-          EXT="$CAND"
-        fi
-      done
-      mkdir -p $BUILD_STAGINGDIRECTORY/$SYSTEM_JOBNAME
-      cp image.variables $BUILD_STAGINGDIRECTORY/$SYSTEM_JOBNAME
-      echo $DEPLOY_DIR_IMAGE | sed "$DEPLOY_DIR_MAPPING" \
-        > $BUILD_STAGINGDIRECTORY/$SYSTEM_JOBNAME/images.url
-      echo $DEPLOY_DIR_IPK | sed "$DEPLOY_DIR_MAPPING" \
-        > $BUILD_STAGINGDIRECTORY/$SYSTEM_JOBNAME/ipk.url
-      echo $DEPLOY_DIR_IMAGE/$IMAGE_LINK_NAME.$EXT | sed "$DEPLOY_DIR_MAPPING" \
-        > $BUILD_STAGINGDIRECTORY/$SYSTEM_JOBNAME/filesystem-image.url
-    displayName: 'Create Image URLs'
-
-  - publish: $(Build.StagingDirectory)/$(System.JobName)
-    artifact: '$(System.JobName)-urls'
-    displayName: 'Publish Image URL $(System.JobName)'
-
-  - script: |
-      if [ -x $(Agent.WorkFolder)/cleanup ]; then
-        $(Agent.WorkFolder)/cleanup $AGENT_BUILDDIRECTORY/$CONFIG_BUILD_DIR
-      fi
-    displayName: cleanup
-    condition: succeeded()
+  - template: templates/job_build_filesystem.yml
+    parameters:
+      publish_sources: ${{ parameters.release_build }}
+      cache_sstate: ${{ and(parameters.cache_sstate, not(parameters.release_build)) }}
+      cache_downloads: ${{ and(parameters.cache_downloads, not(parameters.release_build)) }}
+      machines:
+        - ${{ if parameters.build_e310_sg1 }}:
+          - e310_sg1
+        - ${{ if parameters.build_e310_sg3 }}:
+          - e310_sg3
+        - ${{ if parameters.build_e320 }}:
+          - e320
+        - ${{ if parameters.build_n3xx }}:
+          - n3xx
+        - ${{ if parameters.build_x4xx }}:
+          - x4xx-rev5

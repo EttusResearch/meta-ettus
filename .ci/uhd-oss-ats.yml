@@ -1,0 +1,55 @@
+# no CI triggers
+trigger: none
+
+# no PR triggers
+pr: none
+
+variables:
+  UHDForHostArtifactName: 'qemux86-64-feed'
+  ScriptDir: '$(Agent.BuildDirectory)/meta-ettus-dev/contrib/test'
+  ConfigFile: '$(Agent.WorkFolder)/config.conf'
+  ImagesDirectory: '$(Agent.WorkFolder)/images'
+  IpkDir: '$(Agent.BuildDirectory)/x4xx-uhddev-oe-build-artifacts/IPK files/aarch64'
+
+# pipeline triggers
+resources:
+  repositories:
+  - repository: EttusRTS
+    type: github
+    endpoint: EttusResearch
+    name: EttusResearch/ettus-rts
+    ref: $(EttusRtsBranch)
+  pipelines:
+  - pipeline: x4xx-filesystem-artifacts
+    source: 'x4xx-filesystem'
+    project: DevCentral
+    branch: zeus-ci
+  - pipeline: x4xx-uhddev-oe-build-artifacts
+    source: 'x4xx-uhddev-oe-build'
+    project: DevCentral
+    branch: titanium-master
+    trigger:
+      branches:
+        include:
+        - titanium-master
+  - pipeline: x4xx-uhddev-oe-for-host-artifacts
+    source: 'x4xx-uhddev-oe-for-host'
+    project: DevCentral
+    branch: titanium-master
+    trigger:
+      branches:
+        include:
+        - titanium-master
+  - pipeline: x4xx-gnuradio-oe-for-host-artifacts
+    source: 'x4xx-gnuradio-oe-for-host'
+    project: DevCentral
+    branch: titanium-master
+
+pool:
+  name: de-dre-lab
+  demands:
+  - AtsConfig -equals $(AtsConfig)
+
+jobs:
+
+- template: templates/job_x4xx_device_test.yml

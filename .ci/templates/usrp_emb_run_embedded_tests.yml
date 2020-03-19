@@ -1,0 +1,15 @@
+steps:
+  - template: usrp_emb_venv_run.yml
+    parameters:
+      script: |
+        mkdir -p usrp_emb_test_results
+        cd usrp_emb_test_results
+        usrp_emb_test_x4xx
+      displayName: "Run usrp_emb tests"
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: 'TEST-*.xml'
+      testRunTitle: 'usrp_emb test results $(System.JobName)'
+      searchFolder: '$(Agent.TempDirectory)/usrp_emb_test_results'
+    displayName: "Publish Test Results"

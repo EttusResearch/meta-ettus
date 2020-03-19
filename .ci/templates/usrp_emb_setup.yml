@@ -1,0 +1,15 @@
+# Setup a virtualenv and install usrp_emb into it
+# This sets the USRP_EMB_VENV environment variable to the path of the
+# venv, which can be used in subsequent steps to activate the
+# environment
+
+steps:
+- script: |
+    python3 -m venv venv
+    source venv/bin/activate
+    echo '##vso[task.setvariable variable=USRP_EMB_VENV]'$(realpath venv)
+    python3 -m pip install -U pip
+    pip install wheel
+    pip install --upgrade $(Build.SourcesDirectory)/contrib/test/usrp_emb
+  displayName: Create usrp_emb venv
+  workingDirectory: $(Agent.TempDirectory)

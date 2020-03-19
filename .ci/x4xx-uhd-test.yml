@@ -1,0 +1,63 @@
+# no CI triggers
+trigger: none
+
+pr:
+  branches:
+    include:
+      - zeus-ci
+  paths:
+    include:
+      - .ci
+      - contrib/test
+
+variables:
+  ScriptDir: '$(Build.SourcesDirectory)/contrib/test'
+  ConfigFile: '$(Agent.WorkFolder)/config.conf'
+  ImagesDirectory: '$(Agent.WorkFolder)/images'
+  IpkDir: '$(Agent.BuildDirectory)/x4xx-uhddev-oe-build-artifacts/IPK files/aarch64'
+
+# pipeline triggers
+resources:
+  pipelines:
+  - pipeline: x4xx-filesystem-artifacts
+    source: 'x4xx-filesystem'
+    branch: zeus-ci
+  - pipeline: x4xx-uhddev-oe-build-artifacts
+    source: 'x4xx-uhddev-oe-build'
+    branch: titanium-master
+    trigger:
+      branches:
+        exclude:
+        - master
+
+pool:
+  name: de-dre-lab
+  demands:
+  - openembedded-test -equals $(System.JobName)
+
+jobs:
+- job: 'test'
+  strategy:
+    matrix: $[ variables.Devices ]
+
+  workspace:
+    clean: all
+
+  steps:
+  - checkout: self
+
+  - download: x4xx-uhddev-oe-build-artifacts
+    artifact: 'IPK files'
+    displayName: 'Download IPK files'
+
+  - template: templates/steps_load_image.yml
+  - template: templates/steps_mount_image.yml
+  - template: templates/steps_run_boot.yml
+
+  - script: $(ScriptDir)/install_packages -t $(System.JobName) -c $(ConfigFile) -s '$(IpkDir)'
+    displayName: 'Install IPK files'
+    workingDirectory: $(Agent.BuildDirectory)
+
+  - template: templates/steps_run_mpm_test.yml
+  - template: templates/steps_run_poweroff.yml
+  - template: templates/steps_unmount_image.yml

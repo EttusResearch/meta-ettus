@@ -1,0 +1,34 @@
+# oe_externalsrc: helper template for overriding an OE package's source tree
+
+parameters:
+  # absolute path to the local.conf file to write to
+  - name: local_conf
+    type: string
+  # the name of the package to override with externalsrc
+  - name: package
+    type: string
+  # the path to the externalsrc for the package
+  - name: path
+    type: string
+  # whether the build should run from the specified source tree
+  - name: build_in_src
+    type: boolean
+    default: false
+  # condition for whether this step should execute
+  - name: condition
+    type: string
+    default: "true"
+
+steps:
+  - script: |
+      extsrc="INHERIT += \"externalsrc\""
+      if ! grep "$extsrc" ${{ parameters.local_conf }} >/dev/null; then
+        echo "$extsrc" >> ${{ parameters.local_conf }}
+      fi
+      echo "EXTERNALSRC_pn-${{ parameters.package }} = \"${{ parameters.path }}\"" >> ${{ parameters.local_conf }}
+      if [ ${{ parameters.build_in_src }} = True ]; then
+        echo "EXTERNALSRC_BUILD_pn-${{ parameters.package }} = \"${{ parameters.path }}\"" >> ${{ parameters.local_conf }}
+      fi
+      cat ${{ parameters.local_conf }}
+    displayName: Setup EXTERNALSRC for ${{ parameters.package }}
+    condition: and(succeeded(), ${{ parameters.condition }})

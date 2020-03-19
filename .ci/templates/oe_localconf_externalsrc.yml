@@ -1,0 +1,48 @@
+# Helper template to handle checking out a git repository and specifying this
+# as the EXTERNALSRC for the given list of packages.
+# OE_LOCALCONF must be set to the path of the local.conf file to append to
+
+parameters:
+  # The name of the repository to check out
+  - name: repository
+    type: string
+  # The list of packages to configure to use this repository to build
+  - name: packages
+    type: object
+    default: []
+  # Alternative to the above, used if the build should be run from a subdirectory of the repository
+  - name: package_paths
+    type: object
+    default: []
+  # String to control conditional execution of this template
+  - name: condition
+    type: string
+    default: "true"
+  # Whether EXTERNALSRC_BUILD should be set as well
+  - name: build_in_src
+    type: boolean
+    default: false
+
+steps:
+  - checkout: ${{ parameters.repository }}
+    path: s/${{ parameters.repository }}
+    target: host
+    displayName: Checkout ${{ parameters.repository }}
+    fetchDepth: 1
+    condition: and(succeeded(), ${{ parameters.condition }})
+  - ${{ each pkg in parameters.packages }}:
+    - template: oe_externalsrc.yml
+      parameters:
+        local_conf: $OE_LOCALCONF
+        package: ${{ pkg }}
+        path: $(Build.SourcesDirectory)/${{ parameters.repository }}
+        build_in_src: ${{ parameters.build_in_src }}
+        condition: and(succeeded(), ${{ parameters.condition }})
+  - ${{ each pkg in parameters.package_paths }}:
+    - template: oe_externalsrc.yml
+      parameters:
+        local_conf: $OE_LOCALCONF
+        package: ${{ pkg.package }}
+        path: $(Build.SourcesDirectory)/${{ parameters.repository }}/${{ pkg.path }}
+        build_in_src: ${{ parameters.build_in_src }}
+        condition: and(succeeded(), ${{ parameters.condition }})

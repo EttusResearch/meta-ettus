@@ -1,0 +1,19 @@
+steps:
+  - script: |
+      pip3 install junit-xml
+      $(ScriptDir)/run_bist -t $(System.JobName) -c $(ConfigFile)
+    displayName: 'Run BIST'
+    workingDirectory: $(Agent.BuildDirectory)
+    continueOnError: true
+
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/bist_results.xml'
+      testRunTitle: 'BIST results $(System.JobName)'
+      searchFolder: '$(Agent.BuildDirectory)'
+
+  - publish: $(Agent.BuildDirectory)/bist_results.json
+    artifact: 'bist_results.json'
+    displayName: 'Publish bist_results.json'
+    continueOnError: true

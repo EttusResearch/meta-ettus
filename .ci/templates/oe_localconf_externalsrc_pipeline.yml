@@ -1,0 +1,57 @@
+# Helper template to handle downloading from a pipeline and specifying this
+# as the EXTERNALSRC for the given list of packages.
+# OE_LOCALCONF must be set to the path of the local.conf file to append to
+
+parameters:
+  # The name of the pipeline to download artifact from
+  - name: pipeline
+    type: string
+  # The artifacts to download from the pipeline
+  - name: artifacts
+    type: object
+    default: []
+  # The packages to override for
+  - name: packages
+    type: object
+  # Whether EXTERNALSRC_BUILD should be set as well
+  - name: build_in_src
+    type: boolean
+    default: false
+  # Whether to flatten all files from the pipeline into a single directory
+  - name: flatten
+    type: boolean
+    default: false
+  # Whether to override the PV for this package
+  - name: pv_override
+    type: string
+    default: ""
+
+steps:
+  - ${{ each artifact in parameters.artifacts }}:
+    - download: ${{ parameters.pipeline }}
+      artifact: ${{ artifact }}
+      displayName: Download ${{ artifact }}
+  - download: ${{ parameters.pipeline }}
+    displayName: Download artifacts from ${{ parameters.pipeline }}
+    condition: and(succeeded(), ${{ eq(length(parameters.artifacts), 0) }})
+  - script: |
+      echo
+      echo before
+      find $(Agent.BuildDirectory)/${{ parameters.pipeline }}
+      find $(Agent.BuildDirectory)/${{ parameters.pipeline }} -mindepth 2 -type f -exec mv -f '{}' $(Agent.BuildDirectory)/${{ parameters.pipeline }} ';'
+      echo
+      echo after
+      find $(Agent.BuildDirectory)/${{ parameters.pipeline }}
+    displayName: Flatten ${{ parameters.pipeline }} files
+    condition: and(succeeded(), ${{ parameters.flatten }})
+  - ${{ each pkg in parameters.packages }}:
+    - template: oe_externalsrc.yml
+      parameters:
+        local_conf: $OE_LOCALCONF
+        package: ${{ pkg }}
+        path: $(Agent.BuildDirectory)/${{ parameters.pipeline }}
+  - ${{ each pkg in parameters.packages }}:
+    - script: |
+        echo "PV_pn-${{ pkg }} = \"${{ parameters.pv_override }}\"" >> $OE_LOCALCONF
+      displayName: Override PV for ${{ pkg }}
+      condition: and(succeeded(), ${{ not(eq(parameters.pv_override, '')) }})
