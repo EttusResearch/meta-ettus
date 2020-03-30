@@ -69,6 +69,11 @@ do_install_append() {
     mkdir -p ${D}${libdir}/usrp_mpm/tests/
     install -m 0644 ${S}/python/tests/*.py ${D}${libdir}/usrp_mpm/tests/
 
+    if [ -d ${S}/python/tests/eeprom_tests ]; then
+	    mkdir -p ${D}${libdir}/usrp_mpm/tests/eeprom_tests/
+	    install -m 0644 ${S}/python/tests/eeprom_tests/*.eeprom ${D}${libdir}/usrp_mpm/tests/eeprom_tests/
+    fi
+
     # prepend "40-" when installing .network files (e.g. eth0.network ->
     # 40-eth0.network) to make sure that the rules are applied before the
     # systemd default rules like 80-wired.network
