@@ -36,6 +36,7 @@ IMAGE_INSTALL += "\
     tzdata \
     uhd \
     uhd-examples \
+    util-linux \
     vim \
     vim-vimrc \
     "
