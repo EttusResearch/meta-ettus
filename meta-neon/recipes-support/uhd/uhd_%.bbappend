@@ -1,1 +1,1 @@
-PACKAGECONFIG_ni-neon = "mpmd liberio"
+PACKAGECONFIG_ni-neon = "mpmd python liberio"
