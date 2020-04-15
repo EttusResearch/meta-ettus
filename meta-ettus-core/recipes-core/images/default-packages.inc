@@ -35,6 +35,7 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     gps-utils-gpsmon \
     rsync \
     nfs-utils-mount \
+    python3-uhd \
     "
 
 # including linux-firmware-ni-{e31x,sulfur,neon} with dev-pkgs feature enabled
