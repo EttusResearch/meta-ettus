@@ -2,14 +2,17 @@ SUMMARY = "Universal Hardware Driver for Ettus Research products."
 HOMEPAGE = "http://www.ettus.com"
 LICENSE = "GPLv3+"
 
+BBCLASSEXTEND = "native"
+
 DEPENDS = "git-native python3-mako-native boost \
-           ncurses udev python3-requests \
+           ncurses python3-requests \
            python3-setuptools-native"
 RDEPENDS_${PN} += "python3-core python3-requests"
 RDEPENDS_${PN}-tests = "${PN} python3-ruamel-yaml"
 RDEPENDS_${PN}-examples = "${PN}"
 RDEPENDS_${PYTHON_PN}-${PN} = "${PN} python3-numpy"
 RRECOMMENDS_${PN}-tests = "python3-unittest-xml-reporting"
+RRECOMMENDS_${PN}_class-target += "uhd-fpga-images"
 
 inherit cmake python3-dir python3native
 require includes/maintainer-ettus.inc
