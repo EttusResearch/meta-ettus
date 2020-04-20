@@ -62,11 +62,11 @@ index bac81211bd..4b5ea82f68 100644
 +		"if test ${ec_disable_swsync} = 0; then "\
  			"echo Copying MCU FW from SD to RAM... && " \
  			"run expand_ec_image; " \
--			"load mmc 0 ${load_addr} ${ec_image} && " \
+-			"ext4load mmc 0:2 ${load_addr} ${ec_image} && " \
 +			"ext4load ${mender_uboot_root} ${load_addr} ${ec_image} && " \
  			"crosec swsync ${load_addr} ${filesize}; fi;" \
  		"echo Copying FIT from SD to RAM... && " \
--		"load mmc 0 ${load_addr} ${fit_image} && " \
+-		"ext4load mmc 0:2 ${load_addr} ${fit_image} && " \
 -		"bootm ${load_addr}#conf@zynq-ni-${mboard}.dtb\0" \
 +		"ext4load ${mender_uboot_root} ${load_addr} ${fit_image} && " \
 +		"bootm ${load_addr}#conf@zynq-ni-${mboard}.dtb; " \

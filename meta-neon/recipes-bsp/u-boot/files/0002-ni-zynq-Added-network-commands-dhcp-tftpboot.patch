@@ -59,10 +59,10 @@ index 6b1f5a9933..46b3431951 100644
 +		"bootm ${load_addr}#conf@zynq-ni-${mboard}.dtb\0" \
  	"sdboot=run swsync_sd; " \
  		"echo Copying FIT from SD to RAM... && " \
- 		"load mmc 0 ${load_addr} ${fit_image} && " \
+ 		"ext4load mmc 0:2 ${load_addr} ${fit_image} && " \
 @@ -37,6 +43,11 @@
  			"run expand_ec_image; " \
- 			"load mmc 0 ${load_addr} ${ec_image} && " \
+ 			"ext4load mmc 0:2 ${load_addr} ${ec_image} && " \
  			"crosec swsync ${load_addr} ${filesize}; fi;\0" \
 +	"swsync_net=if test ${ec_disable_swsync} = 0; then " \
 +			"echo Copying MCU FW to RAM via DHCP/TFTP... && " \
