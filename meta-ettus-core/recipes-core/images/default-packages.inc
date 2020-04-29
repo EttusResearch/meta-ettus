@@ -37,9 +37,15 @@ CORE_IMAGE_EXTRA_INSTALL = "\
     nfs-utils-mount \
     "
 
+# including linux-firmware-ni-{e31x,sulfur,neon} with dev-pkgs feature enabled
+# also pulls in linux-firmware-dev which then pulls in linux-firmware. This
+# causes hundreds of megabytes of uneeded firmware to get pulled in.
+
 # including nfs-utils-mount together dev-pkgs feature enabled also pulls in
 # nfs-utils-dev which pulls in nfs-utils which pulls in nfs-utils-client
 # which causes a systemd service (proc-fs-nfsd.mount) to fail...
+
 PACKAGE_EXCLUDE = " \
+    linux-firmware-dev \
     nfs-utils-dev \
     "
