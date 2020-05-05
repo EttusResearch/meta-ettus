@@ -28,7 +28,11 @@ UHD_FPGA_IMAGES_IN_FIRMWARE ??= ""
 do_compile_append() {
     # the files are provided by uhd-fpga-images
     for IMAGE in ${UHD_FPGA_IMAGES_IN_FIRMWARE}; do
-        python3 ${WORKDIR}/fpga_bit_to_bin.py -f ${S}/$IMAGE.bit ${WORKDIR}/$IMAGE.bin
+        if [ -f ${S}/$IMAGE.bin ]; then
+            cp ${S}/$IMAGE.bin ${WORKDIR}/$IMAGE.bin
+        else
+            python3 ${WORKDIR}/fpga_bit_to_bin.py -f ${S}/$IMAGE.bit ${WORKDIR}/$IMAGE.bin
+        fi
         dtc -@ -o ${WORKDIR}/$IMAGE.dtbo ${S}/$IMAGE.dts
     done
 }
