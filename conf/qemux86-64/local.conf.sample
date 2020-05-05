@@ -1,0 +1,2 @@
+DISTRO ?= "Alchemy"
+MACHINE ?= "qemux86-64"
