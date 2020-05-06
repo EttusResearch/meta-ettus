@@ -26,6 +26,7 @@ RDEPENDS_${PN} = " \
                   udev \
                   dtc \
                   uhd-fpga-images-firmware \
+                  iptables \
                  "
 
 inherit distutils3-base cmake python3-dir python3native systemd
