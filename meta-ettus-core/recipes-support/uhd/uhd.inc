@@ -33,7 +33,7 @@ FILES_${PN}-dbg += "${libdir}/uhd/examples/.debug/* \
 FILES_${PN}-examples = "${libdir}/uhd/examples/*"
 FILES_${PYTHON_PN}-${PN} = "${PYTHON_SITEPACKAGES_DIR}/uhd/*"
 
-PACKAGECONFIG ??= "b100 b200 usrp1 usrp2 x300"
+PACKAGECONFIG ??= "b100 b200 usrp1 usrp2 x300 mpmd python docs"
 PACKAGECONFIG[staticlibs] = "-DENABLE_STATIC_LIBS=ON,-DENABLE_STATIC_LIBS=OFF "
 
 PACKAGECONFIG[b100] = "-DENABLE_B100=ON,-DENABLE_B100=OFF, libusb1"
