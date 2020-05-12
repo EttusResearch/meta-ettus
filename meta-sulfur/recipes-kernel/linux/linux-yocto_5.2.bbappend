@@ -1,7 +1,6 @@
 FILESEXTRAPATHS_prepend := "${THISDIR}/linux-yocto-5.2:"
 
 SRC_URI_append_ni-sulfur = " \
-		file://defconfig \
 		file://sulfur.scc \
 		file://sulfur.cfg \
 		"
