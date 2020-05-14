@@ -6,7 +6,7 @@ DEPENDS = "git-native python3-mako-native boost \
            ncurses udev python3-requests \
            python3-setuptools-native"
 RDEPENDS_${PN} += "python3-core python3-requests"
-RDEPENDS_${PN}-tests = "${PN}"
+RDEPENDS_${PN}-tests = "${PN} python3-ruamel-yaml"
 RDEPENDS_${PN}-examples = "${PN}"
 RDEPENDS_${PYTHON_PN}-${PN} = "${PN} python3-numpy"
 RRECOMMENDS_${PN}-tests = "python3-unittest-xml-reporting"
