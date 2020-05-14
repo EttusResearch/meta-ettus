@@ -9,7 +9,7 @@ RDEPENDS_${PN} += "python3-core python3-requests"
 RDEPENDS_${PN}-tests = "${PN}"
 RDEPENDS_${PN}-examples = "${PN}"
 RDEPENDS_${PYTHON_PN}-${PN} = "${PN} python3-numpy"
-RRECOMMENDS_${PN} += "uhd-fpga-images"
+RRECOMMENDS_${PN}-tests = "python3-unittest-xml-reporting"
 
 inherit cmake python3-dir python3native
 require includes/maintainer-ettus.inc
