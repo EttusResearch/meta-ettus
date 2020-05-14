@@ -23,7 +23,7 @@ INSANE_SKIP_${PN} = "dev-so"
 
 FILES_${PN} += "${libdir}/libuhd.so \
                 ${libdir}/uhd/utils/*"
-FILES_${PN}-tests += "${datadir}/uhd/tests/*"
+FILES_${PN}-tests += "${libdir}/uhd/tests/*"
 FILES_${PN}-dev += "${libdir}/cmake/*"
 FILES_${PN}-dbg += "${libdir}/uhd/examples/.debug/* \
                     ${libdir}/uhd/utils/.debug/* \
