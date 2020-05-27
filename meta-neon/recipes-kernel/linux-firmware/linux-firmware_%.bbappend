@@ -20,11 +20,11 @@ PACKAGE_BEFORE_PN_ni-neon = " \
 
 # The EC image is under the Chromium License, so add custom license file
 FILES_${PN}-ni-neon-license = " \
-                        /lib/firmware/ni/LICENSE.ec-neon \
+                        ${nonarch_base_libdir}/firmware/ni/LICENSE.ec-neon \
                         "
-FILES_${PN}-ni-neon = "/lib/firmware/ni/ec-neon-rev1.RW.bin \
-                       /lib/firmware/ni/ec-neon-rev2.RW.bin \
-                       /lib/firmware/ni/ec-neon-rev3.RW.bin \
+FILES_${PN}-ni-neon = "${nonarch_base_libdir}/firmware/ni/ec-neon-rev1.RW.bin \
+                       ${nonarch_base_libdir}/firmware/ni/ec-neon-rev2.RW.bin \
+                       ${nonarch_base_libdir}/firmware/ni/ec-neon-rev3.RW.bin \
                       "
 RDEPENDS_${PN}-ni-neon += "${PN}-ni-neon-license"
 
@@ -33,9 +33,9 @@ ALLOW_EMPTY_${PN}-ni-neon-fpga = "1"
 RDEPENDS_${PN}-ni-neon-fpga = "uhd-fpga-images-e320-firmware"
 
 do_install_append_ni-neon() {
-    install -D -m 0644 ${WORKDIR}/ec-neon-rev1.RW.bin ${D}/lib/firmware/ni/ec-neon-rev1.RW.bin
-    install -D -m 0644 ${WORKDIR}/ec-neon-rev2.RW.bin ${D}/lib/firmware/ni/ec-neon-rev2.RW.bin
-    install -D -m 0644 ${WORKDIR}/ec-neon-rev3.RW.bin ${D}/lib/firmware/ni/ec-neon-rev3.RW.bin
+    install -D -m 0644 ${WORKDIR}/ec-neon-rev1.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-neon-rev1.RW.bin
+    install -D -m 0644 ${WORKDIR}/ec-neon-rev2.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-neon-rev2.RW.bin
+    install -D -m 0644 ${WORKDIR}/ec-neon-rev3.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-neon-rev3.RW.bin
 
-    install -m 0644 ${WORKDIR}/LICENSE.ec-neon ${D}/lib/firmware/ni/LICENSE.ec-neon
+    install -m 0644 ${WORKDIR}/LICENSE.ec-neon ${D}${nonarch_base_libdir}/firmware/ni/LICENSE.ec-neon
 }
