@@ -1,0 +1,35 @@
+From 2b33d4b2530c634840ae03038e32877c93a786e8 Mon Sep 17 00:00:00 2001
+From: Andrew Lynch <andrew.lynch@ni.com>
+Date: Fri, 11 Oct 2019 14:28:49 -0500
+Subject: [PATCH] mpm: explicitly set max buffer size for msgpack unpacker
+
+Msgpack version 0.6 reduced the default max buffer size to 1MB which is
+smaller than the bitfiles. This change sets the max buffer size to 50MB
+which is larger than the bitfiles.
+---
+ mpm/python/usrp_mpm/rpc_server.py | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/mpm/python/usrp_mpm/rpc_server.py b/mpm/python/usrp_mpm/rpc_server.py
+index 00919df36..dbc30190a 100644
+--- a/mpm/python/usrp_mpm/rpc_server.py
++++ b/mpm/python/usrp_mpm/rpc_server.py
+@@ -96,6 +96,7 @@ class MPMServer(RPCServer):
+         # first the commands need to be registered
+         super(MPMServer, self).__init__(
+             pack_params={'use_bin_type': True},
++            unpack_params={'max_buffer_size': 50000000},
+         )
+         self._state.system_ready.value = True
+         self.log.info("RPC server ready!")
+@@ -476,6 +477,7 @@ class MPMServer(RPCServer):
+         # changes in future versions of RPCServer may cause issues.
+         super(MPMServer, self).__init__(
+             pack_params={'use_bin_type': True},
++            unpack_params={'max_buffer_size': 50000000},
+         )
+ 
+     def reset_mgr(self):
+-- 
+2.25.1
+

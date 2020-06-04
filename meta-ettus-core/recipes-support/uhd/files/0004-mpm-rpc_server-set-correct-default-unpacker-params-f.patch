@@ -1,0 +1,54 @@
+From c1a606550943bcc148897af556b572855ffcabfd Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Thu, 5 Mar 2020 11:01:08 +0100
+Subject: [PATCH] mpm: rpc_server: set correct default unpacker params for
+ msgpack 0.6.1
+
+msgpack 0.6.1 suggests new default parameters which ensures compatibility
+with the upcoming msgpack 1.0 release which will have breaking changes.
+
+The parameter changes are described in
+https://github.com/msgpack/msgpack-python/blob/v0.6.1/README.rst
+
+The default parameters for msgpack 1.0 will be:
+- packer: use_bin_type=True
+- unpacker: raw=False
+
+The packer use_bin_type=True option is already set in the client
+(mpm_shell.py) but the unpacker option raw=False needs to be set
+in the server (rpc_server.py)
+
+This change allows the usage of a patched version of python3-mprpc
+0.1.17 which removes passing the encoding option to the Packer and
+Unpacker
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ mpm/python/usrp_mpm/rpc_server.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/mpm/python/usrp_mpm/rpc_server.py b/mpm/python/usrp_mpm/rpc_server.py
+index dbc30190a..df57e22c9 100644
+--- a/mpm/python/usrp_mpm/rpc_server.py
++++ b/mpm/python/usrp_mpm/rpc_server.py
+@@ -96,7 +96,7 @@ class MPMServer(RPCServer):
+         # first the commands need to be registered
+         super(MPMServer, self).__init__(
+             pack_params={'use_bin_type': True},
+-            unpack_params={'max_buffer_size': 50000000},
++            unpack_params={'max_buffer_size': 50000000, 'raw': False},
+         )
+         self._state.system_ready.value = True
+         self.log.info("RPC server ready!")
+@@ -477,7 +477,7 @@ class MPMServer(RPCServer):
+         # changes in future versions of RPCServer may cause issues.
+         super(MPMServer, self).__init__(
+             pack_params={'use_bin_type': True},
+-            unpack_params={'max_buffer_size': 50000000},
++            unpack_params={'max_buffer_size': 50000000, 'raw': False},
+         )
+ 
+     def reset_mgr(self):
+-- 
+2.25.1
+
