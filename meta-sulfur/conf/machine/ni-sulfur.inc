@@ -24,10 +24,6 @@ PREFERRED_VERSION_linux-yocto = "4.18.%"
 MACHINE_ESSENTIAL_EXTRA_RRECOMMENDS = " \
                              kernel-image \
                              kernel-modules \
-                             linux-firmware-ni-sulfur \
-                             linux-firmware-ni-magnesium \
-                             linux-firmware-adi-mykonos \
-                             linux-firmware-ni-rhodium \
 "
 
 MACHINE_EXTRA_RRECOMMENDS = " \
@@ -39,7 +35,12 @@ MACHINE_EXTRA_RRECOMMENDS = " \
                              haveged \
                             "
 
-IMAGE_INSTALL_append_ni-sulfur = " kernel-image"
+IMAGE_INSTALL_append_ni-sulfur = " kernel-image \
+                                  linux-firmware-ni-sulfur \
+                                  linux-firmware-ni-magnesium \
+                                  linux-firmware-adi-mykonos \
+                                  linux-firmware-ni-rhodium \
+"
 
 PREFERRED_VERSION_u-boot = "2019.07"
 

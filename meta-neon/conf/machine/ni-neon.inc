@@ -25,7 +25,6 @@ PREFERRED_VERSION_linux-yocto = "4.18.%"
 MACHINE_ESSENTIAL_EXTRA_RRECOMMENDS = " \
                              kernel-image \
                              kernel-modules \
-                             linux-firmware-ni-neon \
                             "
 
 MACHINE_EXTRA_RRECOMMENDS = " \
@@ -37,7 +36,9 @@ MACHINE_EXTRA_RRECOMMENDS = " \
                              haveged \
                             "
 
-IMAGE_INSTALL_append_ni-neon = " kernel-image"
+IMAGE_INSTALL_append_ni-neon = " kernel-image \
+                                linux-firmware-ni-neon \
+                               "
 
 do_image_wic[depends] += " \
     u-boot:do_deploy \
