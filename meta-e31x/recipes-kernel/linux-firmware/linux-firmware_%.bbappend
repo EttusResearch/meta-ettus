@@ -1,8 +1,8 @@
 
-PACKAGES_append_ni-e31x-sg1 = " \
+PACKAGE_BEFORE_PN_ni-e31x-sg1 = " \
     ${PN}-ni-e31x-sg1-fpga \
     "
-PACKAGES_append_ni-e31x-sg3 = " \
+PACKAGE_BEFORE_PN_ni-e31x-sg3 = " \
     ${PN}-ni-e31x-sg3-fpga \
     "
 

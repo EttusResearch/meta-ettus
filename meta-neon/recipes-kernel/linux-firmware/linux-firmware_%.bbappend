@@ -12,7 +12,7 @@ LIC_FILES_CHKSUM_append = "file://${WORKDIR}/LICENSE.ec-neon;md5=72f855f00b364ec
 NO_GENERIC_LICENSE[Firmware-ni-neon] = "${WORKDIR}/LICENSE.ec-neon"
 LICENSE_${PN}-ni-neon = "Firmware-ni-neon"
 
-PACKAGES_append_ni-neon = " \
+PACKAGE_BEFORE_PN_ni-neon = " \
     ${PN}-ni-neon-license \
     ${PN}-ni-neon \
     ${PN}-ni-neon-fpga \
