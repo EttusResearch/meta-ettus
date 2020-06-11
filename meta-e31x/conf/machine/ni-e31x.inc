@@ -21,7 +21,7 @@ KERNEL_CLASSES += "kernel-fitimage"
 KERNEL_IMAGETYPE = "fitImage"
 KERNEL_DEFCONFIG ?= "multi_v7_defconfig"
 
-PREFERRED_VERSION_linux-yocto = "4.18.%"
+PREFERRED_VERSION_linux-yocto = "5.2.%"
 
 MACHINE_ESSENTIAL_EXTRA_RRECOMMENDS = " \
                              kernel-image \
