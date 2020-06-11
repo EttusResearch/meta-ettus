@@ -17,6 +17,7 @@ patch 0016-f1-fixup-mfd-syscon-added-support-for-probing-removing-.patch
 patch 0017-net-nixge-use-variable-to-remember-if-phy-is-fixed-l.patch
 patch 0018-net-nixge-remove-unsupported-linkmodes-in-case-of-10.patch
 patch 0019-spi-cadence-Revert-cs-gpio-using-descriptors.patch
+patch 0020-net-phy-remove-state-PHY_FORCING.patch
 patch 0001-i2c-cadence-Handle-transfer_size-rollover.patch
 patch 0001-Revert-i2c-cadence-Fix-the-hold-bit-setting.patch
 patch 0001-dmaengine-of_dma-print-error-if-DMA-controller-could.patch
