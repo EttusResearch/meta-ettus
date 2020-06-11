@@ -15,7 +15,6 @@ patch 0015-net-nixge-use-of_mdiobus_unregister-to-avoid-memory-.patch
 patch 0016-mfd-syscon-added-support-for-probing-removing-device.patch
 patch 0016-f1-fixup-mfd-syscon-added-support-for-probing-removing-.patch
 patch 0017-net-nixge-use-variable-to-remember-if-phy-is-fixed-l.patch
-patch 0018-net-nixge-remove-unsupported-linkmodes-in-case-of-10.patch
 patch 0019-spi-cadence-Revert-cs-gpio-using-descriptors.patch
 patch 0020-net-phy-remove-state-PHY_FORCING.patch
 patch 0001-i2c-cadence-Handle-transfer_size-rollover.patch
