@@ -279,8 +279,8 @@ index 0000000000..3872fe5264
 +	nvmem-cells = <&eth0_addr>;
 +	nvmem-cell-names = "address";
 +
-+	ethernet_phy0: ethernet-phy@4 {
-+		reg = <4>;
++	ethernet_phy0: ethernet-phy@7 {
++		reg = <7>;
 +		reset-gpios = <&gpio0 3 GPIO_ACTIVE_LOW>;
 +	};
 +};
