@@ -6,7 +6,9 @@ BBCLASSEXTEND = "native"
 
 DEPENDS = "git-native python3-mako-native boost \
            ncurses python3-requests \
-           python3-setuptools-native"
+           python3-setuptools-native \
+           qemu-native \
+          "
 RDEPENDS_${PN} += "python3-core python3-requests"
 RDEPENDS_${PN}-tests = "${PN} python3-ruamel-yaml"
 RDEPENDS_${PN}-examples = "${PN}"
@@ -14,7 +16,7 @@ RDEPENDS_${PYTHON_PN}-${PN} = "${PN} python3-numpy"
 RRECOMMENDS_${PN}-tests = "python3-unittest-xml-reporting"
 RRECOMMENDS_${PN}_class-target += "uhd-fpga-images"
 
-inherit cmake python3-dir python3native deploy-docs
+inherit cmake python3-dir python3native deploy-docs run_tests
 require includes/maintainer-ettus.inc
 include uhd_auto_pkgv.inc
 
@@ -55,4 +57,7 @@ EXTRA_OECMAKE = "-DENABLE_LIBUHD=TRUE \
                  -DENABLE_MAN_PAGES=OFF \
                  -DENABLE_MANUAL=OFF \
                  -DGIT_EXECUTABLE=${HOSTTOOLS_DIR}/git \
+                 -DENABLE_QEMU_UNITTESTS=ON \
+                 -DQEMU_EXECUTABLE=${WORKDIR}/recipe-sysroot-native/usr/bin/qemu-${TUNE_ARCH} \
+                 -DQEMU_SYSROOT=${WORKDIR}/recipe-sysroot \
                 "
