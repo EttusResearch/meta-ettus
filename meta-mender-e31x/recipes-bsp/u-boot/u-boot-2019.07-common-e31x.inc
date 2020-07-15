@@ -6,6 +6,7 @@ MENDER_UBOOT_AUTO_CONFIGURE = "0"
 # ... instead use our own patches
 SRC_URI_append_ni-e31x-mender = " \
     file://0001-ni-zynq-Mender.io-support-for-NI-Ettus-Research-E31x.patch \
+    file://0003-Remove-CONFIG_SYS_REDUNDAND_ENVIRONMENT-check.patch \
     "
 
 # Don't overwrite variable bootcommand with CONFIG_MENDER_BOOTCOMMAND
