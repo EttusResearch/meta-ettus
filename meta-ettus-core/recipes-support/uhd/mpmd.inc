@@ -50,6 +50,8 @@ EXTRA_OECMAKE_append = " \
                   -DCMAKE_SKIP_RPATH=ON \
                   -DMPM_DEVICE=${MPM_DEVICE} \
                   -DGIT_EXECUTABLE=${HOSTTOOLS_DIR}/git \
+                  -DPYTHON_EXECUTABLE=${PYTHON} \
+                  -DRUNTIME_PYTHON_EXECUTABLE=/usr/bin/python3 \
                   "
 
 SYSTEMD_PACKAGES = "${@bb.utils.contains('DISTRO_FEATURES','systemd','${PN}','',d)}"

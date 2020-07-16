@@ -53,6 +53,7 @@ PACKAGECONFIG[simulator] = "-DENABLE_SIM=ON,-DENABLE_SIM=OFF"
 PACKAGECONFIG[docs] = "-DENABLE_DOXYGEN=ON,-DENABLE_DOXYGEN=OFF, doxygen-native graphviz-native"
 
 EXTRA_OECMAKE = "-DENABLE_LIBUHD=TRUE \
+                 -DPYTHON_EXECUTABLE=${PYTHON} \
                  -DRUNTIME_PYTHON_EXECUTABLE=/usr/bin/python3 \
                  -DENABLE_MAN_PAGES=OFF \
                  -DENABLE_MANUAL=OFF \
