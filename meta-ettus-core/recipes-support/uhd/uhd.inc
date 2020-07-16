@@ -8,6 +8,7 @@ DEPENDS = "git-native python3-mako-native boost \
            ncurses python3-requests \
            python3-setuptools-native \
            qemu-native \
+           python3-numpy \
           "
 RDEPENDS_${PN} += "python3-core python3-requests"
 RDEPENDS_${PN}-tests = "${PN} python3-ruamel-yaml"
