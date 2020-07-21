@@ -61,5 +61,6 @@ EXTRA_OECMAKE = "-DENABLE_LIBUHD=TRUE \
                  -DGIT_EXECUTABLE=${HOSTTOOLS_DIR}/git \
                  -DENABLE_QEMU_UNITTESTS=ON \
                  -DQEMU_EXECUTABLE=${WORKDIR}/recipe-sysroot-native/usr/bin/qemu-${TUNE_ARCH} \
+                 -DQEMU_PYTHON_EXECUTABLE=${WORKDIR}/recipe-sysroot/usr/bin/python3/python3 \
                  -DQEMU_SYSROOT=${WORKDIR}/recipe-sysroot \
                 "
