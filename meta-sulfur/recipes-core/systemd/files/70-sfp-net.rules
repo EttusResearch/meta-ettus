@@ -1,2 +1,0 @@
-SUBSYSTEM=="net", KERNELS=="40008000.ethernet", NAME="sfp1"
-SUBSYSTEM=="net", KERNELS=="40000000.ethernet", NAME="sfp0"
