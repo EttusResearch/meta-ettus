@@ -30,13 +30,15 @@ MACHINE_ESSENTIAL_EXTRA_RRECOMMENDS = " \
 
 MACHINE_EXTRA_RRECOMMENDS = " \
                              eeprom-hostname-systemd \
-                             gpsd \
                              gpsd-gpsctl \
                              gpsd-machine-conf \
                              haveged \
                             "
 
-IMAGE_INSTALL_append_ni-e31x = " kernel-image"
+IMAGE_INSTALL_append_ni-e31x = " \
+                             kernel-image \
+                             gpsd \
+                             "
 
 do_image_wic[depends] += " \
     u-boot:do_deploy \

@@ -38,6 +38,7 @@ MACHINE_EXTRA_RRECOMMENDS = " \
 
 IMAGE_INSTALL_append_ni-neon = " kernel-image \
                                 linux-firmware-ni-neon \
+                                gpsd \
                                "
 
 do_image_wic[depends] += " \

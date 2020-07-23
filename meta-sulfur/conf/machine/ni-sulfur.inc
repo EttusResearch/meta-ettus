@@ -29,7 +29,6 @@ MACHINE_ESSENTIAL_EXTRA_RRECOMMENDS = " \
 MACHINE_EXTRA_RRECOMMENDS = " \
                              mpmd-tools \
                              eeprom-hostname-systemd \
-                             gpsd \
                              gpsd-gpsctl \
                              gpsd-machine-conf \
                              haveged \
@@ -40,6 +39,7 @@ IMAGE_INSTALL_append_ni-sulfur = " kernel-image \
                                   linux-firmware-ni-magnesium \
                                   linux-firmware-adi-mykonos \
                                   linux-firmware-ni-rhodium \
+                                  gpsd \
 "
 
 PREFERRED_VERSION_u-boot = "2019.07"
