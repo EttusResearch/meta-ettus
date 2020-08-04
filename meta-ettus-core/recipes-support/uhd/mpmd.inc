@@ -41,6 +41,7 @@ SYSTEMD_SERVICE_${PN} = "${@bb.utils.contains('DISTRO_FEATURES','systemd','usrp-
 
 PACKAGES =+ "${PN}-tools"
 
+FILES_${PN}     += "${systemd_unitdir}/network/*"
 FILES_${PN}-dev += "${libdir}/libusrp-periphs.so"
 FILES_${PN}-dbg += "${bindir}/mpm_debug.py"
 FILES_${PN}-tools += "\

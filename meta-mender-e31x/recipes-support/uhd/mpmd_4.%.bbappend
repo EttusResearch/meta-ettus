@@ -1,11 +1,19 @@
-FILES_${PN}_append_ni-e31x-mender = " /data/network"
+FILES_${PN}_append_ni-e31x-mender = " /data/network/*"
 
 do_install_append_ni-e31x-mender() {
-    mkdir ${D}/data/
-    mv ${D}${base_libdir}/systemd/network ${D}/data/
-    mkdir ${D}${base_libdir}/systemd/network/
-    for FILE in ${D}/data/network/*; do
-        ln -s /data/network/$(basename $FILE) ${D}${base_libdir}/systemd/network/
-        echo $FILE
+    install -d ${D}/data/network/
+    for FILENAME in ${D}${base_libdir}/systemd/network/*; do
+        cp $FILENAME ${D}/data/network/
+        mv $FILENAME $FILENAME.sample
+        ln -s /data/network/$(basename $FILENAME) $FILENAME
+    done
+}
+
+pkg_postinst_ontarget_${PN}() {
+    for FILENAME in ${base_libdir}/systemd/network/*.network; do
+        if [ -h $FILENAME ] && [ ! -e $FILENAME ]; then
+            echo "File $FILENAME is not existing, copying .sample file"
+            install -D $FILENAME.sample $(readlink $FILENAME)
+        fi
     done
 }
