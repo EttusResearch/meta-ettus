@@ -18,6 +18,7 @@ IMAGE_INSTALL += "\
     libgpiod \
     libudev \
     mpmd \
+    nano \
     nfs-utils-mount \
     openocd \
     openssh-sftp \
