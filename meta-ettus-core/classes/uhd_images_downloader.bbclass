@@ -15,6 +15,7 @@ do_download_uhd_images() {
     if [ -n "${UHD_BASE_URL}" ]; then
         DOWNLOADER_OPTS="$DOWNLOADER_OPTS -b ${UHD_BASE_URL}"
     fi
+    mkdir -p ${UHD_IMAGES_DOWNLOAD_DIR}
     for type in ${UHD_IMAGES_TO_DOWNLOAD}; do
         $DOWNLOADER $DOWNLOADER_OPTS -t "$type"
     done
