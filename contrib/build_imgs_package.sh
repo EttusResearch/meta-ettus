@@ -12,8 +12,8 @@ SETUP_ENV_SH=meta-ettus/contrib/setup_build_env.sh
 TMP_DIR=ettus_tmp
 DST_DIR=.
 # This depends on the libc used:
-TMP_OUTPUT_DIR=tmp-musl
-#TMP_OUTPUT_DIR=tmp-glibc
+#TMP_OUTPUT_DIR=tmp-musl
+TMP_OUTPUT_DIR=tmp-glibc
 
 if [ ! -r $SETUP_ENV_SH ]; then
 	echo "ERROR: This needs to be run from the Ettus OE root."
@@ -119,17 +119,17 @@ rm $TMP_DIR/*
 
 ## Mender Image #########################################################
 # This gets built in the same step as the SD card image.
-echo "Finding mender artefact..."
+echo "Finding mender artifact..."
 _mender_art=`find $_build_dir/${TMP_OUTPUT_DIR}/deploy/images -name "$_image-ni-$_device*-mender.mender" -type l`
 if [ ! -r $_mender_art ]; then
-	echo "ERROR: Could not find mender artefact!"
+	echo "ERROR: Could not find mender artifact!"
 	exit 1
 fi
-echo "Found mender artefact: $_mender_art"
-echo "Copying mender artefact to tmp dir..."
+echo "Found mender artifact: $_mender_art"
+echo "Copying mender artifact to tmp dir..."
 mkdir -p $TMP_DIR
 cp -v $_mender_art $TMP_DIR/$_mender_file_name
-echo "Zipping up mender artefact..."
+echo "Zipping up mender artifact..."
 (cd $TMP_DIR; zip $_mender_pkg_name *.mender)
 mv $TMP_DIR/*.zip $DST_DIR
 rm $TMP_DIR/*

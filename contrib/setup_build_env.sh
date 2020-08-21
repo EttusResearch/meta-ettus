@@ -59,7 +59,7 @@ case $_requested_device in
 		  /meta-ettus/meta-sulfur \
 		  /meta-ettus/meta-mender-sulfur \
 		  /meta-sdr \
-		  /meta-qt4"
+		  /meta-qt5"
 		_remove_layers="\
 		  /meta-ettus/meta-mender-neon \
 		  /meta-ettus/meta-neon \
@@ -88,7 +88,7 @@ case $_requested_device in
 		  /meta-ettus/meta-neon \
 		  /meta-ettus/meta-mender-neon \
 		  /meta-sdr \
-		  /meta-qt4"
+		  /meta-qt5"
 		_remove_layers="\
 		  /meta-ettus/meta-mender-sulfur \
 		  /meta-ettus/meta-sulfur \
@@ -117,7 +117,7 @@ case $_requested_device in
 		  /meta-ettus/meta-e31x \
 		  /meta-ettus/meta-mender-e31x \
 		  /meta-sdr \
-		  /meta-qt4"
+		  /meta-qt5"
 	;;
 	"e310_sg3")
 		read -d '' _auto_conf_edits <<- _EOF_
@@ -141,7 +141,7 @@ case $_requested_device in
 		  /meta-ettus/meta-e31x \
 		  /meta-ettus/meta-mender-e31x \
 		  /meta-sdr \
-		  /meta-qt4"
+		  /meta-qt5"
 		_remove_layers="\
 		  /meta-ettus/meta-mender-sulfur \
 		  /meta-ettus/meta-sulfur \
