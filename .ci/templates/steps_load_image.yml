@@ -11,6 +11,7 @@ steps:
         URL=$(cat $(ImageUrlFile))
       fi
       wget -N --progress=dot:giga $URL
+      echo "###vso[task.setVariable variable=Image_URL]$URL"
     displayName: 'Download Filesystem image'
     workingDirectory: $(ImagesDirectory)
 

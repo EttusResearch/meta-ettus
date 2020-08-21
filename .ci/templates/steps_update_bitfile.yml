@@ -1,0 +1,5 @@
+steps:
+  - script: |
+      $(ScriptDir)/update_bitfile -t $(System.JobName) -c $(ConfigFile) -b $(Bitfile) -a $(LocalAddress)
+    workingDirectory: $(Agent.BuildDirectory)
+    displayName: 'Update bitfile'

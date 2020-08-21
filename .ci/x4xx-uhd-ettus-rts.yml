@@ -1,0 +1,167 @@
+# no CI triggers
+trigger: none
+
+# no PR triggers
+pr: none
+
+variables:
+  UHDForHostArtifactName: 'qemux86-64-feed'
+  ScriptDir: '$(Agent.BuildDirectory)/meta-ettus-dev/contrib/test'
+  ConfigFile: '$(Agent.WorkFolder)/config.conf'
+  ImageUrlFile: '$(Agent.BuildDirectory)/x4xx-filesystem-artifacts/$(System.JobName)-urls/filesystem-image.url'
+  ImagesDirectory: '$(Agent.WorkFolder)/images'
+  IpkDir: '$(Agent.BuildDirectory)/x4xx-uhddev-oe-build-artifacts/IPK files/aarch64'
+
+# pipeline triggers
+resources:
+  repositories:
+  - repository: EttusRTS
+    type: github
+    endpoint: EttusResearch
+    name: EttusResearch/ettus-rts
+    ref: $(EttusRtsBranch)
+  pipelines:
+  - pipeline: x4xx-filesystem-artifacts
+    source: 'x4xx-filesystem'
+    project: DevCentral
+    branch: titanium-zeus
+  - pipeline: x4xx-uhddev-oe-build-artifacts
+    source: 'x4xx-uhddev-oe-build'
+    project: DevCentral
+    branch: titanium-master
+    trigger:
+      branches:
+        exclude:
+        - master
+  - pipeline: x4xx-uhddev-oe-for-host-artifacts
+    source: 'x4xx-uhddev-oe-for-host'
+    project: DevCentral
+    branch: titanium-master
+    trigger:
+      # workaround if no additional branch filter is specified
+      enabled: True
+  - pipeline: x4xx-gnuradio-oe-for-host-artifacts
+    source: 'x4xx-gnuradio-oe-for-host'
+    project: DevCentral
+    branch: titanium-master
+
+pool:
+  name: de-dre-lab
+  demands:
+  - 'portable_ats'
+
+jobs:
+
+- job: 'test'
+  strategy:
+    matrix: $[ variables.Devices ]
+
+  workspace:
+    clean: all
+
+  steps:
+  - checkout: self
+    path: meta-ettus-dev
+    displayName: 'Checkout meta-ettus-dev'
+
+  - download: x4xx-uhddev-oe-build-artifacts
+    artifact: 'IPK files'
+    displayName: 'Download IPK files'
+
+  - download: x4xx-filesystem-artifacts
+    artifact: $(System.JobName)-urls
+    condition: not(variables['ImageUrl'])
+    displayName: 'Get location of filesystem'
+
+  - template: templates/steps_load_image.yml
+  - template: templates/steps_mount_image.yml
+  - script: |
+      echo '##vso[task.setvariable variable=KernelName]Std-Kernel'
+      echo '##vso[task.setvariable variable=args]fit_image=/boot/fitImage'
+    displayName: 'Set standard Kernel'
+  - template: templates/steps_run_boot.yml
+
+  - script: $(ScriptDir)/install_packages -t $(System.JobName) -c $(ConfigFile) -s '$(IpkDir)'
+    displayName: 'Install IPK files'
+    workingDirectory: $(Agent.BuildDirectory)
+
+  - checkout: EttusRTS
+    path: ettus-rts
+    displayName: 'Checkout ettus-rts'
+
+  - download: x4xx-uhddev-oe-for-host-artifacts
+    artifact: '$(UHDForHostArtifactName)'
+    displayName: 'Download uhd artifact $(UHDForHostArtifactName)'
+
+  - download: x4xx-gnuradio-oe-for-host-artifacts
+    artifact: '$(UHDForHostArtifactName)'
+    displayName: 'Download gnuradio artifact $(UHDForHostArtifactName)'
+
+  - script: |
+      cp x4xx-uhddev-oe-for-host-artifacts/$(UHDForHostArtifactName)/base-feeds.conf opkg.conf
+      echo -e "arch all 1\narch core2-64 6\narch qemux86_64 11" >> opkg.conf
+      rm -rf rootfs
+      opkg -f opkg.conf -o rootfs update
+      opkg -f opkg.conf -o rootfs install python3 python3-mprpc python3-numpy python3-pytest python3-rpyc python3-ruamel-yaml openssh gnuplot python3-gnuplotlib
+      opkg -f opkg.conf -o rootfs install uhd python3-uhd
+    workingDirectory: $(Agent.BuildDirectory)
+    displayName: 'Install UHD and Python dependencies on host'
+
+  - script: |
+      cp x4xx-gnuradio-oe-for-host-artifacts/$(UHDForHostArtifactName)/base-feeds.conf opkg_gnuradio.conf
+      echo -e "arch all 1\narch core2-64 6\narch qemux86_64 11" >> opkg_gnuradio.conf
+      opkg -f opkg_gnuradio.conf -o rootfs update && opkg -f opkg_gnuradio.conf -o rootfs install gnuradio
+    workingDirectory: $(Agent.BuildDirectory)
+    displayName: 'Install GNURadio on host'
+
+  - script: |
+      sleep 30
+    displayName: 'Wait for device initialization'
+
+  - template: templates/steps_update_bitfile.yml
+
+  - script: |
+      $(ScriptDir)/update_sfp_ip -t $(System.JobName) -c $(ConfigFile)
+    workingDirectory: $(Agent.BuildDirectory)
+    displayName: 'Update sfp IP addresses'
+
+  - script: |
+      mkdir -p $PWD/rootfs/dev && touch $PWD/rootfs/dev/null
+      mkdir -p $PWD/rootfs/home/nitest
+      mkdir -p $PWD/rootfs/dev/shm
+      ln -s ssh.openssh $PWD/rootfs/usr/bin/ssh
+      echo "nitest:x:1000:" >> $PWD/rootfs/etc/group
+      echo "nitest:x:1000:1000:nitest,,,:/home/nitest:/bin/bash" >> $PWD/rootfs/etc/passwd
+      cp -r $(Agent.BuildDirectory)/ettus-rts/config/remote/python_tests/. $PWD/rootfs
+      linux-user-chroot --mount-bind /dev/shm /dev/shm $PWD/rootfs /usr/bin/python3 automated_main.py --ats_config $(AtsConfig) --results_path 'ettus-rts-results'
+    workingDirectory: $(Agent.BuildDirectory)
+    displayName: 'Run x4xx pytests on host'
+    continueOnError: true
+
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/*.xml'
+      testRunTitle: 'OSSTests'
+      searchFolder: '$(Agent.BuildDirectory)/rootfs/ettus-rts-results'
+
+  - script: |
+      rm -rf usrp_test
+      SOURCEDIR=$(Agent.BuildDirectory)/ettus-rts/config/remote
+      EXECCMD="python3 automated_main.py --ats_config $(AtsConfig) --test_selector pytests/test_gnuradio_sanity.py --run_embedded"
+      PYDEPS="--upgrade pytest pytest-helpers-namespace pytest-tempdir pytest-salt"
+      $(ScriptDir)/run_test -t $(System.JobName) -c $(ConfigFile) -s $SOURCEDIR -p "$PYDEPS" -e "$EXECCMD" -f python_tests
+    condition: contains(variables.Image_Url, 'gnuradio')
+    displayName: 'Run pytests on device'
+    workingDirectory: $(Agent.BuildDirectory)
+    continueOnError: true
+
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/*.xml'
+      testRunTitle: 'EmbeddedTests'
+      searchFolder: '$(Agent.BuildDirectory)/usrp_test/python_tests'
+
+  - template: templates/steps_run_poweroff.yml
+  - template: templates/steps_unmount_image.yml

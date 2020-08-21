@@ -2,3 +2,4 @@ steps:
   - script: $(ScriptDir)/umount_nfs -t $(System.JobName) -c $(ConfigFile)
     displayName: 'Unmount NFS on server'
     workingDirectory: $(Agent.BuildDirectory)
+    condition: always()
