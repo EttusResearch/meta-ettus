@@ -31,6 +31,9 @@ RDEPENDS_${PN} = " \
                   iptables \
                   libgpiod-python \
                  "
+RDEPENDS_${PN}-tools = " \
+                  bash \
+                 "
 
 RDEPENDS_${PN}-tests = " \
                   ${PN} \
@@ -57,12 +60,7 @@ PACKAGES =+ "${PN}-tools ${PN}-tests"
 FILES_${PN}     += "${systemd_unitdir}/network/*"
 FILES_${PN}-dev += "${libdir}/libusrp-periphs.so"
 FILES_${PN}-dbg += "${bindir}/mpm_debug.py"
-FILES_${PN}-tools += "\
-                     ${bindir}/eeprom-init \
-                     ${bindir}/eeprom-blank \
-                     ${bindir}/eeprom-dump \
-                     ${bindir}/eeprom-set-flags \
-                     "
+FILES_${PN}-tools += " ${bindir}/eeprom-*"
 FILES_${PN}-tests = "${libdir}/usrp_mpm/tests"
 
 do_install_append() {
