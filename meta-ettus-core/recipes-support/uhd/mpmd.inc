@@ -50,3 +50,14 @@ FILES_${PN}-tools += "\
                      ${bindir}/eeprom-dump \
                      ${bindir}/eeprom-set-flags \
                      "
+do_install_append() {
+    # prepend "40-" when installing .network files (e.g. eth0.network ->
+    # 40-eth0.network) to make sure that the rules are applied before the
+    # systemd default rules like 80-wired.network
+    for FILENAME in ${D}${base_libdir}/systemd/network/*.network; do
+        DIRNAME="$(dirname "$FILENAME")"
+        BASENAME="$(basename "$FILENAME")"
+        NEWNAME="40-$BASENAME"
+        mv "$DIRNAME/$BASENAME" "$DIRNAME/$NEWNAME"
+    done
+}
