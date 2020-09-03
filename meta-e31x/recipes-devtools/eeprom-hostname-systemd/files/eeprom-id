@@ -5,6 +5,7 @@ import struct
 with open("/sys/bus/nvmem/devices/0-00510/nvmem", "rb") as f:
     data = f.read(74)
     maj, minor, mac, pid, rev, serial, user_name  = struct.unpack('!H H 6s H H 8s 20x 32s', data)
+    serial = serial.replace(b'\xff', b'\x00')
     serial = str(serial.decode("utf-8"))
     print("product=ni,e31x-rev%d" % rev)
     print("serial=%s" % serial)
