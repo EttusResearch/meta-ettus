@@ -1,5 +1,5 @@
 SRC_URI = "git://github.com/EttusResearch/uhd.git;branch=UHD-4.0"
-SRCREV = "4c8ba5775286c4b1dee5ccd9e1493862e22d1862"
+SRCREV = "2655b0aa4abf9cba79b1f160e025909b7c5d598c"
 
 python () {
     d.setVar('UHD_GIT_HASH', "g" + d.getVar('SRCREV', True)[0:8])
@@ -21,5 +21,5 @@ EXTRA_OECMAKE += "-DUHD_GIT_HASH=${UHD_GIT_HASH}"
 #   we've already published a version within OE, we start incrementing PR as in
 #   r1, r2, etc.
 
-PV = "4.0.0.0-rc1"
+PV = "4.0.0.0"
 #PR = "r1"
