@@ -118,6 +118,11 @@ case $_requested_device in
 		  /meta-ettus/meta-mender-e31x \
 		  /meta-sdr \
 		  /meta-qt5"
+		_remove_layers="\
+		  /meta-ettus/meta-mender-sulfur \
+		  /meta-ettus/meta-sulfur \
+		  /meta-ettus/meta-mender-neon \
+		  /meta-ettus/meta-neon"
 	;;
 	"e310_sg3")
 		read -d '' _auto_conf_edits <<- _EOF_
