@@ -13,6 +13,7 @@ RRECOMMENDS_${PN} += "uhd-fpga-images"
 
 inherit cmake python3-dir python3native
 require includes/maintainer-ettus.inc
+include uhd_auto_pkgv.inc
 
 S = "${WORKDIR}/git/host"
 

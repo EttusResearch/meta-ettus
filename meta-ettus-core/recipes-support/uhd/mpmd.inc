@@ -31,6 +31,7 @@ RDEPENDS_${PN} = " \
                  "
 
 inherit distutils3-base cmake python3-dir python3native systemd
+include uhd_auto_pkgv.inc
 
 S = "${WORKDIR}/git/mpm"
 
