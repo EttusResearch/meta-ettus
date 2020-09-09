@@ -36,7 +36,11 @@ include uhd_auto_pkgv.inc
 S = "${WORKDIR}/git/mpm"
 
 MPM_DEVICE ?= "n3xx"
-EXTRA_OECMAKE_append = " -DCMAKE_SKIP_RPATH=ON -DMPM_DEVICE=${MPM_DEVICE}"
+EXTRA_OECMAKE_append = " \
+                  -DCMAKE_SKIP_RPATH=ON \
+                  -DMPM_DEVICE=${MPM_DEVICE} \
+                  -DGIT_EXECUTABLE=${HOSTTOOLS_DIR}/git \
+                  "
 
 SYSTEMD_PACKAGES = "${@bb.utils.contains('DISTRO_FEATURES','systemd','${PN}','',d)}"
 SYSTEMD_SERVICE_${PN} = "${@bb.utils.contains('DISTRO_FEATURES','systemd','usrp-hwd.service','',d)}"

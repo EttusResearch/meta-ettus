@@ -50,4 +50,5 @@ EXTRA_OECMAKE = "-DENABLE_LIBUHD=TRUE \
                  -DRUNTIME_PYTHON_EXECUTABLE=/usr/bin/python3 \
                  -DENABLE_MAN_PAGES=OFF \
                  -DENABLE_MANUAL=OFF \
+                 -DGIT_EXECUTABLE=${HOSTTOOLS_DIR}/git \
                 "

@@ -1,11 +1,6 @@
 SRC_URI = "git://github.com/EttusResearch/uhd.git;branch=UHD-4.0"
 SRCREV = "90ce6062b6b5df2eddeee723777be85108e4e7c7"
 
-python () {
-    d.setVar('UHD_GIT_HASH', "g" + d.getVar('SRCREV', True)[0:8])
-}
-EXTRA_OECMAKE += "-DUHD_GIT_HASH=${UHD_GIT_HASH}"
-
 # A note on PR and PV:
 # PV is the package version, and PR is the package revision from the OE
 # perspective. So if we need to modify meta-ettus to fix a version of UHD, but
