@@ -1,5 +1,5 @@
 SRC_URI = "git://github.com/EttusResearch/uhd.git;branch=UHD-4.0"
-SRCREV = "2655b0aa4abf9cba79b1f160e025909b7c5d598c"
+SRCREV = "90ce6062b6b5df2eddeee723777be85108e4e7c7"
 
 python () {
     d.setVar('UHD_GIT_HASH', "g" + d.getVar('SRCREV', True)[0:8])
