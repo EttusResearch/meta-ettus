@@ -5,7 +5,8 @@ LICENSE = "GPLv3+"
 BBCLASSEXTEND = "native"
 
 DEPENDS = "git-native python3-mako-native boost \
-           ncurses python3-requests \
+           ncurses python3-requests python3-urllib3 \
+           python3-chardet python3-certifi python3-idna \
            python3-setuptools-native \
            qemu-native \
            python3-numpy \
