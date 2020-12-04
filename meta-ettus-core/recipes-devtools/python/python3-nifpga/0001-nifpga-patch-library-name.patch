@@ -1,0 +1,25 @@
+From 17f3e137c0c543e2ba373c0b16cf05566b104606 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Fri, 4 Dec 2020 11:43:52 -0600
+Subject: [PATCH] nifpga: patch library name
+
+---
+ nifpga/nifpga.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/nifpga/nifpga.py b/nifpga/nifpga.py
+index 9648645..e2f5c23 100644
+--- a/nifpga/nifpga.py
++++ b/nifpga/nifpga.py
+@@ -597,7 +597,7 @@ class _NiFpga(StatusCheckedLibrary):
+                 ]),
+         ])
+         try:
+-            super(_NiFpga, self).__init__(library_name="NiFpga",
++            super(_NiFpga, self).__init__(library_name="nifpga",
+                                           library_function_infos=library_function_infos)
+         except LibraryNotFoundError as e:
+             import platform
+-- 
+2.25.4
+
