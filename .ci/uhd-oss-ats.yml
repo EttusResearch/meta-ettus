@@ -31,15 +31,16 @@ resources:
     branch: titanium-master
     trigger:
       branches:
-        exclude:
-        - master
+        include:
+        - titanium-master
   - pipeline: x4xx-uhddev-oe-for-host-artifacts
     source: 'x4xx-uhddev-oe-for-host'
     project: DevCentral
     branch: titanium-master
     trigger:
-      # workaround if no additional branch filter is specified
-      enabled: True
+      branches:
+        include:
+        - titanium-master
   - pipeline: x4xx-gnuradio-oe-for-host-artifacts
     source: 'x4xx-gnuradio-oe-for-host'
     project: DevCentral
