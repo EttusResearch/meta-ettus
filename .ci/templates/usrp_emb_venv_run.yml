@@ -1,0 +1,15 @@
+parameters:
+- name: script
+  type: string
+- name: displayName
+  type: string
+
+steps:
+- script: |
+    source /opt/Xilinx/SDK/2019.1/settings64.sh
+    source $USRP_EMB_VENV/bin/activate
+
+    ${{ parameters.script }}
+  displayName: ${{ parameters.displayName }}
+  workingDirectory: $(Agent.TempDirectory)
+
