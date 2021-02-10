@@ -1,0 +1,9 @@
+[Unit]
+Description=Configuring LED1 trigger
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/ledctrl led1 fpga
+
+[Install]
+WantedBy=multi-user.target

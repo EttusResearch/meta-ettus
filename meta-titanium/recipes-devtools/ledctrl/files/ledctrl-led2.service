@@ -1,0 +1,9 @@
+[Unit]
+Description=Configuring LED2 trigger
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/ledctrl led2 emmc
+
+[Install]
+WantedBy=multi-user.target
