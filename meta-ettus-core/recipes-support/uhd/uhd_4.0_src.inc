@@ -1,5 +1,5 @@
-SRC_URI = "git://github.com/EttusResearch/uhd.git;branch=UHD-4.0"
-SRCREV = "90ce6062b6b5df2eddeee723777be85108e4e7c7"
+SRC_URI = "git://git@github.com/EttusResearch/uhddev.git;branch=titanium-master;protocol=ssh"
+SRCREV = "3cd95ba04545237fa29019629035a827f429a92b"
 
 # A note on PR and PV:
 # PV is the package version, and PR is the package revision from the OE
