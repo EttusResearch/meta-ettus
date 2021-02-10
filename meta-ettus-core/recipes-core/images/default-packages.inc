@@ -1,5 +1,6 @@
 
-CORE_IMAGE_EXTRA_INSTALL = "\
+IMAGE_INSTALL += "\
+    ${CORE_IMAGE_BASE_INSTALL} \
     i2c-tools \
     devmem2 \
     screen \
