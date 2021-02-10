@@ -1,0 +1,9 @@
+[Unit]
+Description=Configuring LED0 trigger
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/ledctrl led0 heartbeat
+
+[Install]
+WantedBy=multi-user.target

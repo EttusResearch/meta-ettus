@@ -1,0 +1,102 @@
+#!/bin/bash
+
+set -e
+
+function usage() {
+        echo "usage: $0 <led> <command> [args...]"
+        echo
+        echo "leds:"
+        find /sys/class/leds/*_[rg] | sed 's;/sys/class/leds/\(\S*\)_[rg];    \1;' | uniq -d
+        echo
+        echo "commands: "
+        grep "^\s*# usage: " $(realpath $0) | sed 's;.*# usage: ;    ;'
+}
+
+function gpio_base() {
+        for chip in /sys/class/gpio/*/; do
+                label=$(cat $chip/label)
+                if [ "$label" = "$1" ]; then
+                        cat $chip/base
+                fi
+        done
+}
+
+led=$1
+cmd=$2
+
+base="/sys/class/leds"
+led_r="${base}/${led}_r/"
+led_g="${base}/${led}_g/"
+
+zynqmp_emio=$(($(gpio_base zynqmp_gpio) + 78))
+
+case "$cmd" in
+activity)
+        # usage: activity: flash green LED for CPU activity
+        echo -n activity > "$led_g/trigger"
+        echo -n none > "$led_r/trigger"
+        ;;
+emmc)
+        # usage: emmc: flash green LED for eMMC activity
+        echo -n mmc0 > "$led_g/trigger"
+        echo -n none > "$led_r/trigger"
+        ;;
+heartbeat)
+        # usage: heartbeat: flash green LED with a heartbeat
+        echo -n heartbeat > "$led_g/trigger"
+        echo -n none > "$led_r/trigger"
+        ;;
+fpga)
+        # usage: fpga: change LED to green when FPGA is loaded
+        echo -n fpga0 > "$led_g/trigger"
+        echo -n none > "$led_r/trigger"
+        ;;
+netdev)
+        # usage: netdev <interface>: green LED indicates link, amber indicates activity
+        dev=$3
+
+        echo -n netdev > "$led_g/trigger"
+        echo -n $dev > "$led_g/device_name"
+        echo -n 1 > "$led_g/link"
+
+        echo -n netdev > "$led_r/trigger"
+        echo -n $dev > "$led_r/device_name"
+        echo -n 1 > "$led_r/rx"
+        echo -n 1 > "$led_r/tx"
+        ;;
+none)
+        # usage: none: LED is constantly off
+        echo -n none > "$led_g/trigger"
+        echo -n none > "$led_r/trigger"
+        ;;
+panic)
+        # usage: panic: red LED turns on when kernel panics
+        echo -n panic > "$led_r/trigger"
+        echo -n none > "$led_g/trigger"
+        ;;
+user0)
+        # usage: user0: green and red LEDs from FPGA fabric, User LED 0
+        echo -n gpio > "$led_g/trigger"
+        echo $((zynqmp_emio + 8)) > "$led_g/gpio"
+        echo -n gpio > "$led_r/trigger"
+        echo $((zynqmp_emio + 9)) > "$led_r/gpio"
+        ;;
+user1)
+        # usage: user1: green and red LEDs from FPGA fabric, User LED 1
+        echo -n gpio > "$led_g/trigger"
+        echo $((zynqmp_emio + 10)) > "$led_g/gpio"
+        echo -n gpio > "$led_r/trigger"
+        echo $((zynqmp_emio + 11)) > "$led_r/gpio"
+        ;;
+user2)
+        # usage: user2: green and red LEDs from FPGA fabric, User LED 2
+        echo -n gpio > "$led_g/trigger"
+        echo $((zynqmp_emio + 12)) > "$led_g/gpio"
+        echo -n gpio > "$led_r/trigger"
+        echo $((zynqmp_emio + 13)) > "$led_r/gpio"
+        ;;
+*)
+        usage
+        ;;
+esac
+
