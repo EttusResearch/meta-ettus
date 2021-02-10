@@ -12,7 +12,8 @@ EXTRA_IMAGE_FEATURES += "package-management"
 
 LICENSE = "MIT"
 
-CORE_IMAGE_EXTRA_INSTALL += " \
+IMAGE_INSTALL += " \
+    ${CORE_IMAGE_BASE_INSTALL} \
     packagegroup-sdr-python-extended \
     packagegroup-sdr-gnuradio-base \
     ${@bb.utils.contains('DISTRO_FEATURES', 'x11', 'xauth', '', d)} \
