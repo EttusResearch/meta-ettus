@@ -1,0 +1,54 @@
+From 30d787979cca4ed55364c9f6da2178ee6e86103b Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Thu, 27 Jun 2019 11:56:40 +0000
+Subject: [PATCH 05/11] zynqmp: added CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_SRC_FILE
+
+which enables the PM config object to be converted from the provided source (.c) file
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ arch/arm/mach-zynqmp/Kconfig |  4 ++++
+ board/xilinx/zynqmp/Makefile | 12 ++++++++++++
+ 2 files changed, 16 insertions(+)
+
+diff --git a/arch/arm/mach-zynqmp/Kconfig b/arch/arm/mach-zynqmp/Kconfig
+index d82a737a69..95c227401a 100644
+--- a/arch/arm/mach-zynqmp/Kconfig
++++ b/arch/arm/mach-zynqmp/Kconfig
+@@ -65,6 +65,10 @@ config PMUFW_INIT_FILE
+ 	  Include external PMUFW (Platform Management Unit FirmWare) to
+ 	  a Xilinx bootable image (boot.bin).
+ 
++config ZYNQMP_SPL_PM_CFG_OBJ_SRC_FILE
++	string "PMU firmware configuration object (source file) to load at runtime by SPL"
++	depends on SPL
++
+ config ZYNQMP_SPL_PM_CFG_OBJ_FILE
+ 	string "PMU firmware configuration object to load at runtime by SPL"
+ 	depends on SPL
+diff --git a/board/xilinx/zynqmp/Makefile b/board/xilinx/zynqmp/Makefile
+index 398c6aaa45..2d174065df 100644
+--- a/board/xilinx/zynqmp/Makefile
++++ b/board/xilinx/zynqmp/Makefile
+@@ -41,6 +41,18 @@ endif
+ ifdef CONFIG_SPL_BUILD
+ ifneq ($(CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_FILE),"")
+ obj-$(CONFIG_SPL_BUILD) += pm_cfg_obj.o
++ifneq ($(CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_SRC_FILE),"")
++# a source file is provided, use the zynqmp_pm_cfg_obj_convert.py tool
++# to create the CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_FILE
++$(CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_FILE): FORCE
++	$(srctree)/tools/zynqmp_pm_cfg_obj_convert.py \
++		$(shell cd $(srctree); readlink -f $(CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_SRC_FILE)) \
++		$(CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_FILE)
++
++$(obj)/pm_cfg_obj.o: $(CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_FILE) FORCE
++else
++# no source file is provided, use the CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_FILE which is
++# available in the sources
+ $(obj)/pm_cfg_obj.o: $(shell cd $(srctree); readlink -f $(CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_FILE)) FORCE
+ endif
+ endif
+-- 
+2.29.2
+

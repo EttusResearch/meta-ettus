@@ -1,0 +1,30 @@
+From f52860e2150f645f6eeed2ba3d7f037826fb3362 Mon Sep 17 00:00:00 2001
+From: Siva Durga Prasad Paladugu <siva.durga.paladugu@xilinx.com>
+Date: Wed, 13 Apr 2016 17:27:25 +0530
+Subject: [PATCH 01/11] usb: dwc3: Increase the timeout for generic commands
+
+Increase the response timeout for generic commands
+for handling worst case scenarios
+
+Signed-off-by: Siva Durga Prasad Paladugu <sivadur@xilinx.com>
+Signed-off-by: Michal Simek <michal.simek@xilinx.com>
+---
+ drivers/usb/dwc3/gadget.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/usb/dwc3/gadget.c b/drivers/usb/dwc3/gadget.c
+index 2aec874e1d..96d4ded44d 100644
+--- a/drivers/usb/dwc3/gadget.c
++++ b/drivers/usb/dwc3/gadget.c
+@@ -298,7 +298,7 @@ int dwc3_send_gadget_generic_command(struct dwc3 *dwc, unsigned cmd, u32 param)
+ int dwc3_send_gadget_ep_cmd(struct dwc3 *dwc, unsigned ep,
+ 		unsigned cmd, struct dwc3_gadget_ep_cmd_params *params)
+ {
+-	u32			timeout = 500;
++	u32			timeout = 50000;
+ 	u32			reg;
+ 
+ 	dwc3_writel(dwc->regs, DWC3_DEPCMDPAR0(ep), params->param0);
+-- 
+2.29.2
+

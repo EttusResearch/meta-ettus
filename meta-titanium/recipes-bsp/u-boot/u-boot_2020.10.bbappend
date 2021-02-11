@@ -4,9 +4,16 @@ PATCHTOOL = "git"
 
 FILESEXTRAPATHS_prepend_ni-titanium := "${THISDIR}/files:"
 
-SRC_URI_append_ni-titanium += " \
+SRC_URI_prepend_ni-titanium += " \
                   file://boot_u-boot.tcl \
                   file://boot_u-boot \
+                  file://0001-usb-dwc3-Increase-the-timeout-for-generic-commands.patch \
+                  file://0002-Revert-mmc-Downgrade-SD-MMC-from-UHS-HS200-HS400-mod.patch \
+                  file://0003-misc-cros_ec-Add-trivial-support-for-software-sync.patch \
+                  file://0004-board-zynqmp-make-board_late_init-weak.patch \
+                  file://0005-zynqmp-added-CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_SRC_FILE.patch \
+                  file://0006-board-ni-add-support-for-X410.patch \
+                  file://0007-Add-missing-header-which-fails-on-recent-GCC.patch \
                   "
 
 DEPENDS_append_ni-titanium += "zip-native"
