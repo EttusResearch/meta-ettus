@@ -27,6 +27,7 @@ RDEPENDS_${PN} = " \
                   dtc \
                   uhd-fpga-images-firmware \
                   iptables \
+                  libgpiod-python \
                  "
 
 inherit distutils3-base cmake python3-dir python3native systemd
