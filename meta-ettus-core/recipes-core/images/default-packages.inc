@@ -15,6 +15,7 @@ IMAGE_INSTALL += "\
     htop \
     i2c-tools \
     iperf3 \
+    libgpiod \
     libudev \
     mpmd \
     nfs-utils-mount \
