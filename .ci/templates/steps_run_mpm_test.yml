@@ -1,0 +1,15 @@
+steps:
+
+  - script: |
+      rm -rf mpm_test_run
+      $(ScriptDir)/run_mpm_tests -t $(System.JobName) -c $(ConfigFile)
+    displayName: 'Run MPM Unit Tests'
+    workingDirectory: $(Agent.BuildDirectory)
+    continueOnError: true
+
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/TEST-*.xml'
+      testRunTitle: 'MPM Unit Tests'
+      searchFolder: '$(Agent.BuildDirectory)/mpm_test_run'

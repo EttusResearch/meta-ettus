@@ -1,0 +1,23 @@
+steps:
+  - script: |
+      $(ScriptDir)/umount_nfs -t $(System.JobName) -c $(ConfigFile)
+    displayName: 'Unmount NFS on server (to be save)'
+    workingDirectory: $(Agent.BuildDirectory)
+
+  - script: |
+      if [ -n "$(ImageUrl)" ]; then
+        URL=$(ImageUrl)
+      else
+        URL=$(cat $(ImageUrlFile))
+      fi
+      wget -N --progress=dot:giga $URL
+    displayName: 'Download Filesystem image'
+    workingDirectory: $(ImagesDirectory)
+
+  - script: |
+      IMAGE=$(basename $(cat $(ImageUrlFile)))
+      EXT4=${IMAGE%%.*}.ext4
+      $(ScriptDir)/extract_ext4.sh $IMAGE
+      ln -sf $EXT4 $(System.JobName).ext4
+    displayName: 'Extract rootfs partition'
+    workingDirectory: $(ImagesDirectory)

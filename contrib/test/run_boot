@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+
+from serial import Serial
+import sys
+import io
+import time
+import netifaces
+from args_parser import parse_args
+from config_parser import parse_config
+from utils import remove_ansi
+from utils import remove_ansi2
+from utils import check_required_params
+from utils import update_config
+
+def main(argv):
+
+    parsed_args = parse_args(argv)
+    parsed_config = parse_config(parsed_args["configfile"])
+    device_type = device_type = parsed_args["devicetype"]
+
+    if not device_type in parsed_config:
+        print("Error: section {} (equivalent to devicetype) not found in configuration file {}".format(device_type, parsed_args["configfile"]))
+        sys.exit(2)
+
+    gw_iface = gw_iface=netifaces.gateways()['default'][netifaces.AF_INET][1]
+    if not gw_iface:
+        print("Error: could auto-detect default gateway")
+        sys.exit(2)
+    serverip = serverip=netifaces.ifaddresses(gw_iface)[netifaces.AF_INET][0]['addr']
+    if not serverip:
+        print("Error: could auto-detect serverip")
+        sys.exit(2)
+
+    config = {
+        "zynq_uart": '',
+        "stm_uart": '',
+        "stm_start_command": 'powerbtn',
+        "prompt": '',
+        "default_timeout": 0.2,
+        "boot_timeout": 12,
+        "modeboot": '',
+        "serverip": serverip,
+        "nfsroot": '',
+        "tftproot": '',
+        "boot_logfile": 'boot.log'
+    }
+
+    required_params = ["zynq_uart", "stm_uart", "prompt", "modeboot", "nfsroot", "tftproot"]
+    check_required_params(required_params, parsed_config, device_type)
+    update_config(config, parsed_config, device_type)
+
+    print("Using configuration: " + str(config))
+
+    try:
+        stm_uart = Serial(config['stm_uart'], 115200, timeout=config['default_timeout'])
+        zynq_uart = Serial(config['zynq_uart'], 115200, timeout=config['default_timeout'])
+    except Exception as inst:
+        print(inst)
+        exit(1)
+
+    stm_uart.write(b"reboot\n")
+
+    time.sleep(0.5)
+
+    stm_uart.write(config['stm_start_command'].encode()+b"\n")
+
+    f = open(config['boot_logfile'], "w")
+
+    timeout=0
+    boot_cmd_sent=False
+    login_detected=False
+    ifconfig_sent=False
+    while True:
+        line_bytes = zynq_uart.readline()
+        try:
+            line_utf8 = line_bytes.decode("utf-8")
+            line = remove_ansi2(remove_ansi(line_utf8))
+        except:
+            print("*** unhandled characters - original line: ", end='')
+            print(line_bytes)
+            line_utf8 = remove_ansi2(remove_ansi(line_bytes.decode("utf-8", errors='ignore')))
+            line = line_utf8
+
+        if len(line_utf8)>0:
+            print(line_utf8, end='')
+            f.write(line)
+            #print(line)
+            timeout = 0
+        else:
+            timeout += config['default_timeout']
+
+        #print(str(timeout))
+
+        if line_utf8.startswith("Hit any key"):
+            zynq_uart.write(b"q\n")
+
+        if line_utf8.startswith("Enter 'noautoboot'"):
+            zynq_uart.write(b"noautoboot\n")
+
+        if line_utf8.startswith(config['prompt']) and not boot_cmd_sent:
+            time.sleep(1.5)
+            zynq_uart.write(b"setenv serverip "+config['serverip'].encode("utf-8")+b"\n")
+            zynq_uart.write(b"setenv nfsroot "+config['nfsroot'].encode("utf-8")+b"\n")
+            zynq_uart.write(b"setenv tftproot "+config['tftproot'].encode("utf-8")+b"\n")
+            zynq_uart.write(b"run "+config['modeboot'].encode("utf-8")+b"\n")
+            boot_cmd_sent=True
+
+        if line_utf8.find(" login: ") != -1:
+            zynq_uart.write(b"root\n")
+            login_detected = True
+
+        if line.startswith("root@") and ":~# " in line and not ifconfig_sent:
+            zynq_uart.write(b"ifconfig eth0\n")
+            ifconfig_sent = True
+
+        if not login_detected and timeout>1:
+            zynq_uart.write(b"\n")
+
+        if timeout>config['boot_timeout']:
+            break
+
+    if ifconfig_sent:
+        print("\n\n*** Boot was successful ***")
+    else:
+        print("\n\n*** Boot was not successful, aborting ***")
+        exit(1)
+
+if __name__ == "__main__":
+   main(sys.argv)

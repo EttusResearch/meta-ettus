@@ -1,0 +1,114 @@
+#!/usr/bin/env python3
+
+from serial import Serial
+import sys
+import io
+import time
+import subprocess
+from args_parser import parse_args
+from config_parser import parse_config
+from utils import remove_ansi
+from utils import remove_ansi2
+from utils import check_required_params
+from utils import update_config
+
+def main(argv):
+
+    parsed_args = parse_args(argv)
+    parsed_config = parse_config(parsed_args["configfile"])
+    device_type = device_type = parsed_args["devicetype"]
+
+    if not device_type in parsed_config:
+        print("Error: section {} (equivalent to devicetype) not found in configuration file {}".format(device_type, parsed_args["configfile"]))
+        sys.exit(2)
+
+    config = {
+        "zynq_uart": '',
+        "stm_uart": '',
+        "stm_shutdown_command": 'reboot',
+        "default_timeout": 0.2,
+        "poweroff_timeout": 12,
+        "poweroff_logfile": 'poweroff.log'
+    }
+
+    required_params = ["zynq_uart", "stm_uart"]
+    check_required_params(required_params, parsed_config, device_type)
+    update_config(config, parsed_config, device_type)
+
+    print("Using configuration: " + str(config))
+
+    try:
+        stm_uart = Serial(config['stm_uart'], 115200, timeout=config['default_timeout'])
+        zynq_uart = Serial(config['zynq_uart'], 115200, timeout=config['default_timeout'])
+    except Exception as inst:
+        print(inst)
+        exit(1)
+
+    f = open(config['poweroff_logfile'], "w")
+
+    timeout=0
+    last_timeout=0
+    enter_sent = False
+    deferred_shutdown = False
+    errors_during_shutdown = False
+    stop_job_running = False
+    while True:
+        line_bytes = zynq_uart.readline()
+        try:
+            line_utf8 = line_bytes.decode("utf-8")
+            line = remove_ansi2(remove_ansi(line_utf8))
+        except:
+            print("*** unhandled characters - original line: ", end='')
+            print(line_bytes)
+            line_utf8 = remove_ansi2(remove_ansi(line_bytes.decode("utf-8", errors='ignore')))
+            line = line_utf8
+
+        if (line_bytes==b"\x00"):
+            stm_uart.write(config['stm_shutdown_command'].encode()+b"\n")
+            break
+        elif len(line_utf8)>0:
+            print(line_utf8, end='')
+            f.write(line)
+            timeout = 0
+            if deferred_shutdown:
+                errors_during_shutdown = True
+        else:
+            timeout += config['default_timeout']
+
+        #print(str(timeout))
+
+        if not enter_sent:
+            zynq_uart.write(b"\n\n")
+            enter_sent = True
+
+        if line.find(" login: ") != -1:
+            zynq_uart.write(b"root\n")
+
+        if line.startswith("root@") and line.endswith(":~# "):
+            zynq_uart.write(b"poweroff\n")
+            # print("found login prompt")
+            # sys.exit(2)
+
+        if line.find("A stop job is running") != -1:
+            stop_job_running = True
+
+        if line.endswith("reboot: Power down\r\n"):
+            deferred_shutdown = True
+
+        if deferred_shutdown and timeout>config['poweroff_timeout']:
+            stm_uart.write(config['stm_shutdown_command'].encode()+b"\n")
+            break
+
+    f.close()
+
+    if errors_during_shutdown:
+        print("\n\n*** poweroff command not successful (errors during shutdown) ***")
+        exit(1)
+    elif stop_job_running:
+        print("\n\n*** poweroff command not successful (a stop job was running late) ***")
+        exit(1)
+    else:
+        print("\n\n*** poweroff command was successful ***")
+
+if __name__ == "__main__":
+   main(sys.argv)

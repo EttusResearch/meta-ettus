@@ -1,0 +1,18 @@
+steps:
+  - script: |
+      rm -rf usrp_test
+      $(ScriptDir)/run_test -t $(System.JobName) -c $(ConfigFile)
+    displayName: 'Run Tests on Device'
+    workingDirectory: $(Agent.BuildDirectory)
+    continueOnError: true
+
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/TEST-*.xml'
+      testRunTitle: 'Embedded Tests'
+      searchFolder: '$(Agent.BuildDirectory)/usrp_test'
+
+  - publish: '$(Agent.BuildDirectory)/usrp_test'
+    artifact: 'usrp_test $(System.JobName)'
+    displayName: 'Publish Artifact'

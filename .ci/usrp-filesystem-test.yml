@@ -1,0 +1,45 @@
+# no CI triggers
+trigger: none
+
+# no PR triggers
+pr: none
+
+variables:
+  ScriptDir: '$(Build.SourcesDirectory)/contrib/test'
+  ConfigFile: '$(Agent.WorkFolder)/config.conf'
+  ImageUrlFile: '$(Agent.BuildDirectory)/usrp-filesystem-artifacts/$(System.JobName)-urls/filesystem-image.url'
+  ImagesDirectory: '$(Agent.WorkFolder)/images'
+
+# pipeline triggers
+resources:
+  pipelines:
+  - pipeline: usrp-filesystem-artifacts
+    source: 'usrp-filesystem'
+    branch: zeus
+    trigger:
+      # workaround if no additional branch filter is specified
+      enabled: True
+
+pool:
+  demands:
+  - openembedded-test -equals $(System.JobName)
+
+jobs:
+- job: 'test'
+  strategy:
+    matrix: $[ variables.Devices ]
+
+  steps:
+  - checkout: self
+
+  - download: usrp-filesystem-artifacts
+    artifact: $(System.JobName)-urls
+    condition: not(variables['ImageUrl'])
+
+  - template: templates/steps_load_image.yml
+  - template: templates/steps_mount_image.yml
+  - template: templates/steps_run_boot.yml
+  - template: templates/steps_run_test.yml
+  - template: templates/steps_run_mpm_test.yml
+  - template: templates/steps_run_poweroff.yml
+  - template: templates/steps_unmount_image.yml

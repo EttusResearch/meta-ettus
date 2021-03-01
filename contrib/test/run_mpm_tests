@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""
+This script runs MPM unit tests. It creates a directory from which to run the
+tests, which is also where the test result XML files are written. The script
+copies the result files from the device under test to the host.
+
+Usage:
+./install_packages -s <ipk_dir> -c <config_file> -t <device_type>
+"""
+import sys
+import subprocess
+from os.path import expanduser
+from utils import check_required_params
+from utils import get_ip_addr_from_log
+from utils import update_config
+from args_parser import parse_args
+from config_parser import parse_config
+
+def run_command(cmd, stdout=None, stderr=None):
+    print("running command: ", cmd, flush=True)
+    return subprocess.run(cmd, stdout=stdout, stderr=stderr).returncode
+
+def main(argv):
+    parsed_args = parse_args(argv)
+    parsed_config = parse_config(parsed_args["configfile"])
+    device_type = parsed_args["devicetype"]
+
+    if device_type not in parsed_config:
+        print("Error: section {} (equivalent to devicetype) not found in configuration file {}".format(device_type, parsed_args["configfile"]))
+        sys.exit(2)
+
+    config = {
+        'boot_logfile': '',
+        'targetip': '',
+        'mpm_test_folder': '~/mpm_test_run',
+        'unittest_device_name': '',
+    }
+
+    update_config(config, parsed_config, device_type)
+    print("Using configuration: " + str(config))
+
+    # First see if a targetip has been specified, if not, parse it from the log
+    try:
+        required_params = ['targetip', 'unittest_device_name']
+        check_required_params(required_params, parsed_config, device_type)
+        ip = config['targetip']
+    except RuntimeError:
+        required_params = ['boot_logfile', 'unittest_device_name']
+        check_required_params(required_params, parsed_config, device_type)
+        ip = get_ip_addr_from_log(config['boot_logfile'])
+
+    if len(ip) == 0:
+        print("Error: no IP address was found")
+        sys.exit(1)
+
+    user = 'root'
+    opts = '-o StrictHostKeyChecking=no'
+    ssh_opts = '-tt'
+
+    print("\nStep 1: delete old SSH key", flush=True)
+    run_command(['ssh-keygen', '-f', expanduser("~")+'/.ssh/known_hosts', '-R', ip])
+
+    print("\nStep 2: delete old test directory")
+    run_command(['ssh', opts, ssh_opts, '{user}@{ip}'.format(user=user, ip=ip),
+                'rm -rf {dst} && mkdir -p {dst}'.format(dst=config['mpm_test_folder'])])
+
+    print("\nStep 3: run tests", flush=True)
+    ret = run_command(['ssh', opts, ssh_opts, '{user}@{ip}'.format(user=user, ip=ip),
+                       'cd', config['mpm_test_folder'], ';',
+                       'python3', '/usr/lib/usrp_mpm/tests/run_unit_tests.py', '-x', config['unittest_device_name']])
+
+    print("\nStep 4: copy results", flush=True)
+    run_command(['scp', opts, '-r', '{user}@{ip}:{d}'.format(user=user, ip=ip, d=config['mpm_test_folder']),
+                 '.'])
+
+    sys.exit(ret)
+
+
+if __name__ == "__main__":
+    main(sys.argv)

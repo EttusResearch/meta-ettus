@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 DEVICETYPE"
+    exit 1
+fi
+
+TYPE=$1
+
+./umount_nfs -t $TYPE
+./mount_nfs -t $TYPE
+./run_boot -t $TYPE
+./run_test -t $TYPE
+./run_poweroff -t $TYPE
+./umount_nfs -t $TYPE

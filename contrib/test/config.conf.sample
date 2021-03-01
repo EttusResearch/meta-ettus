@@ -1,0 +1,33 @@
+[n310]
+
+zynq_uart = /dev/serial/by-id/usb-Silicon_Labs_CP2105_Dual_USB_to_UART_Bridge_Controller_00000000-if00-port0
+stm_uart  = /dev/serial/by-id/usb-Silicon_Labs_CP2105_Dual_USB_to_UART_Bridge_Controller_00000000-if01-port0
+stm_shutdown_command = apshutdown
+stm_start_command = powerbtn
+modeboot  = netboot
+prompt    = ni-sulfur-uboot>
+nfsroot   = /nfs/n3xx
+tftproot  = n3xx
+boot_timeout = 10
+poweroff_timeout = 10
+default_timeout = 0.1
+boot_logfile = n310-boot.log
+poweroff_logfile = n310-poweroff.log
+unittest_device_name = n3xx
+
+[e320]
+
+zynq_uart = /dev/serial/by-id/usb-Silicon_Labs_CP2105_Dual_USB_to_UART_Bridge_Controller_00000000-if01-port0
+stm_uart  = /dev/serial/by-id/usb-Silicon_Labs_CP2105_Dual_USB_to_UART_Bridge_Controller_00000000-if00-port0
+stm_shutdown_command = apshutdown
+stm_start_command = powerbtn
+modeboot  = netboot
+prompt    = ni-neon-uboot>
+nfsroot   = /nfs/e320
+tftproot  = e320
+boot_timeout = 10
+poweroff_timeout = 10
+default_timeout = 0.1
+boot_logfile = e320-boot.log
+poweroff_logfile = e320-poweroff.log
+unittest_device_name = e320

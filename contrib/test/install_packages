@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+"""
+This script installs all IPK files in a directory to the device under test.
+It copies the files to the device in a directory named /home/root/ipk, and
+runs opkg to install the packages.
+
+Usage:
+./install_packages -s <ipk_dir> -c <config_file> -t <device_type>
+"""
+import sys
+import subprocess
+import glob
+from utils import check_required_params
+from utils import get_ip_addr_from_log
+from args_parser import parse_args
+from config_parser import parse_config
+
+
+def run_command(cmd, stdout=None, stderr=None):
+    print("running command: ", cmd, flush=True)
+    return subprocess.run(cmd, stdout=stdout, stderr=stderr).returncode
+
+
+def main(argv):
+    parsed_args = parse_args(argv)
+    parsed_config = parse_config(parsed_args["configfile"])
+    device_type = parsed_args["devicetype"]
+
+    required_params = ["boot_logfile"]
+    check_required_params(required_params, parsed_config, device_type)
+
+    boot_log_file = parsed_config.get(device_type, 'boot_logfile')
+    ip = get_ip_addr_from_log(boot_log_file)
+
+    user = 'root'
+    opts = '-o StrictHostKeyChecking=no'
+
+    print("\nStep 1: create directory for ipk files", flush=True)
+    ipk_dir = '~/ipk'.format(user=user, ip=ip)
+    run_command(['ssh', opts, '{user}@{ip}'.format(user=user, ip=ip),
+                 'if [ -d {d} ]; then rm -rf {d}; fi'.format(d=ipk_dir)])
+    run_command(['ssh', opts, '{user}@{ip}'.format(user=user, ip=ip),
+                 'mkdir {d}'.format(d=ipk_dir)])
+
+    print("\nStep 2: copy ipk files", flush=True)
+    src_dir = parsed_args['sourcedir']
+    files = glob.glob('{src}/*.ipk'.format(src=src_dir))
+    for file in files:
+        run_command(['scp', opts, file, '{user}@{ip}:~/ipk'.format(user=user, ip=ip)])
+
+    print("\nStep 3: install packages", flush=True)
+    ret = run_command(['ssh', opts, '{user}@{ip}'.format(user=user, ip=ip),
+                       'opkg', 'install', '--force_reinstall', '{d}/*.ipk'.format(d=ipk_dir)])
+
+    sys.exit(ret)
+
+
+if __name__ == "__main__":
+    main(sys.argv)

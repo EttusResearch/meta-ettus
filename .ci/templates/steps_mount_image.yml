@@ -1,0 +1,5 @@
+steps:
+  - script: |
+      $(ScriptDir)/mount_nfs -t $(System.JobName) -c $(ConfigFile)
+    displayName: 'Mount NFS on server'
+    workingDirectory: $(Agent.BuildDirectory)

@@ -1,0 +1,4 @@
+steps:
+  - script: $(ScriptDir)/run_poweroff -t $(System.JobName) -c $(ConfigFile)
+    displayName: 'Poweroff Device'
+    workingDirectory: $(Agent.BuildDirectory)
