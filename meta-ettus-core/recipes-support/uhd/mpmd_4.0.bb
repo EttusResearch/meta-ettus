@@ -1,4 +1,4 @@
-require recipes-support/uhd/mpmd.inc
-require recipes-support/uhd/uhd_4.0_src.inc
+require mpmd.inc
+require uhd_4.0_src.inc
 
 LIC_FILES_CHKSUM = "file://../host/LICENSE;md5=8255adf1069294c928e0e18b01a16282"
