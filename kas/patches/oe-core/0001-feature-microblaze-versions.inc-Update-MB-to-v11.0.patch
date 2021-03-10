@@ -1,0 +1,36 @@
+From 0cd48fe0feb248c451841f6ad42777460ac81c7e Mon Sep 17 00:00:00 2001
+From: Manjukumar Matha <manjukumar.harthikote-matha@xilinx.com>
+Date: Sun, 22 Dec 2019 23:11:20 -0800
+Subject: [PATCH] feature-microblaze-versions.inc: Update MB to v11.0
+
+Update the Microblaze to v11.0
+
+Signed-off-by: Manjukumar Matha <manjukumar.harthikote-matha@xilinx.com>
+Signed-off-by: Richard Purdie <richard.purdie@linuxfoundation.org>
+---
+ .../machine/include/microblaze/feature-microblaze-versions.inc  | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/meta/conf/machine/include/microblaze/feature-microblaze-versions.inc b/meta/conf/machine/include/microblaze/feature-microblaze-versions.inc
+index 955674fff9..3221e2aab7 100644
+--- a/meta/conf/machine/include/microblaze/feature-microblaze-versions.inc
++++ b/meta/conf/machine/include/microblaze/feature-microblaze-versions.inc
+@@ -44,6 +44,7 @@ TUNEVALID[v9.4]  = "MicroBlaze version 9.4"
+ TUNEVALID[v9.5]  = "MicroBlaze version 9.5"
+ TUNEVALID[v9.6]  = "MicroBlaze version 9.6"
+ TUNEVALID[v10.0] = "MicroBlaze version 10.0"
++TUNEVALID[v11.0] = "MicroBlaze version 11.0"
+ 
+ # Version conflict matrix
+ TUNECONFLICTS[v8.00] = ""
+@@ -60,6 +61,7 @@ TUNECONFLICTS[v9.4]  = "v8.00 v8.10 v8.20 v8.30 v8.40 v8.50 v9.0 v9.1 v9.2 v9.3"
+ TUNECONFLICTS[v9.5]  = "v8.00 v8.10 v8.20 v8.30 v8.40 v8.50 v9.0 v9.1 v9.2 v9.3 v9.4"
+ TUNECONFLICTS[v9.6]  = "v8.00 v8.10 v8.20 v8.30 v8.40 v8.50 v9.0 v9.1 v9.2 v9.3 v9.4 v9.5"
+ TUNECONFLICTS[v10.0] = "v8.00 v8.10 v8.20 v8.30 v8.40 v8.50 v9.0 v9.1 v9.2 v9.3 v9.4 v9.5 v9.6"
++TUNECONFLICTS[v11.0] = "v8.00 v8.10 v8.20 v8.30 v8.40 v8.50 v9.0 v9.1 v9.2 v9.3 v9.4 v9.5 v9.6 v10.0"
+ 
+ # Version flags
+ TUNE_CCARGS += "-mcpu=${@microblaze_current_version(d, True)}"
+-- 
+2.17.1
+

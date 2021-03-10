@@ -1,0 +1,12 @@
+header:
+  version: 10
+  includes:
+    - base.yml
+machine: ni-e31x-sg1-mender
+env:
+  MENDER_ARTIFACT_NAME: git_e310_sg1
+repos:
+  meta-ettus:
+    layers:
+      meta-e31x:
+      meta-mender-e31x:

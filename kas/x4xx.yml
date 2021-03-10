@@ -1,0 +1,41 @@
+header:
+  version: 10
+  includes:
+    - base.yml
+machine: ni-titanium-rev5-mender
+env:
+  MENDER_ARTIFACT_NAME: git_x4xx
+target:
+  - mc:zynqmp-pmu:pmu-firmware
+  - mc:ni-titanium-ec:chromium-ec
+  - mc:ni-titanium:gnuradio-image
+local_conf_header:
+  remove_uninative:
+    INHERIT_remove = "uninative"
+repos:
+  meta-ettus:
+    layers:
+      meta-titanium:
+      meta-mender-titanium:
+  meta-openamp:
+    url: git://github.com/OpenAMP/meta-openamp
+    refspec: 0dd544e649850d4cd95c1a1b9714a5238b41fc93
+    patches:
+      patch0:
+        repo: meta-ettus
+        path: kas/patches/meta-openamp/0001-layer-Add-warrior-to-compatible-layers.patch
+      patch1:
+        repo: meta-ettus
+        path: kas/patches/meta-openamp/0002-layer-Add-zeus-to-compatible-layers.patch
+      patch2:
+        repo: meta-ettus
+        path: kas/patches/meta-openamp/0003-conf-layer-comment-changed-LICENSE_PATH.patch
+  meta-stm32:
+    url: git://github.com/EttusResearch/meta-stm32
+    refspec: 2eb3aa0d2eae688c5aa8c73137ee650a84854969
+  meta-xilinx:
+    url: git://github.com/Xilinx/meta-xilinx
+    refspec: b82343ac5f013926839627cee9dae7106c008ae9
+    layers:
+      meta-xilinx-bsp:
+      meta-xilinx-standalone:

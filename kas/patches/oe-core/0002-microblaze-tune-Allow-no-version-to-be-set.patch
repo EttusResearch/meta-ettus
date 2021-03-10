@@ -1,0 +1,31 @@
+From 0d1551dcc169f2d8dbfbe01b4f1f0ae3ce4770ed Mon Sep 17 00:00:00 2001
+From: Mark Hatle <mark.hatle@xilinx.com>
+Date: Tue, 4 Feb 2020 15:06:27 -0600
+Subject: [PATCH] microblaze tune: Allow no version to be set
+
+We want to allow no version to be configured.  This should use the GCC default
+which is the latest defined version, currently 11.0.
+
+Signed-off-by: Mark Hatle <mark.hatle@xilinx.com>
+Signed-off-by: Mark Hatle <mark.hatle@kernel.crashing.org>
+Signed-off-by: Richard Purdie <richard.purdie@linuxfoundation.org>
+---
+ .../include/microblaze/feature-microblaze-versions.inc        | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/meta/conf/machine/include/microblaze/feature-microblaze-versions.inc b/meta/conf/machine/include/microblaze/feature-microblaze-versions.inc
+index 3221e2aab7..5c37f49abb 100644
+--- a/meta/conf/machine/include/microblaze/feature-microblaze-versions.inc
++++ b/meta/conf/machine/include/microblaze/feature-microblaze-versions.inc
+@@ -64,6 +64,6 @@ TUNECONFLICTS[v10.0] = "v8.00 v8.10 v8.20 v8.30 v8.40 v8.50 v9.0 v9.1 v9.2 v9.3
+ TUNECONFLICTS[v11.0] = "v8.00 v8.10 v8.20 v8.30 v8.40 v8.50 v9.0 v9.1 v9.2 v9.3 v9.4 v9.5 v9.6 v10.0"
+ 
+ # Version flags
+-TUNE_CCARGS += "-mcpu=${@microblaze_current_version(d, True)}"
+-MBPKGARCH_VERSION = "-${@microblaze_current_version(d)}"
++TUNE_CCARGS += "${@'-mcpu=%s' % (microblaze_current_version(d, True)) if microblaze_current_version(d, True) != '' else ''}"
++MBPKGARCH_VERSION = "${@'-%s' % (microblaze_current_version(d, True)) if microblaze_current_version(d, True) != '' else ''}"
+ 
+-- 
+2.17.1
+

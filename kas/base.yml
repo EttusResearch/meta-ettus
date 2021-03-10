@@ -1,0 +1,62 @@
+header:
+  version: 10
+distro: Alchemy
+target:
+  - gnuradio-image
+env:
+  MENDER_ARTIFACT_NAME: git
+local_conf_header:
+  mender:
+    INHERIT += "mender-full"
+repos:
+  meta-ettus:
+    layers:
+      meta-ettus-core:
+      meta-alchemy:
+  bitbake:
+    url: git://github.com/openembedded/bitbake
+    refspec: ef29309d0b512b64d024e383e7baff22c727711c
+    path: bitbake
+    layers:
+      .: excluded
+  meta-openembedded:
+    url: git://github.com/openembedded/meta-openembedded
+    refspec: bb65c27a772723dfe2c15b5e1b27bcc1a1ed884c
+    path: meta-oe
+    layers:
+      meta-oe:
+      meta-filesystems:
+      meta-networking:
+      meta-python:
+  openembedded-core:
+    url: git://github.com/openembedded/openembedded-core
+    refspec: f39285bb82e68945a81034b84da09ca1078d6719
+    path: oe-core
+    layers:
+      meta:
+    patches:
+      patch0:
+        repo: meta-ettus
+        path: kas/patches/oe-core/0001-feature-microblaze-versions.inc-Update-MB-to-v11.0.patch
+      patch1:
+        repo: meta-ettus
+        path: kas/patches/oe-core/0001-kernel.bbclass-Fix-Module.symvers-support.patch
+      patch2:
+        repo: meta-ettus
+        path: kas/patches/oe-core/0002-microblaze-tune-Allow-no-version-to-be-set.patch
+  meta-mender:
+    url: git://github.com/mendersoftware/meta-mender
+    refspec: 8c451e26aa867ec62f8e8a3db30a3ab2cce6ef83
+    layers:
+      meta-mender-core:
+  meta-security:
+    url: git://git.yoctoproject.org/meta-security
+    refspec: ecd8c30af6b1b957b4fa814d3f25c40f060b3ac1
+    layers:
+      meta-tpm:
+  meta-qt5:
+    url: git://github.com/meta-qt5/meta-qt5
+    refspec: 0bdbb344bc0a7261d76d715e570ddc2ecfefae58
+  meta-sdr:
+    url: git://github.com/EttusResearch/meta-sdr
+    refspec: 09b5be0f8533677c4ef07881ee8d1c6af3db1965

@@ -1,0 +1,7 @@
+header:
+  version: 10
+  includes:
+    - base.yml
+machine: qemux86-64
+target:
+  - gnuradio-image
