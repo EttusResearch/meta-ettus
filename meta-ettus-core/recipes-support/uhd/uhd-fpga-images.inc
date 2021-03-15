@@ -3,6 +3,8 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 inherit uhd_images_downloader
 require includes/maintainer-ettus.inc
 
+do_populate_lic[depends] += "${PN}:do_unpack"
+
 DEPENDS += "dtc-native python3-native"
 
 SRC_URI_append = " \
@@ -44,3 +46,4 @@ do_install_append() {
         install -m 0644 ${WORKDIR}/$IMAGE.dtbo ${D}/lib/firmware/
     done
 }
+
