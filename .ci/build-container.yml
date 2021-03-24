@@ -1,0 +1,49 @@
+trigger:
+  - titanium-zeus
+
+pr:
+  branches:
+    include:
+      - titanium-zeus
+    paths:
+      include:
+        .ci/build-container.yml
+
+
+schedules:
+  - cron: "0 19 * * *"
+    displayName: 'Daily build'
+    branches:
+      include:
+        - titanium-zeus
+
+variables:
+  IMAGE_REPO: 'rfsdr/usrp-kas'
+  IMAGE_TAG: $(Build.BuildNumber)
+  ARTIFACT_INFO: $(Agent.TempDirectory)/docker_image
+
+jobs:
+  - job: build_docker_image
+    displayName: Build docker image
+    timeoutInMinutes: 60
+    pool:
+      name: Drivers-NIBuildFarm-RFMIBUILD
+      demands:
+        - docker
+        - Agent.OS -equals Linux
+    steps:
+      - checkout: self
+
+      - task: Docker@2
+        displayName: Build and push image
+        inputs:
+          command: buildAndPush
+          Dockerfile: $(Build.SourcesDirectory)/.ci/Dockerfile
+          repository: $(IMAGE_REPO)
+          containerRegistry: 'Docker / Artifactory - rnd-builds-local'
+          tags: $(IMAGE_TAG)
+      - script: echo $(IMAGE_REPO):$(IMAGE_TAG) > $ARTIFACT_INFO
+        displayName: Save off artifact info
+      - publish: $(ARTIFACT_INFO)
+        artifact: "usrp-kas-docker-image"
+        displayName: Publish info

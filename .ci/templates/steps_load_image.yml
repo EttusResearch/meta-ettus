@@ -4,19 +4,12 @@ steps:
     displayName: 'Unmount NFS on server (to be save)'
     workingDirectory: $(Agent.BuildDirectory)
 
-  - script: |
-      if [ -n "$(ImageUrl)" ]; then
-        URL=$(ImageUrl)
-      else
-        URL=$(cat $(ImageUrlFile))
-      fi
-      wget -N --progress=dot:giga $URL
-      echo "###vso[task.setVariable variable=Image_URL]$URL"
-    displayName: 'Download Filesystem image'
-    workingDirectory: $(ImagesDirectory)
+  - download: x4xx-filesystem-artifacts
+    artifact: $(System.JobName)-images
 
   - script: |
-      IMAGE=$(basename $(cat $(ImageUrlFile)))
+      IMAGE=$(basename $(ls $(Agent.BuildDirectory)/x4xx-filesystem-artifacts/$(System.JobName)-images/*.sdimg.bz2))
+      cp -f $(Agent.BuildDirectory)/x4xx-filesystem-artifacts/$(System.JobName)-images/$IMAGE .
       EXT4=${IMAGE%%.*}.ext4
       $(ScriptDir)/extract_ext4.sh $IMAGE
       ln -sf $EXT4 $(System.JobName).ext4

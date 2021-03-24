@@ -17,11 +17,6 @@ jobs:
       artifact: 'IPK files'
       displayName: 'Download IPK files'
 
-    - download: x4xx-filesystem-artifacts
-      artifact: $(System.JobName)-urls
-      condition: not(variables['ImageUrl'])
-      displayName: 'Get location of filesystem'
-
     - template: steps_load_image.yml
     - template: steps_mount_image.yml
     - template: steps_run_boot.yml
@@ -98,7 +93,7 @@ jobs:
         EXECCMD="python3 automated_main.py --ats_config $(AtsConfig) --test_selector pytests/test_gnuradio_sanity.py --run_embedded"
         PYDEPS="--upgrade pytest pytest-helpers-namespace pytest-tempdir pytest-salt"
         $(ScriptDir)/run_test -t $(System.JobName) -c $(ConfigFile) -s $SOURCEDIR -p "$PYDEPS" -e "$EXECCMD" -f python_tests
-      condition: and(succeeded(), contains(variables.Image_Url, 'gnuradio'))
+        #      condition: and(succeeded(), contains(variables.Image_Url, 'gnuradio'))
       displayName: 'Run pytests on device'
       workingDirectory: $(Agent.BuildDirectory)
       continueOnError: true

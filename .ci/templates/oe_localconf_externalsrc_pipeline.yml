@@ -33,7 +33,7 @@ steps:
       displayName: Download ${{ artifact }}
   - download: ${{ parameters.pipeline }}
     displayName: Download artifacts from ${{ parameters.pipeline }}
-    condition: ${{ eq(length(parameters.artifacts), 0) }}
+    condition: and(succeeded(), ${{ eq(length(parameters.artifacts), 0) }})
   - script: |
       echo
       echo before
@@ -43,7 +43,7 @@ steps:
       echo after
       find $(Agent.BuildDirectory)/${{ parameters.pipeline }}
     displayName: Flatten ${{ parameters.pipeline }} files
-    condition: ${{ parameters.flatten }}
+    condition: and(succeeded(), ${{ parameters.flatten }})
   - ${{ each pkg in parameters.packages }}:
     - template: oe_externalsrc.yml
       parameters:
@@ -54,4 +54,4 @@ steps:
     - script: |
         echo "PV_pn-${{ pkg }} = \"${{ parameters.pv_override }}\"" >> $OE_LOCALCONF
       displayName: Override PV for ${{ pkg }}
-      condition: ${{ not(eq(parameters.pv_override, '')) }}
+      condition: and(succeeded(), ${{ not(eq(parameters.pv_override, '')) }})

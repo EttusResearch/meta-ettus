@@ -1,0 +1,5 @@
+steps:
+  - template: usrp_emb_venv_run.yml
+    parameters:
+      displayName: Update device using Mender
+      script: usrp_emb_x4xx_mender_update

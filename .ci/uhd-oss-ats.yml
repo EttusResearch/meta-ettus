@@ -8,7 +8,6 @@ variables:
   UHDForHostArtifactName: 'qemux86-64-feed'
   ScriptDir: '$(Agent.BuildDirectory)/meta-ettus-dev/contrib/test'
   ConfigFile: '$(Agent.WorkFolder)/config.conf'
-  ImageUrlFile: '$(Agent.BuildDirectory)/x4xx-filesystem-artifacts/$(System.JobName)-urls/filesystem-image.url'
   ImagesDirectory: '$(Agent.WorkFolder)/images'
   IpkDir: '$(Agent.BuildDirectory)/x4xx-uhddev-oe-build-artifacts/IPK files/aarch64'
 

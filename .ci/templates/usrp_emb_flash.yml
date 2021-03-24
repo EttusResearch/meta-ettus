@@ -2,23 +2,6 @@
 steps:
   - template: usrp_emb_venv_run.yml
     parameters:
-      displayName: Fetch artifacts
-      script: |
-        if [ -n "$(ImageUrl)" ]; then
-          URL=$(ImageUrl)
-        else
-          URL=$(cat $(ImageUrlFile))
-        fi
-        echo Trying to retrieve $URL ...
-        export USRP_EMB_IMAGE_PATH=$(usrp_emb_fetch_artifacts --filesystem-image $URL)
-        echo Image path is $USRP_EMB_IMAGE_PATH
-        if [ -z "$USRP_EMB_IMAGE_PATH" ]; then
-          echo Failed to retrieve image!
-          exit 1
-        fi
-        echo '##vso[task.setvariable variable=USRP_EMB_IMAGE_PATH]'$USRP_EMB_IMAGE_PATH
-  - template: usrp_emb_venv_run.yml
-    parameters:
       displayName: Flash SCU
       script: |
         usrp_emb_x4xx_flash_scu

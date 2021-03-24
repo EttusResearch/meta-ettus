@@ -26,9 +26,10 @@ parameters:
 steps:
   - checkout: ${{ parameters.repository }}
     path: s/${{ parameters.repository }}
+    target: host
     displayName: Checkout ${{ parameters.repository }}
     fetchDepth: 1
-    condition: ${{ parameters.condition }}
+    condition: and(succeeded(), ${{ parameters.condition }})
   - ${{ each pkg in parameters.packages }}:
     - template: oe_externalsrc.yml
       parameters:
@@ -36,7 +37,7 @@ steps:
         package: ${{ pkg }}
         path: $(Build.SourcesDirectory)/${{ parameters.repository }}
         build_in_src: ${{ parameters.build_in_src }}
-        condition: ${{ parameters.condition }}
+        condition: and(succeeded(), ${{ parameters.condition }})
   - ${{ each pkg in parameters.package_paths }}:
     - template: oe_externalsrc.yml
       parameters:
@@ -44,4 +45,4 @@ steps:
         package: ${{ pkg.package }}
         path: $(Build.SourcesDirectory)/${{ parameters.repository }}/${{ pkg.path }}
         build_in_src: ${{ parameters.build_in_src }}
-        condition: ${{ parameters.condition }}
+        condition: and(succeeded(), ${{ parameters.condition }})

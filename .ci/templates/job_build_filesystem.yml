@@ -1,0 +1,202 @@
+parameters:
+  - name: machines
+    type: object
+    default: []
+  # Whether the sources directory (from OE's archiver) should be published.
+  - name: publish_sources
+    type: boolean
+    default: false
+  - name: ccache
+    type: boolean
+    default: false
+  - name: cache_sstate
+    type: boolean
+    default: true
+  - name: cache_downloads
+    type: boolean
+    default: true
+  - name: include_internal
+    type: boolean
+    default: false
+  - name: additional_targets
+    type: object
+    default: []
+  - name: auto_conf
+    type: string
+    default: ""
+  - name: load_ssh_key
+    type: boolean
+    default: true
+  - name: prebuild_steps
+    type: stepList
+    default:
+      - script: env
+      - script: ls -lsa $(Agent.BuildDirectory)
+  - name: postbuild_steps
+    type: stepList
+    default:
+      - script: env
+
+jobs:
+  - job: get_usrp_kas_docker_image
+    displayName: Get usrp-kas docker image
+    pool:
+      name: Drivers-NIBuildFarm-RFMIBuild
+      demands: sh
+    steps:
+      - checkout: none
+      - download: usrp-kas-pipeline
+        artifact: 'usrp-kas-docker-image'
+        displayName: Download image info
+      - script: |
+          export USRP_KAS_DOCKER_IMAGE=$(cat $(Pipeline.Workspace)/usrp-kas-pipeline/usrp-kas-docker-image/docker_image)
+          echo $USRP_KAS_DOCKER_IMAGE
+          echo "###vso[task.setVariable variable=USRP_KAS_DOCKER_IMAGE;isOutput=true]$USRP_KAS_DOCKER_IMAGE"
+        name: dockerVars
+        displayName: Set output variables
+
+  - job: build
+    dependsOn: get_usrp_kas_docker_image
+    timeoutInMinutes: 360
+    cancelTimeoutInMinutes: 10
+    strategy:
+      matrix:
+        ${{ each machine in parameters.machines }}:
+          ${{ machine }}:
+            machineName: ${{ machine }}
+    pool: 
+      name: Drivers-NIBuildFarm-RFMIBuild
+      demands:
+        - docker
+        - Agent.OS -equals Linux
+    variables:
+      - group: meta-ettus-vars
+
+      - name: USRP_KAS_DOCKER_IMAGE
+        value: $[ dependencies.get_usrp_kas_docker_image.outputs['dockerVars.USRP_KAS_DOCKER_IMAGE'] ]
+      - name: MENDER_ARTIFACT_NAME
+        value: '$(Build.BuildNumber)_$(machineName)'
+      - ${{ if parameters.cache_downloads }}:
+        - name: DL_DIR
+          value: '$(Agent.BuildDirectory)/downloads'
+      - ${{ if parameters.cache_sstate }}:
+        - name: SSTATE_DIR
+          value: '$(Agent.BuildDirectory)/sstate-cache'
+      - ${{ if parameters.ccache }}:
+        - name: CCACHE_DIR
+          value: '$(Agent.BuildDirectory)/ccache'
+
+    container:
+      image: $(USRP_KAS_DOCKER_IMAGE)
+      options: -e NO_PROXY=""
+      endpoint: 'Docker / Artifactory - rnd-builds-local'
+
+    steps:
+      - checkout: self
+        displayName: 'Checkout meta-ettus'
+        persistCredentials: true
+
+      - ${{ if parameters.load_ssh_key }}:
+        - task: InstallSSHKey@0
+          inputs:
+            sshKeySecureFile: 'id_rsa.ettus'
+            knownHostsEntry: 'github.com,192.30.253.113 ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ=='
+            sshPublicKey: $(ettus_ssh_pubkey) # from meta-ettus-vars
+
+      - ${{ if parameters.cache_downloads }}:
+        - task: Cache@2
+          displayName: "Cache downloads"
+          inputs:
+            key: "meta-ettus-downloads"
+            path: $(DL_DIR)
+
+      - ${{ if parameters.cache_sstate }}:
+        - task: Cache@2
+          displayName: "Cache sstate"
+          inputs:
+            key: "meta-ettus-sstate-$(machineName)"
+            path: $(SSTATE_DIR)
+
+      - ${{ if parameters.ccache }}:
+        - task: Cache@2
+          displayName: "Cache ccache"
+          inputs:
+            key: "meta-ettus-ccache-$(machineName)"
+            path: $(CCACHE_DIR)
+
+      - script: |
+          rm $(Agent.BuildDirectory)/site.conf
+          touch $(Agent.BuildDirectory)/site.conf
+        displayName: create site.conf
+
+      - ${{ if parameters.publish_sources }}:
+        - script: |
+            cat <<EOF >>$(Agent.BuildDirectory)/site.conf
+            INHERIT += "archiver"
+            ARCHIVER_MODE[src] = "original"
+            EOF
+          displayName: Enable archiver
+
+      - ${{ if parameters.ccache }}:
+        - script: |
+            mkdir -p $CCACHE_DIR
+
+            cat <<EOF >>$(Agent.BuildDirectory)/site.conf
+            INHERIT += "ccache"
+            CCACHE_TOP_DIR = "$CCACHE_DIR"
+            EOF
+          displayName: "Setup ccache"
+
+      - ${{ parameters.prebuild_steps }}
+
+      - script: |
+          KAS_BASE_PATH=$(find $(Pipeline.Workspace) -wholename '*/kas/base.yml' -exec realpath {} \; | head | sed 's;/base.yml;;')
+          echo $KAS_BASE_PATH
+          echo "###vso[task.setVariable variable=KAS_BASE_PATH]"$KAS_BASE_PATH
+        displayName: Find kas base path
+
+      - template: kas_build.yml
+        parameters:
+          kas_config:
+            - $KAS_BASE_PATH/$(machineName).yml
+            - ${{ if eq(parameters.include_internal, true) }}:
+              - $KAS_BASE_PATH/internal.yml
+          auto_conf: ${{ parameters.auto_conf }}
+          site_conf: $(Agent.BuildDirectory)/site.conf
+          build_package_feed: True
+          targets: ${{ parameters.additional_targets }}
+
+      - script: |
+          rm -rf ./images
+          mkdir images
+
+          # main image
+          find $KAS_DEPLOY_DIR -type l -name '*.sdimg.bz2' -exec cp {} images \;
+          find $KAS_DEPLOY_DIR -type l -name '*.sdimg.bmap' -exec cp {} images \;
+
+          # mender image
+          find $KAS_DEPLOY_DIR -type l -name "*.mender" -exec cp {} images \;
+
+          # x4xx specific
+          find $KAS_DEPLOY_DIR -type l -name "u-boot-jtag-files.zip" -exec cp {} images \;
+          find $KAS_DEPLOY_DIR -type l -name "chromium-ec-ni-titanium-ec-rev?.bin" -exec cp {} images/ec.bin \;
+          find $KAS_DEPLOY_DIR -type l -name "fitImage-manufacturing-image*" -exec cp {} images/fitImage-manufacturing \;
+
+          find images
+          true
+        workingDirectory: $(Agent.BuildDirectory)
+
+      - publish: $(Agent.BuildDirectory)/images
+        artifact: "$(machineName)-images"
+        displayName: Publish images
+
+      - publish: $(KAS_DEPLOY_DIR)/ipk
+        artifact: "$(machineName)-ipks"
+        displayName: Publish ipks
+
+      - publish: $(KAS_DEPLOY_DIR)/sources
+        artifact: "$(System.JobName)-sources"
+        displayName: Publish sources
+        condition: and(succeeded(), ${{ parameters.publish_sources }})
+
+      - ${{ parameters.postbuild_steps }}

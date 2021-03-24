@@ -31,4 +31,4 @@ steps:
       fi
       cat ${{ parameters.local_conf }}
     displayName: Setup EXTERNALSRC for ${{ parameters.package }}
-    condition: ${{ parameters.condition }}
+    condition: and(succeeded(), ${{ parameters.condition }})

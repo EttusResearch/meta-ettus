@@ -13,7 +13,6 @@ pr:
 variables:
   ScriptDir: '$(Build.SourcesDirectory)/contrib/test'
   ConfigFile: '$(Agent.WorkFolder)/config.conf'
-  ImageUrlFile: '$(Agent.BuildDirectory)/x4xx-filesystem-artifacts/$(System.JobName)-urls/filesystem-image.url'
   ImagesDirectory: '$(Agent.WorkFolder)/images'
   UHDForHostArtifactName: 'qemux86-64-feed'
 
@@ -46,10 +45,6 @@ jobs:
 
   steps:
   - checkout: self
-
-  - download: x4xx-filesystem-artifacts
-    artifact: $(System.JobName)-urls
-    condition: not(variables['ImageUrl'])
 
   - download: 'x4xx-uhddev-oe-for-host-artifacts'
     artifact: '$(UHDForHostArtifactName)'

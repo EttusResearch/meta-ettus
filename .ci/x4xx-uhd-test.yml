@@ -13,7 +13,6 @@ pr:
 variables:
   ScriptDir: '$(Build.SourcesDirectory)/contrib/test'
   ConfigFile: '$(Agent.WorkFolder)/config.conf'
-  ImageUrlFile: '$(Agent.BuildDirectory)/x4xx-filesystem-artifacts/$(System.JobName)-urls/filesystem-image.url'
   ImagesDirectory: '$(Agent.WorkFolder)/images'
   IpkDir: '$(Agent.BuildDirectory)/x4xx-uhddev-oe-build-artifacts/IPK files/aarch64'
 
@@ -50,11 +49,6 @@ jobs:
   - download: x4xx-uhddev-oe-build-artifacts
     artifact: 'IPK files'
     displayName: 'Download IPK files'
-
-  - download: x4xx-filesystem-artifacts
-    artifact: $(System.JobName)-urls
-    condition: not(variables['ImageUrl'])
-    displayName: 'Get location of filesystem'
 
   - template: templates/steps_load_image.yml
   - template: templates/steps_mount_image.yml

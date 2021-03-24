@@ -7,9 +7,8 @@ pr: none
 variables:
   ScriptDir: '$(Build.SourcesDirectory)/contrib/test'
   ConfigFile: '$(Agent.WorkFolder)/config.conf'
-  ImageUrlFile: '$(Agent.BuildDirectory)/x4xx-filesystem-artifacts/$(System.JobName)-urls/filesystem-image.url'
-  ImagesDirectory: '$(Agent.WorkFolder)/images'
-  USRP_EMB_FTDI_SERIAL: '2516351FE64E'
+  USRP_EMB_FTDI_SERIAL: '2516351FE64E' # In use as of February 2021
+  USRP_EMB_IMAGE_PATH: '$(Agent.BuildDirectory)/x4xx-filesystem-artifacts/$(machineName)-images/'
 
 # pipeline triggers
 resources:
@@ -23,23 +22,38 @@ resources:
 
 pool:
   demands:
-  - openembedded-test -equals $(System.JobName)
+  - openembedded-test -equals x4xx
+
+parameters:
+  - name: mender_update
+    displayName: Perform Mender update instead of flashing
+    default: false
+    type: boolean
 
 jobs:
 - job: 'test'
   timeoutInMinutes: 120
   strategy:
-    matrix: $[ variables.Devices ]
+    matrix:
+      x4xx:
+        machineName: x4xx
 
   steps:
   - checkout: self
 
   - download: x4xx-filesystem-artifacts
-    artifact: $(System.JobName)-urls
-    condition: not(variables['ImageUrl'])
+    artifact: $(machineName)-images
+
+  - script: |
+      cd $USRP_EMB_IMAGE_PATH
+      unzip -o *.zip
+    displayName: Extract any zip archives
 
   - template: templates/usrp_emb_setup.yml
-  - template: templates/usrp_emb_flash.yml
+  - ${{ if parameters.mender_update }}:
+    - template: templates/usrp_emb_mender_update.yml
+  - ${{ if not(parameters.mender_update) }}:
+    - template: templates/usrp_emb_flash.yml
   - template: templates/usrp_emb_run_embedded_tests.yml
   - template: templates/usrp_emb_boot.yml
   - template: templates/steps_run_test.yml
@@ -47,3 +61,4 @@ jobs:
   - template: templates/steps_run_mpm_test.yml
   - template: templates/steps_run_bist.yml
   - template: templates/steps_run_usrp2_c_test.yml
+  - template: templates/usrp_emb_run_mender_tests.yml
