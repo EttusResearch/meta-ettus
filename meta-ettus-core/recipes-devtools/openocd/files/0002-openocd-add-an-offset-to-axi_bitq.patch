@@ -1,0 +1,100 @@
+From c597786177384c7c0446ef701400e00e042d5587 Mon Sep 17 00:00:00 2001
+From: Bill Davis <billy.davis@ni.com>
+Date: Thu, 25 Mar 2021 10:17:58 -0500
+Subject: [PATCH 2/2] openocd: add an offset to axi_bitq
+
+The axi_bitq's openocd driver will now support jtag memory locations that
+do not start at the beginning of the uio map. This means that the jtag
+memory does not need to be page aligned.
+
+Signed-off-by: Bill Davis <billy.davis@ni.com>
+---
+ src/jtag/drivers/axi_bitq.c | 34 +++++++++++++++++++++++++++++++---
+ 1 file changed, 31 insertions(+), 3 deletions(-)
+
+diff --git a/src/jtag/drivers/axi_bitq.c b/src/jtag/drivers/axi_bitq.c
+index 21a383301..c64ba3385 100644
+--- a/src/jtag/drivers/axi_bitq.c
++++ b/src/jtag/drivers/axi_bitq.c
+@@ -51,6 +51,7 @@
+ 
+ struct axi_bitq {
+ 	int uio_fd;
++	int uio_size;
+ 	int clk_hz;
+ 	volatile void *uio_regs;
+ 	int retval;
+@@ -71,15 +72,16 @@ static struct axi_bitq *axi_bitq = &axi_bitq_state;
+ 
+ static int axi_bitq_uio_id = -1;
+ static int axi_bitq_clk_hz = -1;
++static int axi_bitq_jtag_offset = -1;
+ 
+ static void axi_bitq_write(uint8_t offset, uint32_t data)
+ {
+-	*((volatile uint32_t *) (axi_bitq->uio_regs + offset)) = data;
++	*((volatile uint32_t *) (axi_bitq->uio_regs + offset + axi_bitq_jtag_offset)) = data;
+ }
+ 
+ static void axi_bitq_read(uint8_t offset, uint32_t *data)
+ {
+-	*data = *((volatile uint32_t *) (axi_bitq->uio_regs + offset));
++	*data = *((volatile uint32_t *) (axi_bitq->uio_regs + offset + axi_bitq_jtag_offset));
+ }
+ 
+ static int axi_bitq_dev_reset(void)
+@@ -197,6 +199,8 @@ static int axi_bitq_reset(int trst, int srst)
+ static int axi_bitq_open_uio(int uio_id)
+ {
+ 	char fname[64];
++	char uio_size_file_name[64], uio_size_buf[64];
++	int uio_size_fd;
+ 
+ 	LOG_DEBUG("searching for axi_bitq using uio number");
+ 
+@@ -207,7 +211,25 @@ static int axi_bitq_open_uio(int uio_id)
+ 		LOG_ERROR("Error opening %s", fname);
+ 		return ERROR_JTAG_DEVICE_ERROR;
+ 	}
+-	axi_bitq->uio_regs = mmap(NULL, 0x1000, PROT_READ|PROT_WRITE,
++
++	/* Find out the size */
++	snprintf(uio_size_file_name, sizeof(uio_size_file_name), "/sys/class/uio/uio%d/maps/map0/size", uio_id);
++	uio_size_fd = open(uio_size_file_name, O_RDONLY);
++	if (axi_bitq->uio_fd < 0) {
++		LOG_ERROR("Error opening %s", uio_size_file_name);
++		return ERROR_JTAG_DEVICE_ERROR;
++	}
++	read(uio_size_fd, uio_size_buf, sizeof(uio_size_buf));
++	close(uio_size_fd);
++	axi_bitq->uio_size = (int)strtol(uio_size_buf, NULL, 0);
++
++	if (axi_bitq->uio_size < (axi_bitq_jtag_offset + AXI_BITQ_TDO_REG))
++	{
++		LOG_ERROR("The offset (%i) will try to write outside of the size (%i) of the UIO",axi_bitq_jtag_offset, axi_bitq->uio_size);
++		return ERROR_COMMAND_SYNTAX_ERROR;
++	}
++
++	axi_bitq->uio_regs = mmap(NULL, axi_bitq->uio_size, PROT_READ|PROT_WRITE,
+ 	                          MAP_SHARED, axi_bitq->uio_fd, 0);
+ 	if (axi_bitq->uio_regs == MAP_FAILED) {
+ 		LOG_ERROR("Error mapping registers for %s", fname);
+@@ -582,9 +604,15 @@ static int axi_bitq_jtag_speed(int speed)
+ 
+ COMMAND_HANDLER(axi_bitq_handle_config_command)
+ {
++	axi_bitq_jtag_offset = 0; // Default to no offset
+ 	axi_bitq_clk_hz = 40000000; // Default to 40 MHz
+ 
+ 	switch (CMD_ARGC) {
++	case 3:
++		axi_bitq_jtag_offset = strtol(CMD_ARGV[2], NULL, 0);
++		axi_bitq_clk_hz = strtol(CMD_ARGV[1], NULL, 0);
++		axi_bitq_uio_id = strtol(CMD_ARGV[0], NULL, 0);
++		break;
+ 	case 2:
+ 		axi_bitq_clk_hz = strtol(CMD_ARGV[1], NULL, 0);
+ 		axi_bitq_uio_id = strtol(CMD_ARGV[0], NULL, 0);
+-- 
+2.29.2
+
