@@ -9,6 +9,7 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 DEPENDS = " boost \
 	    udev \
 	    python3-setuptools-native \
+	    python3-mako-native \
           "
 RDEPENDS_${PN} = " \
                   python3-core \
@@ -23,6 +24,7 @@ RDEPENDS_${PN} = " \
                   python3-fcntl \
                   python3-six \
                   python3-pyroute2 \
+                  python3-mako \
                   udev \
                   dtc \
                   uhd-fpga-images-firmware \
