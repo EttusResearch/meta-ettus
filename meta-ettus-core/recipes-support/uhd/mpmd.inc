@@ -30,6 +30,11 @@ RDEPENDS_${PN} = " \
                   libgpiod-python \
                  "
 
+RDEPENDS_${PN}-tests = " \
+                  ${PN} \
+                  python3-unittest-xml-reporting \
+                  "
+
 inherit distutils3-base cmake python3-dir python3native systemd
 include uhd_auto_pkgv.inc
 
@@ -45,7 +50,7 @@ EXTRA_OECMAKE_append = " \
 SYSTEMD_PACKAGES = "${@bb.utils.contains('DISTRO_FEATURES','systemd','${PN}','',d)}"
 SYSTEMD_SERVICE_${PN} = "${@bb.utils.contains('DISTRO_FEATURES','systemd','usrp-hwd.service','',d)}"
 
-PACKAGES =+ "${PN}-tools"
+PACKAGES =+ "${PN}-tools ${PN}-tests"
 
 FILES_${PN}     += "${systemd_unitdir}/network/*"
 FILES_${PN}-dev += "${libdir}/libusrp-periphs.so"
@@ -56,7 +61,12 @@ FILES_${PN}-tools += "\
                      ${bindir}/eeprom-dump \
                      ${bindir}/eeprom-set-flags \
                      "
+FILES_${PN}-tests = "${libdir}/usrp_mpm/tests"
+
 do_install_append() {
+    mkdir -p ${D}${libdir}/usrp_mpm/tests/
+    install -m 0644 ${S}/python/tests/*.py ${D}${libdir}/usrp_mpm/tests/
+
     # prepend "40-" when installing .network files (e.g. eth0.network ->
     # 40-eth0.network) to make sure that the rules are applied before the
     # systemd default rules like 80-wired.network
