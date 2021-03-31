@@ -14,7 +14,7 @@ RDEPENDS_${PYTHON_PN}-${PN} = "${PN} python3-numpy"
 RRECOMMENDS_${PN}-tests = "python3-unittest-xml-reporting"
 RRECOMMENDS_${PN}_class-target += "uhd-fpga-images"
 
-inherit cmake python3-dir python3native
+inherit cmake python3-dir python3native deploy-docs
 require includes/maintainer-ettus.inc
 include uhd_auto_pkgv.inc
 
