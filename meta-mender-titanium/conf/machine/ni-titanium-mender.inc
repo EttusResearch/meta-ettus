@@ -14,3 +14,6 @@ IMAGE_INSTALL_append = " mender-client-migrate-configuration"
 PACKAGECONFIG_remove = "split-mender-config"
 MENDER_PERSISTENT_CONFIGURATION_VARS = "RootfsPartA RootfsPartB"
 MENDER_ARTIFACT_EXTRA_ARGS_append = " -v 2"
+
+MENDER_DATA_PART_FSTAB_OPTS ?= "defaults,noatime"
+MENDER_BOOT_PART_FSTAB_OPTS ?= "defaults,noatime"
