@@ -8,6 +8,9 @@ env:
 local_conf_header:
   mender:
     INHERIT += "mender-full"
+  licenses: |
+    COPY_LIC_MANIFEST = "1"
+    COPY_LIC_DIRS = "1"
 repos:
   meta-ettus:
     layers:
