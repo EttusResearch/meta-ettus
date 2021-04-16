@@ -65,6 +65,7 @@ MACHINE_EXTRA_RRECOMMENDS = " \
                              ledctrl \
                              linux-firmware-ni-titanium \
 			     mmc-utils \
+			     uhd-cpld-images \
           "
 
 do_image_wic[depends] += " \
