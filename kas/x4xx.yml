@@ -12,6 +12,10 @@ target:
 local_conf_header:
   remove_uninative:
     INHERIT_remove = "uninative"
+  remove_x11:
+    DISTRO_FEATURES_remove = "x11"
+  remove_opengl:
+    DISTRO_FEATURES_remove = "opengl"
 repos:
   meta-ettus:
     layers:
