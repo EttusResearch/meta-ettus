@@ -3,7 +3,7 @@ header:
 repos:
   ettools:
     url: ssh://git@github.com/EttusResearch/ettools.git
-    refspec: 3e3dd5e61976b4b3c2f3dab829c21387647d3218
+    refspec: 0fc7081e7eb10960b23e23e46e1347a96fb0bdea
     path: ettools
     layers:
       meta-ettus-internal:
