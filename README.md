@@ -80,12 +80,12 @@ Then, run the script, e.g., for the N310:
     ./meta-ettus/contrib/build_imgs_package.sh n3xx v3.14.1.1 .
 
 This will build and zip up the filesystem image, the SDK, and the Mender
-artefact.
+artifact.
 
 Building an Image using the Alchemy distro
 ===========================================
 
-In you local.conf set a MACHINE from above
+In your local.conf set a MACHINE from above
 
 MACHINE ??= "ni-sulfur-rev6"
 DISTRO ?= "Alchemy"
@@ -142,4 +142,4 @@ set the appropriate versions for the uhd, uhd-fpga-images and mpmd recipes:
     PREFERRED_VERSION_pn-mpmd ?= "${PREFERRED_UHD_VERSION}"
 
 The default value for PREFERRED_UHD_VERSION is also set in the Alchemy.conf
-file. It set to the latest released version of UHD per default.
+file. It is set to the latest released version of UHD per default.
