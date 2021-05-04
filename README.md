@@ -118,4 +118,4 @@ set the appropriate versions for the uhd, uhd-fpga-images and mpmd recipes:
     PREFERRED_VERSION_pn-mpmd ?= "${PREFERRED_UHD_VERSION}"
 
 The default value for PREFERRED_UHD_VERSION is also set in the Alchemy.conf
-file. It set to the latest released version of UHD per default.
+file. It is set to the latest released version of UHD per default.
