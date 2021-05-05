@@ -203,16 +203,4 @@ jobs:
 
       - script: |
           rm -rf $(Agent.BuildDirectory)/build
-
-          if [ -n "$DL_DIR" ]; then
-            rm -rf $DL_DIR
-          fi
-
-          if [ -n "$SSTATE_DIR" ]; then
-            rm -rf $SSTATE_DIR;
-          fi
-
-          if [ -n "$CCACHE_DIR" ]; then
-            rm -rf $CCACHE_DIR;
-          fi
         displayName: Delete build directory
