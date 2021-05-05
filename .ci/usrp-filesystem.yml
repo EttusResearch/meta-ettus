@@ -21,6 +21,10 @@ parameters:
     displayName: Build for release (disables caching, publishes archives)
     type: boolean
     default: false
+  - name: build_sdk
+    displayName: Build SDK
+    type: boolean
+    default: false
   - name: cache_sstate
     displayName: Use pipeline caching for sstate-cache
     type: boolean
@@ -58,6 +62,7 @@ resources:
 jobs:
   - template: templates/job_build_filesystem.yml
     parameters:
+      build_sdk: ${{ parameters.build_sdk }}
       publish_sources: ${{ parameters.release_build }}
       cache_sstate: ${{ and(parameters.cache_sstate, not(parameters.release_build)) }}
       cache_downloads: ${{ and(parameters.cache_downloads, not(parameters.release_build)) }}

@@ -11,6 +11,10 @@ parameters:
   - name: build_default_targets
     type: boolean
     default: true
+  # Whether to build the SDK
+  - name: build_sdk
+    type: boolean
+    default: false
   # Whether to build the package feed and package indexes
   - name: build_package_feed
     type: boolean
@@ -48,6 +52,11 @@ steps:
     displayName: Build default targets
     workingDirectory: $(Agent.BuildDirectory)
     condition: and(succeeded(), ${{ parameters.build_default_targets }})
+  - script: |
+      kas shell $KAS_CONFIG -c "bitbake -c populate_sdk gnuradio-image"
+    displayName: Build SDK
+    workingDirectory: $(Agent.BuildDirectory)
+    condition: and(succeeded(), ${{ parameters.build_sdk }})
   - script: |
       kas shell $KAS_CONFIG -c "bitbake -e" > bitbake.env
       export KAS_DEPLOY_DIR=$(grep '^DEPLOY_DIR=' bitbake.env | sed 's/[^"]*"\([^"]*\)"/\1/')

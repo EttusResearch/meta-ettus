@@ -6,6 +6,9 @@ parameters:
   - name: publish_sources
     type: boolean
     default: false
+  - name: build_sdk
+    type: boolean
+    default: false
   - name: ccache
     type: boolean
     default: false
@@ -164,6 +167,7 @@ jobs:
           auto_conf: ${{ parameters.auto_conf }}
           site_conf: $(Agent.BuildDirectory)/site.conf
           build_package_feed: True
+          build_sdk: ${{ parameters.build_sdk }}
           targets: ${{ parameters.additional_targets }}
 
       - script: |
@@ -185,6 +189,7 @@ jobs:
           find images
           true
         workingDirectory: $(Agent.BuildDirectory)
+        displayName: Aggregate images
 
       - script: |
           rm -rf ./packages
@@ -214,4 +219,6 @@ jobs:
 
       - script: |
           rm -rf $(Agent.BuildDirectory)/build
-        displayName: Delete build directory
+          rm -rf $(Agent.BuildDirectory)/images
+          rm -rf $(Agent.BuildDirectory)/packages
+        displayName: Cleanup
