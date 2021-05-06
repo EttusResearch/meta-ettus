@@ -5,7 +5,7 @@ CROS_EC_BOARD_ni-titanium-ec = "titanium"
 
 # Rev E and later
 SRC_URI_ni-titanium-ec = "git://git@github.com/EttusResearch/chromium-ec-x400.git;branch=titanium;protocol=ssh"
-SRCREV_ni-titanium-ec = "4789217d13023154586e51935fbeda8d7aba3896"
+SRCREV_ni-titanium-ec = "11efcf3e6ac055cc894837e080a5eead26d58f45"
 
 # Rev D
 SRC_URI_ni-titanium-ec-rev4 = "git://git@github.com/EttusResearch/chromium-ec.git;branch=titanium-rev4;protocol=ssh"
