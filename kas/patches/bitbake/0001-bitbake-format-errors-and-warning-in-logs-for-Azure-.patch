@@ -1,0 +1,30 @@
+From 60db701e03b4ac592431c129fc42e86a49f1ba6f Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Fri, 23 Oct 2020 15:22:22 +0200
+Subject: [PATCH] bitbake: format errors and warning in logs for Azure
+ pipelines
+
+---
+ lib/bb/msg.py | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/lib/bb/msg.py b/lib/bb/msg.py
+index 6216eb3b..4a4e1a87 100644
+--- a/lib/bb/msg.py
++++ b/lib/bb/msg.py
+@@ -41,9 +41,9 @@ class BBLogFormatter(logging.Formatter):
+         NOTE    : 'NOTE',
+         PLAIN  : '',
+         VERBNOTE: 'NOTE',
+-        WARNING : 'WARNING',
+-        ERROR   : 'ERROR',
+-        CRITICAL: 'ERROR',
++        WARNING : '##vso[task.logissue type=warning]WARNING',
++        ERROR   : '##vso[task.logissue type=error]ERROR',
++        CRITICAL: '##vso[task.logissue type=error]ERROR',
+     }
+ 
+     color_enabled = False
+-- 
+2.17.1
+

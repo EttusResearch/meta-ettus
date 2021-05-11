@@ -1,0 +1,28 @@
+From 04cbcc5838ae493ad3af66453409b06b410dd7a2 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Wed, 11 Mar 2020 09:23:17 +0100
+Subject: [PATCH] conf: layer: comment changed LICENSE_PATH
+
+Comment out changed LICENSE_PATH because the path does not exist.
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ conf/layer.conf | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/conf/layer.conf b/conf/layer.conf
+index b1c95ec..94410dd 100644
+--- a/conf/layer.conf
++++ b/conf/layer.conf
+@@ -9,7 +9,7 @@ BBFILE_PATTERN_openamp-layer := "^${LAYERDIR}/"
+ BBFILE_PRIORITY_openamp-layer = "5"
+ 
+ # Custom licenses used by some packages in this layer
+-LICENSE_PATH += "${LAYERDIR}/files/custom-licenses"
++# LICENSE_PATH += "${LAYERDIR}/files/custom-licenses"
+ 
+ # This should only be incremented on significant changes that will
+ # cause compatibility issues with other layers
+-- 
+2.17.1
+

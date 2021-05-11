@@ -1,0 +1,23 @@
+From 0e405fe865e04887292dc5570685cc950e632c0c Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Thu, 24 Oct 2019 16:09:06 +0200
+Subject: [PATCH 1/2] layer: Add warrior to compatible layers
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ conf/layer.conf | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/conf/layer.conf b/conf/layer.conf
+index 3947ceb..46c17b4 100644
+--- a/conf/layer.conf
++++ b/conf/layer.conf
+@@ -15,4 +15,4 @@ LICENSE_PATH += "${LAYERDIR}/files/custom-licenses"
+ # cause compatibility issues with other layers
+ LAYERVERSION_openamp-layer = "1"
+ 
+-LAYERSERIES_COMPAT_openamp-layer = "rocko sumo thud"
++LAYERSERIES_COMPAT_openamp-layer = "rocko sumo thud warrior"
+-- 
+2.17.1
+

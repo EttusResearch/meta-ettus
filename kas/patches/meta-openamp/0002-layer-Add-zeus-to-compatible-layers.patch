@@ -1,0 +1,23 @@
+From dc528789bc0282b7381a5ec9ef419d492544ac83 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Wed, 11 Mar 2020 08:57:49 +0100
+Subject: [PATCH 2/2] layer: Add zeus to compatible layers
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ conf/layer.conf | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/conf/layer.conf b/conf/layer.conf
+index 46c17b4..b1c95ec 100644
+--- a/conf/layer.conf
++++ b/conf/layer.conf
+@@ -15,4 +15,4 @@ LICENSE_PATH += "${LAYERDIR}/files/custom-licenses"
+ # cause compatibility issues with other layers
+ LAYERVERSION_openamp-layer = "1"
+ 
+-LAYERSERIES_COMPAT_openamp-layer = "rocko sumo thud warrior"
++LAYERSERIES_COMPAT_openamp-layer = "rocko sumo thud warrior zeus"
+-- 
+2.17.1
+

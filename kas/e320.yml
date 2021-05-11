@@ -1,0 +1,12 @@
+header:
+  version: 10
+  includes:
+    - base.yml
+machine: ni-neon-rev2-mender
+env:
+  MENDER_ARTIFACT_NAME: git_e320
+repos:
+  meta-ettus:
+    layers:
+      meta-neon:
+      meta-mender-neon:
