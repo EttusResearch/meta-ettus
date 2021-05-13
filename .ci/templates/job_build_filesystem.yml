@@ -186,6 +186,17 @@ jobs:
           true
         workingDirectory: $(Agent.BuildDirectory)
 
+      - script: |
+          rm -rf ./packages
+          mkdir ./packages
+          cd ./packages
+          $KAS_BASE_PATH/../contrib/create_packages.sh $(machineName) $MENDER_ARTIFACT_NAME gnuradio-image $KAS_DEPLOY_DIR
+        workingDirectory: $(Agent.BuildDirectory)
+
+      - publish: $(Agent.BuildDirectory)/packages
+        artifact: "$(machineName)-packages"
+        displayName: Publish packages
+
       - publish: $(Agent.BuildDirectory)/images
         artifact: "$(machineName)-images"
         displayName: Publish images
