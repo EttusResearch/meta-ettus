@@ -52,7 +52,7 @@ parameters:
   - name: build_x4xx
     displayName: Build x4xx
     type: boolean
-    default: false
+    default: true
 
 resources:
   pipelines:
@@ -76,4 +76,4 @@ jobs:
         - ${{ if parameters.build_n3xx }}:
           - n3xx
         - ${{ if parameters.build_x4xx }}:
-          - x4xx-rev5
+          - x4xx
