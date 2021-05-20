@@ -1,0 +1,33 @@
+From 2cc4c894106f8ae72f159364cb76e4e3e3487b7b Mon Sep 17 00:00:00 2001
+From: Lane Kolbly <lane.kolbly@ni.com>
+Date: Thu, 20 May 2021 15:25:56 -0500
+Subject: [PATCH] linux: device: unmap regions for linux device
+
+This unmaps the device regions which were opened during metal_uio_dev_open.
+Failure to do this results in a file descriptor leak.
+
+Signed-off-by: Lane Kolbly <lane.kolbly@ni.com>
+---
+ lib/system/linux/device.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/lib/system/linux/device.c b/lib/system/linux/device.c
+index 244f97e..f780bee 100644
+--- a/lib/system/linux/device.c
++++ b/lib/system/linux/device.c
+@@ -262,7 +262,12 @@ static void metal_uio_dev_close(struct linux_bus *lbus,
+ 				struct linux_device *ldev)
+ {
+ 	(void)lbus;
++	unsigned int i;
+ 
++	for (i = 0; i < ldev->device.num_regions; i++) {
++		metal_unmap(ldev->device.regions[i].virt,
++			    ldev->device.regions[i].size);
++	}
+ 	if (ldev->override) {
+ 		sysfs_write_attribute(ldev->override, "", 1);
+ 		ldev->override = NULL;
+-- 
+2.17.1
+
