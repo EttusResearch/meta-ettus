@@ -1,0 +1,94 @@
+commit 952cf98a94d513d66faf808a1fd544579ec72610
+Author: Steven Koo <steven.koo@ni.com>
+Date:   Fri May 21 15:33:12 2021 +0000
+
+    mfd: Add eeprom autoboot setting for ni-e31x-pmu
+
+    This change adds support to modify the autoboot eeprom setting for the
+    pmu.
+
+    Signed-off-by: Steven Koo <steven.koo@ni.com>
+
+diff --git a/drivers/mfd/e31x-pmu.c b/drivers/mfd/e31x-pmu.c
+index 80f77422b01b..20f94243d6d4 100644
+--- a/drivers/mfd/e31x-pmu.c
++++ b/drivers/mfd/e31x-pmu.c
+@@ -53,18 +53,77 @@ static int e31x_pmu_check_version(struct e31x_pmu *pmu)
+        return 0;
+ }
+
++static ssize_t autoboot_store(struct device *dev,
++              struct device_attribute *attr, const char *buf, size_t size)
++{
++       struct e31x_pmu *pmu = dev_get_drvdata(dev);
++       u32 eeprom;
++       unsigned long autoboot_bit, autoboot_input;
++       int err;
++
++       err = kstrtoul(buf, 10, &autoboot_input);
++       if (err)
++              return -EINVAL;
++
++       /* either on or off ... */
++       autoboot_bit = autoboot_input ? 0x1 : 0x0;
++
++       err = regmap_read(pmu->regmap, E31X_PMU_REG_EEPROM, &eeprom);
++       if (err)
++              return err;
++
++       eeprom &= ~E31X_PMU_EEPROM_AUTOBOOT_MASK;
++       eeprom |= autoboot_bit << E31X_PMU_EEPROM_AUTOBOOT_SHIFT;
++
++       err = regmap_write(pmu->regmap, E31X_PMU_REG_EEPROM, eeprom);
++       if (err)
++              return err;
++
++       return size;
++}
++
++static ssize_t autoboot_show(struct device *dev,
++              struct device_attribute *attr, char *buf)
++{
++       struct e31x_pmu *pmu = dev_get_drvdata(dev);
++       u32 eeprom;
++       int ret;
++
++       ret = regmap_read(pmu->regmap, E31X_PMU_REG_EEPROM, &eeprom);
++       if (ret)
++              return ret;
++       eeprom &= E31X_PMU_EEPROM_AUTOBOOT_MASK;
++       eeprom >>= E31X_PMU_EEPROM_AUTOBOOT_SHIFT;
++
++       ret = sprintf(buf, "%u\n", eeprom);
++
++       return ret;
++}
++
++static DEVICE_ATTR_RW(autoboot);
++
++static struct attribute *e31x_pmu_attrs[] = {
++       &dev_attr_autoboot.attr,
++       NULL
++};
++
++ATTRIBUTE_GROUPS(e31x_pmu);
++
+ static int e31x_pmu_probe(struct platform_device *pdev)
+ {
+        struct e31x_pmu *pmu;
+        pmu = devm_kzalloc(&pdev->dev, sizeof(*pmu), GFP_KERNEL);
+        if (!pmu)
+                return -ENOMEM;
+-   	   pmu->regmap = syscon_regmap_lookup_by_phandle(pdev->dev.of_node, "regmap");
++       platform_set_drvdata(pdev, pmu);
++       pdev->dev.groups = e31x_pmu_groups;
++       pmu->regmap = syscon_regmap_lookup_by_phandle(pdev->dev.of_node, "regmap");
+
+        if (IS_ERR(pmu->regmap))
+                return PTR_ERR(pmu->regmap);
+        if (e31x_pmu_check_version(pmu))
+                return -ENOTSUPP;
++
+        return devm_of_platform_populate(&pdev->dev);
+ }
+

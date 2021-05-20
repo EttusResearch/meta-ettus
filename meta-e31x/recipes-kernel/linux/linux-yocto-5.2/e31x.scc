@@ -4,3 +4,4 @@ patch 0003-ARM-dts-zynq-e3xx-add-reset-delay-of-10ms-for-ethern.patch
 patch 0004-mfd-power-supply-Add-ni-e31x-pmu-battery-and-charger.patch
 patch 0005-mfd-power-supply-Fix-incorrect-battery-property-valu.patch
 patch 0006-mfd-power-supply-Add-support-for-writeable-property.patch
+patch 0007-mfd-Add-eeprom-autoboot-setting-for-ni-e31x-pmu.patch
