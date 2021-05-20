@@ -62,4 +62,4 @@ repos:
     refspec: 0bdbb344bc0a7261d76d715e570ddc2ecfefae58
   meta-sdr:
     url: git://github.com/EttusResearch/meta-sdr
-    refspec: 09b5be0f8533677c4ef07881ee8d1c6af3db1965
+    refspec: 556df72b1e36a83478f4f3f221f54011cafebaee
