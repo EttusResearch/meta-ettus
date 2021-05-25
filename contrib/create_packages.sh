@@ -57,6 +57,7 @@ case $_requested_device in
 	"x4xx")
 		_sdimg_file_name=usrp_x4xx_fs.sdimg
 		_mender_file_name=usrp_x4xx_fs.mender
+		_recovery_file_name=usrp_x4xx_recovery.zip
 		_sdimg_pkg_name=x4xx_common_sdimg_default-$_artifact_name.zip
 		_mender_pkg_name=x4xx_common_mender_default-$_artifact_name.zip
 		_sdk_pkg_name=x4xx_common_sdk_default-$_artifact_name.zip
@@ -78,6 +79,15 @@ mkdir -p $TMP_DIR
 cp -v $_sdimg $TMP_DIR/$_sdimg_file_name
 if [ -r $_sdimg.bmap ]; then
 	cp -v $_sdimg.bmap $TMP_DIR/$_sdimg_file_name.bmap
+fi
+if [ ! -z $_recovery_file_name ]; then
+	echo "Finding recovery package..."
+	_recovery=`find $_deploy_dir/images -name u-boot-jtag-files.zip`
+	if [ ! -r $_recovery ]; then
+		echo "ERROR: Could not find recovery package!"
+		exit 1
+	fi
+	cp -v $_recovery $TMP_DIR/$_recovery_file_name
 fi
 echo "Zipping up SD image package..."
 (cd $TMP_DIR; zip $_sdimg_pkg_name *)
