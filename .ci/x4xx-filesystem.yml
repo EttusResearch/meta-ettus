@@ -56,9 +56,8 @@ parameters:
     default: true
 
 variables:
-  - name: OE_LOCALCONF
-    value: '$(Agent.BuildDirectory)/auto.conf'
-
+  - name: AUTO_CONF
+    value: $(Agent.BuildDirectory)/auto.conf
   # DEPLOY_DIR_BASE_URL is the URL where DEPLOY_DIR is accessible
   - name: DEPLOY_DIR_BASE
     value: '$(Agent.BuildDirectory)/deploy'
@@ -107,7 +106,7 @@ jobs:
         - ${{ if parameters.include_internal }}:
           - x4xx-pyrats-bitfiles
           - niusrp2-bitfiles
-      auto_conf: $OE_LOCALCONF
+      auto_conf: $AUTO_CONF
       prebuild_steps:
         - script: |
             export BRANCH_SHORTNAME=$(echo $(Build.SourceBranch) | sed "s|^refs/heads/\(.*\)$|\1|" | sed "s|^refs/pull/\(.*\)/merge$|pr_\1|" | sed "s|[^a-zA-Z0-9.+-]|_|g")
@@ -116,7 +115,7 @@ jobs:
             export DEPLOY_DIR_BUILD="$(System.DefinitionName)/$(System.JobName)/$(Build.Reason)/$BRANCH_SHORTNAME/build-$(Build.BuildNumber)"
             echo "###vso[task.setVariable variable=DEPLOY_DIR_BUILD]$DEPLOY_DIR_BUILD"
 
-            cat <<EOF >$OE_LOCALCONF
+            cat <<EOF >$AUTO_CONF
 
             INHERIT += "rm_work"
 
@@ -136,7 +135,7 @@ jobs:
           displayName: Additional overrides
 
         - script: |
-            cat <<EOF >>$OE_LOCALCONF
+            cat <<EOF >>$AUTO_CONF
 
             CORE_IMAGE_EXTRA_INSTALL += "libniusrp2"
 
@@ -148,6 +147,7 @@ jobs:
         - ${{ if parameters.ext_x4xx_fpga }}:
           - template: templates/oe_localconf_externalsrc_pipeline.yml
             parameters:
+              conf_file: $AUTO_CONF
               pipeline: uhddev-fpga-export-master
               artifacts:
                 - "FPGA image X410_XG_100"
@@ -160,6 +160,7 @@ jobs:
         - ${{ if parameters.ext_x4xx_cpld }}:
           - template: templates/oe_localconf_externalsrc_pipeline.yml
             parameters:
+              conf_file: $AUTO_CONF
               pipeline: uhddev-fpga-export-master
               artifacts:
                 - "MB CPLD image"
@@ -172,6 +173,7 @@ jobs:
         - ${{ if parameters.ext_uhd }}:
           - template: templates/oe_localconf_externalsrc.yml
             parameters:
+              conf_file: $AUTO_CONF
               repository: uhddev
               package_paths:
                 - package: uhd
@@ -182,6 +184,7 @@ jobs:
         - ${{ if parameters.ext_chromiumec }}:
           - template: templates/oe_localconf_externalsrc.yml
             parameters:
+              conf_file: $AUTO_CONF
               repository: chromium-ec
               build_in_src: true
               packages:
@@ -191,6 +194,7 @@ jobs:
         - ${{ if parameters.ext_uboot }}:
           - template: templates/oe_localconf_externalsrc.yml
             parameters:
+              conf_file: $AUTO_CONF
               repository: u-boot
               packages:
                 - u-boot
@@ -199,6 +203,7 @@ jobs:
         - ${{ if parameters.ext_linux }}:
           - template: templates/oe_localconf_externalsrc.yml
             parameters:
+              conf_file: $AUTO_CONF
               repository: linuxdev
               packages:
                 - linux-x4xx

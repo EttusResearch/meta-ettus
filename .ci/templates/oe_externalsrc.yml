@@ -1,8 +1,8 @@
 # oe_externalsrc: helper template for overriding an OE package's source tree
 
 parameters:
-  # absolute path to the local.conf file to write to
-  - name: local_conf
+  # absolute path to the conf file to append to
+  - name: conf_file
     type: string
   # the name of the package to override with externalsrc
   - name: package
@@ -22,13 +22,13 @@ parameters:
 steps:
   - script: |
       extsrc="INHERIT += \"externalsrc\""
-      if ! grep "$extsrc" ${{ parameters.local_conf }} >/dev/null; then
-        echo "$extsrc" >> ${{ parameters.local_conf }}
+      if ! grep "$extsrc" ${{ parameters.conf_file }} >/dev/null; then
+        echo "$extsrc" >> ${{ parameters.conf_file }}
       fi
-      echo "EXTERNALSRC_pn-${{ parameters.package }} = \"${{ parameters.path }}\"" >> ${{ parameters.local_conf }}
+      echo "EXTERNALSRC_pn-${{ parameters.package }} = \"${{ parameters.path }}\"" >> ${{ parameters.conf_file }}
       if [ ${{ parameters.build_in_src }} = True ]; then
-        echo "EXTERNALSRC_BUILD_pn-${{ parameters.package }} = \"${{ parameters.path }}\"" >> ${{ parameters.local_conf }}
+        echo "EXTERNALSRC_BUILD_pn-${{ parameters.package }} = \"${{ parameters.path }}\"" >> ${{ parameters.conf_file }}
       fi
-      cat ${{ parameters.local_conf }}
+      cat ${{ parameters.conf_file }}
     displayName: Setup EXTERNALSRC for ${{ parameters.package }}
     condition: and(succeeded(), ${{ parameters.condition }})

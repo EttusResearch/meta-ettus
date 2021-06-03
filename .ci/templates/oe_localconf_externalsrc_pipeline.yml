@@ -1,8 +1,10 @@
 # Helper template to handle downloading from a pipeline and specifying this
 # as the EXTERNALSRC for the given list of packages.
-# OE_LOCALCONF must be set to the path of the local.conf file to append to
 
 parameters:
+  # absolute path to the conf file to append to
+  - name: conf_file
+    type: string
   # The name of the pipeline to download artifact from
   - name: pipeline
     type: string
@@ -47,11 +49,11 @@ steps:
   - ${{ each pkg in parameters.packages }}:
     - template: oe_externalsrc.yml
       parameters:
-        local_conf: $OE_LOCALCONF
+        conf_file: ${{ parameters.conf_file }}
         package: ${{ pkg }}
         path: $(Agent.BuildDirectory)/${{ parameters.pipeline }}
   - ${{ each pkg in parameters.packages }}:
     - script: |
-        echo "PV_pn-${{ pkg }} = \"${{ parameters.pv_override }}\"" >> $OE_LOCALCONF
+        echo "PV_pn-${{ pkg }} = \"${{ parameters.pv_override }}\"" >> ${{ parameters.conf_file }}
       displayName: Override PV for ${{ pkg }}
       condition: and(succeeded(), ${{ not(eq(parameters.pv_override, '')) }})
