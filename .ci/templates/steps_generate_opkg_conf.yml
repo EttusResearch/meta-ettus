@@ -1,0 +1,34 @@
+parameters:
+  # pipeline to download artifact from
+  - name: pipeline
+    type: string
+  # artifact name, usually $(machineName)-ipks
+  - name: artifact
+    type: string
+  # path to write the configuration to
+  - name: conf_file
+    type: string
+  # architectures and priorities for the feeds. defaults for host are provided
+  - name: architectures
+    type: object
+    default:
+      - arch: all
+        priority: 1
+      - arch: core2-64
+        priority: 6
+      - arch: qemux86_64
+        priority: 11
+
+steps:
+  - download: ${{ parameters.pipeline }}
+    artifact: ${{ parameters.artifact }}
+    displayName: Download ${{ parameters.artifact }} from ${{ parameters.pipeline }}
+  - script: rm -f ${{ parameters.conf_file }}
+  - ${{ each architecture in parameters.architectures }}:
+    - script: |
+        REPO_PATH=$(realpath ${{ parameters.pipeline }}/${{ parameters.artifact }})
+        echo "arch ${{ architecture.arch }} ${{ architecture.priority }}" >> ${{ parameters.conf_file }}
+        echo "src/gz local-${{ architecture.arch }} file://$REPO_PATH/${{ architecture.arch }}" >> ${{ parameters.conf_file }}
+        cat ${{ parameters.conf_file }}
+      displayName: Configure opkg for ${{ architecture.arch }}
+      workingDirectory: $(Agent.BuildDirectory)

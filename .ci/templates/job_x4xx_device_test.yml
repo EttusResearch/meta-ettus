@@ -14,7 +14,7 @@ jobs:
       displayName: 'Checkout meta-ettus-dev'
 
     - download: x4xx-uhddev-oe-build-artifacts
-      artifact: 'IPK files'
+      artifact: 'x4xx-ipks'
       displayName: 'Download IPK files'
 
     - template: steps_load_image.yml
@@ -29,28 +29,32 @@ jobs:
       path: ettus-rts
       displayName: 'Checkout ettus-rts'
 
-    - download: x4xx-uhddev-oe-for-host-artifacts
-      artifact: '$(UHDForHostArtifactName)'
-      displayName: 'Download uhd artifact $(UHDForHostArtifactName)'
+    - template: steps_generate_opkg_conf.yml
+      parameters:
+        pipeline: x4xx-uhddev-oe-for-host-artifacts
+        artifact: '$(UHDForHostArtifactName)'
+        conf_file: $(Agent.BuildDirectory)/opkg-uhddev.conf
+
+    - script: |
+        rm -rf rootfs
+        opkg -f opkg-uhddev.conf -o rootfs update
+        opkg -f opkg-uhddev.conf -o rootfs install python3 python3-mprpc python3-numpy python3-pytest python3-rpyc python3-ruamel-yaml openssh gnuplot python3-gnuplotlib
+        opkg -f opkg-uhddev.conf -o rootfs install uhd python3-uhd uhd-examples uhd-tests
+      workingDirectory: $(Agent.BuildDirectory)
+      displayName: 'Install UHD and Python dependencies on host'
 
     - download: x4xx-gnuradio-oe-for-host-artifacts
       artifact: '$(UHDForHostArtifactName)'
       displayName: 'Download gnuradio artifact $(UHDForHostArtifactName)'
 
-    - script: |
-        cp x4xx-uhddev-oe-for-host-artifacts/$(UHDForHostArtifactName)/base-feeds.conf opkg.conf
-        echo -e "arch all 1\narch core2-64 6\narch qemux86_64 11" >> opkg.conf
-        rm -rf rootfs
-        opkg -f opkg.conf -o rootfs update
-        opkg -f opkg.conf -o rootfs install python3 python3-mprpc python3-numpy python3-pytest python3-rpyc python3-ruamel-yaml openssh gnuplot python3-gnuplotlib
-        opkg -f opkg.conf -o rootfs install uhd python3-uhd uhd-examples uhd-tests
-      workingDirectory: $(Agent.BuildDirectory)
-      displayName: 'Install UHD and Python dependencies on host'
+    - template: steps_generate_opkg_conf.yml
+      parameters:
+        pipeline: x4xx-gnuradio-oe-for-host-artifacts
+        artifact: '$(UHDForHostArtifactName)'
+        conf_file: $(Agent.BuildDirectory)/opkg-gnuradio.conf
 
     - script: |
-        cp x4xx-gnuradio-oe-for-host-artifacts/$(UHDForHostArtifactName)/base-feeds.conf opkg_gnuradio.conf
-        echo -e "arch all 1\narch core2-64 6\narch qemux86_64 11" >> opkg_gnuradio.conf
-        opkg -f opkg_gnuradio.conf -o rootfs update && opkg -f opkg_gnuradio.conf -o rootfs install gnuradio libgnuradio-ettus3.8.0
+        opkg -f opkg-gnuradio.conf -o rootfs update && opkg -f opkg-gnuradio.conf -o rootfs install gnuradio libgnuradio-ettus3.8.0
       workingDirectory: $(Agent.BuildDirectory)
       displayName: 'Install GNURadio on host'
 

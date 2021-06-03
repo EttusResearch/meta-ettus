@@ -5,11 +5,11 @@ trigger: none
 pr: none
 
 variables:
-  UHDForHostArtifactName: 'qemux86-64-feed'
+  UHDForHostArtifactName: 'qemux86_64-ipks'
   ScriptDir: '$(Agent.BuildDirectory)/meta-ettus-dev/contrib/test'
   ConfigFile: '$(Agent.WorkFolder)/config.conf'
   ImagesDirectory: '$(Agent.WorkFolder)/images'
-  IpkDir: '$(Agent.BuildDirectory)/x4xx-uhddev-oe-build-artifacts/IPK files/aarch64'
+  IpkDir: '$(Agent.BuildDirectory)/x4xx-uhddev-oe-build-artifacts/x4xx-ipks/aarch64'
 
 # pipeline triggers
 resources:
