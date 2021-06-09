@@ -39,6 +39,12 @@ parameters:
     type: stepList
     default:
       - script: env
+  - name: use_custom_mender_prefix
+    type: boolean
+    default: false
+  - name: custom_mender_prefix
+    type: string
+    default: 'meta-ettus-fs'
 
 jobs:
   - job: get_usrp_kas_docker_image
@@ -67,7 +73,7 @@ jobs:
         ${{ each machine in parameters.machines }}:
           ${{ machine }}:
             machineName: ${{ machine }}
-    pool: 
+    pool:
       name: Drivers-NIBuildFarm-RFMIBuild
       demands:
         - docker
@@ -77,8 +83,16 @@ jobs:
 
       - name: USRP_KAS_DOCKER_IMAGE
         value: $[ dependencies.get_usrp_kas_docker_image.outputs['dockerVars.USRP_KAS_DOCKER_IMAGE'] ]
+      - name: package_version
+        ${{ if parameters.use_custom_mender_prefix }}:
+          value: '${{ parameters.custom_mender_prefix }}'
+        ${{ if not(parameters.use_custom_mender_prefix) }}:
+          value: '$(Build.BuildNumber)'
       - name: MENDER_ARTIFACT_NAME
-        value: '$(Build.BuildNumber)_$(machineName)'
+        ${{ if parameters.use_custom_mender_prefix }}:
+          value: '${{ parameters.custom_mender_prefix }}_$(machineName)'
+        ${{ if not(parameters.use_custom_mender_prefix) }}:
+          value: '$(Build.BuildNumber)_$(machineName)'
       - ${{ if parameters.cache_downloads }}:
         - name: DL_DIR
           value: '$(Agent.BuildDirectory)/downloads'
@@ -195,7 +209,7 @@ jobs:
           rm -rf ./packages
           mkdir ./packages
           cd ./packages
-          $KAS_BASE_PATH/../contrib/create_packages.sh $(machineName) $MENDER_ARTIFACT_NAME gnuradio-image $KAS_DEPLOY_DIR
+          $KAS_BASE_PATH/../contrib/create_packages.sh $(machineName) $(package_version) gnuradio-image $KAS_DEPLOY_DIR
         workingDirectory: $(Agent.BuildDirectory)
 
       - publish: $(Agent.BuildDirectory)/packages

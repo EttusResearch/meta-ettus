@@ -21,6 +21,12 @@ parameters:
     displayName: Build for release (disables caching, publishes archives)
     type: boolean
     default: false
+  - name: use_custom_mender_prefix
+    type: boolean
+    default: false
+  - name: custom_mender_prefix
+    type: string
+    default: 'meta-ettus-fs'
   - name: build_sdk
     displayName: Build SDK
     type: boolean
@@ -66,6 +72,8 @@ jobs:
       publish_sources: ${{ parameters.release_build }}
       cache_sstate: ${{ and(parameters.cache_sstate, not(parameters.release_build)) }}
       cache_downloads: ${{ and(parameters.cache_downloads, not(parameters.release_build)) }}
+      use_custom_mender_prefix: ${{ parameters.use_custom_mender_prefix }}
+      custom_mender_prefix: ${{ parameters.custom_mender_prefix }}
       machines:
         - ${{ if parameters.build_e310_sg1 }}:
           - e310_sg1
