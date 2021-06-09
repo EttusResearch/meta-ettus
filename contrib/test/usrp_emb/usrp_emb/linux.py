@@ -96,7 +96,7 @@ class Linux:
         self.uart.expect("OK")
         self.uart.expect("#")
 
-    def read_text(self, path):
+    def run_command(self, command):
         class AcceptHostKeyPolicy(MissingHostKeyPolicy):
             def missing_host_key(self, client, hostname, key):
                 return
@@ -113,10 +113,14 @@ class Linux:
             time.sleep(5)
             client.connect(ip, username='root', password='')
 
-        stdin, stdout, stderr = client.exec_command(f"cat {path}")
+        stdin, stdout, stderr = client.exec_command(command)
         text = stdout.read()
+        exit_code = stdout.channel.recv_exit_status()
         client.close()
 
         text = text.decode('utf8')
-        print("read_text: ", text)
+        return text, exit_code
+
+    def read_text(self, path):
+        text, exit_code = self.run_command(f"cat {path}")
         return text
