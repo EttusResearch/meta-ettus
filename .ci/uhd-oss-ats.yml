@@ -27,23 +27,23 @@ resources:
   - pipeline: x4xx-uhddev-oe-build-artifacts
     source: 'x4xx-uhddev-oe-build'
     project: DevCentral
-    branch: titanium-master
+    branch: master
     trigger:
       branches:
         include:
-        - titanium-master
+        - master
   - pipeline: x4xx-uhddev-oe-for-host-artifacts
     source: 'x4xx-uhddev-oe-for-host'
     project: DevCentral
-    branch: titanium-master
+    branch: master
     trigger:
       branches:
         include:
-        - titanium-master
+        - master
   - pipeline: x4xx-gnuradio-oe-for-host-artifacts
     source: 'x4xx-gnuradio-oe-for-host'
     project: DevCentral
-    branch: titanium-master
+    branch: master
 
 pool:
   name: de-dre-lab

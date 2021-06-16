@@ -24,11 +24,10 @@ resources:
     branch: zeus-ci
   - pipeline: x4xx-uhddev-oe-build-artifacts
     source: 'x4xx-uhddev-oe-build'
-    branch: titanium-master
+    branch: master
     trigger:
-      branches:
-        exclude:
-        - master
+      # workaround if no additional branch filter is specified
+      enabled: True
 
 pool:
   name: de-dre-lab

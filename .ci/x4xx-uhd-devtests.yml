@@ -27,7 +27,7 @@ resources:
       enabled: False
   - pipeline: 'x4xx-uhddev-oe-for-host-artifacts'
     source: 'x4xx-uhddev-oe-for-host'
-    branch: titanium-master
+    branch: master
     trigger:
       # workaround if no additional branch filter is specified
       enabled: True
