@@ -6,6 +6,7 @@ IMAGE_INSTALL += " \
     chromium-ec-utils \
     gdbserver \
     libmetal \
+    libnifpga \
     mpmd-tests \
     mtd-utils \
     python3 \
