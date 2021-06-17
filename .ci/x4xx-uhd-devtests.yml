@@ -20,7 +20,7 @@ variables:
 resources:
   pipelines:
   - pipeline: x4xx-filesystem-artifacts
-    source: 'x4xx-filesystem'
+    source: 'usrp-filesystem'
     branch: zeus-ci
     trigger:
       # workaround if no additional branch filter is specified
