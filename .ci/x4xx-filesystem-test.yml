@@ -7,18 +7,22 @@ pr: none
 variables:
   ScriptDir: '$(Build.SourcesDirectory)/contrib/test'
   ConfigFile: '$(Agent.WorkFolder)/config.conf'
+  IpkDir: '$(Agent.BuildDirectory)/x4xx-filesystem-artifacts/$(machineName)-ipks/aarch64'
   USRP_EMB_FTDI_SERIAL: '2516351FE64E' # In use as of February 2021
-  USRP_EMB_IMAGE_PATH: '$(Agent.BuildDirectory)/x4xx-filesystem-artifacts/$(machineName)-images/'
+  USRP_EMB_IMAGE_PATH: '$(Agent.BuildDirectory)/usrp-filesystem-artifacts/$(machineName)-images/'
 
 # pipeline triggers
 resources:
   pipelines:
-  - pipeline: x4xx-filesystem-artifacts
-    source: 'x4xx-filesystem'
+  - pipeline: usrp-filesystem-artifacts
+    source: 'usrp-filesystem'
     branch: zeus-ci
     trigger:
       # workaround if no additional branch filter is specified
       enabled: True
+  - pipeline: x4xx-filesystem-artifacts
+    source: 'x4xx-filesystem'
+    branch: zeus-ci
 
 pool:
   demands:
@@ -41,8 +45,11 @@ jobs:
   steps:
   - checkout: self
 
-  - download: x4xx-filesystem-artifacts
+  - download: usrp-filesystem-artifacts
     artifact: $(machineName)-images
+
+  - download: x4xx-filesystem-artifacts
+    artifact: $(machineName)-ipks
 
   - script: |
       cd $USRP_EMB_IMAGE_PATH
@@ -57,6 +64,9 @@ jobs:
   - template: templates/usrp_emb_run_embedded_tests.yml
   - template: templates/usrp_emb_boot.yml
   - template: templates/steps_run_test.yml
+  - script: $(ScriptDir)/install_packages -t $(machineName) -c $(ConfigFile) -s '$(IpkDir)'
+    displayName: 'Install IPK files'
+    workingDirectory: $(Agent.BuildDirectory)
   - template: templates/steps_run_rio_test.yml
   - template: templates/steps_run_mpm_test.yml
   - template: templates/steps_run_bist.yml

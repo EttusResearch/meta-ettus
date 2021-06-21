@@ -61,6 +61,7 @@ steps:
       kas shell $KAS_CONFIG -c "bitbake -e" > bitbake.env
       export KAS_DEPLOY_DIR=$(grep '^DEPLOY_DIR=' bitbake.env | sed 's/[^"]*"\([^"]*\)"/\1/')
       echo "###vso[task.setVariable variable=KAS_DEPLOY_DIR]"$KAS_DEPLOY_DIR
+      echo $KAS_DEPLOY_DIR
     displayName: Dump environment
     workingDirectory: $(Agent.BuildDirectory)
   - ${{ each target in parameters.targets }}:

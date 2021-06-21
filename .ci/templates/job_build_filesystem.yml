@@ -197,7 +197,7 @@ jobs:
 
           # x4xx specific
           find $KAS_DEPLOY_DIR -type l -name "u-boot-jtag-files.zip" -exec cp {} images \;
-          find $KAS_DEPLOY_DIR -type l -name "chromium-ec-ni-titanium-ec-rev?.bin" -exec cp {} images/ec.bin \;
+          find $KAS_DEPLOY_DIR/../../ -name "ec-titanium-rev*.bin" -exec cp {} images/ \;
           find $KAS_DEPLOY_DIR -type l -name "fitImage-manufacturing-image*" -exec cp {} images/fitImage-manufacturing \;
 
           find images

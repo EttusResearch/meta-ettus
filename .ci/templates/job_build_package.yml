@@ -2,6 +2,9 @@ parameters:
   - name: machines
     type: object
     default: []
+  - name: checkout_meta_ettus
+    type: boolean
+    default: false
   - name: cache_sstate
     type: boolean
     default: true
@@ -14,6 +17,9 @@ parameters:
   - name: auto_conf
     type: string
     default: ""
+  - name: include_internal
+    type: boolean
+    default: false
   - name: prebuild_steps
     type: stepList
     default:
@@ -67,8 +73,9 @@ jobs:
       - checkout: self
         displayName: 'Checkout self'
         persistCredentials: true
-      - checkout: meta-ettus
-        displayName: 'Checkout meta-ettus'
+      - ${{ if parameters.checkout_meta_ettus }}:
+        - checkout: meta-ettus
+          displayName: 'Checkout meta-ettus'
 
       - ${{ if parameters.load_ssh_key }}:
         - task: InstallSSHKey@0
@@ -95,6 +102,8 @@ jobs:
         parameters:
           kas_config:
             - $KAS_BASE_PATH/$(machineName).yml
+            - ${{ if eq(parameters.include_internal, true) }}:
+              - $KAS_BASE_PATH/internal.yml
           build_package_feed: True
           build_default_targets: False
           targets: ${{ parameters.targets }}

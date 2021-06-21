@@ -14,215 +14,28 @@ schedules:
         - zeus-ci
 
 parameters:
-  - name: build_sdk
-    displayName: Build SDK
-    type: boolean
-    default: false
-  - name: ext_x4xx_fpga
-    displayName: Override X4xx FPGAs
-    type: boolean
-    default: false
-  - name: ext_x4xx_cpld
-    displayName: Override X4xx CPLDs
-    type: boolean
-    default: false
-  - name: ext_uhd
-    displayName: Override UHD source
-    type: boolean
-    default: true
-  - name: ext_linux
-    displayName: Override linux source
-    type: boolean
-    default: false
-  - name: ext_uboot
-    displayName: Override uboot source
-    type: boolean
-    default: false
-  - name: ext_chromiumec
-    displayName: Override chromium-ec source
-    type: boolean
-    default: false
   - name: cache_sstate
     displayName: Use pipeline caching for sstate-cache
-    type: boolean
-    default: true
-  - name: cache_downloads
-    displayName: Use pipeline caching for downloads
-    type: boolean
-    default: false
-  - name: include_internal
-    displayName: Include internal packages
     type: boolean
     default: true
 
 variables:
   - name: AUTO_CONF
     value: $(Agent.BuildDirectory)/auto.conf
-  # DEPLOY_DIR_BASE_URL is the URL where DEPLOY_DIR is accessible
-  - name: DEPLOY_DIR_BASE
-    value: '$(Agent.BuildDirectory)/deploy'
-  - name: DEPLOY_DIR_BASE_URL
-    value: 'http://oss-build.ni.corp.natinst.com/'
 
 resources:
-  repositories:
-    - repository: chromium-ec
-      type: github
-      name: EttusResearch/chromium-ec
-      ref: refs/heads/titanium
-      endpoint: EttusResearch
-    - repository: u-boot
-      type: github
-      name: EttusResearch/u-boot
-      ref: refs/heads/titanium-2020.10-mender
-      endpoint: EttusResearch
-    - repository: linuxdev
-      type: github
-      name: EttusResearch/linuxdev
-      ref: refs/heads/titanium-v5.10
-      endpoint: EttusResearch
-    - repository: uhddev
-      type: github
-      name: EttusResearch/uhddev
-      ref: refs/heads/master
-      endpoint: EttusResearch
   pipelines:
-    - pipeline: uhddev-fpga-export-master
-      source: 'EttusResearch.uhddev usrp4-hw Release'
-      branch: master
     - pipeline: usrp-kas-pipeline
       source: 'usrp-kas'
-
 jobs:
-  - template: templates/job_build_filesystem.yml
+  - template: templates/job_build_package.yml
     parameters:
-      build_sdk: ${{ parameters.build_sdk }}
       cache_sstate: ${{ parameters.cache_sstate }}
-      cache_downloads: ${{ parameters.cache_downloads }}
+      include_internal: true
+      auto_conf: $AUTO_CONF
       machines:
         - x4xx
-      include_internal: ${{ parameters.include_internal }}
-      additional_targets:
-        - ${{ if parameters.include_internal }}:
-          - x4xx-pyrats-bitfiles
-          - niusrp2-bitfiles
-      auto_conf: $AUTO_CONF
-      prebuild_steps:
-        - script: |
-            export BRANCH_SHORTNAME=$(echo $(Build.SourceBranch) | sed "s|^refs/heads/\(.*\)$|\1|" | sed "s|^refs/pull/\(.*\)/merge$|pr_\1|" | sed "s|[^a-zA-Z0-9.+-]|_|g")
-            echo $BRANCH_SHORTNAME
-
-            export DEPLOY_DIR_BUILD="$(System.DefinitionName)/$(System.JobName)/$(Build.Reason)/$BRANCH_SHORTNAME/build-$(Build.BuildNumber)"
-            echo "###vso[task.setVariable variable=DEPLOY_DIR_BUILD]$DEPLOY_DIR_BUILD"
-
-            cat <<EOF >$AUTO_CONF
-
-            INHERIT += "rm_work"
-
-            DEPLOY_DIR = "$DEPLOY_DIR_BASE/$DEPLOY_DIR_BUILD"
-
-            # These are only used for x4xx, but are harmless for other targets
-            PMU_FIRMWARE_DEPLOY_DIR = "\${DEPLOY_DIR}/images/zynqmp-pmu"
-            CROS_EC_DEPLOY_DIR_IMAGE = "\${DEPLOY_DIR}/images/\${EC_MACHINE}"
-
-            UHD_BASE_URL = "http://orbitty.amer.corp.natinst.com:9090/binaries/cache"
-
-            PACKAGE_FEED_URIS = "$DEPLOY_DIR_BASE_URL"
-            PACKAGE_FEED_BASE_PATHS = "$DEPLOY_DIR_BUILD/ipk"
-
-            EOF
-          workingDirectory: $(Agent.BuildDirectory)
-          displayName: Additional overrides
-
-        - script: |
-            cat <<EOF >>$AUTO_CONF
-
-            CORE_IMAGE_EXTRA_INSTALL += "libniusrp2"
-
-            EOF
-          workingDirectory: $(Agent.BuildDirectory)
-          displayName: Add internal packages
-          condition: ${{ parameters.include_internal }}
-
-        - ${{ if parameters.ext_x4xx_fpga }}:
-          - template: templates/oe_localconf_externalsrc_pipeline.yml
-            parameters:
-              conf_file: $AUTO_CONF
-              pipeline: uhddev-fpga-export-master
-              artifacts:
-                - "FPGA image X410_XG_100"
-                - "FPGA image X410_X4_200"
-              packages:
-                - uhd-fpga-images
-              pv_override: "4.0+$(resources.pipeline.uhddev-fpga-export-master.runName)"
-              flatten: true
-
-        - ${{ if parameters.ext_x4xx_cpld }}:
-          - template: templates/oe_localconf_externalsrc_pipeline.yml
-            parameters:
-              conf_file: $AUTO_CONF
-              pipeline: uhddev-fpga-export-master
-              artifacts:
-                - "MB CPLD image"
-                - "ZR CPLD image"
-              packages:
-                - uhd-cpld-images
-              pv_override: "4.0+$(resources.pipeline.uhddev-fpga-export-master.runName)"
-              flatten: true
-
-        - ${{ if parameters.ext_uhd }}:
-          - template: templates/oe_localconf_externalsrc.yml
-            parameters:
-              conf_file: $AUTO_CONF
-              repository: uhddev
-              package_paths:
-                - package: uhd
-                  path: host
-                - package: mpmd
-                  path: mpm
-
-        - ${{ if parameters.ext_chromiumec }}:
-          - template: templates/oe_localconf_externalsrc.yml
-            parameters:
-              conf_file: $AUTO_CONF
-              repository: chromium-ec
-              build_in_src: true
-              packages:
-                - chromium-ec
-                - chromium-ec-utils
-
-        - ${{ if parameters.ext_uboot }}:
-          - template: templates/oe_localconf_externalsrc.yml
-            parameters:
-              conf_file: $AUTO_CONF
-              repository: u-boot
-              packages:
-                - u-boot
-                - u-boot-fw-utils
-
-        - ${{ if parameters.ext_linux }}:
-          - template: templates/oe_localconf_externalsrc.yml
-            parameters:
-              conf_file: $AUTO_CONF
-              repository: linuxdev
-              packages:
-                - linux-x4xx
-
-      postbuild_steps:
-        - task: CopyFilesOverSSH@0
-          inputs:
-            sshEndpoint: meta-ettus-deploy
-            sourceFolder: $(Agent.BuildDirectory)/images
-            targetFolder: /mnt/data/buildresults/$(DEPLOY_DIR_BUILD)/images
-            overwrite: False
-          displayName: Copy images to server
-
-        - task: CopyFilesOverSSH@0
-          inputs:
-            sshEndpoint: meta-ettus-deploy
-            sourceFolder: $(KAS_DEPLOY_DIR)/ipk
-            targetFolder: /mnt/data/buildresults/$(DEPLOY_DIR_BUILD)/ipk
-            overwrite: False
-          displayName: Copy ipks to server
-
-        - template: templates/publish_urls.yml
+      targets:
+        - libniusrp2:do_package_write_ipk
+        - niusrp2-bitfiles:do_package_write_ipk
+        - x4xx-pyrats-bitfiles:do_package_write_ipk
