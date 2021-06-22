@@ -4,7 +4,7 @@ COMPATIBLE_MACHINE_ni-titanium-ec = "ni-titanium-ec"
 CROS_EC_BOARD_ni-titanium-ec = "titanium"
 
 # Rev E and later
-SRC_URI_ni-titanium-ec = "git://git@github.com/EttusResearch/chromium-ec-x400.git;branch=titanium;protocol=ssh"
+SRC_URI_ni-titanium-ec = "git://github.com/EttusResearch/usrp-firmware.git;branch=titanium"
 SRCREV_ni-titanium-ec = "11efcf3e6ac055cc894837e080a5eead26d58f45"
 
 # Rev D
