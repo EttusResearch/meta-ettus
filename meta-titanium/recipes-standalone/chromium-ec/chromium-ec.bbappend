@@ -13,23 +13,3 @@ LIC_FILES_CHKSUM_ni-titanium-ec = "file://LICENSE;md5=877fdcdaa5a0636e67b479c793
 do_compile_ni-titanium-ec() {
     oe_runmake BOARD=${CROS_EC_BOARD}
 }
-
-DEPENDS_ni-titanium-ec += "zip-native"
-
-FLASH_FILES_LINK_ni-titanium-ec = "scu-flash-files-${MACHINE}"
-FLASH_FILES_ni-titanium-ec = "scu-flash-files-${MACHINE}${IMAGE_VERSION_SUFFIX}"
-FLASH_FILES[vardepsexclude] = "IMAGE_VERSION_SUFFIX"
-
-do_install_append_ni-titanium-ec() {
-  # prepare
-  cp ${S}/board/titanium/openocd-flash.cfg ${WORKDIR}/openocd-flash-titanium.cfg
-  sed -i "/^add_script_search_dir/d" ${WORKDIR}/openocd-flash-titanium.cfg
-  sed -i "s|\$BUILD_DIR/ec\.bin|ec.bin|" ${WORKDIR}/openocd-flash-titanium.cfg
-  zip -j ${WORKDIR}/${FLASH_FILES}.zip ${S}/board/titanium/titanium-mcu-jtag.cfg \
-      ${WORKDIR}/openocd-flash-titanium.cfg ${B}/build/titanium/ec.bin
-}
-
-do_deploy_append_ni-titanium-ec() {
-  install -m 0644 ${WORKDIR}/${FLASH_FILES}.zip ${DEPLOYDIR}/${FLASH_FILES}.zip
-  ln -sf ${FLASH_FILES}.zip ${DEPLOYDIR}/${FLASH_FILES_LINK}.zip
-}
