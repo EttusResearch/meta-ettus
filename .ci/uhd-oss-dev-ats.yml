@@ -20,7 +20,7 @@ resources:
     name: EttusResearch/ettus-rts
     ref: $(EttusRtsBranch)
   pipelines:
-  - pipeline: x4xx-filesystem-artifacts
+  - pipeline: usrp-filesystem-artifacts
     source: 'usrp-filesystem'
     project: DevCentral
     branch: zeus-ci

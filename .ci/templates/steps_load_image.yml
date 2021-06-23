@@ -4,12 +4,12 @@ steps:
     displayName: 'Unmount NFS on server (to be save)'
     workingDirectory: $(Agent.BuildDirectory)
 
-  - download: x4xx-filesystem-artifacts
+  - download: usrp-filesystem-artifacts
     artifact: $(System.JobName)-images
 
   - script: |
-      IMAGE=$(basename $(ls $(Agent.BuildDirectory)/x4xx-filesystem-artifacts/$(System.JobName)-images/*.sdimg.bz2))
-      cp -f $(Agent.BuildDirectory)/x4xx-filesystem-artifacts/$(System.JobName)-images/$IMAGE .
+      IMAGE=$(basename $(ls $(Agent.BuildDirectory)/usrp-filesystem-artifacts/$(System.JobName)-images/*.sdimg.bz2))
+      cp -f $(Agent.BuildDirectory)/usrp-filesystem-artifacts/$(System.JobName)-images/$IMAGE .
       EXT4=${IMAGE%%.*}.ext4
       $(ScriptDir)/extract_ext4.sh $IMAGE
       ln -sf $EXT4 $(System.JobName).ext4

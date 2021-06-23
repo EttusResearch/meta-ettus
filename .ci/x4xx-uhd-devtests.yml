@@ -19,7 +19,7 @@ variables:
 # pipeline triggers
 resources:
   pipelines:
-  - pipeline: x4xx-filesystem-artifacts
+  - pipeline: usrp-filesystem-artifacts
     source: 'usrp-filesystem'
     branch: zeus-ci
     trigger:
