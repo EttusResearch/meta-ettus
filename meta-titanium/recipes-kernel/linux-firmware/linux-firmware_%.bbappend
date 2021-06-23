@@ -35,7 +35,6 @@ RDEPENDS_${PN}-ni-titanium-fpga = "uhd-fpga-images-titanium-firmware"
 
 EC_MACHINE ??= "unknown"
 EC_MACHINE_ni-titanium-rev5 = "ni-titanium-ec-rev5"
-EC_BOARD_REV_ni-titanium-rev5 = "5"
 EC_MULTICONFIG ??= "ni-titanium-ec"
 
 CROS_EC_DEPLOY_DIR_IMAGE ?= "${TOPDIR}/tmp-stm32-baremetal/deploy/images/${EC_MACHINE}"
@@ -48,10 +47,7 @@ do_install_append_ni-titanium() {
     install -D -m 0644 ${WORKDIR}/chromium-ec-ni-titanium-ec-rev4.RW.bin ${D}/lib/firmware/ni/ec-titanium-rev4.RW.bin
 
     # install embedded controller (ec) firmware
-    install -D -m 0644 ${CROS_EC_DEPLOY_DIR_IMAGE}/chromium-ec-${EC_MACHINE}.bin \
-        ${D}/lib/firmware/ni/ec-titanium-rev${EC_BOARD_REV}.bin
-    install -D -m 0644 ${CROS_EC_DEPLOY_DIR_IMAGE}/chromium-ec-${EC_MACHINE}.RW.bin \
-        ${D}/lib/firmware/ni/ec-titanium-rev${EC_BOARD_REV}.RW.bin
+    install -D -m 0644 ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-titanium-rev*.bin ${D}/lib/firmware/ni
 
     install -m 0644 ${WORKDIR}/LICENSE.ec-titanium ${D}/lib/firmware/ni/LICENSE.ec-titanium
 }
