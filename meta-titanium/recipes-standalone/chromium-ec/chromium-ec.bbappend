@@ -10,11 +10,8 @@ PATCHTOOL = "git"
 
 LIC_FILES_CHKSUM_ni-titanium-ec = "file://LICENSE;md5=877fdcdaa5a0636e67b479c79335a6d1"
 
-EC_BOARD_REV_ni-titanium-ec-rev4 = "4"
-EC_BOARD_REV_ni-titanium-ec-rev5 = "5"
-
 do_compile_ni-titanium-ec() {
-    oe_runmake BOARD=${CROS_EC_BOARD} BOARD_REV=${EC_BOARD_REV}
+    oe_runmake BOARD=${CROS_EC_BOARD}
 }
 
 DEPENDS_ni-titanium-ec += "zip-native"
