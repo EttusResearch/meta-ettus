@@ -14,7 +14,7 @@ variables:
   ScriptDir: '$(Build.SourcesDirectory)/contrib/test'
   ConfigFile: '$(Agent.WorkFolder)/config.conf'
   ImagesDirectory: '$(Agent.WorkFolder)/images'
-  UHDForHostArtifactName: 'qemux86-64-feed'
+  UHDForHostArtifactName: 'qemux86_64-ipks'
 
 # pipeline triggers
 resources:
@@ -46,9 +46,11 @@ jobs:
   steps:
   - checkout: self
 
-  - download: 'x4xx-uhddev-oe-for-host-artifacts'
-    artifact: '$(UHDForHostArtifactName)'
-    displayName: 'Download artifact $(UHDForHostArtifactName)'
+  - template: templates/steps_generate_opkg_conf.yml
+    parameters:
+      pipeline: x4xx-uhddev-oe-for-host-artifacts
+      artifact: '$(UHDForHostArtifactName)'
+      conf_file: $(Agent.BuildDirectory)/opkg-uhddev.conf
 
   # - template: templates/steps_load_image.yml
   - template: templates/steps_mount_image.yml

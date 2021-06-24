@@ -1,10 +1,8 @@
 steps:
   - script: |
-      cp x4xx-uhddev-oe-for-host-artifacts/$(UHDForHostArtifactName)/base-feeds.conf opkg.conf
-      echo -e "arch all 1\narch core2-64 6\narch qemux86_64 11" >> opkg.conf
       rm -rf rootfs
-      opkg -f opkg.conf -o uhd-rootfs update
-      opkg -f opkg.conf -o uhd-rootfs install uhd uhd-examples uhd-tests python3-numpy python3-uhd
+      opkg -f opkg-uhddev.conf -o uhd-rootfs update
+      opkg -f opkg-uhddev.conf -o uhd-rootfs install uhd uhd-examples uhd-tests python3-numpy python3-uhd
       echo "**" > uhd-rootfs/.artifactignore
       echo "!log_*.log" >> uhd-rootfs/.artifactignore
       echo "!results_*.log" >> uhd-rootfs/.artifactignore

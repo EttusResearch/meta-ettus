@@ -14,7 +14,7 @@ variables:
   ScriptDir: '$(Build.SourcesDirectory)/contrib/test'
   ConfigFile: '$(Agent.WorkFolder)/config.conf'
   ImagesDirectory: '$(Agent.WorkFolder)/images'
-  IpkDir: '$(Agent.BuildDirectory)/x4xx-uhddev-oe-build-artifacts/IPK files/aarch64'
+  IpkDir: '$(Agent.BuildDirectory)/x4xx-uhddev-oe-build-artifacts/x4xx-ipks/aarch64'
 
 # pipeline triggers
 resources:
@@ -46,7 +46,7 @@ jobs:
   - checkout: self
 
   - download: x4xx-uhddev-oe-build-artifacts
-    artifact: 'IPK files'
+    artifact: 'x4xx-ipks'
     displayName: 'Download IPK files'
 
   - template: templates/steps_load_image.yml
