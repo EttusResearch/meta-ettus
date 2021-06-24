@@ -44,3 +44,4 @@ patch 0043-fpga-add-led-trigger-for-operating-state.patch
 patch 0044-arm64-zynqmp-Add-support-for-Ettus-X410.patch
 patch 0001-net-nixge-start-dma-chans-after-request_irq.patch
 patch 0002-net-nixge-use-nixge_device_reset-helper.patch
+patch 0001-arm64-zynqmp-add-support-for-Rev-6.patch

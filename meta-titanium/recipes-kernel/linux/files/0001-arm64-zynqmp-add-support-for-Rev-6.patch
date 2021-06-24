@@ -1,0 +1,37 @@
+From d0ffb9e5d6f305a958b780b4788a51d57ee3dd13 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Wed, 23 Jun 2021 10:45:13 -0500
+Subject: [PATCH] arm64: zynqmp: add support for Rev 6
+
+Device tree is identical to that of Rev 5.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ arch/arm64/boot/dts/ni/Makefile      | 1 +
+ arch/arm64/boot/dts/ni/x410-rev6.dts | 1 +
+ 2 files changed, 2 insertions(+)
+ create mode 120000 arch/arm64/boot/dts/ni/x410-rev6.dts
+
+diff --git a/arch/arm64/boot/dts/ni/Makefile b/arch/arm64/boot/dts/ni/Makefile
+index dc31ee479b50..82bdf8396bf6 100644
+--- a/arch/arm64/boot/dts/ni/Makefile
++++ b/arch/arm64/boot/dts/ni/Makefile
+@@ -3,6 +3,7 @@ dtb-$(CONFIG_ARCH_ZYNQMP) += x410-rev2.dtb
+ dtb-$(CONFIG_ARCH_ZYNQMP) += x410-rev3.dtb
+ dtb-$(CONFIG_ARCH_ZYNQMP) += x410-rev4.dtb
+ dtb-$(CONFIG_ARCH_ZYNQMP) += x410-rev5.dtb
++dtb-$(CONFIG_ARCH_ZYNQMP) += x410-rev6.dtb
+ dtb-$(CONFIG_ARCH_ZYNQMP) += x4xx-db0-db-flash.dtbo
+ dtb-$(CONFIG_ARCH_ZYNQMP) += x4xx-db1-db-flash.dtbo
+ 
+diff --git a/arch/arm64/boot/dts/ni/x410-rev6.dts b/arch/arm64/boot/dts/ni/x410-rev6.dts
+new file mode 120000
+index 000000000000..ad701b03a499
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x410-rev6.dts
+@@ -0,0 +1 @@
++x410-rev5.dts
+\ No newline at end of file
+-- 
+2.29.2
+
