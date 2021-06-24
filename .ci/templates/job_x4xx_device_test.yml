@@ -78,6 +78,7 @@ jobs:
         echo "nitest:x:$UID:" >> $PWD/rootfs/etc/group
         echo "nitest:x:$UID:$UID:nitest,,,:/home/nitest:/bin/bash" >> $PWD/rootfs/etc/passwd
         cp -r $(Agent.BuildDirectory)/ettus-rts/config/remote/python_tests/. $PWD/rootfs
+        cp /etc/resolv.conf $PWD/rootfs/etc/
         linux-user-chroot --mount-bind /dev/shm /dev/shm $PWD/rootfs uhd_find_devices
         linux-user-chroot --mount-bind /dev/shm /dev/shm $PWD/rootfs /usr/bin/python3 automated_main.py --ats_config $(AtsConfig) --results_path 'ettus-rts-results'
       workingDirectory: $(Agent.BuildDirectory)
