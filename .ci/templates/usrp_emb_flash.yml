@@ -10,3 +10,8 @@ steps:
       displayName: Flash eMMC
       script: |
         usrp_emb_x4xx_flash_emmc
+  - template: usrp_emb_venv_run.yml
+    parameters:
+      displayName: Update CPLD
+      script: |
+        usrp_emb_x4xx_update_cpld
