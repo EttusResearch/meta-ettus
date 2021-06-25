@@ -35,6 +35,7 @@ setup(
             'usrp_emb_bist_xml=usrp_emb.bist_results:main',
             'usrp_emb_x4xx_flash_scu=usrp_emb.test_x4xx:flash_scu',
             'usrp_emb_x4xx_flash_emmc=usrp_emb.test_x4xx:flash_emmc',
+            'usrp_emb_x4xx_update_cpld=usrp_emb.test_x4xx:update_cpld',
             'usrp_emb_x4xx_boot_linux=usrp_emb.test_x4xx:boot_linux',
             'usrp_emb_x4xx_mender_update=usrp_emb.test_x4xx:mender_update',
             'usrp_emb_test_x4xx=usrp_emb.test_x4xx:embedded_tests',

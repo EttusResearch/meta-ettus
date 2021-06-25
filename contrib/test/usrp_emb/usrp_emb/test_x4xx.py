@@ -63,6 +63,26 @@ def flash_emmc():
         ti.linux.poweroff()
 
 
+def update_cpld():
+    with Titanium(FTDI_SERIAL) as ti:
+        ti.crosec.reboot()
+        ti.crosec.powerbtn()
+        ti.uboot.wait_for_uboot()
+        ti.linux.login()
+
+        output, code = ti.linux.run_command('x4xx_update_cpld')
+        print(output)
+        if code != 0:
+            raise RuntimeError("x4xx_cpld_update failed")
+        output, code = ti.linux.run_command('zbx_update_cpld')
+        print(output)
+        if code != 0:
+            raise RuntimeError("zbx_cpld_update failed")
+
+        ti.linux.poweroff()
+        ti.crosec.reboot()
+
+
 def boot_and_login(ti):
     """ Helper to boot normally and get the target IP """
     ti.crosec.reboot()
