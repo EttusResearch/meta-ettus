@@ -39,6 +39,10 @@ parameters:
     displayName: Use pipeline caching for downloads
     type: boolean
     default: false
+  - name: ext_linux
+    displayName: Override linux source
+    type: boolean
+    default: false
   - name: build_e310_sg1
     displayName: Build e310_sg1
     type: boolean
@@ -64,6 +68,16 @@ resources:
   pipelines:
     - pipeline: usrp-kas-pipeline
       source: 'usrp-kas'
+  repositories:
+    - repository: linuxdev
+      type: github
+      name: EttusResearch/linuxdev
+      ref: refs/heads/usrp-v5.10
+      endpoint: EttusResearch
+
+variables:
+  - name: AUTO_CONF
+    value: $(Agent.BuildDirectory)/auto.conf
 
 jobs:
   - template: templates/job_build_filesystem.yml
@@ -85,3 +99,19 @@ jobs:
           - n3xx
         - ${{ if parameters.build_x4xx }}:
           - x4xx
+      auto_conf: $AUTO_CONF
+      prebuild_steps:
+        - ${{ if parameters.ext_linux }}:
+          - script: |
+              rm $AUTO_CONF
+              cat <<EOF >>$AUTO_CONF
+              PREFERRED_PROVIDER_virtual/kernel = "linux-usrp"
+              PREFERRED_VERSION_linux-yocto = "5.10%"
+              KBUILD_DEFCONFIG = "usrp_defconfig"
+              EOF
+          - template: templates/oe_localconf_externalsrc.yml
+            parameters:
+              conf_file: $AUTO_CONF
+              repository: linuxdev
+              packages:
+                - linux-usrp
