@@ -4,7 +4,7 @@ COMPATIBLE_MACHINE_ni-titanium-ec = "ni-titanium-ec"
 CROS_EC_BOARD_ni-titanium-ec = "titanium"
 
 SRC_URI_ni-titanium-ec = "git://github.com/EttusResearch/usrp-firmware.git;branch=titanium"
-SRCREV_ni-titanium-ec = "696971149a8b642d8918796bb80d4af44fcc7dcf"
+SRCREV_ni-titanium-ec = "2ba974b2d45a36e41cb6a67b9013e88192b5bd9f"
 
 PATCHTOOL = "git"
 
