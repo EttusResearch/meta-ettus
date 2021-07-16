@@ -77,6 +77,7 @@ echo "Found SD card image: $_sdimg"
 echo "Copying SD card image to tmp dir..."
 mkdir -p $TMP_DIR
 cp -v $_sdimg $TMP_DIR/$_sdimg_file_name
+bzip2 $TMP_DIR/$_sdimg_file_name
 if [ -r $_sdimg.bmap ]; then
 	cp -v $_sdimg.bmap $TMP_DIR/$_sdimg_file_name.bmap
 fi
