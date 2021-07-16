@@ -89,6 +89,16 @@ if [ ! -z $_recovery_file_name ]; then
 		exit 1
 	fi
 	cp -v $_recovery $TMP_DIR/$_recovery_file_name
+
+	_fitImage=`find $_deploy_dir/images -name fitImage-manufacturing-image* -type l`
+	echo $_fitImage
+	if [ ! -r $_fitImage ]; then
+		echo "ERROR: Could not find fitImage-manufacturing-image"
+		exit 1
+	fi
+	cp $_fitImage $TMP_DIR/fitImage
+	zip -j $TMP_DIR/$_recovery_file_name $TMP_DIR/fitImage
+	rm -f $TMP_DIR/fitImage
 fi
 echo "Zipping up SD image package..."
 (cd $TMP_DIR; zip $_sdimg_pkg_name *)
