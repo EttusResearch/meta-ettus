@@ -51,6 +51,9 @@ do_install_append_ni-titanium() {
 	mv ${D}/boot ${D}/uboot
 }
 
+do_deploy[mcdepends] = "multiconfig:ni-titanium:ni-titanium-ec:chromium-ec:do_deploy"
+CROS_EC_DEPLOY_DIR_IMAGE ?= "${TOPDIR}/tmp-stm32-baremetal/deploy/images/ni-titanium-ec-rev5"
+
 do_deploy_append_ni-titanium() {
   # prepare a zip file which includes all necessary files for loading u-boot
   # via JTAG
@@ -59,7 +62,8 @@ do_deploy_append_ni-titanium() {
   UBOOT_JTAG_FILES_SYMLINK2=u-boot-jtag-files.zip
   zip -j -MM ${DEPLOYDIR}/${UBOOT_JTAG_FILES_TARGET} \
     ${WORKDIR}/boot_u-boot ${WORKDIR}/boot_u-boot.tcl ${B}/pmu-firmware.elf \
-    ${B}/spl/u-boot-spl.bin ${B}/bl31.elf ${B}/u-boot.elf
+    ${B}/spl/u-boot-spl.bin ${B}/bl31.elf ${B}/u-boot.elf \
+    ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-titanium-rev*.bin
   ln -sf ${UBOOT_JTAG_FILES_TARGET} ${DEPLOYDIR}/${UBOOT_JTAG_FILES_SYMLINK1}
   ln -sf ${UBOOT_JTAG_FILES_TARGET} ${DEPLOYDIR}/${UBOOT_JTAG_FILES_SYMLINK2}
 }
