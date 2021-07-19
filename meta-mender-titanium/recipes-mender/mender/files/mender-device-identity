@@ -1,15 +1,3 @@
 #!/bin/sh
 
-BASE="/sys/bus/platform/devices/"
-I2C_MB="ff020000.i2c:cros-ec@3c:eeprom-i2c-tunnel"
-
-get_nvmem_path () {
-        find "$BASE/$1/" -name nvmem
-}
-
-nvmem=$(get_nvmem_path $I2C_MB)
-if [ -f "$nvmem" ]; then
-  if [ -e /usr/bin/eeprom-id ]; then
-    eeprom-id $nvmem
-  fi
-fi
+eeprom-id mb
