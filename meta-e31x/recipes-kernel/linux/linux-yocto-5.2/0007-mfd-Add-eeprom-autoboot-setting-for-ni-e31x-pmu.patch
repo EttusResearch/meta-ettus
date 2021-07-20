@@ -1,22 +1,47 @@
-commit 952cf98a94d513d66faf808a1fd544579ec72610
+commit d8f67af2efc3e527d77a6576422d47b75adae6bc
 Author: Steven Koo <steven.koo@ni.com>
-Date:   Fri May 21 15:33:12 2021 +0000
+Date:   Thu Jul 22 15:18:06 2021 +0000
 
     mfd: Add eeprom autoboot setting for ni-e31x-pmu
-
+    
     This change adds support to modify the autoboot eeprom setting for the
     pmu.
-
+    
     Signed-off-by: Steven Koo <steven.koo@ni.com>
 
 diff --git a/drivers/mfd/e31x-pmu.c b/drivers/mfd/e31x-pmu.c
-index 80f77422b01b..20f94243d6d4 100644
+index 80f77422b01b..3373708b17b4 100644
 --- a/drivers/mfd/e31x-pmu.c
 +++ b/drivers/mfd/e31x-pmu.c
-@@ -53,18 +53,77 @@ static int e31x_pmu_check_version(struct e31x_pmu *pmu)
+@@ -30,10 +30,10 @@ struct e31x_pmu {
+        struct regmap *regmap;
+ };
+ 
+-static int e31x_pmu_check_version(struct e31x_pmu *pmu)
++static int e31x_pmu_check_version(struct platform_device *pdev, struct e31x_pmu *pmu)
+ {
+        int timeout = 100;
+-       u32 misc, maj;
++       u32 misc, maj, min;
+        int err;
+        /* we need to wait a bit for firmware to populate the fields */
+        while (timeout--) {
+@@ -48,26 +48,103 @@ static int e31x_pmu_check_version(struct e31x_pmu *pmu)
+ 
+        /* only firmware versions above 2.0 are supported */
+        maj = E31X_PMU_GET_FIELD(MISC_VERSION_MAJ, misc);
+-       if (maj < 2)
++       min = E31X_PMU_GET_FIELD(MISC_VERSION_MIN, misc);
++       if (maj < 2) {
++               dev_err(&pdev->dev, "Unsupported firmware version %u.%u\n", maj, min);
+                return -ENOTSUPP;
++       } else {
++               dev_info(&pdev->dev, "Found firmware version %u.%u\n", maj, min);
++       }
++
         return 0;
  }
-
+ 
 +static ssize_t autoboot_store(struct device *dev,
 +              struct device_attribute *attr, const char *buf, size_t size)
 +{
@@ -75,20 +100,44 @@ index 80f77422b01b..20f94243d6d4 100644
 +
  static int e31x_pmu_probe(struct platform_device *pdev)
  {
++       int ret;
         struct e31x_pmu *pmu;
         pmu = devm_kzalloc(&pdev->dev, sizeof(*pmu), GFP_KERNEL);
         if (!pmu)
                 return -ENOMEM;
 -   	   pmu->regmap = syscon_regmap_lookup_by_phandle(pdev->dev.of_node, "regmap");
 +       platform_set_drvdata(pdev, pmu);
-+       pdev->dev.groups = e31x_pmu_groups;
 +       pmu->regmap = syscon_regmap_lookup_by_phandle(pdev->dev.of_node, "regmap");
-
+ 
         if (IS_ERR(pmu->regmap))
                 return PTR_ERR(pmu->regmap);
-        if (e31x_pmu_check_version(pmu))
+-       if (e31x_pmu_check_version(pmu))
++       if (e31x_pmu_check_version(pdev, pmu))
                 return -ENOTSUPP;
++
++       ret = sysfs_create_group(&pdev->dev.kobj, &e31x_pmu_group);
++       if (ret) {
++              dev_err(&pdev->dev, "sysfs creation failed\n");
++              return ret;
++       }
 +
         return devm_of_platform_populate(&pdev->dev);
  }
-
+ 
++static int e31x_pmu_remove(struct platform_device *pdev)
++{
++       sysfs_remove_group(&pdev->dev.kobj, &e31x_pmu_group);
++       return 0;
++}
++
+ static const struct of_device_id e31x_pmu_id[] = {
+        { .compatible = "ni,e31x-pmu" },
+        {},
+@@ -79,6 +156,7 @@ static struct platform_driver e31x_pmu_driver = {
+                .of_match_table = e31x_pmu_id,
+        },
+        .probe = e31x_pmu_probe,
++       .remove = e31x_pmu_remove,
+ };
+ module_platform_driver(e31x_pmu_driver);
+ 
