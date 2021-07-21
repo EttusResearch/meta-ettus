@@ -45,6 +45,12 @@ jobs:
   steps:
   - checkout: self
 
+  - script: |
+      rm -rf x4xx-filesystem-artifacts
+      rm -rf usrp-filesystem-artifacts
+    displayName: Cleanup from prior run
+    workingDirectory: $(Agent.BuildDirectory)
+
   - download: usrp-filesystem-artifacts
     artifact: $(machineName)-images
 
