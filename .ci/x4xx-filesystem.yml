@@ -12,6 +12,7 @@ schedules:
     branches:
       include:
         - zeus-ci
+    always: true
 
 parameters:
   - name: cache_sstate
