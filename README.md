@@ -68,14 +68,14 @@ for the various supported USRP devices. The script relies on [kas](https://githu
 orchestrates environment and dependency setup for building the images.
 
 We recommend building USRP images with the offical kas docker images. You can
-get those [here](ghcr.io/siemens/kas/kas).
+get those [here](https://ghcr.io/siemens/kas/kas).
 
 From the top level of this repository, run ``./contrib/kas_build_imgs_package.sh``
 without arguments to get the help message of this script.
 
 Run the script, e.g., for the N310:
 
-    ./meta-ettus/contrib/build_imgs_package.sh n3xx v4.1.0.0
+    ./meta-ettus/contrib/kas_build_imgs_package.sh n3xx v4.1.0.0
 
 This will setup the environment, build, and zip up the filesystem image,
 the SDK, and the Mender artifact.
@@ -84,12 +84,12 @@ Building an Image using the Alchemy distro and kas
 ==================================================
 
 We recommend building USRP images with the offical kas docker images. You can
-get those [here](ghcr.io/siemens/kas/kas) or use
+get those [here](https://ghcr.io/siemens/kas/kas) or use
 [kas-container](https://github.com/siemens/kas/blob/master/kas-container), which helps automate the container.
 
 To build an image with kas, call
 
-    kas build ./kas/\[devicename\].yml
+    kas build ./kas/[devicename].yml
 
 The yml files define properties and dependencies for the images. You can override
 these by setting environment variables. For example, you can change the mender
