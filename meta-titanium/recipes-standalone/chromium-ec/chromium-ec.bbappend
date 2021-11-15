@@ -19,6 +19,11 @@ do_deploy_ni-titanium-ec() {
     install -m 0644 ${B}/build/titanium/ec.bin ${DEPLOYDIR}/ec-titanium-rev6.bin
     install -m 0644 ${B}/build/titanium/RW/ec.RW.bin ${DEPLOYDIR}/ec-titanium-rev6.RW.bin
 
+    # rev7 files are just symlinks to rev6 since nothing changed between
+    # rev 6 and 7 for the SCU.
+    lnr ${DEPLOYDIR}/ec-titanium-rev6.bin ${DEPLOYDIR}/ec-titanium-rev7.bin
+    lnr ${DEPLOYDIR}/ec-titanium-rev6.RW.bin ${DEPLOYDIR}/ec-titanium-rev7.RW.bin
+
     install -m 0644 ${B}/build/titanium-rev5/ec.bin ${DEPLOYDIR}/ec-titanium-rev5.bin
     install -m 0644 ${B}/build/titanium-rev5/RW/ec.RW.bin ${DEPLOYDIR}/ec-titanium-rev5.RW.bin
 }
