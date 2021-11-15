@@ -1,0 +1,35 @@
+From 749822eb4746c6d86a0effd39e925c0f50813c85 Mon Sep 17 00:00:00 2001
+From: Virendra Kakade <virendra.kakade@ni.com>
+Date: Mon, 15 Nov 2021 13:32:33 -0600
+Subject: [PATCH] arm64: zynqmp: add support for Rev 7
+
+Device tree is identical to rev 6.
+---
+ arch/arm64/boot/dts/ni/Makefile      | 1 +
+ arch/arm64/boot/dts/ni/x410-rev7.dts | 1 +
+ 2 files changed, 2 insertions(+)
+ create mode 120000 arch/arm64/boot/dts/ni/x410-rev7.dts
+
+diff --git a/arch/arm64/boot/dts/ni/Makefile b/arch/arm64/boot/dts/ni/Makefile
+index 82bdf8396bf6..0a14119bf98c 100644
+--- a/arch/arm64/boot/dts/ni/Makefile
++++ b/arch/arm64/boot/dts/ni/Makefile
+@@ -4,6 +4,7 @@ dtb-$(CONFIG_ARCH_ZYNQMP) += x410-rev3.dtb
+ dtb-$(CONFIG_ARCH_ZYNQMP) += x410-rev4.dtb
+ dtb-$(CONFIG_ARCH_ZYNQMP) += x410-rev5.dtb
+ dtb-$(CONFIG_ARCH_ZYNQMP) += x410-rev6.dtb
++dtb-$(CONFIG_ARCH_ZYNQMP) += x410-rev7.dtb
+ dtb-$(CONFIG_ARCH_ZYNQMP) += x4xx-db0-db-flash.dtbo
+ dtb-$(CONFIG_ARCH_ZYNQMP) += x4xx-db1-db-flash.dtbo
+ 
+diff --git a/arch/arm64/boot/dts/ni/x410-rev7.dts b/arch/arm64/boot/dts/ni/x410-rev7.dts
+new file mode 120000
+index 000000000000..3aab65f387dc
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x410-rev7.dts
+@@ -0,0 +1 @@
++x410-rev6.dts
+\ No newline at end of file
+-- 
+2.25.1
+
