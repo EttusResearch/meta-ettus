@@ -70,18 +70,22 @@ def update_cpld():
         ti.uboot.wait_for_uboot()
         ti.linux.login()
 
-        output, code = ti.linux.run_command('x4xx_update_cpld')
-        print(output)
-        if code != 0:
-            raise RuntimeError("x4xx_cpld_update failed")
-        output, code = ti.linux.run_command('zbx_update_cpld')
-        print(output)
-        if code != 0:
-            raise RuntimeError("zbx_cpld_update failed")
+        error = None
+
+        try:
+            ti.linux.run_command_and_print('x4xx_update_cpld')
+        except RuntimeError as e:
+            error = e
+        try:
+            ti.linux.run_command_and_print('zbx_update_cpld')
+        except RuntimeError as e:
+            error = e
 
         ti.linux.poweroff()
         ti.crosec.reboot()
 
+        if error:
+            raise error
 
 def boot_and_login(ti):
     """ Helper to boot normally and get the target IP """
