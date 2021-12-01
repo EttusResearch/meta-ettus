@@ -113,13 +113,22 @@ class Linux:
             time.sleep(5)
             client.connect(ip, username='root', password='')
 
-        stdin, stdout, stderr = client.exec_command(command)
-        text = stdout.read()
+        _, stdout, stderr = client.exec_command(command)
+        stdout_text = stdout.read().decode('utf-8')
+        stderr_text = stderr.read().decode('utf-8')
         exit_code = stdout.channel.recv_exit_status()
         client.close()
 
-        text = text.decode('utf8')
-        return text, exit_code
+        return stdout_text, stderr_text, exit_code
+
+    def run_command_and_print(self, command):
+        print("*** running command '{}' ***".format(command))
+        stdout_text, stderr_text, code = self.run_command(command)
+        print("*** command '{}' returned with exit code {}".format(command, code))
+        print("*** stdout begin ***", stdout_text, "*** stdout end ***", sep='\n')
+        print("*** stderr begin ***", stderr_text, "*** stderr end ***", sep='\n')
+        if code != 0:
+            raise RuntimeError("command '{}' failed with exit code {}".format(command, code))
 
     def read_text(self, path):
         text, exit_code = self.run_command(f"cat {path}")
