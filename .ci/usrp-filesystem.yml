@@ -21,6 +21,10 @@ parameters:
     displayName: Build for release (disables caching, publishes archives)
     type: boolean
     default: false
+  - name: upload_packages_to_fileserver
+    displayName: "Upload packages to fileserver"
+    type: boolean
+    default: false
   - name: use_custom_mender_prefix
     type: boolean
     default: false
@@ -82,6 +86,7 @@ variables:
 jobs:
   - template: templates/job_build_filesystem.yml
     parameters:
+      upload_packages_to_fileserver: ${{ parameters.upload_packages_to_fileserver }}
       build_sdk: ${{ parameters.build_sdk }}
       cache_sstate: ${{ and(parameters.cache_sstate, not(parameters.release_build)) }}
       cache_downloads: ${{ and(parameters.cache_downloads, not(parameters.release_build)) }}

@@ -2,6 +2,9 @@ parameters:
   - name: machines
     type: object
     default: []
+  - name: upload_packages_to_fileserver
+    type: boolean
+    default: false
   - name: build_sdk
     type: boolean
     default: false
@@ -210,6 +213,14 @@ jobs:
       - publish: $(Agent.BuildDirectory)/packages
         artifact: "$(machineName)-packages"
         displayName: Publish packages
+
+      - task: CopyFilesOverSSH@0
+        inputs:
+          sshEndpoint: ettus-fileserver
+          sourceFolder: $(Agent.BuildDirectory)/packages
+          targetFolder: "~/fromPipelines/$(Build.DefinitionName)/$(Build.BuildNumber)/$(machineName)"
+        condition: and(succeeded(), ${{ parameters.upload_packages_to_fileserver }})
+        displayName: Copy packages to fileserver
 
       - publish: $(Agent.BuildDirectory)/images
         artifact: "$(machineName)-images"
