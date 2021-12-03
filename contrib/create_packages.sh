@@ -29,6 +29,7 @@ case $_requested_device in
 		_sdimg_pkg_name=n3xx_common_sdimg_default-$_artifact_name.zip
 		_mender_pkg_name=n3xx_common_mender_default-$_artifact_name.zip
 		_sdk_pkg_name=n3xx_common_sdk_default-$_artifact_name.zip
+		_sources_pkg_name=n3xx_common_sources_default-$_artifact_name.zip
 		_device=sulfur
 	;;
 	"e320")
@@ -37,6 +38,7 @@ case $_requested_device in
 		_sdimg_pkg_name=e3xx_e320_sdimg_default-$_artifact_name.zip
 		_mender_pkg_name=e3xx_e320_mender_default-$_artifact_name.zip
 		_sdk_pkg_name=e3xx_e320_sdk_default-$_artifact_name.zip
+		_sources_pkg_name=e3xx_e320_sources_default-$_artifact_name.zip
 		_device=neon
 	;;
 	"e310_sg1")
@@ -44,6 +46,7 @@ case $_requested_device in
 		_mender_file_name=usrp_e310_fs.mender
 		_sdimg_pkg_name=e3xx_e310_sg1_sdimg_default-$_artifact_name.zip
 		_mender_pkg_name=e3xx_e310_sg1_mender_default-$_artifact_name.zip
+		_sources_pkg_name=e3xx_e310_sg1_sources_default-$_artifact_name.zip
 		_device=e31x-sg1
 	;;
 	"e310_sg3")
@@ -52,6 +55,7 @@ case $_requested_device in
 		_sdimg_pkg_name=e3xx_e310_sg3_sdimg_default-$_artifact_name.zip
 		_mender_pkg_name=e3xx_e310_sg3_mender_default-$_artifact_name.zip
 		_sdk_pkg_name=e3xx_e310_sdk_default-$_artifact_name.zip
+		_sources_pkg_name=e3xx_e310_sources_default-$_artifact_name.zip
 		_device=e31x-sg3
 	;;
 	"x4xx")
@@ -61,6 +65,7 @@ case $_requested_device in
 		_sdimg_pkg_name=x4xx_common_sdimg_default-$_artifact_name.zip
 		_mender_pkg_name=x4xx_common_mender_default-$_artifact_name.zip
 		_sdk_pkg_name=x4xx_common_sdk_default-$_artifact_name.zip
+		_sources_pkg_name=x4xx_common_sources_default-$_artifact_name.zip
 		_device=titanium
 	;;
 	*)
@@ -127,22 +132,34 @@ if [ ! -z $_sdk_pkg_name ]; then
 	_sdk=`find $_deploy_dir/sdk -name "oecore*.sh" -type f`
 	if [ ! -r $_sdk ]; then
 		echo "WARNING: Could not find SDK!"
-		exit 0
+	else
+		echo "Found SDK: $_sdk"
+		_sdkpath=`dirname $_sdk`
+		echo "Found SDK in: $_sdkpath. Files:"
+		ls $_sdkpath
+		# Prefix all files with device
+		for f in `ls $_sdkpath`
+		do
+			_base=`basename $f`
+			cp -v $_sdkpath/$_base $TMP_DIR/$_requested_device-$_base
+		done
+		echo "Zipping up SDK..."
+		zip -j $TMP_DIR/$_sdk_pkg_name $TMP_DIR/*.{sh,manifest,json}
+		mv $TMP_DIR/*.zip $DST_DIR
+		rm $TMP_DIR/*
 	fi
-	echo "Found SDK: $_sdk"
-	_sdkpath=`dirname $_sdk`
-	echo "Found SDK in: $_sdkpath. Files:"
-	ls $_sdkpath
-	# Prefix all files with device
-	for f in `ls $_sdkpath`
-	do
-		_base=`basename $f`
-		cp -v $_sdkpath/$_base $TMP_DIR/$_requested_device-$_base
-	done
-	echo "Zipping up SDK..."
-	zip -j $TMP_DIR/$_sdk_pkg_name $TMP_DIR/*.{sh,manifest,json}
-	mv $TMP_DIR/*.zip $DST_DIR
-	rm $TMP_DIR/*
+fi
+
+if [! -d "$_deploy_dir/sources" ]; then
+	echo "WARNING: Could not find Sources!"
+else
+	echo "Found Sources in: $_deploy_dir/sources. Files:"
+	ls $_deploy_dir/sources
+	echo "Zipping up Sources..."
+	_rootpath=`pwd`
+	pushd $_deploy_dir/sources
+	zip -r $_rootpath/$DST_DIR/$_sources_pkg_name .
+	popd
 fi
 
 rmdir $TMP_DIR
