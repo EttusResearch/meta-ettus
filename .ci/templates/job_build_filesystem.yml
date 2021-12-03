@@ -2,10 +2,6 @@ parameters:
   - name: machines
     type: object
     default: []
-  # Whether the sources directory (from OE's archiver) should be published.
-  - name: publish_sources
-    type: boolean
-    default: false
   - name: build_sdk
     type: boolean
     default: false
@@ -146,13 +142,12 @@ jobs:
           touch $(Agent.BuildDirectory)/site.conf
         displayName: create site.conf
 
-      - ${{ if parameters.publish_sources }}:
-        - script: |
-            cat <<EOF >>$(Agent.BuildDirectory)/site.conf
-            INHERIT += "archiver"
-            ARCHIVER_MODE[src] = "original"
-            EOF
-          displayName: Enable archiver
+      - script: |
+          cat <<EOF >>$(Agent.BuildDirectory)/site.conf
+          INHERIT += "archiver"
+          ARCHIVER_MODE[src] = "original"
+          EOF
+        displayName: Enable archiver to generate sources
 
       - ${{ if parameters.ccache }}:
         - script: |
@@ -223,11 +218,6 @@ jobs:
       - publish: $(KAS_DEPLOY_DIR)/ipk
         artifact: "$(machineName)-ipks"
         displayName: Publish ipks
-
-      - publish: $(KAS_DEPLOY_DIR)/sources
-        artifact: "$(System.JobName)-sources"
-        displayName: Publish sources
-        condition: and(succeeded(), ${{ parameters.publish_sources }})
 
       - ${{ parameters.postbuild_steps }}
 
