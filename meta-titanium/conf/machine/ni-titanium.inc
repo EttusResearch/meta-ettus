@@ -1,3 +1,5 @@
+PREFERRED_PROVIDER_virtual/kernel ?= "linux-x4xx"
+
 require conf/machine/ni-zynqmp.inc
 
 MACHINEOVERRIDES = "zynqmp:ni-titanium:${MACHINE}"
@@ -46,8 +48,6 @@ KERNEL_CLASSES += "kernel-fitimage"
 KERNEL_IMAGETYPE = "fitImage"
 INITRAMFS_IMAGE = "manufacturing-image"
 INITRAMFS_IMAGE_BUNDLE = "1"
-
-PREFERRED_PROVIDER_virtual/kernel = "linux-x4xx"
 
 EXTRA_IMAGEDEPENDS_append_ni-titanium = " \
                                         virtual/bootloader \
