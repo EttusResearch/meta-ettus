@@ -638,7 +638,7 @@
 # Note: file:// repos will be treated as a remote, so refs you want used must
 # exist in that repo as *local* refs.
 #gitfs_remotes:
-#  - git://github.com/saltstack/salt-states.git
+#  - git://github.com/saltstack/salt-states.git;protocol=https
 #  - file:///var/git/saltmaster
 #
 # The gitfs_ssl_verify option specifies whether to ignore ssl certificate

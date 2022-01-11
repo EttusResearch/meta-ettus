@@ -9,7 +9,7 @@ LIC_FILES_CHKSUM = "file://COPYING;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 DEPENDS = "sysfsutils"
 
 SRC_URI = "\
-    git://github.com/nhorman/rng-tools.git \
+    git://github.com/nhorman/rng-tools.git;protocol=https \
     file://init \
     file://default \
     file://rngd.service \
