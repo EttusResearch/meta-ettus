@@ -22,7 +22,7 @@ repos:
       meta-titanium:
       meta-mender-titanium:
   meta-openamp:
-    url: git://github.com/OpenAMP/meta-openamp
+    url: https://github.com/OpenAMP/meta-openamp
     refspec: 0dd544e649850d4cd95c1a1b9714a5238b41fc93
     patches:
       patch0:
@@ -35,10 +35,10 @@ repos:
         repo: meta-ettus
         path: kas/patches/meta-openamp/0003-conf-layer-comment-changed-LICENSE_PATH.patch
   meta-stm32:
-    url: git://github.com/EttusResearch/meta-stm32
+    url: https://github.com/EttusResearch/meta-stm32
     refspec: 2eb3aa0d2eae688c5aa8c73137ee650a84854969
   meta-xilinx:
-    url: git://github.com/Xilinx/meta-xilinx
+    url: https://github.com/Xilinx/meta-xilinx
     refspec: b82343ac5f013926839627cee9dae7106c008ae9
     layers:
       meta-xilinx-bsp:

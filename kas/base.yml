@@ -17,13 +17,13 @@ repos:
       meta-ettus-core:
       meta-alchemy:
   bitbake:
-    url: git://github.com/openembedded/bitbake
+    url: https://github.com/openembedded/bitbake
     refspec: ef29309d0b512b64d024e383e7baff22c727711c
     path: bitbake
     layers:
       .: excluded
   meta-openembedded:
-    url: git://github.com/openembedded/meta-openembedded
+    url: https://github.com/openembedded/meta-openembedded
     refspec: bb65c27a772723dfe2c15b5e1b27bcc1a1ed884c
     path: meta-oe
     layers:
@@ -32,7 +32,7 @@ repos:
       meta-networking:
       meta-python:
   openembedded-core:
-    url: git://github.com/openembedded/openembedded-core
+    url: https://github.com/openembedded/openembedded-core
     refspec: f39285bb82e68945a81034b84da09ca1078d6719
     path: oe-core
     layers:
@@ -48,7 +48,7 @@ repos:
         repo: meta-ettus
         path: kas/patches/oe-core/0002-microblaze-tune-Allow-no-version-to-be-set.patch
   meta-mender:
-    url: git://github.com/mendersoftware/meta-mender
+    url: https://github.com/mendersoftware/meta-mender
     refspec: 8c451e26aa867ec62f8e8a3db30a3ab2cce6ef83
     layers:
       meta-mender-core:
@@ -58,8 +58,8 @@ repos:
     layers:
       meta-tpm:
   meta-qt5:
-    url: git://github.com/meta-qt5/meta-qt5
+    url: https://github.com/meta-qt5/meta-qt5
     refspec: 0bdbb344bc0a7261d76d715e570ddc2ecfefae58
   meta-sdr:
-    url: git://github.com/EttusResearch/meta-sdr
+    url: https://github.com/EttusResearch/meta-sdr
     refspec: 556df72b1e36a83478f4f3f221f54011cafebaee
