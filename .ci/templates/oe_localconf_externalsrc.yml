@@ -5,7 +5,8 @@ parameters:
   # absolute path to the conf file to append to
   - name: conf_file
     type: string
-  # The name of the repository to check out
+  # The name of the repository to check out. 'self' is a special value that will use the triggered repository.
+  # If 'self' selected, checkout must already have been done by calling yml to default path.
   - name: repository
     type: string
   # The list of packages to configure to use this repository to build
@@ -16,10 +17,6 @@ parameters:
   - name: package_paths
     type: object
     default: []
-  # String to control conditional execution of this template
-  - name: condition
-    type: string
-    default: "true"
   # Whether EXTERNALSRC_BUILD should be set as well
   - name: build_in_src
     type: boolean
@@ -27,24 +24,42 @@ parameters:
 
 steps:
   - checkout: ${{ parameters.repository }}
-    path: s/${{ parameters.repository }}
-    target: host
-    displayName: Checkout ${{ parameters.repository }}
-    fetchDepth: 1
-    condition: and(succeeded(), ${{ parameters.condition }})
+    condition: and(succeeded(), ${{ ne(parameters.repository, 'self') }})
+
+  # This script takes the repo name from azdo and strips
+  # the leading strings before the last '/'. As an example if
+  # $(Build.Repository.Name) = 'EttusResearch/uhddev'
+  # the output will be 'uhddev'. This is used to determine
+  # the path later in the checkout self case.
+  - script: |
+      echo "Repository name: $BUILD_REPO_NAME"
+      build_repo_name_path=$(echo $BUILD_REPO_NAME | sed 's/.*\///')
+      echo "Repository name path: $build_repo_name_path"
+      echo "##vso[task.setvariable variable=buildRepoNamePath;isOutput=true;]$build_repo_name_path"
+    condition: and(succeeded(), ${{ eq( parameters.repository, 'self' ) }})
+    env:
+      BUILD_REPO_NAME: $(Build.Repository.Name)
+    name: getSelfPath
+    displayName: Get Path to Self Repo
+
   - ${{ each pkg in parameters.packages }}:
     - template: oe_externalsrc.yml
       parameters:
         conf_file: ${{ parameters.conf_file }}
         package: ${{ pkg }}
-        path: $(Build.SourcesDirectory)/${{ parameters.repository }}
+        ${{ if eq( parameters.repository, 'self' ) }}:
+          path: $(Build.SourcesDirectory)/$(getSelfPath.buildRepoNamePath)
+        ${{ else }}:
+          path: $(Build.SourcesDirectory)/${{ parameters.repository }}
         build_in_src: ${{ parameters.build_in_src }}
-        condition: and(succeeded(), ${{ parameters.condition }})
+
   - ${{ each pkg in parameters.package_paths }}:
     - template: oe_externalsrc.yml
       parameters:
         conf_file: ${{ parameters.conf_file }}
         package: ${{ pkg.package }}
-        path: $(Build.SourcesDirectory)/${{ parameters.repository }}/${{ pkg.path }}
+        ${{ if eq( parameters.repository, 'self' ) }}:
+          path: $(Build.SourcesDirectory)/$(getSelfPath.buildRepoNamePath)/${{ pkg.path }}
+        ${{ else }}:
+          path: $(Build.SourcesDirectory)/${{ parameters.repository }}/${{ pkg.path }}
         build_in_src: ${{ parameters.build_in_src }}
-        condition: and(succeeded(), ${{ parameters.condition }})

@@ -44,6 +44,9 @@ parameters:
   - name: custom_mender_prefix
     type: string
     default: 'meta-ettus-fs'
+  - name: run_from_external_repo
+    type: boolean
+    default: False
 
 jobs:
   - job: get_usrp_kas_docker_image
@@ -108,9 +111,14 @@ jobs:
       endpoint: 'Docker / Artifactory - rnd-builds-local'
 
     steps:
-      - checkout: self
-        displayName: 'Checkout meta-ettus'
-        persistCredentials: true
+      - ${{ if parameters.run_from_external_repo }}:
+        - checkout: self
+          persistCredentials: true
+        - checkout: meta-ettus
+          persistCredentials: true
+      - ${{ else }}:
+        - checkout: self
+          persistCredentials: true
 
       - ${{ if parameters.load_ssh_key }}:
         - task: InstallSSHKey@0
@@ -209,6 +217,7 @@ jobs:
           cd ./packages
           $KAS_BASE_PATH/../contrib/create_packages.sh $(machineName) $(package_version) gnuradio-image $KAS_DEPLOY_DIR
         workingDirectory: $(Agent.BuildDirectory)
+        displayName: Create packages
 
       - publish: $(Agent.BuildDirectory)/packages
         artifact: "$(machineName)-packages"
@@ -236,4 +245,8 @@ jobs:
           rm -rf $(Agent.BuildDirectory)/build
           rm -rf $(Agent.BuildDirectory)/images
           rm -rf $(Agent.BuildDirectory)/packages
+          rm -rf $(Agent.BuildDirectory)/logs
+          rm -f $(Agent.BuildDirectory)/logs.tar*
+          rm -f $(Agent.BuildDirectory)/site.conf
         displayName: Cleanup
+        condition: always()
