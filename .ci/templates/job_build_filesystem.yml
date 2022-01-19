@@ -20,9 +20,6 @@ parameters:
   - name: include_internal
     type: boolean
     default: false
-  - name: additional_targets
-    type: object
-    default: []
   - name: auto_conf
     type: string
     default: ""
@@ -160,6 +157,12 @@ jobs:
 
       - script: |
           cat <<EOF >>$(Agent.BuildDirectory)/site.conf
+          TESTRESULTS_DIR = "$(Common.TestResultsDirectory)"
+          EOF
+        displayName: Pass test directory var
+
+      - script: |
+          cat <<EOF >>$(Agent.BuildDirectory)/site.conf
           INHERIT += "archiver"
           ARCHIVER_MODE[src] = "original"
           EOF
@@ -193,7 +196,8 @@ jobs:
           site_conf: $(Agent.BuildDirectory)/site.conf
           build_package_feed: True
           build_sdk: ${{ parameters.build_sdk }}
-          targets: ${{ parameters.additional_targets }}
+          targets:
+            - uhd:do_run_tests
 
       - script: |
           rm -rf ./images
@@ -243,6 +247,14 @@ jobs:
       - publish: $(KAS_DEPLOY_DIR)/ipk
         artifact: "$(machineName)-ipks"
         displayName: Publish ipks
+
+      - task: PublishTestResults@2
+        inputs:
+          testResultsFormat: cTest
+          testResultsFiles: $(Common.TestResultsDirectory)/uhd/Testing/**/Test.xml
+          failTaskOnFailedTests: true
+          testRunTitle: uhd ctest meta-ettus-$(machineName)
+        displayName: Publish uhd meta-ettus-$(machineName) ctest results
 
       - ${{ parameters.postbuild_steps }}
 
