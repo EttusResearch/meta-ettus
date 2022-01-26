@@ -61,7 +61,7 @@ class Linux:
         self.uart.expect("#")
         old_timeout = self.uart.timeout
         self.uart.timeout = 900
-        self.uart.sendline(f"bmaptool -q copy {url} {dest}; echo bmaptool finished: $?")
+        self.uart.sendline(f"bmaptool -q copy --nobmap {url} {dest}; echo bmaptool finished: $?")
         self.uart.expect('bmaptool finished: 0')
         self.uart.timeout = old_timeout
 
