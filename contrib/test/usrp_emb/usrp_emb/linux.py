@@ -131,5 +131,5 @@ class Linux:
             raise RuntimeError("command '{}' failed with exit code {}".format(command, code))
 
     def read_text(self, path):
-        text, exit_code = self.run_command(f"cat {path}")
-        return text
+        stdout_text, stderr_text, exit_code = self.run_command(f"cat {path}")
+        return stdout_text
