@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import time
+import pexpect
 from paramiko.client import MissingHostKeyPolicy
 from paramiko.client import SSHClient
 
@@ -36,7 +37,7 @@ class Linux:
         return dev
 
     def wait_for_power_down(self):
-        self.uart.expect('reboot: Power down')
+        self.uart.expect(['reboot: Power down', pexpect.EOF])
 
     def wait_for_panic(self):
         self.uart.expect('Kernel panic')
