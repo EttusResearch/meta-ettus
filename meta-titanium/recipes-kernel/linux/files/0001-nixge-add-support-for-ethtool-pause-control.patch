@@ -1,0 +1,85 @@
+From 9c604bfe632800651bd3c0338d8ca66f0b279fcc Mon Sep 17 00:00:00 2001
+From: Andrew Lynch <andrew.lynch@ni.com>
+Date: Tue, 30 Nov 2021 13:28:22 -0600
+Subject: [PATCH] nixge: add support for ethtool pause control
+
+---
+ drivers/net/ethernet/ni/nixge.c | 41 +++++++++++++++++++++++++++++++++
+ 1 file changed, 41 insertions(+)
+
+diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
+index ac74eee1b5f2..e02801779b4d 100755
+--- a/drivers/net/ethernet/ni/nixge.c
++++ b/drivers/net/ethernet/ni/nixge.c
+@@ -82,6 +82,11 @@
+ #define NIXGE_ID_LED_CTL_EN	BIT(0)
+ #define NIXGE_ID_LED_CTL_VAL	BIT(1)
+ 
++#define NIXGE_INFO_MGT_PROTOCOL_MASK	0x0000FF00
++#define NIXGE_INFO_MGT_PROTOCOL_SHIFT 	0x8
++#define NIXGE_INFO_MGT_PROTOCOL_100GbE	0x5
++#define NIXGE_CTL_TX_GLOBAL_PAUSE 	BIT(24)
++
+ #define NIXGE_MDIO_CLAUSE45	BIT(12)
+ #define NIXGE_MDIO_CLAUSE22	0
+ #define NIXGE_MDIO_OP(n)     (((n) & 0x3) << 10)
+@@ -202,6 +207,8 @@ struct nixge_priv {
+ 
+ 	u32 coalesce_count_rx;
+ 	u32 coalesce_count_tx;
++
++	bool tx_pause_enable;
+ };
+ 
+ static void nixge_dma_write_reg(struct nixge_priv *priv, off_t offset, u32 val)
+@@ -1063,6 +1070,38 @@ static int nixge_ethtool_get_link_ksettings(struct net_device *dev,
+ 	return phylink_ethtool_ksettings_get(priv->phylink, cmd);
+ }
+ 
++static void nixge_ethtool_get_pauseparam(struct net_device *dev,
++		                        struct ethtool_pauseparam *pause)
++{
++	struct nixge_priv *priv = netdev_priv(dev);
++
++	pause->autoneg = AUTONEG_DISABLE;
++	pause->rx_pause = 0;
++	pause->tx_pause = priv->tx_pause_enable;
++}
++
++static int nixge_ethtool_set_pauseparam(struct net_device *dev,
++                                        struct ethtool_pauseparam *pause)
++{
++	struct nixge_priv *priv = netdev_priv(dev);
++	u32 ctrl = 0;
++	u32 mgt_protocol;
++	mgt_protocol = nixge_ctrl_read_reg(priv, NIXGE_REG_INFO);
++	mgt_protocol &= NIXGE_INFO_MGT_PROTOCOL_MASK;
++	mgt_protocol >>= NIXGE_INFO_MGT_PROTOCOL_SHIFT;
++	if (mgt_protocol == NIXGE_INFO_MGT_PROTOCOL_100GbE) {
++		if (pause->tx_pause) {
++			priv->tx_pause_enable = 1;
++			ctrl |= NIXGE_CTL_TX_GLOBAL_PAUSE;
++		} else {
++			priv->tx_pause_enable = 0;
++			ctrl &= ~NIXGE_CTL_TX_GLOBAL_PAUSE;
++		}
++		nixge_ctrl_write_reg(priv, NIXGE_REG_MAC_CTL, ctrl);
++	}
++	return 0;
++}
++
+ static const struct ethtool_ops nixge_ethtool_ops = {
+ 	.supported_coalesce_params = ETHTOOL_COALESCE_MAX_FRAMES,
+ 	.get_drvinfo    = nixge_ethtools_get_drvinfo,
+@@ -1072,6 +1111,8 @@ static const struct ethtool_ops nixge_ethtool_ops = {
+ 	.get_link_ksettings     = nixge_ethtool_get_link_ksettings,
+ 	.set_link_ksettings     = nixge_ethtool_set_link_ksettings,
+ 	.get_link		= ethtool_op_get_link,
++	.get_pauseparam         = nixge_ethtool_get_pauseparam,
++	.set_pauseparam         = nixge_ethtool_set_pauseparam,
+ };
+ 
+ static int nixge_mdio_read(struct mii_bus *bus, int phy_id, int reg)
+-- 
+2.17.1
+

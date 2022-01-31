@@ -46,3 +46,4 @@ patch 0001-net-nixge-start-dma-chans-after-request_irq.patch
 patch 0002-net-nixge-use-nixge_device_reset-helper.patch
 patch 0001-arm64-zynqmp-add-support-for-Rev-6.patch
 patch 0001-arm64-zynqmp-add-support-for-Rev-7.patch
+patch 0001-nixge-add-support-for-ethtool-pause-control.patch
