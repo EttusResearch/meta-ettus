@@ -96,20 +96,20 @@ def boot_and_login(ti):
 
 
 def check_mender_config_sanity(ti):
-    var_conf = ti.linux.read_text('/var/lib/mender/mender.conf')
-    etc_conf = ti.linux.read_text('/etc/mender/mender.conf')
+    var_conf = ti.linux.read_text_serial('/var/lib/mender/mender.conf')
+    etc_conf = ti.linux.read_text_serial('/etc/mender/mender.conf')
 
     # Two cases:
     #  - fresh install, no mender updates: etc_conf contains the partition
     #    info, var_conf is empty
     #  - after an update: var_conf contains the partition info
     #
-    if var_conf == '':
-        conf = etc_conf
-    else:
-        conf = var_conf
+    try:
+        conf = json.loads(var_conf)
+    except ValueError:
+        # JSON str invalid. var_conf probably empty.
+        conf = json.loads(etc_conf)
 
-    conf = json.loads(conf)
     assert conf['RootfsPartA'] == '/dev/mmcblk0p2'
     assert conf['RootfsPartB'] == '/dev/mmcblk0p3'
 
@@ -120,10 +120,10 @@ def mender_update():
 
         boot_and_login(ti)
 
+        check_mender_config_sanity(ti)
+
         ip = ti.linux.get_eth0_addr()
         print(ip)
-
-        check_mender_config_sanity(ti)
 
         orig_rootdev = ti.linux.get_root_dev()
         print("orig rootdev: ", orig_rootdev)
@@ -150,13 +150,13 @@ def mender_update():
         ti.uboot.wait_for_uboot()
         ti.linux.login()
 
+        check_mender_config_sanity(ti)
+
         rootdev = ti.linux.get_root_dev()
         print("rootdev: ", rootdev)
         assert rootdev in POSSIBLE_ROOTDEVS
 
         assert new_rootdev == rootdev
-
-        check_mender_config_sanity(ti)
 
 
 def boot_linux():
