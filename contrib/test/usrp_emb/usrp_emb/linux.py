@@ -134,3 +134,12 @@ class Linux:
     def read_text(self, path):
         stdout_text, stderr_text, exit_code = self.run_command(f"cat {path}")
         return stdout_text
+
+    def read_text_serial(self, path):
+        # Disable stderr in case file doesn't exist
+        self.uart.sendline(f"cat {path} 2> /dev/null")
+        self.uart.expect("root@")
+        text = self.uart.before.split(b'\r\n', 1)[1].decode('ascii')
+        self.uart.expect("#")
+        # This removes the first line which is the command prompt
+        return text
