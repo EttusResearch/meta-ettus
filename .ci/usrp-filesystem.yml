@@ -82,40 +82,49 @@ resources:
 variables:
   - name: AUTO_CONF
     value: $(Agent.BuildDirectory)/auto.conf
+stages:
+- stage: build_meta_ettus
+  displayName: Build meta-ettus
+  dependsOn: []
+  jobs:
+    - template: templates/job_build_filesystem.yml
+      parameters:
+        upload_packages_to_fileserver: ${{ parameters.upload_packages_to_fileserver }}
+        build_sdk: ${{ parameters.build_sdk }}
+        cache_sstate: ${{ and(parameters.cache_sstate, not(parameters.release_build)) }}
+        cache_downloads: ${{ and(parameters.cache_downloads, not(parameters.release_build)) }}
+        use_custom_mender_prefix: ${{ parameters.use_custom_mender_prefix }}
+        custom_mender_prefix: ${{ parameters.custom_mender_prefix }}
+        machines:
+          - ${{ if parameters.build_e310_sg1 }}:
+            - e310_sg1
+          - ${{ if parameters.build_e310_sg3 }}:
+            - e310_sg3
+          - ${{ if parameters.build_e320 }}:
+            - e320
+          - ${{ if parameters.build_n3xx }}:
+            - n3xx
+          - ${{ if parameters.build_x4xx }}:
+            - x4xx
+        auto_conf: $AUTO_CONF
+        prebuild_steps:
+          - ${{ if parameters.ext_linux }}:
+            - script: |
+                rm $AUTO_CONF
+                cat <<EOF >>$AUTO_CONF
+                PREFERRED_PROVIDER_virtual/kernel = "linux-usrp"
+                PREFERRED_VERSION_linux-yocto = "5.10%"
+                KBUILD_DEFCONFIG = "usrp_defconfig"
+                EOF
+            - template: templates/oe_localconf_externalsrc.yml
+              parameters:
+                conf_file: $AUTO_CONF
+                repository: linuxdev
+                packages:
+                  - linux-usrp
 
-jobs:
-  - template: templates/job_build_filesystem.yml
-    parameters:
-      upload_packages_to_fileserver: ${{ parameters.upload_packages_to_fileserver }}
-      build_sdk: ${{ parameters.build_sdk }}
-      cache_sstate: ${{ and(parameters.cache_sstate, not(parameters.release_build)) }}
-      cache_downloads: ${{ and(parameters.cache_downloads, not(parameters.release_build)) }}
-      use_custom_mender_prefix: ${{ parameters.use_custom_mender_prefix }}
-      custom_mender_prefix: ${{ parameters.custom_mender_prefix }}
-      machines:
-        - ${{ if parameters.build_e310_sg1 }}:
-          - e310_sg1
-        - ${{ if parameters.build_e310_sg3 }}:
-          - e310_sg3
-        - ${{ if parameters.build_e320 }}:
-          - e320
-        - ${{ if parameters.build_n3xx }}:
-          - n3xx
-        - ${{ if parameters.build_x4xx }}:
-          - x4xx
-      auto_conf: $AUTO_CONF
-      prebuild_steps:
-        - ${{ if parameters.ext_linux }}:
-          - script: |
-              rm $AUTO_CONF
-              cat <<EOF >>$AUTO_CONF
-              PREFERRED_PROVIDER_virtual/kernel = "linux-usrp"
-              PREFERRED_VERSION_linux-yocto = "5.10%"
-              KBUILD_DEFCONFIG = "usrp_defconfig"
-              EOF
-          - template: templates/oe_localconf_externalsrc.yml
-            parameters:
-              conf_file: $AUTO_CONF
-              repository: linuxdev
-              packages:
-                - linux-usrp
+- stage: x4xx_hardware_test
+  displayName: Run x4xx hardware test
+  dependsOn: build_meta_ettus
+  jobs:
+    - template: templates/job_x4xx_filesystem_test.yml

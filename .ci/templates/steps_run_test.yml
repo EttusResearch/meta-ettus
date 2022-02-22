@@ -14,5 +14,5 @@ steps:
       searchFolder: '$(Agent.BuildDirectory)/usrp_test'
 
   - publish: '$(Agent.BuildDirectory)/usrp_test'
-    artifact: 'usrp_test $(System.JobName)'
+    artifact: 'usrp_test $(System.JobName) run $(System.JobAttempt)'
     displayName: 'Publish usrp_test'

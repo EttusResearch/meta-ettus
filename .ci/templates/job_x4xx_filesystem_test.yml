@@ -1,0 +1,52 @@
+
+parameters:
+  - name: mender_update
+    displayName: Perform Mender update instead of flashing
+    default: false
+    type: boolean
+
+jobs:
+- job: 'test'
+  timeoutInMinutes: 120
+  strategy:
+    matrix:
+      x4xx:
+        machineName: x4xx
+
+  variables:
+    ScriptDir: '$(Build.SourcesDirectory)/contrib/test'
+    ConfigFile: '$(Agent.WorkFolder)/config.conf'
+    USRP_EMB_FTDI_SERIAL: '2516351FE64E' # In use as of February 2021
+    USRP_EMB_IMAGE_PATH: '$(Agent.BuildDirectory)/$(machineName)-images/'
+
+  pool:
+    demands:
+    - openembedded-test -equals x4xx
+
+  steps:
+  - checkout: self
+
+  - script: |
+      rm -rf $USRP_EMB_IMAGE_PATH
+    displayName: Cleanup from prior run
+    workingDirectory: $(Agent.BuildDirectory)
+
+  - download: current
+    artifact: $(machineName)-images
+
+  - script: |
+      cd $USRP_EMB_IMAGE_PATH
+      unzip -o *.zip
+    displayName: Extract any zip archives
+
+  - template: usrp_emb_setup.yml
+  - ${{ if parameters.mender_update }}:
+    - template: usrp_emb_mender_update.yml
+  - ${{ if not(parameters.mender_update) }}:
+    - template: usrp_emb_flash.yml
+  - template: usrp_emb_run_embedded_tests.yml
+  - template: usrp_emb_boot.yml
+  - template: steps_run_test.yml
+  - template: steps_run_mpm_test.yml
+  - template: steps_run_bist.yml
+  - template: usrp_emb_run_mender_tests.yml
