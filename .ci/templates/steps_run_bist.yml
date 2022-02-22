@@ -14,6 +14,6 @@ steps:
       searchFolder: '$(Agent.BuildDirectory)'
 
   - publish: $(Agent.BuildDirectory)/bist_results.json
-    artifact: 'bist_results.json'
+    artifact: 'bist_results.json run $(System.JobAttempt)'
     displayName: 'Publish bist_results.json'
     continueOnError: true
