@@ -1,4 +1,0 @@
-steps:
-  - script: $(ScriptDir)/run_boot -t $(System.JobName) -c $(ConfigFile)
-    displayName: 'Boot Device'
-    workingDirectory: $(Agent.BuildDirectory)
