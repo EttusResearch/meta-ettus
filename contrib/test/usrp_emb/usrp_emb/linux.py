@@ -37,7 +37,10 @@ class Linux:
         return dev
 
     def wait_for_power_down(self):
+        old_timeout = self.uart.timeout
+        self.uart.timeout = 300
         self.uart.expect(['reboot: Power down', pexpect.EOF])
+        self.uart.timeout = old_timeout
 
     def wait_for_panic(self):
         self.uart.expect('Kernel panic')
