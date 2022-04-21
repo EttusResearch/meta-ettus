@@ -1,0 +1,26 @@
+From fd2ee1f9febabcd486efb332ed086bcd04472899 Mon Sep 17 00:00:00 2001
+From: Virendra Kakade <virendra.kakade@ni.com>
+Date: Thu, 21 Apr 2022 02:38:44 -0500
+Subject: [PATCH] tcl/fpga: add config file for Lattice XO3LF fpga
+
+Signed-off-by: Virendra Kakade <virendra.kakade@ni.com>
+---
+ tcl/fpga/lattice-xo3lf.cfg | 6 ++++++
+ 1 file changed, 6 insertions(+)
+ create mode 100644 tcl/fpga/lattice-xo3lf.cfg
+
+diff --git a/tcl/fpga/lattice-xo3lf.cfg b/tcl/fpga/lattice-xo3lf.cfg
+new file mode 100644
+index 000000000..5a19b15c1
+--- /dev/null
++++ b/tcl/fpga/lattice-xo3lf.cfg
+@@ -0,0 +1,6 @@
++# Lattice LCMXO3LF-9400C-6BG256C FPGA
++# IDCODE Information for MachXO3 Devices
++# Version     Part Number             Manuf. ID        LSB
++# 0110      0001 0010 1011 1110      0000 0100 0011     1
++# Refer https://bsdl.info/ for LCMXO3LF 9400C part.
++jtag newtap xo3lf tap -irlen 8 -expected-id 0x612be043
+-- 
+2.25.1
+
