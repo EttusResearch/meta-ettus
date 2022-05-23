@@ -6,8 +6,6 @@ SRC_URI_append = " file://ec-sulfur-rev3.bin \
                    file://ec-sulfur-rev3.RW.bin \
                    file://ec-sulfur-rev5.bin \
                    file://ec-sulfur-rev5.RW.bin \
-                   file://ec-sulfur-rev10.bin \
-                   file://ec-sulfur-rev10.RW.bin \
                    file://LICENSE.ec-sulfur \
                    file://mykonos-m3.bin \
                  "
@@ -81,35 +79,21 @@ do_install_append_ni-sulfur() {
     install -m 0644 ${WORKDIR}/ec-sulfur-rev3.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-sulfur-rev3.RW.bin
 
     # Rev5+ firmware now differs from rev3 firmware, since it adds more margin in bootdelay
+    # Rev 10+ firmware uses GPIOs which can en-/disable the 12V of the daughter cards and the fans
+    # Rev 4+ all use the same firmware
     install -D -m 0644 ${WORKDIR}/ec-sulfur-rev5.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-sulfur-rev5.bin
     install -m 0644 ${WORKDIR}/ec-sulfur-rev5.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-sulfur-rev5.RW.bin
 
-    for REV in 4 6 7 8 9
+    for REV in 4 6 7 8 9 10 11
     do
       ln -sf ec-sulfur-rev5.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-sulfur-rev${REV}.bin
       ln -sf ec-sulfur-rev5.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-sulfur-rev${REV}.RW.bin
     done
 
-    for REV in 4 5 6 7 8 9
+    for REV in 4 5 6 7 8 9 10 11
     do
       ln -sf ec-sulfur-rev5.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-phosphorus-rev${REV}.bin
       ln -sf ec-sulfur-rev5.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-phosphorus-rev${REV}.RW.bin
-    done
-
-    # Rev 10+ firmware uses GPIOs which can en-/disable the 12V of the daughter cards and the fans
-    install -D -m 0644 ${WORKDIR}/ec-sulfur-rev10.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-sulfur-rev10.bin
-    install -m 0644 ${WORKDIR}/ec-sulfur-rev10.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-sulfur-rev10.RW.bin
-
-    for REV in 11
-    do
-      ln -sf ec-sulfur-rev10.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-sulfur-rev${REV}.bin
-      ln -sf ec-sulfur-rev10.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-sulfur-rev${REV}.RW.bin
-    done
-
-    for REV in 10 11
-    do
-      ln -sf ec-sulfur-rev10.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-phosphorus-rev${REV}.bin
-      ln -sf ec-sulfur-rev10.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-phosphorus-rev${REV}.RW.bin
     done
 
     install -m 0644 ${WORKDIR}/LICENSE.ec-sulfur ${D}${nonarch_base_libdir}/firmware/ni/LICENSE.ec-sulfur
