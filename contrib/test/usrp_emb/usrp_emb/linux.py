@@ -51,7 +51,10 @@ class Linux:
 
     def reboot(self):
         self.uart.sendline("reboot")
-        self.uart.expect("reboot: Restarting system")
+        old_timeout = self.uart.timeout
+        self.uart.timeout = 300
+        self.uart.expect(["reboot: Restarting system", pexpect.EOF])
+        self.uart.timeout = old_timeout
 
     def sync(self):
         self.uart.sendline("sync")
