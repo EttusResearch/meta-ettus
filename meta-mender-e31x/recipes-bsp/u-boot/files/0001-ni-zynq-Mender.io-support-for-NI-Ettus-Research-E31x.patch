@@ -1,4 +1,4 @@
-From fb5b52a26af9599f13767fcffa78923066517580 Mon Sep 17 00:00:00 2001
+From e950a164b7b84cdb4c9dcf5ddba7da2964ab789a Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Fri, 27 Apr 2018 15:32:51 -0700
 Subject: [PATCH] ni: zynq: Mender.io support for NI Ettus Research E31x series
@@ -11,6 +11,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ni.com>
 
 [Adopted to u-boot 2019.07]
 Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+
 ---
  configs/ni_e31x_sg1_defconfig |  5 +++++
  configs/ni_e31x_sg3_defconfig |  5 +++++
@@ -46,7 +47,7 @@ index 5b1d3df98c..84d0ea556c 100644
 +CONFIG_BOOTCOUNT_LIMIT=y
 +CONFIG_BOOTCOUNT_ENV=y
 diff --git a/include/configs/ni_e31x.h b/include/configs/ni_e31x.h
-index 8c60447097..d7fc12a485 100644
+index 23104f4a16..cb324c019a 100644
 --- a/include/configs/ni_e31x.h
 +++ b/include/configs/ni_e31x.h
 @@ -12,15 +12,13 @@
@@ -81,5 +82,3 @@ index 8c60447097..d7fc12a485 100644
  	"jtagboot=echo TFTPing FIT to RAM... && " \
  		"tftpboot ${load_addr} ${fit_image} && " \
  		"bootm ${load_addr}#conf@zynq-ni-${mboard}.dtb\0" \
--- 
-2.17.1

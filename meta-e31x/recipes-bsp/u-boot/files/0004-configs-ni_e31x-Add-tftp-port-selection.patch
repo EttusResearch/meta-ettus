@@ -1,0 +1,22 @@
+From 0cccf21907c55f164e83cc3a8288771dc0ead266 Mon Sep 17 00:00:00 2001
+From: Steven Koo <steven.koo@ni.com>
+Date: Thu, 30 Jun 2022 20:06:29 +0000
+Subject: [PATCH] configs: ni_e31x: Add tftp port selection
+
+Signed-off-by: Steven Koo <steven.koo@ni.com>
+
+---
+ include/configs/ni_e31x.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/include/configs/ni_e31x.h b/include/configs/ni_e31x.h
+index 8c60447097..23104f4a16 100644
+--- a/include/configs/ni_e31x.h
++++ b/include/configs/ni_e31x.h
+@@ -43,4 +43,6 @@
+ 			"bootm ${load_addr}; fi\0" \
+ 		DFU_ALT_INFO
+ 
++#define CONFIG_TFTP_PORT
++
+ #endif /* __CONFIG_NI_E31X_H */
