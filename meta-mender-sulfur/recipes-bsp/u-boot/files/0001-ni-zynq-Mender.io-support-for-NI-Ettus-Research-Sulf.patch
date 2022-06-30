@@ -1,4 +1,4 @@
-From feb504120e96c1b1d0ea7080afed666b2a411d68 Mon Sep 17 00:00:00 2001
+From cc5de32b3dd54e1dbc952df83b82b9a06e54bf5e Mon Sep 17 00:00:00 2001
 From: Moritz Fischer <moritz.fischer@ettus.com>
 Date: Mon, 21 Jan 2019 18:07:59 -0800
 Subject: [PATCH] ni: zynq: Mender.io support for NI Ettus Research Sulfur Rev3
@@ -10,6 +10,7 @@ Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
 
 [Adopted to u-boot 2019.07]
 Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+
 ---
  configs/ni_sulfur_rev3_defconfig |  5 +++++
  include/configs/ni_sulfur_rev3.h | 15 +++++++--------
@@ -30,7 +31,7 @@ index 9cd12a0fc0..f20c6b2e30 100644
 +CONFIG_BOOTCOUNT_LIMIT=y
 +CONFIG_BOOTCOUNT_ENV=y
 diff --git a/include/configs/ni_sulfur_rev3.h b/include/configs/ni_sulfur_rev3.h
-index fa2e4f0127..f65c9eecb3 100644
+index ccc5a9614c..d8a115d473 100644
 --- a/include/configs/ni_sulfur_rev3.h
 +++ b/include/configs/ni_sulfur_rev3.h
 @@ -10,9 +10,7 @@
@@ -74,5 +75,3 @@ index fa2e4f0127..f65c9eecb3 100644
  			"crosec swsync ${load_addr} ${filesize}; fi;\0" \
  	"swsync_net=if test ${ec_disable_swsync} = 0; then " \
  			"echo Copying MCU FW to RAM via DHCP/TFTP... && " \
--- 
-2.17.1

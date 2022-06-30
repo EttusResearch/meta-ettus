@@ -1,0 +1,22 @@
+From 123d5624e602bea40975bd1e62c8eba183ca8280 Mon Sep 17 00:00:00 2001
+From: Steven Koo <steven.koo@ni.com>
+Date: Thu, 30 Jun 2022 19:27:52 +0000
+Subject: [PATCH] configs: ni_sulfur_rev3: Add tftp port selection
+
+Signed-off-by: Steven Koo <steven.koo@ni.com>
+
+---
+ include/configs/ni_sulfur_rev3.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/configs/ni_sulfur_rev3.h b/include/configs/ni_sulfur_rev3.h
+index fa2e4f0127..ccc5a9614c 100644
+--- a/include/configs/ni_sulfur_rev3.h
++++ b/include/configs/ni_sulfur_rev3.h
+@@ -58,5 +58,6 @@
+ 			"bootm ${load_addr}; fi\0" \
+ 		DFU_ALT_INFO
+ 
++#define CONFIG_TFTP_PORT
+ 
+ #endif /* __CONFIG_NI_SULFUR_REV3_H */
