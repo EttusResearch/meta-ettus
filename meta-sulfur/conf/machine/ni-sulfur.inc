@@ -18,6 +18,8 @@ IMAGE_BOOT_FILES ?= "boot.bin ${UBOOT_BINARY}"
 KERNEL_CLASSES += "kernel-fitimage"
 KERNEL_IMAGETYPE = "fitImage"
 KERNEL_DEFCONFIG ?= "ni_sulfur_defconfig"
+INITRAMFS_IMAGE = "manufacturing-image"
+INITRAMFS_IMAGE_BUNDLE = "1"
 
 PREFERRED_VERSION_linux-yocto = "5.2.%"
 
