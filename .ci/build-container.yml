@@ -1,21 +1,28 @@
 trigger:
-  - zeus-ci
+  branches:
+    include:
+    - zeus-ci
+  paths:
+    include:
+    - .ci/Dockerfile
+    - .ci/build-container.yml
 
 pr:
   branches:
     include:
-      - zeus-ci
+    - zeus-ci
   paths:
     include:
-      - .ci/build-container.yml
-
+    - .ci/Dockerfile
+    - .ci/build-container.yml
 
 schedules:
-  - cron: "0 19 * * *"
-    displayName: 'Daily build'
-    branches:
-      include:
-        - zeus-ci
+- cron: "0 18 * * SAT"
+  displayName: Weekly kas Docker Build
+  branches:
+    include:
+    - zeus-ci
+  always: true
 
 variables:
   IMAGE_REPO: 'rfsdr/usrp-kas'
@@ -29,21 +36,20 @@ jobs:
     pool:
       name: Drivers-NIBuildFarm-RFMIBUILD
       demands:
-        - docker
-        - Agent.OS -equals Linux
+      - docker
+      - Agent.OS -equals Linux
     steps:
-      - checkout: self
-
-      - task: Docker@2
-        displayName: Build and push image
-        inputs:
-          command: buildAndPush
-          Dockerfile: $(Build.SourcesDirectory)/.ci/Dockerfile
-          repository: $(IMAGE_REPO)
-          containerRegistry: 'Docker / Artifactory - rnd-builds-local'
-          tags: $(IMAGE_TAG)
-      - script: echo $(IMAGE_REPO):$(IMAGE_TAG) > $ARTIFACT_INFO
-        displayName: Save off artifact info
-      - publish: $(ARTIFACT_INFO)
-        artifact: "usrp-kas-docker-image"
-        displayName: Publish info
+    - checkout: self
+    - task: Docker@2
+      displayName: Build and push image
+      inputs:
+        command: buildAndPush
+        Dockerfile: $(Build.SourcesDirectory)/.ci/Dockerfile
+        repository: $(IMAGE_REPO)
+        containerRegistry: 'Docker / Artifactory - rnd-builds-local'
+        tags: $(IMAGE_TAG)
+    - script: echo $(IMAGE_REPO):$(IMAGE_TAG) > $ARTIFACT_INFO
+      displayName: Save off artifact info
+    - publish: $(ARTIFACT_INFO)
+      artifact: "usrp-kas-docker-image"
+      displayName: Publish info
