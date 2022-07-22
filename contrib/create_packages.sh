@@ -55,7 +55,7 @@ case $_requested_device in
 		_sdimg_pkg_name=e3xx_e310_sg3_sdimg_default-$_artifact_name.zip
 		_mender_pkg_name=e3xx_e310_sg3_mender_default-$_artifact_name.zip
 		_sdk_pkg_name=e3xx_e310_sdk_default-$_artifact_name.zip
-		_sources_pkg_name=e3xx_e310_sources_default-$_artifact_name.zip
+		_sources_pkg_name=e3xx_e310_sg3_sources_default-$_artifact_name.zip
 		_device=e31x-sg3
 	;;
 	"x4xx")
