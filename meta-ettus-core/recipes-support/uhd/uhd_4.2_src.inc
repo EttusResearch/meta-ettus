@@ -1,5 +1,5 @@
 SRC_URI = "git://github.com/EttusResearch/uhd.git;branch=UHD-4.2;protocol=https"
-SRCREV = "ad05997cb9ae086d2a794aaa3691143ff77f9a4c"
+SRCREV = "321295fba49fb66ede365afbd9ef62971cdfbfca"
 
 # A note on PR and PV:
 # PV is the package version, and PR is the package revision from the OE
@@ -16,5 +16,5 @@ SRCREV = "ad05997cb9ae086d2a794aaa3691143ff77f9a4c"
 #   we've already published a version within OE, we start incrementing PR as in
 #   r1, r2, etc.
 
-PV = "4.2.0.1+rc1"
+PV = "4.2.0.1"
 #PR = "r1"
