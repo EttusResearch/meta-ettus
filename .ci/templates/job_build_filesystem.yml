@@ -77,11 +77,7 @@ jobs:
       demands:
         - docker
         - Agent.OS -equals Linux
-        # single_drive is a workaround to ensure getting
-        # a newer build machine with faster networking.
-        # This is needed because of pipeline caching.
-        # Once other machines are upgraded remove this.
-        - single_drive
+
     variables:
       - group: meta-ettus-vars
 
