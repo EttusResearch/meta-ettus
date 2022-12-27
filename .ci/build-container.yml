@@ -25,7 +25,7 @@ schedules:
   always: true
 
 variables:
-  IMAGE_REPO: 'rfsdr/usrp-kas'
+  IMAGE_REPO: 'rnd-docker-ci/ni/rfsdr/usrp-kas'
   IMAGE_TAG: $(Build.BuildNumber)
   ARTIFACT_INFO: $(Agent.TempDirectory)/docker_image
 
@@ -46,7 +46,7 @@ jobs:
         command: buildAndPush
         Dockerfile: $(Build.SourcesDirectory)/.ci/Dockerfile
         repository: $(IMAGE_REPO)
-        containerRegistry: 'Docker / Artifactory - rnd-builds-local'
+        containerRegistry: 'niartifacts.jfrog.io'
         tags: $(IMAGE_TAG)
     - script: echo $(IMAGE_REPO):$(IMAGE_TAG) > $ARTIFACT_INFO
       displayName: Save off artifact info

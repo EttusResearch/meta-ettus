@@ -106,7 +106,7 @@ jobs:
     container:
       image: $(USRP_KAS_DOCKER_IMAGE)
       options: -e NO_PROXY=""
-      endpoint: 'Docker / Artifactory - rnd-builds-local'
+      endpoint: 'niartifacts.jfrog.io'
 
     steps:
       - ${{ if parameters.run_from_external_repo }}:
