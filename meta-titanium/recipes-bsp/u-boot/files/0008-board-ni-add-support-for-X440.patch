@@ -1,0 +1,25 @@
+From c59d3e636ea3f084589152d3e9d83daccf61e7ae Mon Sep 17 00:00:00 2001
+From: Lars Amsel <lars.amsel@ni.com>
+Date: Wed, 11 Jan 2023 13:00:57 +0100
+Subject: [PATCH] board: ni: add support for X440
+
+X440 uses the same dtb as the X410 but has a different mboard PID.
+---
+ board/ni/zynqmp/board.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/board/ni/zynqmp/board.c b/board/ni/zynqmp/board.c
+index 492f5a5928..394deceff3 100644
+--- a/board/ni/zynqmp/board.c
++++ b/board/ni/zynqmp/board.c
+@@ -214,6 +214,7 @@ struct xboard_match {
+ 
+ static const struct xboard_match mb_match[] = {
+ 	{ .pid = 0x0410, .name = "X410 (Titanium)", .dtb = "x410" },
++	{ .pid = 0x0440, .name = "X440 (Ferratus)", .dtb = "x410" },
+ 	{},
+ };
+ 
+-- 
+2.34.1
+

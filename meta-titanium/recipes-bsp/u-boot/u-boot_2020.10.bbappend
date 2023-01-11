@@ -14,6 +14,7 @@ SRC_URI_prepend_ni-titanium += " \
                   file://0005-zynqmp-added-CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_SRC_FILE.patch \
                   file://0006-board-ni-add-support-for-X410.patch \
                   file://0007-Add-missing-header-which-fails-on-recent-GCC.patch \
+                  file://0008-board-ni-add-support-for-X440.patch \
                   "
 
 DEPENDS_append_ni-titanium += "zip-native"
