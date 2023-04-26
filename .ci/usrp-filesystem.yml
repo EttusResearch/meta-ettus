@@ -72,6 +72,7 @@ resources:
   pipelines:
     - pipeline: usrp-kas-pipeline
       source: 'usrp-kas'
+      branch: zeus-ci
   repositories:
     - repository: linuxdev
       type: github
