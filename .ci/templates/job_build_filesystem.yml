@@ -65,7 +65,7 @@ jobs:
 
   - job: build
     dependsOn: get_usrp_kas_docker_image
-    timeoutInMinutes: 360
+    timeoutInMinutes: 600
     cancelTimeoutInMinutes: 10
     strategy:
       matrix:
