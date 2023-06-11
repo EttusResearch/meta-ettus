@@ -150,7 +150,7 @@ if [ ! -z $_sdk_pkg_name ]; then
 	fi
 fi
 
-if [! -d "$_deploy_dir/sources" ]; then
+if [ ! -d "$_deploy_dir/sources" ]; then
 	echo "WARNING: Could not find Sources!"
 else
 	echo "Found Sources in: $_deploy_dir/sources. Files:"
