@@ -1,4 +1,4 @@
-SRC_URI = "git://github.com/EttusResearch/uhd.git;branch=master;protocol=https"
+SRC_URI = "git://git@github.com/EttusResearch/uhddev.git;branch=master;protocol=ssh"
 SRCREV = "d13d1fc0e6ead509ee7d19e7a56c7e97283ed1dc"
 
 # A note on PR and PV:
