@@ -6,7 +6,7 @@ This repository contains various layers for different NI (Ettus Research) Produc
 Supported devices
 =================
 
-  - NI USRP X410 (meta-titanium)
+  - NI USRP X410/X440 series (meta-titanium)
   - NI USRP N310/N300 series (meta-sulfur)
   - NI USRP E320 series (meta-neon)
   - NI USRP E310/E312/E313 (meta-e31x)
@@ -45,11 +45,11 @@ The repository is split into several sublayers to allow for greater modularity.
 
 **meta-titanium**:
 
-- Contains X410 BSP. Defines machines such as ni-titanium-rev5.
+- Contains X410/X440 BSP. Defines machines such as ni-titanium-rev5.
 
 **meta-mender-titanium**:
 
-- Contains changes for X410 mender.io integration
+- Contains changes for X410/X440 mender.io integration
 - Defines new machines such as ni-titanium-rev5-mender to build with mender.io integration.
 
 **meta-e31x:**
