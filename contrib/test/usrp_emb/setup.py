@@ -18,7 +18,7 @@ setup(
     keywords='usrp_emb',
     packages=['usrp_emb'],
     install_requires=[
-        'PyYAML==5.4.1',
+        'PyYAML==6.0.1',
         'junit-xml==1.9',
         'paramiko==2.10.1',
         'pexpect==4.8.0',
