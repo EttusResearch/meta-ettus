@@ -1,19 +1,18 @@
 trigger:
   branches:
     include:
-      - 'zeus-ci'
+      - zeus-ci
 pr:
   branches:
     include:
-      - 'zeus-ci'
-      - '*/zeus/*'
+      - zeus-ci
 
 schedules:
   - cron: "19 10 * * *"
     displayName: 'Daily build'
     branches:
       include:
-        - 'zeus-ci'
+        - zeus-ci
     always: true
 
 parameters:
