@@ -51,7 +51,11 @@ parameters:
     type: boolean
     default: false
   - name: ext_fpga
-    displayName: Override FPGA sources
+    displayName: FPGA from pipeline
+    type: boolean
+    default: false
+  - name: ext_cpld
+    displayName: CPLD from pipeline
     type: boolean
     default: false
   - name: build_e310_sg1
@@ -214,6 +218,20 @@ stages:
             - script: |
                 ls -l $(Agent.BuildDirectory)/uhddev-mono-pipeline
               displayName: list fpga images
+          - ${{ if and(parameters.ext_cpld, parameters.build_x4xx) }}:
+            - template: templates/oe_localconf_externalsrc_pipeline.yml
+              parameters:
+                conf_file: $AUTO_CONF
+                pipeline: uhddev-mono-pipeline
+                patterns: |
+                  usrp_x4??_cpld_*.*
+                  usrp_zbx_cpld_*.*
+                packages:
+                - uhd-cpld-images
+                flatten: true
+            - script: |
+                ls -l $(Agent.BuildDirectory)/uhddev-mono-pipeline
+              displayName: list CPLD images
         kas_subdirectory: ${{ parameters.kas_subdirectory }}
         build_default_targets: ${{ parameters.build_default_targets }}
         pre_targets: ${{ parameters.pre_targets }}
