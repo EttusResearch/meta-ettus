@@ -2,7 +2,11 @@ header:
   version: 10
   includes:
     - ../include/base-standard.yml
+    - ../include/meta-stm32.yml
 machine: ni-neon-rev2
+target:
+  - mc:ni-neon-ec:chromium-ec
+  - mc:ni-neon:gnuradio-image
 repos:
   meta-ettus:
     layers:

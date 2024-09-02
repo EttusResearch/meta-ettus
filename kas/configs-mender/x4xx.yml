@@ -2,6 +2,7 @@ header:
   version: 10
   includes:
     - ../include/base-mender.yml
+    - ../include/meta-stm32.yml
 machine: ni-titanium-rev5-mender
 env:
   MENDER_ARTIFACT_NAME: git_x4xx
