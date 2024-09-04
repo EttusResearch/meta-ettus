@@ -140,16 +140,25 @@ do_install:append:ni-sulfur() {
 }
 
 do_install:append:ni-neon() {
-    install -D -m 0644 ${WORKDIR}/ec-neon-rev1.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-neon-rev1.RW.bin
-    install -D -m 0644 ${WORKDIR}/ec-neon-rev2.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-neon-rev2.RW.bin
-    install -D -m 0644 ${WORKDIR}/ec-neon-rev3.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-neon-rev3.RW.bin
+    install -D -m 0644 -v ${WORKDIR}/ec-neon-rev1.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-neon-rev1.RW.bin
+    install -D -m 0644 -v ${WORKDIR}/ec-neon-rev2.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-neon-rev2.RW.bin
 
-    install -m 0644 ${WORKDIR}/LICENSE.ec-neon ${D}${nonarch_base_libdir}/firmware/ni/LICENSE.ec-neon
+    # install embedded controller (ec) firmware
+    if [ -n "${CROS_EC_DEPLOY_DIR_IMAGE}" ]; then
+        install -m 0644 -v ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-neon-rev3.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/
+    else
+        install -m 0644 -v ${WORKDIR}/ec-neon-rev3.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/
+    fi
+
+    install -m 0644 -v ${WORKDIR}/LICENSE.ec-neon ${D}${nonarch_base_libdir}/firmware/ni/LICENSE.ec-neon
 }
 
 CROS_EC_DEPLOY_DIR_IMAGE:ni-titanium ?= "${TOPDIR}/tmp-stm32-baremetal/deploy/images/ni-titanium-ec-rev5"
 
 python __anonymous() {
+    if "ni-neon-ec" in d.getVar('BBMULTICONFIG').split(' '):
+        d.appendVarFlag('do_install', 'mcdepends', ' mc::ni-neon-ec:chromium-ec:do_deploy')
+        d.setVar('CROS_EC_DEPLOY_DIR_IMAGE', '${TOPDIR}/tmp-stm32-baremetal/deploy/images/ni-neon-ec-rev3')
     if "ni-titanium-ec" in d.getVar('BBMULTICONFIG').split(' '):
         d.appendVarFlag('do_install', 'mcdepends', ' mc::ni-titanium-ec:chromium-ec:do_deploy')
 }
