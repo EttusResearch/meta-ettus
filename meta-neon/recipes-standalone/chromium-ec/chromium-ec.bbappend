@@ -9,7 +9,7 @@ SRC_URI:ni-neon-ec = " \
     git://github.com/EttusResearch/usrp-firmware.git;branch=neon;protocol=https \
     "
 
-SRCREV:ni-neon-ec = "a190641b349b1bfdbdd9f471f82613971e50e375"
+SRCREV:ni-neon-ec = "bbcd9fcefe1aa7a38e3b57844f05338297f080de"
 
 PATCHTOOL = "git"
 
