@@ -25,13 +25,13 @@ repos:
       meta-alchemy:
   bitbake:
     url: https://github.com/openembedded/bitbake
-    commit: ee090484cc25d760b8c20f18add17b5eff485b40
+    branch: scarthgap
     path: bitbake
     layers:
       .: excluded
   meta-openembedded:
     url: https://github.com/openembedded/meta-openembedded
-    commit: 058249f9a836e3aa866436aa6e37d6d48ff768fd
+    branch: scarthgap
     path: meta-oe
     layers:
       meta-oe:
@@ -48,7 +48,7 @@ repos:
         path: kas/patches/meta-oe/0002-python3-gevent-adding-missing-dependency-to-python3-.patch
   openembedded-core:
     url: https://github.com/openembedded/openembedded-core
-    commit: 75e54301c5076eb0454aee33c870adf078f563fd
+    branch: scarthgap
     path: oe-core
     layers:
       meta:
@@ -68,7 +68,7 @@ repos:
     #     path: kas/patches/oe-core/0002-microblaze-tune-Allow-no-version-to-be-set.patch
   meta-mender:
     url: https://github.com/mendersoftware/meta-mender
-    commit: f1e234a7c16898ec93e7161d29a6875153a70400
+    branch: scarthgap
     layers:
       meta-mender-core:
     patches:
@@ -80,12 +80,12 @@ repos:
         path: kas/patches/meta-mender/0002-systemd-don-t-set-SOURCE_DATE_EPOCH-to-0.patch
   meta-security:
     url: git://git.yoctoproject.org/meta-security
-    commit: b9cf9cd639bc8d1b4828eb0bd012b71486d35176
+    branch: scarthgap
     layers:
       meta-tpm:
   meta-qt5:
     url: https://github.com/meta-qt5/meta-qt5
-    commit: 644ebf220245bdc06e7696ccc90acc97a0dd2566
+    branch: scarthgap
   meta-sdr:
     url: https://github.com/balister/meta-sdr
-    commit: b032daf0b9cdaecf85857ded05a88d80fd55b396
+    branch: scarthgap
