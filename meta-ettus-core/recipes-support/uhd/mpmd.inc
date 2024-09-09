@@ -32,7 +32,7 @@ RDEPENDS:${PN} = " \
                   uhd-fpga-images-firmware \
                   usrp-firmware \
                   iptables \
-                  libgpiod-python \
+                  python3-gpiod \
                  "
 RDEPENDS:${PN}-tools = " \
                   bash \
