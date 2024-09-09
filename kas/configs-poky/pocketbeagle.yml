@@ -5,8 +5,8 @@ header:
   - '../include/meta-ettus-core.yml'
 repos:
   meta-pocketbeagle:
-    url: https://github.com/e-ale/meta-pocketbeagle.git
-    branch: kirkstone
+    url: https://github.com/twoerner/meta-pocketbeagle.git
+    branch: scarthgap
 machine: pocketbeagle
 target:
 - flashing-image

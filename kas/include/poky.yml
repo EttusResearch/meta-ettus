@@ -3,7 +3,7 @@ header:
 repos:
   poky:
     url: https://git.yoctoproject.org/poky
-    branch: kirkstone
+    branch: scarthgap
     layers:
       meta:
       meta-poky:

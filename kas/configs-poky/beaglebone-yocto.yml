@@ -6,7 +6,7 @@ header:
 repos:
   meta-yocto-bsp:
     url: https://git.yoctoproject.org/meta-yocto
-    branch: kirkstone
+    branch: scarthgap
     layers:
       meta-yocto-bsp:
 machine: beaglebone-yocto
