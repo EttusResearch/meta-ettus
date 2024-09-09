@@ -3,6 +3,7 @@ header:
   includes:
   - '../include/poky.yml'
   - '../include/meta-ettus-core.yml'
+  - '../include/meta-sdr.yml'
 repos:
   meta-pocketbeagle:
     url: https://github.com/twoerner/meta-pocketbeagle.git

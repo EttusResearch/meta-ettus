@@ -1,0 +1,17 @@
+header:
+  version: 10
+repos:
+  meta-sdr:
+    url: https://github.com/balister/meta-sdr
+    branch: master
+  meta-openembedded:
+    url: https://git.openembedded.org/meta-openembedded
+    branch: scarthgap
+    layers:
+      meta-oe:
+      meta-filesystems:
+      meta-networking:
+      meta-python:
+  meta-qt5:
+    url: https://github.com/meta-qt5/meta-qt5
+    branch: scarthgap
