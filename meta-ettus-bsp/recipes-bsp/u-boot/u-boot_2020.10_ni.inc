@@ -12,6 +12,7 @@ SRC_URI:prepend:ni-titanium = " \
                   file://0007-Add-missing-header-which-fails-on-recent-GCC.patch \
                   file://0008-board-ni-add-support-for-X440.patch \
                   file://0009-board-ni-fix-PS-dram-configuration.patch \
+                  file://0010-board-ni-add-support-for-X420.patch \
                   "
 
 DEPENDS:append:ni-titanium = " zip-native"
