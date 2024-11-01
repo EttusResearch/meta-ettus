@@ -1,6 +1,7 @@
 TESTRESULTS_DIR ?= "${WORKDIR}/testresults"
 RM_WORK_EXCLUDE_ITEMS += "testresults"
 
+do_run_tests[network] = "1"
 do_run_tests() {
     ret=0
     cd ${B}
