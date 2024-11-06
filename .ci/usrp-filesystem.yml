@@ -158,6 +158,7 @@ stages:
           ${{ if parameters.build_e320 }}:
             e320:
               machineName: e320
+              pre_targets: mc:ni-neon-ec:chromium-ec
               post_targets: uhd:do_run_tests
           ${{ if parameters.build_n3xx }}:
             n3xx:
