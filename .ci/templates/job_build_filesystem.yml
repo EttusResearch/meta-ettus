@@ -214,8 +214,6 @@ jobs:
           site_conf: $(Agent.BuildDirectory)/site.conf
           build_package_feed: True
           build_sdk: ${{ parameters.build_sdk }}
-          targets:
-            - uhd:do_run_tests
           build_default_targets: ${{ parameters.build_default_targets }}
 
       - script: |

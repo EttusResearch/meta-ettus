@@ -19,10 +19,6 @@ parameters:
   - name: build_package_feed
     type: boolean
     default: false
-  # The list of additional targets to build
-  - name: targets
-    type: object
-    default: []
   # The path to the auto.conf file that should be used for the build
   - name: auto_conf
     type: string
@@ -48,6 +44,11 @@ steps:
     workingDirectory: $(Agent.BuildDirectory)
     displayName: Setup bitbake configs
   - script: |
+      kas shell $KAS_CONFIG -c "bitbake $(pre_targets)"
+    displayName: "Build pre-targets $(pre_targets)"
+    workingDirectory: $(Agent.BuildDirectory)
+    condition: and(succeeded(), variables.pre_targets)
+  - script: |
       kas build $KAS_CONFIG
     displayName: Build default targets
     workingDirectory: $(Agent.BuildDirectory)
@@ -64,13 +65,13 @@ steps:
       echo $KAS_DEPLOY_DIR
     displayName: Dump environment
     workingDirectory: $(Agent.BuildDirectory)
-  - ${{ each target in parameters.targets }}:
-    - script: |
-        kas shell -k $KAS_CONFIG -c "bitbake ${{ target }}"
-      displayName: "Build ${{ target }}"
-      workingDirectory: $(Agent.BuildDirectory)
   - script: |
-      kas shell -k $KAS_CONFIG -c "bitbake package-index"
+      kas shell $KAS_CONFIG -c "bitbake $(post_targets)"
+    displayName: "Build post-targets $(post_targets)"
+    workingDirectory: $(Agent.BuildDirectory)
+    condition: and(succeeded(), variables.post_targets)
+  - script: |
+      kas shell $KAS_CONFIG -c "bitbake package-index"
     displayName: Build package index and feed
     condition: and(succeeded(), ${{ parameters.build_package_feed }})
     workingDirectory: $(Agent.BuildDirectory)

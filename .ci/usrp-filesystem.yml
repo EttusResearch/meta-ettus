@@ -150,18 +150,23 @@ stages:
           ${{ if parameters.build_e310_sg1 }}:
             e310_sg1:
               machineName: e310_sg1
+              post_targets: uhd:do_run_tests
           ${{ if parameters.build_e310_sg3 }}:
             e310_sg3:
               machineName: e310_sg3
+              post_targets: uhd:do_run_tests
           ${{ if parameters.build_e320 }}:
             e320:
               machineName: e320
+              post_targets: uhd:do_run_tests
           ${{ if parameters.build_n3xx }}:
             n3xx:
               machineName: n3xx
+              post_targets: uhd:do_run_tests
           ${{ if parameters.build_x4xx }}:
             x4xx:
               machineName: x4xx
+              post_targets: uhd:do_run_tests
         auto_conf: $AUTO_CONF
         prebuild_steps:
           - ${{ if or(parameters.ext_linux, parameters.ext_uhd, parameters.ext_fpga) }}:
