@@ -67,9 +67,6 @@ steps:
   - ${{ each target in parameters.targets }}:
     - script: |
         kas shell -k $KAS_CONFIG -c "bitbake ${{ target }}"
-        if [ $? -ne 0 ];  then
-          echo "##[warning] ${{ target }} returned $?, ignoring"
-        fi
       displayName: "Build ${{ target }}"
       workingDirectory: $(Agent.BuildDirectory)
   - script: |
