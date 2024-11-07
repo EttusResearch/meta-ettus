@@ -5,6 +5,7 @@ require recipes-kernel/linux/linux-yocto.inc
 SRC_URI:append = " \
     file://x4xx.scc \
     file://x410_defconfig;subdir=git/arch/arm64/configs \
+    file://sound.cfg \
     "
 
 KERNEL_VERSION_SANITY_SKIP="1"
