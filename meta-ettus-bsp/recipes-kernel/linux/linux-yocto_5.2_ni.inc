@@ -9,6 +9,7 @@ SRC_URI:append = " \
         file://debug.cfg \
         file://usrp.scc \
         file://usrp.cfg \
+        file://sound.cfg \
         "
 
 SRC_URI:append:ni-e31x = " \
