@@ -2,6 +2,7 @@ require sdk-python3targetconfig.inc
 
 IMAGE_INSTALL += "\
     ${CORE_IMAGE_BASE_INSTALL} \
+    alsa-utils \
     boost \
     cmake \
     devmem2 \
