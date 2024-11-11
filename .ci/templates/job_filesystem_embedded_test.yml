@@ -19,6 +19,7 @@ parameters:
     - test_uhd
     - test_mender
     - test_salt
+    - test_sound
 
 jobs:
 - job: 'test'
