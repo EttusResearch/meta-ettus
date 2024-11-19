@@ -75,7 +75,12 @@ jobs:
     cancelTimeoutInMinutes: 10
     strategy:
       matrix:
-        ${{ parameters.machines }}
+        ${{ each machine in parameters.machines }}:
+          ${{ machine }}:
+            machineName: ${{ machine }}
+            ${{ if eq(machine, 'e320') }}:
+              pre_targets: mc:ni-neon-ec:chromium-ec
+            post_targets: uhd:do_run_tests
     pool:
       name: Drivers-NIBuildFarm-RFMIBuild
       demands:

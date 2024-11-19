@@ -147,27 +147,16 @@ stages:
         use_custom_mender_prefix: ${{ parameters.use_custom_mender_prefix }}
         custom_mender_prefix: ${{ parameters.custom_mender_prefix }}
         machines:
-          ${{ if parameters.build_e310_sg1 }}:
-            e310_sg1:
-              machineName: e310_sg1
-              post_targets: uhd:do_run_tests
-          ${{ if parameters.build_e310_sg3 }}:
-            e310_sg3:
-              machineName: e310_sg3
-              post_targets: uhd:do_run_tests
-          ${{ if parameters.build_e320 }}:
-            e320:
-              machineName: e320
-              pre_targets: mc:ni-neon-ec:chromium-ec
-              post_targets: uhd:do_run_tests
-          ${{ if parameters.build_n3xx }}:
-            n3xx:
-              machineName: n3xx
-              post_targets: uhd:do_run_tests
-          ${{ if parameters.build_x4xx }}:
-            x4xx:
-              machineName: x4xx
-              post_targets: uhd:do_run_tests
+          - ${{ if parameters.build_e310_sg1 }}:
+            - e310_sg1
+          - ${{ if parameters.build_e310_sg3 }}:
+            - e310_sg3
+          - ${{ if parameters.build_e320 }}:
+            - e320
+          - ${{ if parameters.build_n3xx }}:
+            - n3xx
+          - ${{ if parameters.build_x4xx }}:
+            - x4xx
         auto_conf: $AUTO_CONF
         prebuild_steps:
           - ${{ if or(parameters.ext_linux, parameters.ext_uhd, parameters.ext_fpga) }}:
