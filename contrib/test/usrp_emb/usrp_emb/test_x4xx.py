@@ -6,6 +6,7 @@ from .httpd import HTTPServer
 import inspect
 import json
 import os
+import sys
 import time
 import unittest
 import xmlrunner
@@ -459,12 +460,16 @@ def suite(test_class):
 
 def embedded_tests():
     runner = xmlrunner.XMLTestRunner()
-    runner.run(suite(EmbeddedTests))
+    result = runner.run(suite(EmbeddedTests))
+    if __name__ == 'usrp_emb.test_x4xx':
+        sys.exit(0) if result.wasSuccessful() else sys.exit(1)
 
 
 def mender_tests():
     runner = xmlrunner.XMLTestRunner()
-    runner.run(suite(MenderTests))
+    result = runner.run(suite(MenderTests))
+    if __name__ == 'usrp_emb.test_x4xx':
+        sys.exit(0) if result.wasSuccessful() else sys.exit(1)
 
 
 if __name__ == '__main__':
