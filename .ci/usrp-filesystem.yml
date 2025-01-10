@@ -212,7 +212,16 @@ stages:
     jobs:
       - template: templates/job_x4xx_filesystem_test.yml
         parameters:
-          test_x4xx: ${{ parameters.build_x4xx }}
+          dutMatrix:
+            x410:
+              dutEmbeddedImagesArtifact: 'x4xx-images'
+              uartSerial: $(x410_uartSerial)
+              machineName: x4xx
+            x440:
+              dutEmbeddedImagesArtifact: 'x4xx-images'
+              uartSerial: $(x440_uartSerial)
+              machineName: x4xx
+
 - stage: filesystem_embedded_test
   displayName: Run embedded test
   dependsOn: build_meta_ettus
