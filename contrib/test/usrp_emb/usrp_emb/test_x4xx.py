@@ -19,7 +19,8 @@ POSSIBLE_ROOTDEVS = {'/dev/mmcblk0p2', '/dev/mmcblk0p3'}
 
 def flash_scu():
     with Titanium(FTDI_SERIAL) as ti:
-        ti.crosec.flash_scu(BRINGUP_PATH / 'ec-titanium-rev5.bin')
+        compat_rev = ti.crosec.get_board_compat_rev()
+        ti.crosec.flash_scu(BRINGUP_PATH / f'ec-titanium-rev{compat_rev}.bin')
         time.sleep(5)
         print("Version after flashing")
         print(ti.crosec.version())

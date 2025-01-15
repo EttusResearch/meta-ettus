@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -106,7 +107,7 @@ class X4xxChromiumEC(ChromiumEC):
         self.uart.expect(self.prompt)
 
     def flash_scu(self, filename):
-        assert Path(filename).exists()
+        assert Path(filename).exists(), f"{filename} does not exist"
         serial = self.ftdi_serial
 
         script = f'''
@@ -146,3 +147,17 @@ class X4xxChromiumEC(ChromiumEC):
             f.write(script.encode('ascii'))
             f.flush()
             subprocess.run(['openocd', '-f', f.name], check=True)
+
+    def get_board_compat_rev(self):
+        self.uart.sendline('eepromdump mb')
+        re_compat_rev = re.compile(r'usrp_eeprom_board_info.*compat_rev: (0x[0-9]+)')
+        compat_rev = None
+        while True:
+            line = self.uart.readline()
+            match_compat_rev = re_compat_rev.search(line.decode())
+            if match_compat_rev is not None:
+                compat_rev = int(match_compat_rev.group(1), 16)
+                break
+        self.uart.expect(self.prompt)
+        assert compat_rev is not None, 'Failed to get board compat_rev'
+        return compat_rev
