@@ -6,10 +6,12 @@ steps:
         cd usrp_emb_mender_test_results
         usrp_emb_test_x4xx_mender
       displayName: "Run usrp_emb Mender tests"
+      continueOnError: true
   - task: PublishTestResults@2
     inputs:
       testResultsFormat: 'JUnit'
       testResultsFiles: 'TEST-*.xml'
       testRunTitle: 'usrp_emb Mender test results $(System.JobName)'
       searchFolder: '$(Agent.TempDirectory)/usrp_emb_mender_test_results'
+      failTaskOnFailedTests: true
     displayName: "Publish Test Mender Results"

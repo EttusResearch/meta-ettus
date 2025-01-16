@@ -1,7 +1,9 @@
 steps:
   - script: |
       pip3 install junit-xml
-      $(ScriptDir)/run_bist -t $(System.JobName) -c $(ConfigFile)
+      $(ScriptDir)/run_bist -t $(System.JobName)
+      mv bist_results.xml bist_results_$(System.JobName).xml
+      mv bist_results.json bist_results_$(System.JobName).json
     displayName: 'Run BIST'
     workingDirectory: $(Agent.BuildDirectory)
     continueOnError: true
@@ -9,11 +11,11 @@ steps:
   - task: PublishTestResults@2
     inputs:
       testResultsFormat: 'JUnit'
-      testResultsFiles: '**/bist_results.xml'
+      testResultsFiles: '**/bist_results_$(System.JobName).xml'
       testRunTitle: 'BIST results $(System.JobName)'
       searchFolder: '$(Agent.BuildDirectory)'
 
-  - publish: $(Agent.BuildDirectory)/bist_results.json
-    artifact: 'bist_results.json run $(System.JobAttempt)'
-    displayName: 'Publish bist_results.json'
+  - publish: $(Agent.BuildDirectory)/bist_results_$(System.JobName).json
+    artifact: 'bist_results_$(System.JobName).json run $(System.JobAttempt)'
+    displayName: 'Publish bist_results_$(System.JobName).json'
     continueOnError: true

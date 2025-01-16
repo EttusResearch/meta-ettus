@@ -6,10 +6,12 @@ steps:
         cd usrp_emb_test_results
         usrp_emb_test_x4xx
       displayName: "Run usrp_emb tests"
+      continueOnError: true
   - task: PublishTestResults@2
     inputs:
       testResultsFormat: 'JUnit'
       testResultsFiles: 'TEST-*.xml'
       testRunTitle: 'usrp_emb test results $(System.JobName)'
       searchFolder: '$(Agent.TempDirectory)/usrp_emb_test_results'
+      failTaskOnFailedTests: true
     displayName: "Publish Test Results"

@@ -152,16 +152,17 @@ def get_config(argv):
         'bitfile': parsed_args.get('bitfile', 'unknown'),
     }
 
-    parsed_config = config_parser.parse_config(parsed_args['configfile'], parsed_args['devicetype'])
+    if parsed_args['configfile'] is not None:
+        parsed_config = config_parser.parse_config(parsed_args['configfile'], parsed_args['devicetype'])
 
-    # First, update any defaults. This ensures the type is correct.
-    update_config(config, parsed_config)
+        # First, update any defaults. This ensures the type is correct.
+        update_config(config, parsed_config)
 
-    # Now, update any keys from the file. This will add the value as a string
-    # If you need a bool/int/float, add it as a default to config above
-    for k, v in parsed_config.items():
-        if k not in config:
-            config[k] = v
+        # Now, update any keys from the file. This will add the value as a string
+        # If you need a bool/int/float, add it as a default to config above
+        for k, v in parsed_config.items():
+            if k not in config:
+                config[k] = v
 
     if 'args' in parsed_args:
         update_config_with_args(config, parsed_args['args'])

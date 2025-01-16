@@ -12,7 +12,7 @@ def print_usage(script):
 def parse_args(argv):
     config = {
         "devicetype": 'default',
-        "configfile": '',
+        "configfile": None,
         "sourcedir": realpath(dirname(__file__)),
     }
     try:
@@ -46,8 +46,6 @@ def parse_args(argv):
         elif opt in ("--args"):
             config["args"] = arg
 
-    if config["configfile"] == '':
-        config["configfile"] = config["sourcedir"] + '/config.conf'
     return config
 
 

@@ -3,6 +3,9 @@ parameters:
   type: string
 - name: displayName
   type: string
+- name: continueOnError
+  type: boolean
+  default: false
 
 steps:
 - script: |
@@ -12,4 +15,5 @@ steps:
     ${{ parameters.script }}
   displayName: ${{ parameters.displayName }}
   workingDirectory: $(Agent.TempDirectory)
+  continueOnError: ${{ parameters.continueOnError }}
 

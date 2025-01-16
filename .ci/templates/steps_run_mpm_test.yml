@@ -2,7 +2,7 @@ steps:
 
   - script: |
       rm -rf mpm_test_run
-      $(ScriptDir)/run_mpm_tests -t $(System.JobName) -c $(ConfigFile)
+      $(ScriptDir)/run_mpm_tests -t $(System.JobName)
     displayName: 'Run MPM Unit Tests'
     workingDirectory: $(Agent.BuildDirectory)
     continueOnError: true

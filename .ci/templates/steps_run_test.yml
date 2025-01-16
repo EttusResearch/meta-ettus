@@ -1,7 +1,7 @@
 steps:
   - script: |
       rm -rf usrp_test
-      $(ScriptDir)/run_test -t $(System.JobName) -c $(ConfigFile)
+      $(ScriptDir)/run_test -t $(System.JobName)
     displayName: 'Run Tests on Device'
     workingDirectory: $(Agent.BuildDirectory)
     continueOnError: true
