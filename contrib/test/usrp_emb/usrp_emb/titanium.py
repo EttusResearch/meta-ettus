@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import pexpect.fdpexpect
+import re
 import serial
 import sys
 
@@ -127,3 +128,13 @@ class Titanium:
 
         with self.xjtag.xsdb() as xsdb:
             xsdb.run_script(script)
+
+    def get_product_and_rev(self):
+        self.ps.sendline("eeprom-id mb")
+        self.ps.expect("eeprom-id mb\r\n")
+        line = self.ps.readline().decode()
+        match = re.match(r"product=ni-([^-]+)-rev([0-9]+)", line)
+        self.ps.expect("#")
+        if match is None:
+            raise RuntimeError(f"Could not parse product and revision from '{line}'")
+        return match.group(1), match.group(2)
