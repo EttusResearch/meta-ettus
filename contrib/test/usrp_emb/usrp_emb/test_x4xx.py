@@ -316,7 +316,7 @@ class EmbeddedTests(unittest.TestCase):
             assert ti.crosec.powerinfo() == 'S0'
             ti.crosec.powerbtn()
             assert ti.crosec.powerinfo() == 'S0'
-            ti.crosec.powerbtn(8500)
+            ti.crosec.powerbtn(8500, 'G3')
             time.sleep(5)
             assert ti.crosec.powerinfo() == 'G3'
             ti.crosec.reboot()

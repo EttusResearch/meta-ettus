@@ -3,6 +3,7 @@
 import re
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 
 
@@ -24,6 +25,8 @@ class ChromiumEC:
     def reboot(self):
         self.uart.sendline('reboot')
         self.uart.expect('--- UART initialized after reboot ---.*')
+        self.uart.expect('power state 0 = G3')
+        self.uart.sendline('')
         self.uart.expect(self.prompt)
         self._stop_spam()
 
@@ -32,14 +35,19 @@ class ChromiumEC:
         self.uart.expect('Issuing AP reset...')
         self.uart.expect(self.prompt)
 
-    def powerbtn(self, msec=200):
+    def powerbtn(self, msec=200, assert_powerstate='S0'):
         self.uart.sendline(f'powerbtn {msec}')
         self.uart.expect(f'Simulating {msec} ms power button press')
         self.uart.expect('Simulating power button release')
-        if self.uart.before != '':
-            return
-            # warnings.warn('errors after powerbtn: ' + str(self.uart.before))
         self.uart.expect(self.prompt)
+        if not assert_powerstate:
+            return
+        iteration = 1
+        while self.powerinfo() != assert_powerstate:
+            iteration += 1
+            if iteration > 10:
+                raise RuntimeError('Failed transitioning to power state {}'.format(assert_powerstate))
+            time.sleep(0.05)
 
     def powerinfo(self):
         """ Run powerinfo, return mode """
