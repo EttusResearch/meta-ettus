@@ -31,8 +31,8 @@ class Uboot:
 
     def run_dhcp(self):
         self.uart.sendline("dhcp")
-        self.uart.expect(r"DHCP client bound to address \w+.\w+.\w+.\w+")
-        ip = self.uart.after.decode('ascii').split(' ')[-1]
+        self.uart.expect(r"DHCP client bound to address (\d+\.\d+\.\d+\.\d+)")
+        ip = self.uart.match.group(1).decode('ascii')
         self.wait_for_prompt()
         return ip
 
