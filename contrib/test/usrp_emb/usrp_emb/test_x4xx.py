@@ -78,9 +78,9 @@ def update_cpld():
             ti.linux.run_command_and_print('x4xx_update_cpld')
         except RuntimeError as e:
             error = e
-        if ti.get_product_and_rev()[0] == "x410":
+        if ti.get_product_and_rev()[0] in ("x410", "x420"):
             try:
-                ti.linux.run_command_and_print('zbx_update_cpld')
+                ti.linux.run_command_and_print('x4xx_db_update_cpld')
             except RuntimeError as e:
                 error = e
 
