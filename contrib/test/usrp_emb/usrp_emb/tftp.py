@@ -56,14 +56,14 @@ class TFTPServer:
     Simple TFTP server, meant to be short-lived and capable of serving a single
     file only
     """
-    # TODO: Don't hardcode a port, chose randomly to allow multiple concurrent users
-    def __init__(self, filename, remote_ip, port=6669):
+    def __init__(self, filename, remote_ip, port_range=range(6669, 6669+100)):
         self.path = Path(filename).absolute()
         assert self.path.exists()
         assert self.path.is_file()
 
         self.filename = self.path.name
-        self.port = port
+        self.port_range = port_range
+        self.port = None
 
         with pyroute2.IPRoute() as ipr:
             r = ipr.route('get', dst=remote_ip)
@@ -73,15 +73,25 @@ class TFTPServer:
 
     def __enter__(self):
         self.loop = asyncio.new_event_loop()
-        listen = self.loop.create_datagram_endpoint(
-                lambda: TFTPServerSingle(self.path, self.ip, self.loop, {}),
-                local_addr=(self.ip, self.port))
 
         def start_loop(loop):
             asyncio.set_event_loop(loop)
             loop.run_forever()
 
-        self.transport, protocol = self.loop.run_until_complete(listen)
+        for port in self.port_range:
+            try:
+                listen = self.loop.create_datagram_endpoint(
+                        lambda: TFTPServerSingle(self.path, self.ip, self.loop, {}),
+                        local_addr=(self.ip, port))
+                self.transport, protocol = self.loop.run_until_complete(listen)
+                self.port = port
+                break
+            except OSError:
+                pass
+        if self.port is None:
+            raise RuntimeError("Failed to start TFTP server (port range: {}-{})".format(
+                self.port_range.start, self.port_range.stop-1))
+
         self.thread = threading.Thread(target=start_loop, args=(self.loop,))
         self.thread.start()
         return self

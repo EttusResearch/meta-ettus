@@ -11,11 +11,13 @@ class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     pass
 
 class HTTPServer:
-    def __init__(self, path, remote_ip):
+    def __init__(self, path, remote_ip, port_range=range(8313, 8313+100)):
         self.path = path
-        self.port = 8313
+        self.port_range = port_range
+        self.port = None
         self.old_path = None
         self.httpd = None
+        self.server_started = threading.Event()
 
         with pyroute2.IPRoute() as ipr:
             r = ipr.route('get', dst=remote_ip)
@@ -30,9 +32,17 @@ class HTTPServer:
 
     def __enter__(self):
         def start_server():
-            Handler = http.server.SimpleHTTPRequestHandler
-            self.httpd = ThreadingHTTPServer(("", self.port), Handler)
-            self.httpd.serve_forever()
+            for port in self.port_range:
+                try:
+                    Handler = http.server.SimpleHTTPRequestHandler
+                    self.httpd = ThreadingHTTPServer(("", port), Handler)
+                    self.port = port
+                    self.server_started.set() # signal that the server is running
+                    self.httpd.serve_forever()
+                    break
+                except OSError as e:
+                    pass
+            self.server_started.set() # signal that we have given up
 
         # Kind of annoying, but to work with older pythons where
         # SimpleHTTPRequestHandler doesn't take a directory parameter but only
@@ -42,6 +52,10 @@ class HTTPServer:
 
         self.thread = threading.Thread(target=start_server)
         self.thread.start()
+        self.server_started.wait()
+        if self.port is None:
+            raise RuntimeError("Failed to start HTTP server (port range: {}-{})".format(
+                self.port_range.start, self.port_range.stop-1))
         return self
 
     def __exit__(self, type, value, exc):
