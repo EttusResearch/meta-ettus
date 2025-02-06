@@ -27,7 +27,8 @@ setup(
         'py3tftp==1.2.1',
         'pyroute2==0.5.14',
         'pyserial==3.5',
-        'unittest-xml-reporting==3.0.4',
+        'unittest-xml-reporting',
+        'setuptools',
     ],
     entry_points={
         'console_scripts': [
