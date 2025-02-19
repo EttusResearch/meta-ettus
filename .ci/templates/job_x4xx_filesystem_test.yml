@@ -19,7 +19,7 @@ jobs:
 
   pool:
     demands:
-    - openembedded-test -equals $(machineName)
+    - device -equals $(agentDevice)
 
   steps:
   - checkout: self

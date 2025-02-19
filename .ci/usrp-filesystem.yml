@@ -217,10 +217,12 @@ stages:
               dutEmbeddedImagesArtifact: 'x4xx-images'
               uartSerial: $(x410_uartSerial)
               machineName: x4xx
+              agentDevice: sdr-test-x410-0
             x440:
               dutEmbeddedImagesArtifact: 'x4xx-images'
               uartSerial: $(x440_uartSerial)
               machineName: x4xx
+              agentDevice: sdr-test-x440-0
 
 - stage: filesystem_embedded_test
   displayName: Run embedded test

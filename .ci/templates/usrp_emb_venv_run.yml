@@ -9,7 +9,7 @@ parameters:
 
 steps:
 - script: |
-    source /opt/Xilinx/SDK/2019.1/settings64.sh
+    source $(xilinx_location)/settings64.sh
     source $USRP_EMB_VENV/bin/activate
 
     ${{ parameters.script }}
