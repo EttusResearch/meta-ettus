@@ -96,6 +96,12 @@ parameters:
   - name: flash_image
     type: boolean
     default: true
+  - name: pre_targets
+    type: string
+    default: "--parse-only"
+  - name: post_targets
+    type: string
+    default: "uhd:do_run_tests"
 
 resources:
   pipelines:
@@ -204,6 +210,8 @@ stages:
               displayName: list fpga images
         kas_subdirectory: ${{ parameters.kas_subdirectory }}
         build_default_targets: ${{ parameters.build_default_targets }}
+        pre_targets: ${{ parameters.pre_targets }}
+        post_targets: ${{ parameters.post_targets }}
 
 - ${{ if parameters.build_x4xx }}:
   - stage: x4xx_hardware_test

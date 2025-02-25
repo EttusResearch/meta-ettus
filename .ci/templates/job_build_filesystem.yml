@@ -50,6 +50,12 @@ parameters:
   - name: build_default_targets
     type: boolean
     default: True
+  - name: pre_targets
+    type: string
+    default: ""
+  - name: post_targets
+    type: string
+    default: "uhd:do_run_tests"
 
 jobs:
   - job: get_usrp_kas_docker_image
@@ -79,8 +85,10 @@ jobs:
           ${{ machine }}:
             machineName: ${{ machine }}
             ${{ if eq(machine, 'e320') }}:
-              pre_targets: mc:ni-neon-ec:chromium-ec
-            post_targets: uhd:do_run_tests
+              pre_targets: mc:ni-neon-ec:chromium-ec ${{ parameters.pre_targets }}
+            ${{ else }}:
+              pre_targets: ${{ parameters.pre_targets }}
+            post_targets: ${{ parameters.post_targets }}
     pool:
       name: Drivers-NIBuildFarm-RFMIBuild
       demands:
