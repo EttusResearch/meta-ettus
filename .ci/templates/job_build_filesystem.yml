@@ -56,6 +56,9 @@ parameters:
   - name: post_targets
     type: string
     default: "uhd:do_run_tests"
+  - name: cache_base_name
+    type: string
+    default: "kirkstone"
 
 jobs:
   - job: get_usrp_kas_docker_image
@@ -152,24 +155,24 @@ jobs:
         - task: Cache@2
           displayName: "Cache downloads"
           inputs:
-            key: '"kirkstone" | "downloads" | "$(CacheTimestamp)"'
-            restoreKeys: '"kirkstone" | "downloads"'
+            key: '"${{ parameters.cache_base_name }}" | "downloads" | "$(CacheTimestamp)"'
+            restoreKeys: '"${{ parameters.cache_base_name }}" | "downloads"'
             path: $(DL_DIR)
 
       - ${{ if parameters.cache_sstate }}:
         - task: Cache@2
           displayName: "Cache sstate"
           inputs:
-            key: '"kirkstone" | "sstate" | "$(machineName)" | "$(CacheTimestamp)"'
-            restoreKeys: '"kirkstone" | "sstate" | "$(machineName)"'
+            key: '"${{ parameters.cache_base_name }}" | "sstate" | "$(machineName)" | "$(CacheTimestamp)"'
+            restoreKeys: '"${{ parameters.cache_base_name }}" | "sstate" | "$(machineName)"'
             path: $(SSTATE_DIR)
 
       - ${{ if parameters.ccache }}:
         - task: Cache@2
           displayName: "Cache ccache"
           inputs:
-            key: '"kirkstone" | "ccache" | "$(machineName)" | "$(CacheTimestamp)"'
-            restoreKeys: '"kirkstone" | "ccache" | "$(machineName)"'
+            key: '"${{ parameters.cache_base_name }}" | "ccache" | "$(machineName)" | "$(CacheTimestamp)"'
+            restoreKeys: '"${{ parameters.cache_base_name }}" | "ccache" | "$(machineName)"'
             path: $(CCACHE_DIR)
 
       - script: |
