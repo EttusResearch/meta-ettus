@@ -8,6 +8,9 @@ parameters:
   - name: build_sdk
     type: boolean
     default: false
+  - name: create_sbom
+    type: boolean
+    default: true
   - name: ccache
     type: boolean
     default: false
@@ -193,6 +196,13 @@ jobs:
           EOF
         displayName: Enable archiver to generate sources
 
+      - ${{ if parameters.create_sbom }}:
+        - script: |
+            cat <<EOF >>$(Agent.BuildDirectory)/site.conf
+            ALCHEMY_CREATE_SBOM = "1"
+            EOF
+          displayName: Enable SBOM (SPDX) generation
+
       - ${{ if parameters.ccache }}:
         - script: |
             mkdir -p $CCACHE_DIR
@@ -241,6 +251,20 @@ jobs:
           find $KAS_DEPLOY_DIR -type l -name '*.sdimg.*' -exec cp {} images \;
           find $KAS_DEPLOY_DIR -type l -name '*.tar.*' -exec cp {} images \;
           find $KAS_DEPLOY_DIR -type l -name '*.manifest' -exec cp {} images \;
+
+          # spdx sbom
+          find $KAS_DEPLOY_DIR/images -type l -name '*.spdx*.json' -exec cp {} images \;
+          # spdx archive also include in '*.tar.*' wildcard for main image
+          find $KAS_DEPLOY_DIR/images -type l -name '*.spdx.tar.zst' -exec cp {} images \;
+
+          # cve summary in text file format
+          find $KAS_DEPLOY_DIR/images -type l -name '*.cve' -exec cp {} images \;
+          # cve summary in json file format, need to use wildcard because base name is not fixed,
+          # will include *.spdx*.json files another time
+          find $KAS_DEPLOY_DIR/images -type l -name '*.json' -exec cp {} images \;  
+          # cve
+          mkdir -p images/cve
+          find $KAS_DEPLOY_DIR/cve -exec cp {} images/cve \;
 
           # mender image
           find $KAS_DEPLOY_DIR -type l -name "*.mender" -exec cp {} images \;
