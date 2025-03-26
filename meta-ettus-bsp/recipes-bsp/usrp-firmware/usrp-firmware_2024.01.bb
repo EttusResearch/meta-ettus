@@ -6,6 +6,11 @@ inherit deploy
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"
 
+# Override source variable from ${WORKDIR}/${PN}-${PV} to ${WORKDIR}
+# This makes sure license files identified by NO_GENERIC_LICENSE 
+# are found at ${S} by the spdx SBOM generator 
+S = "${WORKDIR}"
+
 FILESEXTRAPATHS:prepend:ni-neon := "${BINARYDIR}/ni-neon:"
 FILESEXTRAPATHS:prepend:ni-sulfur := "${BINARYDIR}/ni-sulfur:"
 FILESEXTRAPATHS:prepend:ni-titanium := "${BINARYDIR}/ni-titanium:"
@@ -57,7 +62,7 @@ ALLOW_EMPTY:${PN}:ni-titanium = "1"
 
 # The EC image is under the Chromium License, so add custom license file
 
-LICENSE:append:ni-sulfur = "& Firmware-ni-sulfur"
+LICENSE:append:ni-sulfur = " & Firmware-ni-sulfur"
 LIC_FILES_CHKSUM:append:ni-sulfur = "file://${WORKDIR}/LICENSE.ec-sulfur;md5=72f855f00b364ec8bdc025e1a36b39c3"
 
 FILES:${PN}-ni-sulfur-license = " \
@@ -67,7 +72,7 @@ FILES:${PN}-ni-sulfur = " \
     ${nonarch_base_libdir}/firmware/ni/ec-sulfur*.bin \
     ${nonarch_base_libdir}/firmware/ni/ec-phosphorus*.bin \
     "
-NO_GENERIC_LICENSE[Firmware-ni-sulfur] = "${WORKDIR}/LICENSE.ec-sulfur"
+NO_GENERIC_LICENSE[Firmware-ni-sulfur] = "LICENSE.ec-sulfur"
 LICENSE:${PN}-ni-sulfur = "Firmware-ni-sulfur"
 RDEPENDS:${PN}-ni-sulfur += "${PN}-ni-sulfur-license"
 
@@ -79,10 +84,10 @@ LICENSE:${PN}-adi-mykonos = "CLOSED"
 
 # The EC image is under the Chromium License, so add custom license file
 
-LICENSE:append:ni-neon = "& Firmware-ni-neon"
+LICENSE:append:ni-neon = " & Firmware-ni-neon"
 LIC_FILES_CHKSUM:append:ni-neon = "file://${WORKDIR}/LICENSE.ec-neon;md5=72f855f00b364ec8bdc025e1a36b39c3"
 
-NO_GENERIC_LICENSE[Firmware-ni-neon] = "${WORKDIR}/LICENSE.ec-neon"
+NO_GENERIC_LICENSE[Firmware-ni-neon] = "LICENSE.ec-neon"
 LICENSE:${PN}-ni-neon = "Firmware-ni-neon"
 
 FILES:${PN}-ni-neon-license = " \
@@ -93,10 +98,10 @@ FILES:${PN}-ni-neon = "${nonarch_base_libdir}/firmware/ni/ec-neon-rev*.RW.bin \
 RDEPENDS:${PN}-ni-neon += "${PN}-ni-neon-license"
 
 
-LICENSE:append:ni-titanium = "& Firmware-ni-titanium"
+LICENSE:append:ni-titanium = " & Firmware-ni-titanium"
 LIC_FILES_CHKSUM:append:ni-titanium = "file://${WORKDIR}/LICENSE.ec-titanium;md5=72f855f00b364ec8bdc025e1a36b39c3"
 
-NO_GENERIC_LICENSE[Firmware-ni-titanium] = "${WORKDIR}/LICENSE.ec-titanium"
+NO_GENERIC_LICENSE[Firmware-ni-titanium] = "LICENSE.ec-titanium"
 LICENSE:${PN}-ni-titanium = "Firmware-ni-titanium"
 
 FILES:${PN}-ni-titanium-license = " \
