@@ -57,3 +57,6 @@ PACKAGE_EXCLUDE_COMPLEMENTARY = " \
     linux-firmware-dev \
     nfs-utils-dev \
     "
+
+# including legal ownership definitions
+require includes/maintainer-ettus.inc
