@@ -1,0 +1,25 @@
+From c65e12a76d846c8d46e272ebb965fea9b7bbfdab Mon Sep 17 00:00:00 2001
+From: Kas User <kas@example.com>
+Date: Wed, 30 Apr 2025 14:58:04 +0000
+Subject: [PATCH] Define SPDX license idntifier for qualified BSD license
+
+Signed-off-by: Marian Koop <marian.koop@emerson.com>
+---
+ recipes-openamp/libmetal/libmetal.inc | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/recipes-openamp/libmetal/libmetal.inc b/recipes-openamp/libmetal/libmetal.inc
+index 8d9c717..117bef4 100644
+--- a/recipes-openamp/libmetal/libmetal.inc
++++ b/recipes-openamp/libmetal/libmetal.inc
+@@ -6,6 +6,7 @@ SECTION = "libs"
+ 
+ LICENSE = "BSD"
+ LIC_FILES_CHKSUM ?= "file://LICENSE.md;md5=fe0b8a4beea8f0813b606d15a3df3d3c"
++SPDXLICENSEMAP[BSD] ?= "BSD-3-Clause"
+ 
+ REPO ?= "git://github.com/OpenAMP/libmetal.git;protocol=https"
+ BRANCH ?= "master"
+-- 
+2.39.2
+

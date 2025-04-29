@@ -34,6 +34,9 @@ repos:
       patch3:
         repo: meta-ettus
         path: kas/patches/meta-openamp/0004-change-syntax.patch
+      patch4:
+        repo: meta-ettus
+        path: kas/patches/meta-openamp/0005-add-spdx-license-identifier.patch
   meta-stm32:
     url: https://github.com/EttusResearch/meta-stm32
     commit: 87aaa6b9b0f7186d0c1574a5322e14dc86a039e3
