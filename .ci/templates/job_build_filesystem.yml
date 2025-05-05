@@ -200,6 +200,9 @@ jobs:
         - script: |
             cat <<EOF >>$(Agent.BuildDirectory)/site.conf
             ALCHEMY_CREATE_SBOM = "1"
+            # Map MG/RH cpld license name to valid, common 
+            # SPDX-License-Identifier (for details see US 3116752)
+            SPDXLICENSEMAP[Firmware-GPLv2] = "GPL-2.0-only"
             EOF
           displayName: Enable SBOM (SPDX) generation
 
