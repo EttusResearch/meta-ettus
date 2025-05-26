@@ -7,6 +7,8 @@ SRC_URI:ni-titanium-ec = " \
     git://github.com/EttusResearch/usrp-firmware.git;branch=titanium;protocol=https \
     file://0001-Makefile.toolchain-ignore-stringop-overread-warning.patch \
     file://0002-ignore-reprecation-warning-ftdi_usb_purge_buffers-is.patch \
+    file://0002-ina2xx-add-support-for-both-INA219-and-INA231.patch \
+    file://0003-Enable-DB-sensors-for-X420.patch \
     "
 
 SRCREV:ni-titanium-ec = "82c52e33a801e19af7187b1cf8da36673778f12f"

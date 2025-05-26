@@ -1,0 +1,954 @@
+From cafdccfbf392beee0d3cb89df72d179c2434ea1b Mon Sep 17 00:00:00 2001
+From: Martin Anderseck <martin.anderseck@ni.com>
+Date: Tue, 20 May 2025 10:26:46 +0200
+Subject: [PATCH 3/3] Enable DB sensors for X420
+
+This commit enables all daughterboard power sensors for X420.
+---
+ board/titanium/board.c | 299 ++++++++++++++++++++++++++---------------
+ board/titanium/board.h |  20 ++-
+ board/titanium/power.c | 120 +++++++++++------
+ driver/ina2xx.c        |  34 +++--
+ driver/ina2xx.h        |  89 ++++++------
+ 5 files changed, 349 insertions(+), 213 deletions(-)
+
+diff --git a/board/titanium/board.c b/board/titanium/board.c
+index d9a3ade3f..73a6bad0e 100644
+--- a/board/titanium/board.c
++++ b/board/titanium/board.c
+@@ -29,6 +29,8 @@
+ #include "host_control_gpio.h"
+ #include "fan.h"
+ #include "db_pwr.h"
++#include "eeproms.h"
++#include "usrp_eeprom.h"
+ 
+ static int led_state;
+ static void board_second(void)
+@@ -41,12 +43,12 @@ DECLARE_HOOK(HOOK_SECOND, board_second, HOOK_PRIO_DEFAULT);
+ 
+ /* power signal list.  Must match order of enum power_signal. */
+ const struct power_signal_info power_signal_list[] = {
+-	{GPIO_MASTER_PG_MCU, POWER_SIGNAL_ACTIVE_HIGH, "MASTER_POWER_GOOD"},
+-	{GPIO_PS_DONE, POWER_SIGNAL_ACTIVE_HIGH, "PS_DONE_ASSERTED"},
+-	{GPIO_PS_INIT_L, POWER_SIGNAL_ACTIVE_LOW, "PS_INIT#_ASSERTED"},
+-	{GPIO_PS_ERR_OUT, POWER_SIGNAL_ACTIVE_LOW, "PS_PWR_GOOD ASSERTED"},
+-	{GPIO_PS_ERR_STAT, POWER_SIGNAL_ACTIVE_HIGH, "PS_ERR_STAT_ASSERTED"},
+-	{GPIO_PS_SHUTDOWN_L, POWER_SIGNAL_ACTIVE_HIGH, "PS_PWR_REQUIRED"},
++	{ GPIO_MASTER_PG_MCU, POWER_SIGNAL_ACTIVE_HIGH, "MASTER_POWER_GOOD" },
++	{ GPIO_PS_DONE, POWER_SIGNAL_ACTIVE_HIGH, "PS_DONE_ASSERTED" },
++	{ GPIO_PS_INIT_L, POWER_SIGNAL_ACTIVE_LOW, "PS_INIT#_ASSERTED" },
++	{ GPIO_PS_ERR_OUT, POWER_SIGNAL_ACTIVE_LOW, "PS_PWR_GOOD ASSERTED" },
++	{ GPIO_PS_ERR_STAT, POWER_SIGNAL_ACTIVE_HIGH, "PS_ERR_STAT_ASSERTED" },
++	{ GPIO_PS_SHUTDOWN_L, POWER_SIGNAL_ACTIVE_HIGH, "PS_PWR_REQUIRED" },
+ };
+ BUILD_ASSERT(ARRAY_SIZE(power_signal_list) == POWER_SIGNAL_COUNT);
+ 
+@@ -60,57 +62,94 @@ const struct host_control_gpio host_control_gpios[] = {
+ 	[PWRDB_LED2R] = { .name = "LED2R_L", .signal = IOEX_PWRDB_LED2R_L },
+ 	[RFDC_POWERED] = { .name = "RFDC_POWERED", .signal = GPIO_SCPLD_IN },
+ 	[DB0_PWR_EN] = { .name = "DB0_PWR_EN", .signal = 0, .set = db_pwr_ctrl },
+-	[DB0_PWR_STATUS] = { .name = "DB0_PWR_STATUS", .signal = 0, .get = db_pwr_stat },
++	[DB0_PWR_STATUS] = { .name = "DB0_PWR_STATUS",
++			     .signal = 0,
++			     .get = db_pwr_stat },
+ 	[DB1_PWR_EN] = { .name = "DB1_PWR_EN", .signal = 1, .set = db_pwr_ctrl },
+-	[DB1_PWR_STATUS] = { .name = "DB1_PWR_STATUS", .signal = 1, .get = db_pwr_stat },
++	[DB1_PWR_STATUS] = { .name = "DB1_PWR_STATUS",
++			     .signal = 1,
++			     .get = db_pwr_stat },
+ };
+ BUILD_ASSERT(ARRAY_SIZE(host_control_gpios) == HOST_CONTROL_GPIO_COUNT);
+ #endif
+ 
+ const struct pwrsup_info power_supply_list[] = {
+-	PWRSUP_INFO(12V,        12V,        IOEX_PWRDB_12V_EN,   PWRSUP_MON_SIG(IOEX_PWRDB_VIN_PG)),
+-	PWRSUP_INFO(0V85,       12V,        GPIO_CORE_PMB_CNTL,  PWRSUP_MON_ADC(VMON_0V85, 850 * 0.9)),
+-	PWRSUP_INFO(1V8,        12V,        GPIO_1V8_EN,         PWRSUP_MON_ADC(VMON_1V8, 1800 * 0.9)),
+-	PWRSUP_INFO(2V5,        12V,        GPIO_2V5_EN,         PWRSUP_MON_ADC(VMON_2V5, 2500 * 0.9)),
+-	PWRSUP_INFO(3V3,        12V,        GPIO_3V3_EN,         PWRSUP_MON_ADC(VMON_3V3, 3300 * 0.9)),
+-	PWRSUP_INFO(0V9,        12V,        GPIO_0V9_EN,         PWRSUP_MON_ADC(VMON_0V9,  900 * 0.9)),
+-	PWRSUP_INFO(MGTAUX,     2V5,        GPIO_MGTAUX_EN_MCU),
+-	PWRSUP_INFO(DDR4N_VDDQ, 12V,        GPIO_DDR4N_VDDQ_EN,  PWRSUP_MON_ADC(VMON_1V2_DDRN, 1200 * 0.9)),
+-	PWRSUP_INFO(DDR4N_VTT,  DDR4N_VDDQ, GPIO_DDR4N_VTT_EN),
+-	PWRSUP_INFO(DDR4S_VDDQ, 12V,        GPIO_DDR4S_VDDQ_EN,  PWRSUP_MON_ADC(VMON_1V2_DDRS, 1200 * 0.9)),
+-	PWRSUP_INFO(DDR4S_VTT,  DDR4S_VDDQ, GPIO_DDR4S_VTT_EN),
+-	PWRSUP_INFO(3V6,        12V,        GPIO_3V6_EN,         PWRSUP_MON_ADC(VMON_3V7,     3600 * 0.9)),
+-	PWRSUP_INFO(3V3CLK,     3V6,        GPIO_3V3_CLK_EN,     PWRSUP_MON_ADC(VMON_3V3_CLK, 3300 * 0.9)),
+-	PWRSUP_INFO(1V8CLK,     2V5,        GPIO_3V3_CLK_EN,     PWRSUP_MON_ADC(VMON_1V8_CLK, 1800 * 0.9)),
+-	PWRSUP_INFO(DACVTT,     3V6,        GPIO_DACVTT_EN,      PWRSUP_MON_ADC(VMON_3V0_DAC_VTT, 3000 * 0.9)),
+-	PWRSUP_INFO(RFDC,       12V,        GPIO_STM_PG_OUT,     PWRSUP_MON_SIG(GPIO_SCPLD_IN)),
+-
+-	PWRSUP_INFO(ADCVCC,     DDR4N_VDDQ, GPIO_ADCVCC_EN,      PWRSUP_MON_SIG(GPIO_RF_PG_MCU)),
+-	PWRSUP_INFO(ADCVCCAUX,  2V5,        GPIO_ADC_VCCAUX_EN,  PWRSUP_MON_SIG(GPIO_RF_PG_MCU)),
+-	PWRSUP_INFO(DACVCC,     DDR4N_VDDQ, GPIO_DACVCC_EN,	 PWRSUP_MON_SIG(GPIO_RF_PG_MCU)),
+-	PWRSUP_INFO(DACVCCAUX,  2V5,        GPIO_DAC_VCCAUX_EN,  PWRSUP_MON_SIG(GPIO_RF_PG_MCU)),
+-
+-	PWRSUP_INFO(CLKDB_3V3,  3V3,        IOEX_CLKDB_3V3_EN,   PWRSUP_MON_SIG(IOEX_CLKDB_3V3_PG)),
+-	PWRSUP_INFO(CLKDB_3V7,  3V6,        IOEX_CLKDB_3V7_EN,   PWRSUP_MON_SIG(IOEX_CLKDB_3V7_PG)),
+-	PWRSUP_INFO(CLKDB_12V,  12V,        IOEX_CLKDB_12V_EN,   PWRSUP_MON_SIG(IOEX_CLKDB_12V_PG)),
+-
+-	PWRSUP_INFO(DIO_12V,    12V,        IOEX_DIO_12V_EN,     PWRSUP_MON_SIG(IOEX_DIO_12V_PG)),
+-	PWRSUP_INFO(DIO_1V2,    DDR4N_VDDQ, IOEX_DIO_1V2_EN,     PWRSUP_MON_SIG(IOEX_DIO_1V2_PG)),
+-	PWRSUP_INFO(DIO_3V3,    3V3,        IOEX_DIO_3V3_EN,     PWRSUP_MON_SIG(IOEX_DIO_3V3_PG)),
+-
+-	PWRSUP_INFO(DB0_12V,    12V, IOEX_DB0_12V_EN,    PWRSUP_MON_SIG(IOEX_DB0_12V_PG)),
+-	PWRSUP_INFO(DB0_3V3,    3V3, IOEX_DB0_3V3_EN,    PWRSUP_MON_SIG(IOEX_DB0_3V3_PG)),
+-	PWRSUP_INFO(DB0_3V7,    3V6, IOEX_DB0_3V7_EN,    PWRSUP_MON_SIG(IOEX_DB0_3V7_PG)),
+-	PWRSUP_INFO(DB0_2V5,    2V5, IOEX_DB0_2V5_EN,    PWRSUP_MON_SIG(IOEX_DB0_2V5_PG)),
+-	PWRSUP_INFO(DB0_1V8,    1V8, IOEX_DB0_1V8_EN,    PWRSUP_MON_SIG(IOEX_DB0_1V8_PG)),
+-	PWRSUP_INFO(DB0_3V3MCU, 12V, IOEX_DB0_3V3MCU_EN, PWRSUP_MON_SIG(IOEX_DB0_3V3MCU_PG)),
+-
+-	PWRSUP_INFO(DB1_12V,    12V, IOEX_DB1_12V_EN,    PWRSUP_MON_SIG(IOEX_DB1_12V_PG)),
+-	PWRSUP_INFO(DB1_3V3,    3V3, IOEX_DB1_3V3_EN,    PWRSUP_MON_SIG(IOEX_DB1_3V3_PG)),
+-	PWRSUP_INFO(DB1_3V7,    3V6, IOEX_DB1_3V7_EN,    PWRSUP_MON_SIG(IOEX_DB1_3V7_PG)),
+-	PWRSUP_INFO(DB1_2V5,    2V5, IOEX_DB1_2V5_EN,    PWRSUP_MON_SIG(IOEX_DB1_2V5_PG)),
+-	PWRSUP_INFO(DB1_1V8,    1V8, IOEX_DB1_1V8_EN,    PWRSUP_MON_SIG(IOEX_DB1_1V8_PG)),
+-	PWRSUP_INFO(DB1_3V3MCU, 12V, IOEX_DB1_3V3MCU_EN, PWRSUP_MON_SIG(IOEX_DB1_3V3MCU_PG)),
++	PWRSUP_INFO(12V, 12V, IOEX_PWRDB_12V_EN,
++		    PWRSUP_MON_SIG(IOEX_PWRDB_VIN_PG)),
++	PWRSUP_INFO(0V85, 12V, GPIO_CORE_PMB_CNTL,
++		    PWRSUP_MON_ADC(VMON_0V85, 850 * 0.9)),
++	PWRSUP_INFO(1V8, 12V, GPIO_1V8_EN,
++		    PWRSUP_MON_ADC(VMON_1V8, 1800 * 0.9)),
++	PWRSUP_INFO(2V5, 12V, GPIO_2V5_EN,
++		    PWRSUP_MON_ADC(VMON_2V5, 2500 * 0.9)),
++	PWRSUP_INFO(3V3, 12V, GPIO_3V3_EN,
++		    PWRSUP_MON_ADC(VMON_3V3, 3300 * 0.9)),
++	PWRSUP_INFO(0V9, 12V, GPIO_0V9_EN, PWRSUP_MON_ADC(VMON_0V9, 900 * 0.9)),
++	PWRSUP_INFO(MGTAUX, 2V5, GPIO_MGTAUX_EN_MCU),
++	PWRSUP_INFO(DDR4N_VDDQ, 12V, GPIO_DDR4N_VDDQ_EN,
++		    PWRSUP_MON_ADC(VMON_1V2_DDRN, 1200 * 0.9)),
++	PWRSUP_INFO(DDR4N_VTT, DDR4N_VDDQ, GPIO_DDR4N_VTT_EN),
++	PWRSUP_INFO(DDR4S_VDDQ, 12V, GPIO_DDR4S_VDDQ_EN,
++		    PWRSUP_MON_ADC(VMON_1V2_DDRS, 1200 * 0.9)),
++	PWRSUP_INFO(DDR4S_VTT, DDR4S_VDDQ, GPIO_DDR4S_VTT_EN),
++	PWRSUP_INFO(3V6, 12V, GPIO_3V6_EN,
++		    PWRSUP_MON_ADC(VMON_3V7, 3600 * 0.9)),
++	PWRSUP_INFO(3V3CLK, 3V6, GPIO_3V3_CLK_EN,
++		    PWRSUP_MON_ADC(VMON_3V3_CLK, 3300 * 0.9)),
++	PWRSUP_INFO(1V8CLK, 2V5, GPIO_3V3_CLK_EN,
++		    PWRSUP_MON_ADC(VMON_1V8_CLK, 1800 * 0.9)),
++	PWRSUP_INFO(DACVTT, 3V6, GPIO_DACVTT_EN,
++		    PWRSUP_MON_ADC(VMON_3V0_DAC_VTT, 3000 * 0.9)),
++	PWRSUP_INFO(RFDC, 12V, GPIO_STM_PG_OUT, PWRSUP_MON_SIG(GPIO_SCPLD_IN)),
++
++	PWRSUP_INFO(ADCVCC, DDR4N_VDDQ, GPIO_ADCVCC_EN,
++		    PWRSUP_MON_SIG(GPIO_RF_PG_MCU)),
++	PWRSUP_INFO(ADCVCCAUX, 2V5, GPIO_ADC_VCCAUX_EN,
++		    PWRSUP_MON_SIG(GPIO_RF_PG_MCU)),
++	PWRSUP_INFO(DACVCC, DDR4N_VDDQ, GPIO_DACVCC_EN,
++		    PWRSUP_MON_SIG(GPIO_RF_PG_MCU)),
++	PWRSUP_INFO(DACVCCAUX, 2V5, GPIO_DAC_VCCAUX_EN,
++		    PWRSUP_MON_SIG(GPIO_RF_PG_MCU)),
++
++	PWRSUP_INFO(CLKDB_3V3, 3V3, IOEX_CLKDB_3V3_EN,
++		    PWRSUP_MON_SIG(IOEX_CLKDB_3V3_PG)),
++	PWRSUP_INFO(CLKDB_3V7, 3V6, IOEX_CLKDB_3V7_EN,
++		    PWRSUP_MON_SIG(IOEX_CLKDB_3V7_PG)),
++	PWRSUP_INFO(CLKDB_12V, 12V, IOEX_CLKDB_12V_EN,
++		    PWRSUP_MON_SIG(IOEX_CLKDB_12V_PG)),
++
++	PWRSUP_INFO(DIO_12V, 12V, IOEX_DIO_12V_EN,
++		    PWRSUP_MON_SIG(IOEX_DIO_12V_PG)),
++	PWRSUP_INFO(DIO_1V2, DDR4N_VDDQ, IOEX_DIO_1V2_EN,
++		    PWRSUP_MON_SIG(IOEX_DIO_1V2_PG)),
++	PWRSUP_INFO(DIO_3V3, 3V3, IOEX_DIO_3V3_EN,
++		    PWRSUP_MON_SIG(IOEX_DIO_3V3_PG)),
++
++	PWRSUP_INFO(DB0_12V, 12V, IOEX_DB0_12V_EN,
++		    PWRSUP_MON_SIG(IOEX_DB0_12V_PG)),
++	PWRSUP_INFO(DB0_3V3, 3V3, IOEX_DB0_3V3_EN,
++		    PWRSUP_MON_SIG(IOEX_DB0_3V3_PG)),
++	PWRSUP_INFO(DB0_3V7, 3V6, IOEX_DB0_3V7_EN,
++		    PWRSUP_MON_SIG(IOEX_DB0_3V7_PG)),
++	PWRSUP_INFO(DB0_2V5, 2V5, IOEX_DB0_2V5_EN,
++		    PWRSUP_MON_SIG(IOEX_DB0_2V5_PG)),
++	PWRSUP_INFO(DB0_1V8, 1V8, IOEX_DB0_1V8_EN,
++		    PWRSUP_MON_SIG(IOEX_DB0_1V8_PG)),
++	PWRSUP_INFO(DB0_3V3MCU, 12V, IOEX_DB0_3V3MCU_EN,
++		    PWRSUP_MON_SIG(IOEX_DB0_3V3MCU_PG)),
++
++	PWRSUP_INFO(DB1_12V, 12V, IOEX_DB1_12V_EN,
++		    PWRSUP_MON_SIG(IOEX_DB1_12V_PG)),
++	PWRSUP_INFO(DB1_3V3, 3V3, IOEX_DB1_3V3_EN,
++		    PWRSUP_MON_SIG(IOEX_DB1_3V3_PG)),
++	PWRSUP_INFO(DB1_3V7, 3V6, IOEX_DB1_3V7_EN,
++		    PWRSUP_MON_SIG(IOEX_DB1_3V7_PG)),
++	PWRSUP_INFO(DB1_2V5, 2V5, IOEX_DB1_2V5_EN,
++		    PWRSUP_MON_SIG(IOEX_DB1_2V5_PG)),
++	PWRSUP_INFO(DB1_1V8, 1V8, IOEX_DB1_1V8_EN,
++		    PWRSUP_MON_SIG(IOEX_DB1_1V8_PG)),
++	PWRSUP_INFO(DB1_3V3MCU, 12V, IOEX_DB1_3V3MCU_EN,
++		    PWRSUP_MON_SIG(IOEX_DB1_3V3MCU_PG)),
+ };
+ 
+ #ifdef CONFIG_I2C_MUX
+@@ -118,19 +157,15 @@ const struct pwrsup_info power_supply_list[] = {
+ #include "i2c_mux.h"
+ #include "driver/i2cmux_tca954x.h"
+ struct i2c_mux_t i2c_muxes[] = {
+-	{I2C_PORT_DB, TCA954X_I2C_ADDR, -1, tca954x_select_chan },
++	{ I2C_PORT_DB, TCA954X_I2C_ADDR, -1, tca954x_select_chan },
+ };
+ BUILD_ASSERT(ARRAY_SIZE(i2c_muxes) == I2C_MUX_COUNT);
+ 
+ struct i2c_mux_mapping i2c_mux_mappings[] = {
+-	{ I2C_PORT_DB0, I2C_MUX_MB, 0},
+-	{ I2C_PORT_DB0_PWR, I2C_MUX_MB, 1},
+-	{ I2C_PORT_DB1, I2C_MUX_MB, 2},
+-	{ I2C_PORT_DB1_PWR, I2C_MUX_MB, 3},
+-	{ I2C_PORT_MON, I2C_MUX_MB, 4},
+-	{ I2C_PORT_TMP464, I2C_MUX_MB, 5},
+-	{ I2C_PORT_RTC, I2C_MUX_MB, 6},
+-	{ I2C_PORT_PWR, I2C_MUX_MB, 7},
++	{ I2C_PORT_DB0, I2C_MUX_MB, 0 }, { I2C_PORT_DB0_PWR, I2C_MUX_MB, 1 },
++	{ I2C_PORT_DB1, I2C_MUX_MB, 2 }, { I2C_PORT_DB1_PWR, I2C_MUX_MB, 3 },
++	{ I2C_PORT_MON, I2C_MUX_MB, 4 }, { I2C_PORT_TMP464, I2C_MUX_MB, 5 },
++	{ I2C_PORT_RTC, I2C_MUX_MB, 6 }, { I2C_PORT_PWR, I2C_MUX_MB, 7 },
+ };
+ 
+ int i2c_mux_get_cfg(int port, enum i2c_mux_id *id, int *chan, int *parent)
+@@ -150,13 +185,13 @@ int i2c_mux_get_cfg(int port, enum i2c_mux_id *id, int *chan, int *parent)
+ 
+ int i2c_port_to_controller(int port)
+ {
+-
+ 	int p;
+ 
+ 	if (i2c_port_is_muxed(port))
+ 		for (p = 0; p < ARRAY_SIZE(i2c_mux_mappings); p++)
+ 			if (i2c_mux_mappings[p].port == port)
+-				return i2c_mux_get_parent(i2c_mux_mappings[p].id);
++				return i2c_mux_get_parent(
++					i2c_mux_mappings[p].id);
+ 	return port;
+ }
+ #endif
+@@ -164,8 +199,8 @@ int i2c_port_to_controller(int port)
+ /* PWM channels. Must be in the exactly same order as in enum pwm_channel. */
+ #ifdef CONFIG_PWM
+ const struct pwm_t pwm_channels[] = {
+-	{STM32_TIM(4), STM32_TIM_CH(1), PWM_CONFIG_ACTIVE_LOW, 25000},
+-	{STM32_TIM(4), STM32_TIM_CH(2), PWM_CONFIG_ACTIVE_LOW, 25000},
++	{ STM32_TIM(4), STM32_TIM_CH(1), PWM_CONFIG_ACTIVE_LOW, 25000 },
++	{ STM32_TIM(4), STM32_TIM_CH(2), PWM_CONFIG_ACTIVE_LOW, 25000 },
+ };
+ BUILD_ASSERT(ARRAY_SIZE(pwm_channels) == PWM_CH_COUNT);
+ #endif
+@@ -187,41 +222,51 @@ int extpower_is_present(void)
+ #ifdef CONFIG_ADC
+ /* ADC channels */
+ const struct adc_t adc_channels[] = {
+-	[VMON_VBATT]		= {"Vbatt", 4 * 3300, 4096, 0, STM32_ADC_CHANNEL_VBATT},
+-	[ADC1_TEMPERATURE]	= {"Vtemp", 1, 1, 0, STM32_ADC_CHANNEL_TEMPERATURE},
+-	[ADC1_17]		= {"VRef", 3300, 4096, 0, STM32_AIN(17)},
+-	[VMON_0V9]		= {"0V9", 3300, 4096, 0, STM32_AIN(0)},
+-	[VMON_0V85]		= {"0V85", 3300,	4096, 0, STM32_AIN(1)},
+-	[VMON_0V6_DDR_VREF]	= {"0V6_DDR_VREF", 3 * 3300 / 2, 4096, 0, STM32_AIN(2)},
+-	[VMON_0V925_ADC_DAC]	= {"0V925_ADC_DAC", 3 * 3300 / 2, 4096, 0, STM32_AIN(3)},
+-	[VMON_1V2_DDRS]		= {"1V2_DDRS", 3300, 4096, 0, STM32_AIN(4)},
+-	[VMON_1V2_DDRN]		= {"1V2_DDRN", 3300, 4096, 0, STM32_AIN(5)},
+-	[VMON_0V6_DDR_VTT]	= {"0V6_DDR_VTT", 3 * 3300 / 2, 4096, 0, STM32_AIN(6)},
+-	[VMON_1V8_ADC_DAC_AUX]	= {"1V8_ADC_DAC_AUX", 3 * 3300 / 2, 4096, 0, STM32_AIN(7)},
+-	[VMON_1V8]		= {"1V8", 3300, 4096, 0, STM32_AIN(8)},
+-	[VMON_2V5]		= {"2V5", 3300, 4096, 0, STM32_AIN(9)},
+-	[VMON_3V0_DAC_VTT]	= {"3V0_DAC_VTT", 2 * 3300, 4096, 0, STM32_AIN(10)},
+-	[VMON_VIN_IMON]		= {"VIN_IMON", 3300, 4096, 0, STM32_AIN(11)},
+-	[VMON_1V8_CLK]		= {"1V8_CLK", 3300, 4096, 0, STM32_AIN(12)},
+-	[VMON_3V3]		= {"3V3", 2 * 3300, 4096, 0, STM32_AIN(13)},
+-	[VMON_3V3_CLK]		= {"3V3_CLK", 4950, 4096, 0, STM32_AIN(14)},
+-	[VMON_3V7]		= {"3V6", 2 * 3300, 4096, 0, STM32_AIN(15)},
++	[VMON_VBATT] = { "Vbatt", 4 * 3300, 4096, 0, STM32_ADC_CHANNEL_VBATT },
++	[ADC1_TEMPERATURE] = { "Vtemp", 1, 1, 0,
++			       STM32_ADC_CHANNEL_TEMPERATURE },
++	[ADC1_17] = { "VRef", 3300, 4096, 0, STM32_AIN(17) },
++	[VMON_0V9] = { "0V9", 3300, 4096, 0, STM32_AIN(0) },
++	[VMON_0V85] = { "0V85", 3300, 4096, 0, STM32_AIN(1) },
++	[VMON_0V6_DDR_VREF] = { "0V6_DDR_VREF", 3 * 3300 / 2, 4096, 0,
++				STM32_AIN(2) },
++	[VMON_0V925_ADC_DAC] = { "0V925_ADC_DAC", 3 * 3300 / 2, 4096, 0,
++				 STM32_AIN(3) },
++	[VMON_1V2_DDRS] = { "1V2_DDRS", 3300, 4096, 0, STM32_AIN(4) },
++	[VMON_1V2_DDRN] = { "1V2_DDRN", 3300, 4096, 0, STM32_AIN(5) },
++	[VMON_0V6_DDR_VTT] = { "0V6_DDR_VTT", 3 * 3300 / 2, 4096, 0,
++			       STM32_AIN(6) },
++	[VMON_1V8_ADC_DAC_AUX] = { "1V8_ADC_DAC_AUX", 3 * 3300 / 2, 4096, 0,
++				   STM32_AIN(7) },
++	[VMON_1V8] = { "1V8", 3300, 4096, 0, STM32_AIN(8) },
++	[VMON_2V5] = { "2V5", 3300, 4096, 0, STM32_AIN(9) },
++	[VMON_3V0_DAC_VTT] = { "3V0_DAC_VTT", 2 * 3300, 4096, 0,
++			       STM32_AIN(10) },
++	[VMON_VIN_IMON] = { "VIN_IMON", 3300, 4096, 0, STM32_AIN(11) },
++	[VMON_1V8_CLK] = { "1V8_CLK", 3300, 4096, 0, STM32_AIN(12) },
++	[VMON_3V3] = { "3V3", 2 * 3300, 4096, 0, STM32_AIN(13) },
++	[VMON_3V3_CLK] = { "3V3_CLK", 4950, 4096, 0, STM32_AIN(14) },
++	[VMON_3V7] = { "3V6", 2 * 3300, 4096, 0, STM32_AIN(15) },
+ };
+ BUILD_ASSERT(ARRAY_SIZE(adc_channels) == ADC_CH_COUNT);
+ #endif
+ 
+ #ifdef CONFIG_PMBUS
+ const struct pmbus_dev pmbus_devs[] = {
+-	{"TPSM846C23-Master", 0x36, I2C_PORT_PMBUS, PMBUS_VOUT_EXPONENT_DYNAMIC, GPIO_CORE_PMB_CNTL},
+-	{"TPSM846C23-Slave",  0x35, I2C_PORT_PMBUS, -9, GPIO_CORE_PMB_CNTL},
++	{ "TPSM846C23-Master", 0x36, I2C_PORT_PMBUS,
++	  PMBUS_VOUT_EXPONENT_DYNAMIC, GPIO_CORE_PMB_CNTL },
++	{ "TPSM846C23-Slave", 0x35, I2C_PORT_PMBUS, -9, GPIO_CORE_PMB_CNTL },
+ };
+ #endif
+ 
+ /* I2C ports */
+ const struct i2c_port_t i2c_ports[] = {
+-	{"core-pmbus", I2C_PORT_PMBUS, 400, GPIO_CORE_PMB_CLK, GPIO_CORE_PMB_DAT},
+-	{"db-switch", I2C_PORT_DB, 400, GPIO_DB_SWITCH_I2C_SCL, GPIO_DB_SWITCH_I2C_SDA},
+-	{"slave", I2C_PORT_SLAVE, 400, GPIO_SLAVE_I2C_SCL, GPIO_SLAVE_I2C_SDA},
++	{ "core-pmbus", I2C_PORT_PMBUS, 400, GPIO_CORE_PMB_CLK,
++	  GPIO_CORE_PMB_DAT },
++	{ "db-switch", I2C_PORT_DB, 400, GPIO_DB_SWITCH_I2C_SCL,
++	  GPIO_DB_SWITCH_I2C_SDA },
++	{ "slave", I2C_PORT_SLAVE, 400, GPIO_SLAVE_I2C_SCL,
++	  GPIO_SLAVE_I2C_SDA },
+ };
+ const unsigned int i2c_ports_used = ARRAY_SIZE(i2c_ports);
+ 
+@@ -240,18 +285,30 @@ const struct tmp112_t tmp112_sensors[] = {
+ BUILD_ASSERT(ARRAY_SIZE(tmp112_sensors) == TMP112_COUNT);
+ 
+ const struct temp_sensor_t temp_sensors[] = {
+-	{"PMBUS-0", TEMP_SENSOR_TYPE_BOARD, pmbus_temp_get_val, PMBUS_ID0, NULL },
+-	{"PMBUS-1", TEMP_SENSOR_TYPE_BOARD, pmbus_temp_get_val, PMBUS_ID1, NULL},
+-	{"EC Internal", TEMP_SENSOR_TYPE_BOARD, ec_adc_get_val, ADC1_TEMPERATURE, NULL},
+-	{"TMP464 Internal", TEMP_SENSOR_TYPE_BOARD, tmp468_get_val, TMP468_LOCAL, tmp468_get_valf},
+-	{"Sample Clock PCB", TEMP_SENSOR_TYPE_BOARD, tmp468_get_val, TMP468_REMOTE1, tmp468_get_valf},
+-	{"RFSoC", TEMP_SENSOR_TYPE_CPU, tmp468_get_val, TMP468_REMOTE2, tmp468_get_valf},
+-	{"DRAM PCB", TEMP_SENSOR_TYPE_BOARD, tmp468_get_val, TMP468_REMOTE3, tmp468_get_valf},
+-	{"Power Supply PCB", TEMP_SENSOR_TYPE_BOARD, tmp468_get_val, TMP468_REMOTE4, tmp468_get_valf},
+-	{"TMP112 DB0 Top", TEMP_SENSOR_TYPE_BOARD, tmp112_get_val, 0, tmp112_get_valf},
+-	{"TMP112 DB0 Bottom", TEMP_SENSOR_TYPE_BOARD, tmp112_get_val, 1, tmp112_get_valf},
+-	{"TMP112 DB1 Top", TEMP_SENSOR_TYPE_BOARD, tmp112_get_val, 2, tmp112_get_valf},
+-	{"TMP112 DB1 Bottom", TEMP_SENSOR_TYPE_BOARD, tmp112_get_val, 3, tmp112_get_valf},
++	{ "PMBUS-0", TEMP_SENSOR_TYPE_BOARD, pmbus_temp_get_val, PMBUS_ID0,
++	  NULL },
++	{ "PMBUS-1", TEMP_SENSOR_TYPE_BOARD, pmbus_temp_get_val, PMBUS_ID1,
++	  NULL },
++	{ "EC Internal", TEMP_SENSOR_TYPE_BOARD, ec_adc_get_val,
++	  ADC1_TEMPERATURE, NULL },
++	{ "TMP464 Internal", TEMP_SENSOR_TYPE_BOARD, tmp468_get_val,
++	  TMP468_LOCAL, tmp468_get_valf },
++	{ "Sample Clock PCB", TEMP_SENSOR_TYPE_BOARD, tmp468_get_val,
++	  TMP468_REMOTE1, tmp468_get_valf },
++	{ "RFSoC", TEMP_SENSOR_TYPE_CPU, tmp468_get_val, TMP468_REMOTE2,
++	  tmp468_get_valf },
++	{ "DRAM PCB", TEMP_SENSOR_TYPE_BOARD, tmp468_get_val, TMP468_REMOTE3,
++	  tmp468_get_valf },
++	{ "Power Supply PCB", TEMP_SENSOR_TYPE_BOARD, tmp468_get_val,
++	  TMP468_REMOTE4, tmp468_get_valf },
++	{ "TMP112 DB0 Top", TEMP_SENSOR_TYPE_BOARD, tmp112_get_val, 0,
++	  tmp112_get_valf },
++	{ "TMP112 DB0 Bottom", TEMP_SENSOR_TYPE_BOARD, tmp112_get_val, 1,
++	  tmp112_get_valf },
++	{ "TMP112 DB1 Top", TEMP_SENSOR_TYPE_BOARD, tmp112_get_val, 2,
++	  tmp112_get_valf },
++	{ "TMP112 DB1 Bottom", TEMP_SENSOR_TYPE_BOARD, tmp112_get_val, 3,
++	  tmp112_get_valf },
+ };
+ BUILD_ASSERT(ARRAY_SIZE(temp_sensors) == TEMP_SENSOR_COUNT);
+ 
+@@ -273,8 +330,7 @@ static void tmp468_sensor_init(void)
+ 
+ 	if (ret != EC_SUCCESS)
+ 		ccprintf("warning! TMP468 init failed!"
+-			"Temp values may not be accurate!\n");
+-
++			 "Temp values may not be accurate!\n");
+ }
+ DECLARE_HOOK(HOOK_INIT, tmp468_sensor_init, HOOK_PRIO_TEMP_SENSOR);
+ #endif
+@@ -328,14 +384,15 @@ BUILD_ASSERT(ARRAY_SIZE(ioex_config) == CONFIG_IO_EXPANDER_PORT_COUNT);
+ /* Default value for configuration register is 0x399f which allows for
+    continuous bus and shunt voltage measurement along with
+    highest voltage ranges and ADC resolution. However since we
+-   know that the input current is not very high we can configure the PGA gain bits
+-   to have lower shunt voltage range resulting in higher voltage resolution.
+-   e.g. If the highest current is 20 A the the highest shunt voltage is
+-   I * R = 2 mOhm * 20 A = 40 mV.
+-   Selecting the PGA bits corresponding to a voltage range of +/- 40 mV
+-   and keeping other bits the same as default results in a 0x219F value.
+-   Refer http://www.ti.com/lit/ds/symlink/ina219.pdf
++   know that the input current is not very high we can configure the PGA gain
++   bits to have lower shunt voltage range resulting in higher voltage
++   resolution. e.g. If the highest current is 20 A then the highest shunt
++   voltage is I * R = 2 mOhm * 20 A = 40 mV. Selecting the PGA bits
++   corresponding to a voltage range of +/- 40 mV and keeping other bits the same
++   as default results in a 0x219F value. Refer
++   http://www.ti.com/lit/ds/symlink/ina219.pdf
+    */
++/* clang-format off */
+ const struct ina2xx_t ina2xx_sensors[] = {
+ 	{ "0V9",  I2C_PORT_MON, INA2XX_I2C_ADDR(0, 0), 0x219f, INA2XX_CALIB_1MA(2), false },
+ 	{ "1V8",  I2C_PORT_MON, INA2XX_I2C_ADDR(0, 1), 0x219f, INA2XX_CALIB_1MA(2), false },
+@@ -344,8 +401,18 @@ const struct ina2xx_t ina2xx_sensors[] = {
+ 	{ "2V5",  I2C_PORT_MON, INA2XX_I2C_ADDR(1, 1), 0x219f, INA2XX_CALIB_1MA(2), false },
+ 	{ "1V2N", I2C_PORT_MON, INA2XX_I2C_ADDR(2, 0), 0x219f, INA2XX_CALIB_1MA(2), false },
+ 	{ "1V2S", I2C_PORT_MON, INA2XX_I2C_ADDR(2, 2), 0x219f, INA2XX_CALIB_1MA(2), false },
++	{ "DB0_12V0", I2C_PORT_DB0, INA2XX_I2C_ADDR(0, 0), 0x45E7, INA231_CALIB_1MA(1), true },
++	{ "DB0_8V6",  I2C_PORT_DB0, INA2XX_I2C_ADDR(0, 1), 0x45E7, INA231_CALIB_1MA(1), true },
++	// { "DB0_3V7",  I2C_PORT_DB0, INA2XX_I2C_ADDR(0, 2), 0x4127, INA231_CALIB_1MA(1), true },
++	{ "DB0_5V6",  I2C_PORT_DB0, INA2XX_I2C_ADDR(1, 0), 0x45E7, INA231_CALIB_1MA(1), true },
++	{ "DB0_4V0",  I2C_PORT_DB0, INA2XX_I2C_ADDR(1, 1), 0x45E7, INA231_CALIB_1MA(1), true },
++	{ "DB1_12V0", I2C_PORT_DB1, INA2XX_I2C_ADDR(0, 0), 0x45E7, INA231_CALIB_1MA(1), true },
++	{ "DB1_8V6",  I2C_PORT_DB1, INA2XX_I2C_ADDR(0, 1), 0x45E7, INA231_CALIB_1MA(1), true },
++	// { "DB1_3V7",  I2C_PORT_DB1, INA2XX_I2C_ADDR(0, 2), 0x4127, INA231_CALIB_1MA(1), true },
++	{ "DB1_5V6",  I2C_PORT_DB1, INA2XX_I2C_ADDR(1, 0), 0x45E7, INA231_CALIB_1MA(1), true },
++	{ "DB1_4V0",  I2C_PORT_DB1, INA2XX_I2C_ADDR(1, 1), 0x45E7, INA231_CALIB_1MA(1), true },
+ };
+-BUILD_ASSERT(ARRAY_SIZE(ina2xx_sensors) == INA2XX_COUNT);
++BUILD_ASSERT(ARRAY_SIZE(ina2xx_sensors) == INA2XX_MAX_COUNT);
+ #endif
+ 
+ /* Max and min rpm defaults are from the fan datasheet*/
+@@ -381,3 +448,15 @@ struct fan_t fans[] = {
+ 	[FAN_CH_1] = { .conf = &fan_conf_1, .rpm = &fan_rpm_1, },
+ };
+ BUILD_ASSERT(ARRAY_SIZE(fans) == FAN_CH_COUNT);
++
++int get_num_db_sensors(void) {
++	const struct usrp_eeprom_board_info *board_info;
++	uint16_t pid;
++	board_info = eeprom_lookup_tag(TLV_EEPROM_DB0, USRP_EEPROM_BOARD_INFO_TAG);
++	if (board_info) {
++		pid = board_info->pid;
++	} else pid = 0;
++	if (pid == HBX_PID) {
++		return HBX_NUM_INA231;
++	} else return 0;
++}
+diff --git a/board/titanium/board.h b/board/titanium/board.h
+index e80307db4..70d1cb51e 100644
+--- a/board/titanium/board.h
++++ b/board/titanium/board.h
+@@ -45,12 +45,16 @@
+ #define CONFIG_CRC8
+ #define CONFIG_SW_CRC
+ 
++/* Daughterboard-specific settings */
++#define HBX_PID 0x4008
++#define HBX_NUM_INA231 4
++
+ /* I2C ports configuration */
+ #define CONFIG_I2C_MASTER
+ #define I2C_PORT_PMBUS 1
+ #define I2C_PORT_DB 2
+ #define I2C_PORT_THERMAL 15
+-#define I2C_PORT_SLAVE 0        /* needed for DMAC macros (ugh) */
++#define I2C_PORT_SLAVE 0 /* needed for DMAC macros (ugh) */
+ 
+ /* I2C ports downstream of mux */
+ #define I2C_PORT_DB0 10
+@@ -154,8 +158,8 @@ enum ioex_ports {
+ 	IOEX_DB1_PWR,
+ 	IOEX_CLK_DB,
+ #ifdef TITANIUM_ENABLE_RFCHAR_GPIO
+-    IOEX_RFCHAR_DB0,
+-    IOEX_RFCHAR_DB1,
++	IOEX_RFCHAR_DB0,
++	IOEX_RFCHAR_DB1,
+ #endif
+ 	CONFIG_IO_EXPANDER_PORT_COUNT,
+ };
+@@ -323,7 +327,15 @@ enum ina2xx_id {
+ 	INA2XX_1V2N,
+ 	INA2XX_1V2S,
+ };
++enum ina231_id {
++	INA231_12V0,
++	INA231_8V6,
++	INA231_3V7,
++	INA231_5V6,
++	INA231_4V0,
++};
+ #define INA2XX_COUNT 7
++#define INA2XX_MAX_COUNT INA2XX_COUNT + 2 * HBX_NUM_INA231
+ #endif
+ 
+ enum fan_channel {
+@@ -334,6 +346,8 @@ enum fan_channel {
+ 	FAN_CH_COUNT
+ };
+ 
++int get_num_db_sensors(void);
++
+ #include "gpio_signal.h"
+ 
+ #endif /* !__ASSEMBLER__ */
+diff --git a/board/titanium/power.c b/board/titanium/power.c
+index 4dc497b63..8c5c46a27 100644
+--- a/board/titanium/power.c
++++ b/board/titanium/power.c
+@@ -20,6 +20,7 @@
+ #include "temp_sensor.h"
+ #include "timer.h"
+ #include "util.h"
++#include "board.h"
+ 
+ struct rail_monitor {
+ 	uint8_t adc_channel; /* voltage monitor */
+@@ -45,12 +46,12 @@ static int get_0v85_power(uint8_t ignored)
+ static const struct rail_monitor rail_monitors[] = {
+ 	{ VMON_VBATT },
+ 	{ ADC1_17 },
+-	{ VMON_0V9, ina2xx_get_power, INA2XX_0V9},
++	{ VMON_0V9, ina2xx_get_power, INA2XX_0V9 },
+ 	{ VMON_0V85, get_0v85_power },
+ 	{ VMON_0V6_DDR_VREF },
+ 	{ VMON_0V925_ADC_DAC },
+-	{ VMON_1V2_DDRS, ina2xx_get_power, INA2XX_1V2S},
+-	{ VMON_1V2_DDRN, ina2xx_get_power, INA2XX_1V2N},
++	{ VMON_1V2_DDRS, ina2xx_get_power, INA2XX_1V2S },
++	{ VMON_1V2_DDRN, ina2xx_get_power, INA2XX_1V2N },
+ 	{ VMON_0V6_DDR_VTT },
+ 	{ VMON_1V8_ADC_DAC_AUX },
+ 	{ VMON_1V8, ina2xx_get_power, INA2XX_1V8 },
+@@ -58,8 +59,10 @@ static const struct rail_monitor rail_monitors[] = {
+ 	{ VMON_3V0_DAC_VTT },
+ 	{ VMON_1V8_CLK },
+ 	{ VMON_3V3, ina2xx_get_power, INA2XX_3V3 },
+-	{ VMON_3V3_CLK, },
+-	{ VMON_3V7, ina2xx_get_power, INA2XX_3V6},
++	{
++		VMON_3V3_CLK,
++	},
++	{ VMON_3V7, ina2xx_get_power, INA2XX_3V6 },
+ };
+ #define RAIL_MONITOR_COUNT 17
+ BUILD_ASSERT(ARRAY_SIZE(rail_monitors) == RAIL_MONITOR_COUNT);
+@@ -80,20 +83,28 @@ struct ina_measurement {
+ static int command_powerstats(int argc, char **argv)
+ {
+ 	int rv;
++	int db = 0;
++	int num_sensors = 0;
+ 	int v, curr, show_details = 0, dump_all = 0, input_power;
+-	int temps[TEMP_SENSOR_COUNT] = {0};
++	int temps[TEMP_SENSOR_COUNT] = { 0 };
+ 	int adc_measurements[RAIL_MONITOR_COUNT];
+-	struct ina_measurement ina_measurements[INA2XX_COUNT];
++	/* Init with maximum number of sensors */
++	static struct ina_measurement
++		ina_measurements[INA2XX_COUNT + 2 * HBX_NUM_INA231];
+ 	struct pmbus_measurement pmbus_measurements[PMBUS_DEV_COUNT];
+ 	static const char temp_error[] = "Temp Error";
+ 
++	num_sensors = INA2XX_COUNT + 2 * get_num_db_sensors();
++
+ 	if (argc == 1) {
+-	/* NOP */
++		/* NOP */
+ 	} else if (argc == 2) {
+ 		if (!strcasecmp(argv[1], "details"))
+ 			show_details = 1;
+ 		else if (!strcasecmp(argv[1], "dump"))
+ 			dump_all = 1;
++		else if (!strcasecmp(argv[1], "db"))
++			db = 1;
+ 		else
+ 			return EC_ERROR_PARAM1;
+ 	} else {
+@@ -115,9 +126,10 @@ static int command_powerstats(int argc, char **argv)
+ 	}
+ 
+ 	for (size_t i = 0; i < RAIL_MONITOR_COUNT; i++)
+-		adc_measurements[i] = adc_read_channel(rail_monitors[i].adc_channel);
++		adc_measurements[i] =
++			adc_read_channel(rail_monitors[i].adc_channel);
+ 
+-	for (size_t i = 0; i < INA2XX_COUNT; i++) {
++	for (size_t i = 0; i < num_sensors; i++) {
+ 		ina_measurements[i].shunt_voltage = ina2xx_get_shunt_voltage(i);
+ 		ina_measurements[i].bus_voltage = ina2xx_get_voltage(i);
+ 		ina_measurements[i].power = ina2xx_get_power(i);
+@@ -135,41 +147,67 @@ static int command_powerstats(int argc, char **argv)
+ 	}
+ 
+ 	/* LTC4234 Monitor Current (IMON) Calculation */
+-	/* imon current = ((voltage across 20k resistor) / (full voltage range 2000 mV)) * (full scale current 20000 mA) */
++	/* imon current = ((voltage across 20k resistor) / (full voltage range
++	 * 2000 mV)) * (full scale current 20000 mA) */
+ 	curr = adc_read_channel(VMON_VIN_IMON) * 10;
+ 	/* Use the bus voltage from the INA219 sensor which is physically
+ 	closest to the power daughter board connector */
+ 	v = ina2xx_get_voltage(INA2XX_3V3);
+-	input_power = (v * curr) / 1000/*mW*/;
++	input_power = (v * curr) / 1000 /*mW*/;
++
++	if (db) {
++		ccprintf(
++			"\n**** DB0/DB1 INA Current Monitoring Metrics ****\n");
++		if (num_sensors == INA2XX_COUNT) {
++			ccprintf(
++				"\nDaughterboards in this device don't have power sensors\n");
++			return EC_SUCCESS;
++		}
++		ccprintf("%-25s%-20s%-20s%-20s%-20s\n", "Name",
++			 "Shunt Voltage (uV)", "Bus Voltage (mV)", "Power (mW)",
++			 "Current (mA)");
+ 
+-	if (dump_all) {
++		for (size_t i = INA2XX_COUNT; i < num_sensors; i++) {
++			ccprintf("%-25s%-20d%-20d%-20d%-20d\n",
++				 ina2xx_sensors[i].name,
++				 ina_measurements[i].shunt_voltage,
++				 ina_measurements[i].bus_voltage,
++				 ina_measurements[i].power,
++				 ina_measurements[i].current);
++		}
++		return EC_SUCCESS;
++	}
+ 
++	if (dump_all) {
+ 		/* Dump them all! */
+ 		ccprintf("\n**** All Metrics ****\n");
+ 		for (size_t i = 0; i < RAIL_MONITOR_COUNT; i++) {
+ 			const struct rail_monitor *rail_mon = rail_monitors + i;
+ 
+ 			ccprintf("%s Voltage,%dmV\n",
+-				adc_channels[rail_mon->adc_channel].name,
+-				adc_measurements[i]);
++				 adc_channels[rail_mon->adc_channel].name,
++				 adc_measurements[i]);
+ 
+ 			if (rail_mon->get_power)
+-				ccprintf("%s Power,%dmW\n",
++				ccprintf(
++					"%s Power,%dmW\n",
+ 					adc_channels[rail_mon->adc_channel].name,
+ 					rail_mon->get_power(rail_mon->priv));
+ 		}
+ 
+ 		ccprintf("Input Power,%dmW\n", input_power);
+ 
+-		for (size_t i = 0; i < INA2XX_COUNT; i++) {
+-			ccprintf("%s Shunt Voltage,%duV\n", ina2xx_sensors[i].name,
+-				ina_measurements[i].shunt_voltage);
+-			ccprintf("%s Bus Voltage,%dmV\n", ina2xx_sensors[i].name,
+-				ina_measurements[i].bus_voltage);
++		for (size_t i = 0; i < num_sensors; i++) {
++			ccprintf("%s Shunt Voltage,%duV\n",
++				 ina2xx_sensors[i].name,
++				 ina_measurements[i].shunt_voltage);
++			ccprintf("%s Bus Voltage,%dmV\n",
++				 ina2xx_sensors[i].name,
++				 ina_measurements[i].bus_voltage);
+ 			ccprintf("%s Power,%dmW\n", ina2xx_sensors[i].name,
+-				ina_measurements[i].power);
++				 ina_measurements[i].power);
+ 			ccprintf("%s Current,%dmA\n", ina2xx_sensors[i].name,
+-				ina_measurements[i].current);
++				 ina_measurements[i].current);
+ 		}
+ 
+ 		for (size_t i = 0; i < TEMP_SENSOR_COUNT; i++) {
+@@ -182,9 +220,9 @@ static int command_powerstats(int argc, char **argv)
+ 
+ 		for (size_t i = 0; i < PMBUS_DEV_COUNT; i++) {
+ 			ccprintf("PMBUS %s Voltage,%dmV\n", pmbus_devs[i].name,
+-					pmbus_measurements[i].voltage);
++				 pmbus_measurements[i].voltage);
+ 			ccprintf("PMBUS %s Current,%dmA\n", pmbus_devs[i].name,
+-				pmbus_measurements[i].current);
++				 pmbus_measurements[i].current);
+ 		}
+ 
+ 		return EC_SUCCESS;
+@@ -196,12 +234,12 @@ static int command_powerstats(int argc, char **argv)
+ 	for (size_t i = 0; i < RAIL_MONITOR_COUNT; i++) {
+ 		const struct rail_monitor *rail_mon = rail_monitors + i;
+ 
+-		ccprintf("%-25s%-20d",
+-			adc_channels[rail_mon->adc_channel].name,
+-			adc_measurements[i]);
++		ccprintf("%-25s%-20d", adc_channels[rail_mon->adc_channel].name,
++			 adc_measurements[i]);
+ 
+ 		if (rail_mon->get_power)
+-			ccprintf("%-20d\n", rail_mon->get_power(rail_mon->priv));
++			ccprintf("%-20d\n",
++				 rail_mon->get_power(rail_mon->priv));
+ 		else
+ 			ccprintf("%-20s\n", "NA");
+ 	}
+@@ -219,27 +257,27 @@ static int command_powerstats(int argc, char **argv)
+ 
+ 	if (show_details) {
+ 		ccprintf("\n**** INA Current Monitoring Metrics ****\n");
+-		ccprintf("%-25s%-20s%-20s%-20s%-20s\n", "Name", "Shunt Voltage (uV)", "Bus Voltage (mV)", "Power (mW)", "Current (mA)");
+-		for (size_t i = 0; i < INA2XX_COUNT; i++)
++		ccprintf("%-25s%-20s%-20s%-20s%-20s\n", "Name",
++			 "Shunt Voltage (uV)", "Bus Voltage (mV)", "Power (mW)",
++			 "Current (mA)");
++		for (size_t i = 0; i < num_sensors; i++)
+ 			ccprintf("%-25s%-20d%-20d%-20d%-20d\n",
+-				ina2xx_sensors[i].name,
+-				ina_measurements[i].shunt_voltage,
+-				ina_measurements[i].bus_voltage,
+-				ina_measurements[i].power,
+-				ina_measurements[i].current);
++				 ina2xx_sensors[i].name,
++				 ina_measurements[i].shunt_voltage,
++				 ina_measurements[i].bus_voltage,
++				 ina_measurements[i].power,
++				 ina_measurements[i].current);
+ 
+ 		ccprintf("\n**** PM Bus Metrics ****\n");
+ 		for (size_t i = 0; i < PMBUS_DEV_COUNT; i++)
+ 			ccprintf("%-20s: %d mV %d mA\n", pmbus_devs[i].name,
+-				pmbus_measurements[i].voltage,
+-				pmbus_measurements[i].current);
+-
++				 pmbus_measurements[i].voltage,
++				 pmbus_measurements[i].current);
+ 	}
+ 
+ 	return EC_SUCCESS;
+ }
+-DECLARE_CONSOLE_COMMAND(powerstats, command_powerstats,
+-			"[details|dump]",
++DECLARE_CONSOLE_COMMAND(powerstats, command_powerstats, "[details|dump|db]",
+ 			"Get motherboard power metrics.");
+ #endif
+ 
+diff --git a/driver/ina2xx.c b/driver/ina2xx.c
+index 7cba45424..a0f20a403 100644
+--- a/driver/ina2xx.c
++++ b/driver/ina2xx.c
+@@ -12,9 +12,10 @@
+ #include "timer.h"
+ #include "ina2xx.h"
+ #include "util.h"
++#include "board.h"
+ 
+ /* Console output macros */
+-#define CPRINTS(format, args...) cprints(CC_USBCHARGE, format, ## args)
++#define CPRINTS(format, args...) cprints(CC_USBCHARGE, format, ##args)
+ 
+ /* I2C base address */
+ #define INA2XX_I2C_ADDR_FLAGS 0x40
+@@ -22,7 +23,7 @@
+ static int ina2xx_get_port(uint8_t idx)
+ {
+ #ifdef INA2XX_COUNT
+-	if (idx >= INA2XX_COUNT)
++	if (idx >= INA2XX_MAX_COUNT)
+ 		return EC_ERROR_UNKNOWN;
+ 
+ 	return ina2xx_sensors[idx].port;
+@@ -33,7 +34,7 @@ static int ina2xx_get_port(uint8_t idx)
+ static int ina2xx_get_addr(uint8_t idx)
+ {
+ #ifdef INA2XX_COUNT
+-	if (idx >= INA2XX_COUNT)
++	if (idx >= INA2XX_MAX_COUNT)
+ 		return EC_ERROR_UNKNOWN;
+ 
+ 	return ina2xx_sensors[idx].addr;
+@@ -41,11 +42,10 @@ static int ina2xx_get_addr(uint8_t idx)
+ 	return INA2XX_I2C_ADDR_FLAGS | idx;
+ }
+ 
+-
+ static int ina2xx_is_ina231(uint8_t idx)
+ {
+ #ifdef INA2XX_COUNT
+-	if (idx >= INA2XX_COUNT)
++	if (idx >= INA2XX_MAX_COUNT)
+ 		return EC_ERROR_UNKNOWN;
+ 
+ 	return ina2xx_sensors[idx].is_ina231;
+@@ -58,8 +58,9 @@ static void ina2xx_hook_init(void)
+ {
+ 	int i;
+ 
+-	for (i = 0; i < INA2XX_COUNT; i++)
+-		ina2xx_init(i, ina2xx_sensors[i].config, ina2xx_sensors[i].calib);
++	for (i = 0; i < INA2XX_COUNT + 2 * get_num_db_sensors(); i++)
++		ina2xx_init(i, ina2xx_sensors[i].config,
++			    ina2xx_sensors[i].calib);
+ }
+ DECLARE_HOOK(HOOK_INIT, ina2xx_hook_init, HOOK_PRIO_DEFAULT);
+ #endif
+@@ -113,7 +114,11 @@ int ina2xx_get_shunt_voltage(uint8_t idx)
+ {
+ 	uint16_t sv = ina2xx_read(idx, INA2XX_REG_SHUNT_VOLT);
+ 	if (ina2xx_is_ina231(idx))
+-		return INA231_SHUNT_UV((int)sv);
++		/* Handle two's complement for negative shunt voltage */
++		if (sv & 0x8000)
++			return INA231_SHUNT_UV((int16_t)sv);
++		else
++			return INA231_SHUNT_UV((int)sv);
+ 	else
+ 		return INA2XX_SHUNT_UV((int)sv);
+ }
+@@ -147,21 +152,22 @@ static void ina2xx_dump(uint8_t idx)
+ 	uint16_t alert = ina2xx_read(idx, INA2XX_REG_ALERT);
+ 	bool is_ina231 = ina2xx_is_ina231(idx);
+ 
++	ccprintf("Name         : %s\n", ina2xx_sensors[idx].name);
+ 	ccprintf("Configuration: %04x\n", cfg);
+ 	if (is_ina231) {
+ 		ccprintf("Shunt voltage: %04x => %d uV\n", sv,
+-			INA231_SHUNT_UV((int)sv));
++			 INA231_SHUNT_UV((int)sv));
+ 		ccprintf("Bus voltage  : %04x => %d mV\n", bv,
+-			INA231_BUS_MV((int)bv));
++			 INA231_BUS_MV((int)bv));
+ 		ccprintf("Power        : %04x => %d mW\n", pow,
+-			INA231_POW_MW((int)pow));
++			 INA231_POW_MW((int)pow));
+ 	} else {
+ 		ccprintf("Shunt voltage: %04x => %d uV\n", sv,
+-			INA2XX_SHUNT_UV((int)sv));
++			 INA2XX_SHUNT_UV((int)sv));
+ 		ccprintf("Bus voltage  : %04x => %d mV\n", bv,
+-			INA2XX_BUS_MV((int)bv));
++			 INA2XX_BUS_MV((int)bv));
+ 		ccprintf("Power        : %04x => %d mW\n", pow,
+-			INA2XX_POW_MW((int)pow));
++			 INA2XX_POW_MW((int)pow));
+ 	}
+ 	ccprintf("Current      : %04x => %d mA\n", curr, curr);
+ 	ccprintf("Calibration  : %04x\n", calib);
+diff --git a/driver/ina2xx.h b/driver/ina2xx.h
+index 7746aef8c..800f01d52 100644
+--- a/driver/ina2xx.h
++++ b/driver/ina2xx.h
+@@ -10,28 +10,28 @@
+ 
+ #include "stdbool.h"
+ 
+-#define INA2XX_REG_CONFIG     0x00
++#define INA2XX_REG_CONFIG 0x00
+ #define INA2XX_REG_SHUNT_VOLT 0x01
+-#define INA2XX_REG_BUS_VOLT   0x02
+-#define INA2XX_REG_POWER      0x03
+-#define INA2XX_REG_CURRENT    0x04
+-#define INA2XX_REG_CALIB      0x05
+-#define INA2XX_REG_MASK       0x06
+-#define INA2XX_REG_ALERT      0x07
+-
+-#define INA2XX_CONFIG_MODE_MASK     (7 << 0)
+-#define INA2XX_CONFIG_MODE_PWRDWN   (0 << 0)
+-#define INA2XX_CONFIG_MODE_SHUNT    BIT(0)
+-#define INA2XX_CONFIG_MODE_BUS      BIT(1)
+-#define INA2XX_CONFIG_MODE_TRG      (0 << 2)
+-#define INA2XX_CONFIG_MODE_CONT     BIT(2)
++#define INA2XX_REG_BUS_VOLT 0x02
++#define INA2XX_REG_POWER 0x03
++#define INA2XX_REG_CURRENT 0x04
++#define INA2XX_REG_CALIB 0x05
++#define INA2XX_REG_MASK 0x06
++#define INA2XX_REG_ALERT 0x07
++
++#define INA2XX_CONFIG_MODE_MASK (7 << 0)
++#define INA2XX_CONFIG_MODE_PWRDWN (0 << 0)
++#define INA2XX_CONFIG_MODE_SHUNT BIT(0)
++#define INA2XX_CONFIG_MODE_BUS BIT(1)
++#define INA2XX_CONFIG_MODE_TRG (0 << 2)
++#define INA2XX_CONFIG_MODE_CONT BIT(2)
+ 
+ /* Conversion time for bus and shunt in micro-seconds */
+ enum ina2xx_conv_time {
+-	INA2XX_CONV_TIME_140  = 0x00,
+-	INA2XX_CONV_TIME_204  = 0x01,
+-	INA2XX_CONV_TIME_332  = 0x02,
+-	INA2XX_CONV_TIME_588  = 0x03,
++	INA2XX_CONV_TIME_140 = 0x00,
++	INA2XX_CONV_TIME_204 = 0x01,
++	INA2XX_CONV_TIME_332 = 0x02,
++	INA2XX_CONV_TIME_588 = 0x03,
+ 	INA2XX_CONV_TIME_1100 = 0x04,
+ 	INA2XX_CONV_TIME_2116 = 0x05,
+ 	INA2XX_CONV_TIME_4156 = 0x06,
+@@ -39,28 +39,28 @@ enum ina2xx_conv_time {
+ };
+ #define INA2XX_CONV_TIME_MASK 0x7
+ #define INA2XX_CONFIG_SHUNT_CONV_TIME(t) ((t) << 3)
+-#define INA2XX_CONFIG_BUS_CONV_TIME(t)   ((t) << 6)
+-
+-#define INA2XX_CONFIG_AVG_1        (0 << 9)
+-#define INA2XX_CONFIG_AVG_4        BIT(9)
+-#define INA2XX_CONFIG_AVG_16       (2 << 9)
+-#define INA2XX_CONFIG_AVG_64       (3 << 9)
+-#define INA2XX_CONFIG_AVG_128      (4 << 9)
+-#define INA2XX_CONFIG_AVG_256      (5 << 9)
+-#define INA2XX_CONFIG_AVG_512      (6 << 9)
+-#define INA2XX_CONFIG_AVG_1024     (7 << 9)
+-
+-#define INA2XX_MASK_EN_LEN         BIT(0)
+-#define INA2XX_MASK_EN_APOL        BIT(1)
+-#define INA2XX_MASK_EN_OVF         BIT(2)
+-#define INA2XX_MASK_EN_CVRF        BIT(3)
+-#define INA2XX_MASK_EN_AFF         BIT(4)
+-#define INA2XX_MASK_EN_CNVR        BIT(10)
+-#define INA2XX_MASK_EN_POL         BIT(11)
+-#define INA2XX_MASK_EN_BUL         BIT(12)
+-#define INA2XX_MASK_EN_BOL         BIT(13)
+-#define INA2XX_MASK_EN_SUL         BIT(14)
+-#define INA2XX_MASK_EN_SOL        BIT(15)
++#define INA2XX_CONFIG_BUS_CONV_TIME(t) ((t) << 6)
++
++#define INA2XX_CONFIG_AVG_1 (0 << 9)
++#define INA2XX_CONFIG_AVG_4 BIT(9)
++#define INA2XX_CONFIG_AVG_16 (2 << 9)
++#define INA2XX_CONFIG_AVG_64 (3 << 9)
++#define INA2XX_CONFIG_AVG_128 (4 << 9)
++#define INA2XX_CONFIG_AVG_256 (5 << 9)
++#define INA2XX_CONFIG_AVG_512 (6 << 9)
++#define INA2XX_CONFIG_AVG_1024 (7 << 9)
++
++#define INA2XX_MASK_EN_LEN BIT(0)
++#define INA2XX_MASK_EN_APOL BIT(1)
++#define INA2XX_MASK_EN_OVF BIT(2)
++#define INA2XX_MASK_EN_CVRF BIT(3)
++#define INA2XX_MASK_EN_AFF BIT(4)
++#define INA2XX_MASK_EN_CNVR BIT(10)
++#define INA2XX_MASK_EN_POL BIT(11)
++#define INA2XX_MASK_EN_BUL BIT(12)
++#define INA2XX_MASK_EN_BOL BIT(13)
++#define INA2XX_MASK_EN_SUL BIT(14)
++#define INA2XX_MASK_EN_SOL BIT(15)
+ 
+ /*
+  * a0/a1 are the values connected to the address pins
+@@ -85,23 +85,22 @@ extern const struct ina2xx_t ina2xx_sensors[];
+ #endif
+ 
+ /* Calibration value to get current LSB = 1mA */
+-#define INA231_CALIB_1MA(rsense_mohm) (5120/(rsense_mohm))
++#define INA231_CALIB_1MA(rsense_mohm) (5120 / (rsense_mohm))
+ /* Bus voltage: mV per LSB */
+ #define INA231_BUS_MV(reg) ((reg) * 125 / 100)
+ /* Shunt voltage: uV per LSB */
+ #define INA231_SHUNT_UV(reg) ((reg) * 25 / 10)
+ /* Power LSB: mW per current LSB */
+-#define INA231_POW_MW(reg) ((reg) * 25 * 1/*Current mA/LSB*/)
++#define INA231_POW_MW(reg) ((reg) * 25 * 1 /*Current mA/LSB*/)
+ 
+ /* Calibration value to get current LSB = 1mA */
+-#define INA2XX_CALIB_1MA(rsense_mohm) (40960/(rsense_mohm))
++#define INA2XX_CALIB_1MA(rsense_mohm) (40960 / (rsense_mohm))
+ /* Bus voltage: mV per LSB */
+ #define INA2XX_BUS_MV(reg) ((reg) / 2)
+ /* Shunt voltage: uV */
+ #define INA2XX_SHUNT_UV(reg) ((reg) * 10)
+ /* Power LSB: mW per current LSB */
+-#define INA2XX_POW_MW(reg) ((reg) * 20 * 1/*Current mA/LSB*/)
+-
++#define INA2XX_POW_MW(reg) ((reg) * 20 * 1 /*Current mA/LSB*/)
+ 
+ /* Read INA2XX register. */
+ uint16_t ina2xx_read(uint8_t idx, uint8_t reg);
+-- 
+2.34.1
+
