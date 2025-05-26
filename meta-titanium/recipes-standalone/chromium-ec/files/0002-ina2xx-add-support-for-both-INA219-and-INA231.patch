@@ -1,0 +1,186 @@
+From e1c2997d83aa545cf548cede052ccffd4b403b35 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Wed, 30 Apr 2025 10:42:58 +0200
+Subject: [PATCH 2/3] ina2xx: add support for both INA219 and INA231
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+when enabling CONFIG_INA219
+
+Signed-off-by: Jörg Hofrichter <joerg.hofrichter@emerson.com>
+---
+ board/titanium/board.c | 14 ++++++------
+ driver/ina2xx.c        | 49 ++++++++++++++++++++++++++++++++++--------
+ driver/ina2xx.h        | 17 ++++++---------
+ 3 files changed, 54 insertions(+), 26 deletions(-)
+
+diff --git a/board/titanium/board.c b/board/titanium/board.c
+index 571c76562..d9a3ade3f 100644
+--- a/board/titanium/board.c
++++ b/board/titanium/board.c
+@@ -337,13 +337,13 @@ BUILD_ASSERT(ARRAY_SIZE(ioex_config) == CONFIG_IO_EXPANDER_PORT_COUNT);
+    Refer http://www.ti.com/lit/ds/symlink/ina219.pdf
+    */
+ const struct ina2xx_t ina2xx_sensors[] = {
+-	{ "0V9",  I2C_PORT_MON, INA2XX_I2C_ADDR(0, 0), 0x219f, INA2XX_CALIB_1MA(2) },
+-	{ "1V8",  I2C_PORT_MON, INA2XX_I2C_ADDR(0, 1), 0x219f, INA2XX_CALIB_1MA(2) },
+-	{ "3V6",  I2C_PORT_MON, INA2XX_I2C_ADDR(0, 2), 0x219f, INA2XX_CALIB_1MA(2) },
+-	{ "3V3",  I2C_PORT_MON, INA2XX_I2C_ADDR(1, 0), 0x219f, INA2XX_CALIB_1MA(2) },
+-	{ "2V5",  I2C_PORT_MON, INA2XX_I2C_ADDR(1, 1), 0x219f, INA2XX_CALIB_1MA(2) },
+-	{ "1V2N", I2C_PORT_MON, INA2XX_I2C_ADDR(2, 0), 0x219f, INA2XX_CALIB_1MA(2) },
+-	{ "1V2S", I2C_PORT_MON, INA2XX_I2C_ADDR(2, 2), 0x219f, INA2XX_CALIB_1MA(2) },
++	{ "0V9",  I2C_PORT_MON, INA2XX_I2C_ADDR(0, 0), 0x219f, INA2XX_CALIB_1MA(2), false },
++	{ "1V8",  I2C_PORT_MON, INA2XX_I2C_ADDR(0, 1), 0x219f, INA2XX_CALIB_1MA(2), false },
++	{ "3V6",  I2C_PORT_MON, INA2XX_I2C_ADDR(0, 2), 0x219f, INA2XX_CALIB_1MA(2), false },
++	{ "3V3",  I2C_PORT_MON, INA2XX_I2C_ADDR(1, 0), 0x219f, INA2XX_CALIB_1MA(2), false },
++	{ "2V5",  I2C_PORT_MON, INA2XX_I2C_ADDR(1, 1), 0x219f, INA2XX_CALIB_1MA(2), false },
++	{ "1V2N", I2C_PORT_MON, INA2XX_I2C_ADDR(2, 0), 0x219f, INA2XX_CALIB_1MA(2), false },
++	{ "1V2S", I2C_PORT_MON, INA2XX_I2C_ADDR(2, 2), 0x219f, INA2XX_CALIB_1MA(2), false },
+ };
+ BUILD_ASSERT(ARRAY_SIZE(ina2xx_sensors) == INA2XX_COUNT);
+ #endif
+diff --git a/driver/ina2xx.c b/driver/ina2xx.c
+index e135e55de..7cba45424 100644
+--- a/driver/ina2xx.c
++++ b/driver/ina2xx.c
+@@ -41,6 +41,18 @@ static int ina2xx_get_addr(uint8_t idx)
+ 	return INA2XX_I2C_ADDR_FLAGS | idx;
+ }
+ 
++
++static int ina2xx_is_ina231(uint8_t idx)
++{
++#ifdef INA2XX_COUNT
++	if (idx >= INA2XX_COUNT)
++		return EC_ERROR_UNKNOWN;
++
++	return ina2xx_sensors[idx].is_ina231;
++#endif
++	return EC_ERROR_UNKNOWN;
++}
++
+ #ifdef INA2XX_COUNT
+ static void ina2xx_hook_init(void)
+ {
+@@ -91,13 +103,19 @@ int ina2xx_init(uint8_t idx, uint16_t config, uint16_t calib)
+ int ina2xx_get_voltage(uint8_t idx)
+ {
+ 	uint16_t bv = ina2xx_read(idx, INA2XX_REG_BUS_VOLT);
+-	return INA2XX_BUS_MV((int)bv);
++	if (ina2xx_is_ina231(idx))
++		return INA231_BUS_MV((int)bv);
++	else
++		return INA2XX_BUS_MV((int)bv);
+ }
+ 
+ int ina2xx_get_shunt_voltage(uint8_t idx)
+ {
+ 	uint16_t sv = ina2xx_read(idx, INA2XX_REG_SHUNT_VOLT);
+-	return INA2XX_SHUNT_UV((int)sv);
++	if (ina2xx_is_ina231(idx))
++		return INA231_SHUNT_UV((int)sv);
++	else
++		return INA2XX_SHUNT_UV((int)sv);
+ }
+ 
+ int ina2xx_get_current(uint8_t idx)
+@@ -110,7 +128,10 @@ int ina2xx_get_current(uint8_t idx)
+ int ina2xx_get_power(uint8_t idx)
+ {
+ 	uint16_t pow = ina2xx_read(idx, INA2XX_REG_POWER);
+-	return INA2XX_POW_MW((int)pow);
++	if (ina2xx_is_ina231(idx))
++		return INA231_POW_MW((int)pow);
++	else
++		return INA2XX_POW_MW((int)pow);
+ }
+ 
+ #ifdef CONFIG_CMD_INA
+@@ -124,14 +145,24 @@ static void ina2xx_dump(uint8_t idx)
+ 	uint16_t calib = ina2xx_read(idx, INA2XX_REG_CALIB);
+ 	uint16_t mask = ina2xx_read(idx, INA2XX_REG_MASK);
+ 	uint16_t alert = ina2xx_read(idx, INA2XX_REG_ALERT);
++	bool is_ina231 = ina2xx_is_ina231(idx);
+ 
+ 	ccprintf("Configuration: %04x\n", cfg);
+-	ccprintf("Shunt voltage: %04x => %d uV\n", sv,
+-						   INA2XX_SHUNT_UV((int)sv));
+-	ccprintf("Bus voltage  : %04x => %d mV\n", bv,
+-						   INA2XX_BUS_MV((int)bv));
+-	ccprintf("Power        : %04x => %d mW\n", pow,
+-						   INA2XX_POW_MW((int)pow));
++	if (is_ina231) {
++		ccprintf("Shunt voltage: %04x => %d uV\n", sv,
++			INA231_SHUNT_UV((int)sv));
++		ccprintf("Bus voltage  : %04x => %d mV\n", bv,
++			INA231_BUS_MV((int)bv));
++		ccprintf("Power        : %04x => %d mW\n", pow,
++			INA231_POW_MW((int)pow));
++	} else {
++		ccprintf("Shunt voltage: %04x => %d uV\n", sv,
++			INA2XX_SHUNT_UV((int)sv));
++		ccprintf("Bus voltage  : %04x => %d mV\n", bv,
++			INA2XX_BUS_MV((int)bv));
++		ccprintf("Power        : %04x => %d mW\n", pow,
++			INA2XX_POW_MW((int)pow));
++	}
+ 	ccprintf("Current      : %04x => %d mA\n", curr, curr);
+ 	ccprintf("Calibration  : %04x\n", calib);
+ 	ccprintf("Mask/Enable  : %04x\n", mask);
+diff --git a/driver/ina2xx.h b/driver/ina2xx.h
+index ad55b3bea..7746aef8c 100644
+--- a/driver/ina2xx.h
++++ b/driver/ina2xx.h
+@@ -8,6 +8,8 @@
+ #ifndef __CROS_EC_INA2XX_H
+ #define __CROS_EC_INA2XX_H
+ 
++#include "stdbool.h"
++
+ #define INA2XX_REG_CONFIG     0x00
+ #define INA2XX_REG_SHUNT_VOLT 0x01
+ #define INA2XX_REG_BUS_VOLT   0x02
+@@ -72,6 +74,7 @@ struct ina2xx_t {
+ 	int addr;
+ 	uint16_t config;
+ 	uint16_t calib;
++	bool is_ina231;
+ };
+ 
+ /* must contain INA2XX_COUNT elements */
+@@ -81,18 +84,14 @@ extern const struct ina2xx_t ina2xx_sensors[];
+ #error CONFIG_INA231 and CONFIG_INA219 must not be both defined.
+ #endif
+ 
+-#ifdef CONFIG_INA231
+-
+ /* Calibration value to get current LSB = 1mA */
+-#define INA2XX_CALIB_1MA(rsense_mohm) (5120/(rsense_mohm))
++#define INA231_CALIB_1MA(rsense_mohm) (5120/(rsense_mohm))
+ /* Bus voltage: mV per LSB */
+-#define INA2XX_BUS_MV(reg) ((reg) * 125 / 100)
++#define INA231_BUS_MV(reg) ((reg) * 125 / 100)
+ /* Shunt voltage: uV per LSB */
+-#define INA2XX_SHUNT_UV(reg) ((reg) * 25 / 10)
++#define INA231_SHUNT_UV(reg) ((reg) * 25 / 10)
+ /* Power LSB: mW per current LSB */
+-#define INA2XX_POW_MW(reg) ((reg) * 25 * 1/*Current mA/LSB*/)
+-
+-#else /* CONFIG_INA219 */
++#define INA231_POW_MW(reg) ((reg) * 25 * 1/*Current mA/LSB*/)
+ 
+ /* Calibration value to get current LSB = 1mA */
+ #define INA2XX_CALIB_1MA(rsense_mohm) (40960/(rsense_mohm))
+@@ -103,8 +102,6 @@ extern const struct ina2xx_t ina2xx_sensors[];
+ /* Power LSB: mW per current LSB */
+ #define INA2XX_POW_MW(reg) ((reg) * 20 * 1/*Current mA/LSB*/)
+ 
+-#endif
+-
+ 
+ /* Read INA2XX register. */
+ uint16_t ina2xx_read(uint8_t idx, uint8_t reg);
+-- 
+2.34.1
+
