@@ -31,7 +31,7 @@ repos:
       .: excluded
   meta-openembedded:
     url: https://github.com/openembedded/meta-openembedded
-    commit: 730e44900a0a86265bad93a16b5a5ff344a07266
+    commit: 058249f9a836e3aa866436aa6e37d6d48ff768fd
     path: meta-oe
     layers:
       meta-oe:
@@ -48,7 +48,7 @@ repos:
         path: kas/patches/meta-oe/0002-python3-gevent-adding-missing-dependency-to-python3-.patch
   openembedded-core:
     url: https://github.com/openembedded/openembedded-core
-    commit: a744a897f0ea7d34c31c024c13031221f9a85f24
+    commit: 75e54301c5076eb0454aee33c870adf078f563fd
     path: oe-core
     layers:
       meta:
@@ -80,12 +80,12 @@ repos:
         path: kas/patches/meta-mender/0002-systemd-don-t-set-SOURCE_DATE_EPOCH-to-0.patch
   meta-security:
     url: git://git.yoctoproject.org/meta-security
-    commit: 1a3e42cedbd94ca73be45800d0e902fec35d0f0f
+    commit: b9cf9cd639bc8d1b4828eb0bd012b71486d35176
     layers:
       meta-tpm:
   meta-qt5:
     url: https://github.com/meta-qt5/meta-qt5
-    commit: fe0bf7f0e5408aac6cc89ff3b19b1b1941df4f64
+    commit: 644ebf220245bdc06e7696ccc90acc97a0dd2566
   meta-sdr:
     url: https://github.com/balister/meta-sdr
-    commit: 0114d47e324d68a2511828c5509408968aba2646
+    commit: b032daf0b9cdaecf85857ded05a88d80fd55b396
