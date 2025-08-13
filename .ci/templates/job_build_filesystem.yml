@@ -92,8 +92,10 @@ jobs:
             machineName: ${{ machine }}
             ${{ if eq(machine, 'e320') }}:
               pre_targets: mc:ni-neon-ec:chromium-ec ${{ parameters.pre_targets }}
-            ${{ else }}:
+            ${{ elseif length(trim(parameters.pre_targets)) }}:
               pre_targets: ${{ parameters.pre_targets }}
+            ${{ else }}:
+              pre_targets: --parse-only
             post_targets: ${{ parameters.post_targets }}
     pool:
       name: Drivers-NIBuildFarm-RFMIBuild

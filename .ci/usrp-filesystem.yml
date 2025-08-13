@@ -98,7 +98,7 @@ parameters:
     default: true
   - name: pre_targets
     type: string
-    default: "--parse-only"
+    default: " "
   - name: post_targets
     type: string
     default: "uhd:do_run_tests"
