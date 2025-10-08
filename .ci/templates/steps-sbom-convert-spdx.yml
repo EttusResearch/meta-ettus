@@ -1,0 +1,194 @@
+parameters:
+- name: artifact_name
+  type: string
+- name: release_build
+  type: boolean
+  default: false
+- name: sbom_project_base_name
+  type: string
+  default: 'usrp'
+# parameters to single source definitions
+- name: local_repo_path
+  type: string
+  default: 's/meta-ettus-ni'
+# parameters to help debugging 
+- name: reference_pipeline_name
+  type: string
+  default: current
+- name: repo_name
+  type: string
+  default: self
+
+steps:
+# Access to these variables requires the variable group meta-ettus-vars
+- bash: |
+    echo 'Check that required variables from meta-ettus-vars group are available'
+    if [ -z "$(ni_sbom_dependency_track_pipeline_id)" ]; then
+      echo "FATAL ERROR: Variables from variable group meta-ettus-vars are not available. Ensure that the variable group is linked to the pipeline and that 'Allow access to all pipelines' is enabled."
+      exit 1
+    fi
+  displayName: 'Check for variable group meta-ettus-vars'
+
+- checkout: ${{ parameters.repo_name }}
+  clean: true
+  fetchDepth: 1
+  persistCredentials: true
+  path: ${{ parameters.local_repo_path }}
+  sparseCheckoutDirectories: .ci
+
+# If only a single repo is checked out, the default variable $(Build.SourcesDirectory)
+# also points to $(Pipeline.Workspace)/${{ parameters.local_repo_path }}
+- bash: |
+    echo Build.SourcesDirectory: $(Build.SourcesDirectory)
+    LOCAL_META_ETTUS_PATH=$(Pipeline.Workspace)/${{ parameters.local_repo_path }}
+    ls -al ${LOCAL_META_ETTUS_PATH}
+    echo '##vso[task.setvariable variable=LOCAL_META_ETTUS_PATH]'${LOCAL_META_ETTUS_PATH}
+  displayName: 'Define Env Variables'
+
+- bash: |
+    # Create Python virtual environment
+    python3 -m venv $(Agent.TempDirectory)/venv
+    echo '##vso[task.setvariable variable=USRP_VENV]'$(Agent.TempDirectory)/venv
+    # Install ni-sbom package
+    source $(Agent.TempDirectory)/venv/bin/activate
+    # check if package ni-sbom is available, if not and not release build, skip all subsequent steps
+    set -e # Exit immediately if a command exits with a non-zero status
+    python3 -m pip install --upgrade pip
+    python3 -m pip install ni-sbom
+    python3 -m pip install azdo-cli
+  displayName: 'Set up Python environment'
+
+- download: ${{ parameters.reference_pipeline_name }}
+  artifact: ${{ parameters.artifact_name }}
+  patterns: |
+    **/*.manifest
+    **/*.spdx.*
+  displayName: 'Download ${{ parameters.artifact_name }}'
+  # Agent.BuildDirectory and Pipeline.Workspace are equivalent in this context
+  # If artifact was downloaded from current pipeline, then it is extracted to
+  # $(Agent.BuildDirectory)/${{ parameters.artifact_name }}, otherwise to
+  # $(Agent.BuildDirectory)/${{ parameters.reference_pipeline_name }}/${{ parameters.artifact_name }}
+
+- bash: |
+    if [ "${{ parameters.reference_pipeline_name }}" != "current" ]; then
+      ARTIFACT_BASE=$(Agent.BuildDirectory)/${{ parameters.reference_pipeline_name }}/${{ parameters.artifact_name }}
+    else
+      ARTIFACT_BASE=$(Agent.BuildDirectory)/${{ parameters.artifact_name }}
+    fi
+    ls ${ARTIFACT_BASE}/*.manifest
+    
+    source $(USRP_VENV)/bin/activate
+    # Extract version from manifest file using Python script with named parameters
+    version=$(python3 $(LOCAL_META_ETTUS_PATH)/.ci/scripts/extract_component_version_from_manifest.py \
+      --artifact-path ${ARTIFACT_BASE} \
+      --manifest-pattern 'gnuradio-image-*.manifest' \
+      --component 'uhd' \
+      --verbose)
+    
+    echo "Normalized version: $version"
+    echo "##vso[task.setvariable variable=uhdVersionStr;isOutput=true;]$version"
+    echo "##vso[task.setvariable variable=ARTIFACT_BASE]${ARTIFACT_BASE}"
+    echo "##vso[task.setvariable variable=PROJECT_VERSION]$version"
+    echo "##vso[task.setvariable variable=CDX_SBOM_ARTIFACT_NAME]${{ parameters.artifact_name }}-cdx-run$(System.JobAttempt)"
+  name: get_uhd_version
+  displayName: 'Get UHD Version from Manifest'
+
+- bash: |
+    CDX_TARGET_DIR=$(Build.BinariesDirectory)/filesystem_sbom
+    mkdir ${CDX_TARGET_DIR}
+
+    ls $(Agent.TempDirectory)
+    source $(USRP_VENV)/bin/activate
+
+    processed_files=''
+    failed_files=''
+    
+    for f in $(ARTIFACT_BASE)/*.spdx.tar.zst; do
+      ff=$(basename -- "$f" .spdx.tar.zst)
+      echo "$f, $ff"
+      mkdir -p ${CDX_TARGET_DIR}/$ff
+      
+      # Run the conversion and capture exit code
+      if python3 -m ni_sbom -v convert-and-process-spdx-sbom \
+        --project-name ${{ parameters.sbom_project_base_name }}-$ff \
+        --project-version $(PROJECT_VERSION) \
+        --project-type operating-system \
+        --input $f \
+        --output-dir ${CDX_TARGET_DIR}/$ff; then
+        
+        echo "Success: SBOM conversion completed for $ff"
+        ls ${CDX_TARGET_DIR}/$ff
+        processed_files="${processed_files:+$processed_files,}$ff"
+      else
+        echo "Error: ni_sbom conversion failed for $f"
+        failed_files="${failed_files:+$failed_files,}$ff"
+      fi
+    done
+
+    # Report results at the end
+    if [[ -z "$processed_files" ]]; then
+      echo "=========================================="
+      echo "FATAL ERROR: No files were successfully processed"
+      echo "Failed files: $failed_files"
+      echo "=========================================="
+      exit 1
+    elif [[ -n "$failed_files" ]]; then
+      echo "=========================================="
+      echo "WARNING: Some files failed to process, but continuing with successful ones"
+      echo "Failed files: $failed_files"
+      echo "Successfully processed files: $processed_files"
+      echo "=========================================="
+    else
+      echo "All files processed successfully"
+      echo "Successfully processed files: $processed_files"
+    fi
+
+    echo '##vso[task.setvariable variable=CDX_TARGET_DIR]'${CDX_TARGET_DIR}
+    echo "##vso[task.setvariable variable=PROCESSED_FILES;isOutput=true;]$processed_files"
+  name: convert_sbom
+  displayName: 'Convert SPDX to CycloneDX SBOM'
+
+- task: CopyFiles@2
+  inputs:
+    SourceFolder: '$(CDX_TARGET_DIR)'
+    Contents: '**/cdx.*.json'
+    TargetFolder: $(Build.ArtifactStagingDirectory)
+    CleanTargetFolder: true
+    OverWrite: true
+  displayName: 'Copy SBOM files to staging directory'
+  condition: succeededOrFailed()
+- publish: $(Build.ArtifactStagingDirectory)
+  artifact: $(CDX_SBOM_ARTIFACT_NAME)
+  displayName: Upload filesystem SBOM artifact
+  condition: succeededOrFailed()
+
+- bash: |
+    source $(USRP_VENV)/bin/activate
+    force_production_server=${{ parameters.release_build }}
+    if ([ "$(Build.Reason)" = "Manual" ] || [ "$(Build.Reason)" = "PullRequest" ]) \
+       && [ "${force_production_server,,}" != "true" ]; then
+      echo "Using Dependency-Track TEST server for SBOM upload"
+      DEPENDENCY_TRACK_SERVER=test
+    else
+      DEPENDENCY_TRACK_SERVER=production
+    fi
+
+    # Split the comma-separated list of processed files
+    IFS=',' read -ra FILES <<< "$(convert_sbom.PROCESSED_FILES)"
+    
+    # Iterate over each processed file
+    for ff in "${FILES[@]}"; do
+      echo "Triggering SBOM upload for: $ff"
+      azdo-cli -v --access-token "$(System.AccessToken)" pipeline \
+        --pipeline-id $(ni_sbom_dependency_track_pipeline_id) --branch main run \
+        --parameter dependency_track_server ${DEPENDENCY_TRACK_SERVER} \
+        --parameter dependency_track_project_name ${{ parameters.sbom_project_base_name }}-$ff \
+        --parameter dependency_track_project_version $(PROJECT_VERSION) \
+        --parameter sbom_uri $(CDX_SBOM_ARTIFACT_NAME)/$ff/cdx.sbom.json \
+        --parameter title "Upload $ff SBOM for version $(PROJECT_VERSION)" \
+        --parameter triggering_build_id $(Build.BuildId) \
+        --parameter triggering_build_project $(System.TeamProjectId) \
+        --parameter triggering_build_pipeline $(System.DefinitionId) \
+        --parameter triggering_build_branch $(Build.SourceBranch)
+    done
+  displayName: 'Trigger SBOM validation and upload'
