@@ -62,6 +62,9 @@ parameters:
   - name: cache_base_name
     type: string
     default: "kirkstone"
+  - name: sbom_project_os_id
+    type: string
+    default: "kirkstone"
 
 jobs:
   - job: get_usrp_kas_docker_image
@@ -333,3 +336,31 @@ jobs:
           rm -f $(Agent.BuildDirectory)/site.conf
         displayName: Cleanup
         condition: always()
+
+  - ${{ if parameters.create_sbom }}:
+    - job: process_sboms
+      dependsOn: build
+      strategy:
+        matrix:
+          ${{ each machine in parameters.machines }}:
+            ${{ machine }}:
+              machineName: ${{ machine }}
+
+      pool:
+        name: Drivers-NIBuildFarm-RFMIBuild
+        demands:
+          - Agent.OS -equals Linux
+
+      variables:
+        - group: meta-ettus-vars
+
+      steps:
+        - template: steps-sbom-convert-spdx.yml
+          parameters:
+            artifact_name: '$(machineName)-images'
+            release_build: ${{ parameters.upload_packages_to_fileserver }}
+            sbom_project_base_name: 'usrp-${{ parameters.sbom_project_os_id }}'
+            ${{ if parameters.run_from_external_repo }}:
+              repo_name: meta-ettus
+            ${{ else }}:
+              repo_name: self
