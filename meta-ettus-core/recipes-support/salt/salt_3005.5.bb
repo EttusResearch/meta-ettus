@@ -9,7 +9,7 @@ DEPENDS = "\
            python3-markupsafe \
            python3-dateutil \
            python3-pycryptodome \
-           python3-pytest-salt \
+           python3-pytest-salt-factories \
            python3-pyzmq \
            python3-requests \
 "
@@ -155,7 +155,7 @@ FILES:${PN}-cloud = "${bindir}/${PN}-cloud ${sysconfdir}/${PN}/cloud.conf.d/ ${s
 
 SUMMARY:${PN}-tests = "salt stack test suite"
 DESCRIPTION:${PN}-tests ="${DESCRIPTION_COMMON} This particular package provides the salt unit test suite."
-RDEPENDS:${PN}-tests = "${PN}-common python3-pytest-salt python3-tests python3-image bash"
+RDEPENDS:${PN}-tests = "${PN}-common python3-pytest-salt-factories python3-tests python3-image bash"
 FILES:${PN}-tests = "${PYTHON_SITEPACKAGES_DIR}/salt-tests/tests/"
 
 FILES:${PN}-bash-completion = "${datadir}/bash-completion"
