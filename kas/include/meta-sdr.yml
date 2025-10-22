@@ -3,7 +3,7 @@ header:
 repos:
   meta-sdr:
     url: https://github.com/balister/meta-sdr
-    branch: master
+    branch: walnascar
   meta-openembedded:
     url: https://git.openembedded.org/meta-openembedded
     branch: scarthgap
