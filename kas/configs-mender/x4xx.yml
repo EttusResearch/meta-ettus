@@ -20,26 +20,7 @@ repos:
       meta-mender-titanium:
   meta-openamp:
     url: https://github.com/OpenAMP/meta-openamp
-    commit: 0dd544e649850d4cd95c1a1b9714a5238b41fc93
-    patches:
-      patch0:
-        repo: meta-ettus
-        path: kas/patches/meta-openamp/0001-layer-Add-warrior-to-compatible-layers.patch
-      patch1:
-        repo: meta-ettus
-        path: kas/patches/meta-openamp/0002-layer-Add-zeus-to-compatible-layers.patch
-      patch2:
-        repo: meta-ettus
-        path: kas/patches/meta-openamp/0003-conf-layer-comment-changed-LICENSE_PATH.patch
-      patch3:
-        repo: meta-ettus
-        path: kas/patches/meta-openamp/0004-change-syntax.patch
-      patch4:
-        repo: meta-ettus
-        path: kas/patches/meta-openamp/0005-add-spdx-license-identifier.patch
-      patch5:
-        repo: meta-ettus
-        path: kas/patches/meta-openamp/0006-layer-Add-scarthgap-to-compatible-layers.patch
+    commit: 0c8b6ce232d0937286fe6643fe3662e170b96a95
   meta-stm32:
     url: https://github.com/EttusResearch/meta-stm32
     commit: 87aaa6b9b0f7186d0c1574a5322e14dc86a039e3
