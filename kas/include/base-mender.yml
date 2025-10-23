@@ -25,7 +25,7 @@ repos:
       meta-alchemy:
   bitbake:
     url: https://github.com/openembedded/bitbake
-    branch: scarthgap
+    branch: '2.8'
     path: bitbake
     layers:
       .: excluded
