@@ -21,10 +21,10 @@ PV = "${LINUX_VERSION}+git${SRCPV}"
 
 KCONF_BSP_AUDIT_LEVEL = "2"
 
-FILES:${KERNEL_PACKAGE_NAME}-devicetree += "/lib/firmware/*.dtbo"
+FILES:${KERNEL_PACKAGE_NAME}-devicetree += "/usr/lib/firmware/*.dtbo"
 
 do_install:append() {
-    install -d ${D}/lib/firmware
-    ln -sf /boot/x4xx-db0-db-flash.dtbo ${D}/lib/firmware/db0_flash.dtbo
-    ln -sf /boot/x4xx-db1-db-flash.dtbo ${D}/lib/firmware/db1_flash.dtbo
+    install -d ${D}/usr/lib/firmware
+    ln -sf /boot/x4xx-db0-db-flash.dtbo ${D}/usr/lib/firmware/db0_flash.dtbo
+    ln -sf /boot/x4xx-db1-db-flash.dtbo ${D}/usr/lib/firmware/db1_flash.dtbo
 }
