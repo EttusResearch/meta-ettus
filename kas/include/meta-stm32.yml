@@ -3,4 +3,4 @@ header:
 repos:
   meta-stm32:
     url: https://github.com/EttusResearch/meta-stm32
-    commit: 87aaa6b9b0f7186d0c1574a5322e14dc86a039e3
+    commit: 671610c4d5541b65de983986faf0d3ca8d4fb4e9
