@@ -22,6 +22,12 @@ repos:
   meta-openamp:
     url: https://github.com/OpenAMP/meta-openamp
     commit: 0c8b6ce232d0937286fe6643fe3662e170b96a95
+  meta-arm:
+    url: https://git.yoctoproject.org/meta-arm
+    commit: 8e0f8af90fefb03f08cd2228cde7a89902a6b37c
+    layers:
+      meta-arm:
+      meta-arm-toolchain:
   meta-xilinx:
     url: https://github.com/Xilinx/meta-xilinx
     commit: 5edb50aaf6b09b3aa02af3d6bad560dc66f6d757
