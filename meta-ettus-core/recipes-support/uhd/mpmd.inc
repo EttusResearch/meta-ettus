@@ -29,10 +29,24 @@ RDEPENDS:${PN} = " \
                   python3-statistics \
                   udev \
                   dtc \
-                  uhd-fpga-images-firmware \
-                  usrp-firmware \
                   iptables \
                   python3-gpiod \
+                 "
+RDEPENDS:${PN}:append:ni-e31x = " \
+                  uhd-fpga-images-firmware \
+                  usrp-firmware \
+                 "
+RDEPENDS:${PN}:append:ni-neon = " \
+                  uhd-fpga-images-firmware \
+                  usrp-firmware \
+                 "
+RDEPENDS:${PN}:append:ni-sulfur = " \
+                  uhd-fpga-images-firmware \
+                  usrp-firmware \
+                 "
+RDEPENDS:${PN}:append:ni-titanium = " \
+                  uhd-fpga-images-firmware \
+                  usrp-firmware \
                  "
 RDEPENDS:${PN}-tools = " \
                   bash \
@@ -53,6 +67,7 @@ MPM_DEVICE ?= "sim"
 MPM_DEVICE:ni-e31x = "e31x"
 MPM_DEVICE:ni-neon = "e320"
 MPM_DEVICE:ni-sulfur = "n3xx"
+MPM_DEVICE:ni-titanium = "x4xx"
 
 EXTRA_OECMAKE:append = " \
                   -DCMAKE_SKIP_RPATH=ON \
@@ -62,8 +77,12 @@ EXTRA_OECMAKE:append = " \
                   -DRUNTIME_PYTHON_EXECUTABLE=/usr/bin/python3 \
                   "
 
-SYSTEMD_PACKAGES = "${@bb.utils.contains('DISTRO_FEATURES','systemd','${PN}','',d)}"
-SYSTEMD_SERVICE:${PN} = "${@bb.utils.contains('DISTRO_FEATURES','systemd','usrp-hwd.service','',d)}"
+SYSTEMD_SERVICE_MPMD = "${@bb.utils.contains('DISTRO_FEATURES','systemd','usrp-hwd.service','',d)}"
+
+SYSTEMD_SERVICE:${PN}:ni-e31x = "$SYSTEMD_SERVICE_MPMD"
+SYSTEMD_SERVICE:${PN}:ni-neon = "$SYSTEMD_SERVICE_MPMD"
+SYSTEMD_SERVICE:${PN}:ni-sulfur = "$SYSTEMD_SERVICE_MPMD"
+SYSTEMD_SERVICE:${PN}:ni-titanium = "$SYSTEMD_SERVICE_MPMD"
 
 PACKAGES =+ "${PN}-tools ${PN}-tests"
 
