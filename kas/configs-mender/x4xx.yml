@@ -19,8 +19,8 @@ repos:
       meta-titanium:
       meta-mender-titanium:
   meta-openamp:
-    url: https://github.com/OpenAMP/meta-openamp
-    commit: 0c8b6ce232d0937286fe6643fe3662e170b96a95
+    url: https://github.com/Xilinx/meta-openamp
+    commit: e44e4a3b4abe9cc5fdfe75c43181ba82750f6865
   meta-stm32:
     url: https://github.com/EttusResearch/meta-stm32
     commit: 87aaa6b9b0f7186d0c1574a5322e14dc86a039e3
