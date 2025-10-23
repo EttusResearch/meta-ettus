@@ -1,19 +1,19 @@
 trigger:
   branches:
     include:
-      - kirkstone
+      - scarthgap
 pr:
   branches:
     include:
-      - kirkstone
+      - scarthgap
 
-schedules:
-  - cron: "19 10 * * *"
-    displayName: 'Daily build'
-    branches:
-      include:
-        - kirkstone
-    always: true
+# schedules:
+#   - cron: "19 10 * * *"
+#     displayName: 'Daily build'
+#     branches:
+#       include:
+#         - scarthgap
+#     always: true
 
 parameters:
   - name: release_build
