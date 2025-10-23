@@ -39,13 +39,13 @@ repos:
       meta-networking:
       meta-python:
       meta-webserver:
-    patches:
-      patch0:
-        repo: meta-ettus
-        path: kas/patches/meta-oe/0001-python3-zopeevent-Add-Zope.Event-Python-Recipe.patch
-      patch1:
-        repo: meta-ettus
-        path: kas/patches/meta-oe/0002-python3-gevent-adding-missing-dependency-to-python3-.patch
+    # patches:
+    #   patch0:
+    #     repo: meta-ettus
+    #     path: kas/patches/meta-oe/0001-python3-zopeevent-Add-Zope.Event-Python-Recipe.patch
+    #   patch1:
+    #     repo: meta-ettus
+    #     path: kas/patches/meta-oe/0002-python3-gevent-adding-missing-dependency-to-python3-.patch
   openembedded-core:
     url: https://github.com/openembedded/openembedded-core
     branch: scarthgap
@@ -72,9 +72,9 @@ repos:
     layers:
       meta-mender-core:
     patches:
-      patch0:
-        repo: meta-ettus
-        path: kas/patches/meta-mender/0001-meta-mender-core-u-boot-adopt-patch-0003-to-kirkston.patch
+      #patch0:
+      #  repo: meta-ettus
+      #  path: kas/patches/meta-mender/0001-meta-mender-core-u-boot-adopt-patch-0003-to-kirkston.patch
       patch1:
         repo: meta-ettus
         path: kas/patches/meta-mender/0002-systemd-don-t-set-SOURCE_DATE_EPOCH-to-0.patch
