@@ -6,6 +6,7 @@ CROS_EC_BOARD:ni-titanium-ec = "titanium"
 SRC_URI:ni-titanium-ec = " \
     git://github.com/EttusResearch/usrp-firmware.git;branch=titanium;protocol=https \
     file://0001-Makefile.toolchain-ignore-stringop-overread-warning.patch \
+    file://0002-ignore-reprecation-warning-ftdi_usb_purge_buffers-is.patch \
     "
 
 SRCREV:ni-titanium-ec = "82c52e33a801e19af7187b1cf8da36673778f12f"

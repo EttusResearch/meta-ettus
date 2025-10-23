@@ -7,6 +7,7 @@ PACKAGE_ARCH = "${MACHINE_ARCH}"
 
 SRC_URI:ni-neon-ec = " \
     git://github.com/EttusResearch/usrp-firmware.git;branch=neon;protocol=https \
+    file://0002-ignore-reprecation-warning-ftdi_usb_purge_buffers-is.patch \
     "
 
 SRCREV:ni-neon-ec = "bbcd9fcefe1aa7a38e3b57844f05338297f080de"
