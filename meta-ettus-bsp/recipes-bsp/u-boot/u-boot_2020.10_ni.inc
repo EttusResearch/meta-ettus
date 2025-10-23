@@ -20,7 +20,7 @@ FILES:${PN}:ni-titanium="/uboot /etc"
 PMU_FIRMWARE_DEPLOY_DIR:ni-titanium = "${BINARYDIR}/ni-titanium"
 PMU_FIRMWARE_IMAGE_NAME:ni-titanium = "pmu-firmware"
 
-do_compile[depends] += "arm-trusted-firmware:do_deploy"
+do_compile[depends] += "virtual/arm-trusted-firmware:do_deploy"
 
 EXTRA_OEMAKE:append:ni-titanium = " CONFIG_PMUFW_INIT_FILE=${PMU_FIRMWARE_DEPLOY_DIR}/${PMU_FIRMWARE_IMAGE_NAME}.bin"
 
