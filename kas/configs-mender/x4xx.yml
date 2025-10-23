@@ -37,12 +37,15 @@ repos:
       patch4:
         repo: meta-ettus
         path: kas/patches/meta-openamp/0005-add-spdx-license-identifier.patch
+      patch5:
+        repo: meta-ettus
+        path: kas/patches/meta-openamp/0006-layer-Add-scarthgap-to-compatible-layers.patch
   meta-stm32:
     url: https://github.com/EttusResearch/meta-stm32
     commit: 87aaa6b9b0f7186d0c1574a5322e14dc86a039e3
   meta-xilinx:
     url: https://github.com/Xilinx/meta-xilinx
-    commit: 06e35a434daf4427e4a3c3bb1144e1c8120cba2a
+    commit: 5edb50aaf6b09b3aa02af3d6bad560dc66f6d757
     layers:
       meta-xilinx-core:
       meta-xilinx-bsp:
