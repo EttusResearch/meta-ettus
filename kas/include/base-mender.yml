@@ -88,4 +88,4 @@ repos:
     branch: scarthgap
   meta-sdr:
     url: https://github.com/balister/meta-sdr
-    branch: scarthgap
+    branch: walnascar
