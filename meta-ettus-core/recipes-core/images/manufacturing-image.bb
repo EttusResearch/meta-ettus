@@ -1,5 +1,5 @@
 DESCRIPTION = "Small image for use by manufacturing test. Includes tools for flashing eMMC and SD cards"
-PACKAGE_INSTALL = "packagegroup-core-boot bmap-tools util-linux-lsblk"
+PACKAGE_INSTALL = "packagegroup-core-boot bmaptool util-linux-lsblk"
 
 IMAGE_FEATURES = "debug-tweaks"
 

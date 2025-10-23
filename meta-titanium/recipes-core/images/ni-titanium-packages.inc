@@ -2,7 +2,7 @@ DEPENDS += "python3-six-native"
 
 IMAGE_INSTALL += " \
     ${CORE_IMAGE_BASE_INSTALL} \
-    bmap-tools \
+    bmaptool \
     chromium-ec-utils \
     gdbserver \
     libmetal \
