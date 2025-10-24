@@ -1,0 +1,29 @@
+From 50f78fc6a6f2beeda4d19e6f61ee807b38034bce Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@emerson.com>
+Date: Thu, 23 Oct 2025 08:55:44 +0000
+Subject: [PATCH 2/2] =?UTF-8?q?ignore=20reprecation=20warning=20"=E2=80=98?=
+ =?UTF-8?q?ftdi=5Fusb=5Fpurge=5Fbuffers=E2=80=99=20is=20deprecated"?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ Makefile.toolchain | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Makefile.toolchain b/Makefile.toolchain
+index e77c020f5..ac27dea99 100644
+--- a/Makefile.toolchain
++++ b/Makefile.toolchain
+@@ -47,7 +47,7 @@ PROTOC?=protoc
+ C_WARN = -Wstrict-prototypes -Wdeclaration-after-statement -Wno-pointer-sign
+ COMMON_WARN = -Wall -Wundef -Werror -Werror-implicit-function-declaration \
+ 	-Wno-trigraphs -Wno-format-security -Wno-address-of-packed-member \
+-	-Wno-stringop-overread \
++	-Wno-stringop-overread -Wno-deprecated-declarations \
+ 	-fno-common -fno-strict-aliasing -fno-strict-overflow
+ 
+ UBSAN_FLAGS=-fsanitize=array-bounds,vla-bound \
+-- 
+2.39.5
+

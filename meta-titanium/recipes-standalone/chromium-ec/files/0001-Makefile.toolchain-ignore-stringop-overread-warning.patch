@@ -1,0 +1,38 @@
+From c6b1113cca6b498a601f35da6f6ec45ed5bd1018 Mon Sep 17 00:00:00 2001
+From: Kas User <kas@example.com>
+Date: Thu, 30 May 2024 06:43:27 +0000
+Subject: [PATCH 1/2] Makefile.toolchain: ignore stringop-overread warning
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Suppress the following warning:
+
+| util/ectool_keyscan.c:208:23: error: ‘strchr’ argument missing
+terminating nul [-Werror=stringop-overread]
+|   208 |                 pos = strchr(kbd_plain_xlate, key);
+|       |                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+| util/ectool_keyscan.c: In function ‘cmd_keyscan’:
+| util/ectool_keyscan.c:127:28: note: referenced argument declared here
+|   127 | static const unsigned char kbd_plain_xlate[] = {
+|       |                            ^~~~~~~~~~~~~~~
+|
+---
+ Makefile.toolchain | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Makefile.toolchain b/Makefile.toolchain
+index f7ae354b1..e77c020f5 100644
+--- a/Makefile.toolchain
++++ b/Makefile.toolchain
+@@ -47,6 +47,7 @@ PROTOC?=protoc
+ C_WARN = -Wstrict-prototypes -Wdeclaration-after-statement -Wno-pointer-sign
+ COMMON_WARN = -Wall -Wundef -Werror -Werror-implicit-function-declaration \
+ 	-Wno-trigraphs -Wno-format-security -Wno-address-of-packed-member \
++	-Wno-stringop-overread \
+ 	-fno-common -fno-strict-aliasing -fno-strict-overflow
+ 
+ UBSAN_FLAGS=-fsanitize=array-bounds,vla-bound \
+-- 
+2.39.5
+
