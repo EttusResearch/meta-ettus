@@ -86,7 +86,7 @@ SYSTEMD_SERVICE:${PN}:ni-titanium = "${SYSTEMD_SERVICE_MPMD}"
 
 PACKAGES =+ "${PN}-tools ${PN}-tests"
 
-FILES:${PN}     += "${systemd_unitdir}/network/*"
+FILES:${PN}     += " ${libdir}/sysctl.d/usrp-hwd.conf ${systemd_unitdir}/system/usrp-hwd.service ${systemd_unitdir}/network/*"
 FILES:${PN}-dev += "${libdir}/libusrp-periphs.so"
 FILES:${PN}-dbg += "${bindir}/mpm_debug.py"
 FILES:${PN}-tools += " ${bindir}/eeprom-*"
