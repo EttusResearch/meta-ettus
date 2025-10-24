@@ -22,3 +22,6 @@ COMPATIBLE_HOST = "aarch64-oe-linux|arm-oe-linux-gnueabi"
 BAD_RECOMMENDATIONS = "udev-hwdb"
 
 ROOTFS_POSTPROCESS_COMMAND:remove = "mender_update_fstab_file;"
+
+# remove .rootfs appendix
+IMAGE_NAME_SUFFIX = ""
