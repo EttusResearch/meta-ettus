@@ -39,9 +39,9 @@ do_compile() {
 
 do_install() {
     for IMAGE in ${UHD_FPGA_IMAGES_IN_FIRMWARE}; do
-        mkdir -p  ${D}/lib/firmware/
-        install -m 0644 ${WORKDIR}/$IMAGE.bin ${D}/lib/firmware/
-        install -m 0644 ${WORKDIR}/$IMAGE.dtbo ${D}/lib/firmware/
+        mkdir -p  ${D}${libdir}/firmware/
+        install -m 0644 ${WORKDIR}/$IMAGE.bin ${D}${libdir}/firmware/
+        install -m 0644 ${WORKDIR}/$IMAGE.dtbo ${D}${libdir}/firmware/
     done
 }
 

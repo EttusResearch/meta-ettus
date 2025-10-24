@@ -12,10 +12,10 @@ FILES:${PN}:ni-titanium = " \
     "
 FILES:${PN}-inventory:ni-titanium = "${UHD_IMAGES_INSTALL_PATH}/inventory.json"
 FILES:${PN}-firmware:ni-titanium = " \
-    /lib/firmware/x410.bin \
-    /lib/firmware/x410.dtbo \
-    /lib/firmware/x440.bin \
-    /lib/firmware/x440.dtbo \
+    ${libdir}/firmware/x410.bin \
+    ${libdir}/firmware/x410.dtbo \
+    ${libdir}/firmware/x440.bin \
+    ${libdir}/firmware/x440.dtbo \
     "
 
 UHD_IMAGES_TO_DOWNLOAD:ni-titanium ?= " \
@@ -50,8 +50,8 @@ do_install:append:ni-titanium() {
     install -m 0644 ${UHD_IMAGES_DOWNLOAD_DIR}/usrp_x440_fpga*.* ${D}/${UHD_IMAGES_INSTALL_PATH}
     install -m 0644 ${UHD_IMAGES_DOWNLOAD_DIR}/inventory.json    ${D}/${UHD_IMAGES_INSTALL_PATH}
 
-    mv ${D}/lib/firmware/${DEFAULT_BITFILE_NAME_X410}.bin ${D}/lib/firmware/x410.bin
-    mv ${D}/lib/firmware/${DEFAULT_BITFILE_NAME_X410}.dtbo ${D}/lib/firmware/x410.dtbo
-    mv ${D}/lib/firmware/${DEFAULT_BITFILE_NAME_X440}.bin ${D}/lib/firmware/x440.bin
-    mv ${D}/lib/firmware/${DEFAULT_BITFILE_NAME_X440}.dtbo ${D}/lib/firmware/x440.dtbo
+    mv ${D}${libdir}/firmware/${DEFAULT_BITFILE_NAME_X410}.bin ${D}${libdir}/firmware/x410.bin
+    mv ${D}${libdir}/firmware/${DEFAULT_BITFILE_NAME_X410}.dtbo ${D}${libdir}/firmware/x410.dtbo
+    mv ${D}${libdir}/firmware/${DEFAULT_BITFILE_NAME_X440}.bin ${D}${libdir}/firmware/x440.bin
+    mv ${D}${libdir}/firmware/${DEFAULT_BITFILE_NAME_X440}.dtbo ${D}${libdir}/firmware/x440.dtbo
 }

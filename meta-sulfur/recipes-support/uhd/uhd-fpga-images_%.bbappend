@@ -7,12 +7,12 @@ FILES:${PN}:ni-sulfur = " \
     "
 FILES:${PN}-inventory:ni-sulfur = "${UHD_IMAGES_INSTALL_PATH}/inventory.json"
 FILES:${PN}-firmware:ni-sulfur = " \
-    /lib/firmware/n300.bin \
-    /lib/firmware/n300.dtbo \
-    /lib/firmware/n310.bin \
-    /lib/firmware/n310.dtbo \
-    /lib/firmware/n320.bin \
-    /lib/firmware/n320.dtbo \
+    ${libdir}/firmware/n300.bin \
+    ${libdir}/firmware/n300.dtbo \
+    ${libdir}/firmware/n310.bin \
+    ${libdir}/firmware/n310.dtbo \
+    ${libdir}/firmware/n320.bin \
+    ${libdir}/firmware/n320.dtbo \
     "
 
 UHD_IMAGES_TO_DOWNLOAD:ni-sulfur ?= " \
@@ -34,10 +34,10 @@ do_install:append:ni-sulfur() {
     install -m 0644 ${S}/usrp_n320_fpga*.* ${D}/${UHD_IMAGES_INSTALL_PATH}
     install -m 0644 ${S}/inventory.json    ${D}/${UHD_IMAGES_INSTALL_PATH}
 
-    mv ${D}/lib/firmware/usrp_n300_fpga_HG.bin ${D}/lib/firmware/n300.bin
-    mv ${D}/lib/firmware/usrp_n300_fpga_HG.dtbo ${D}/lib/firmware/n300.dtbo
-    mv ${D}/lib/firmware/usrp_n310_fpga_HG.bin ${D}/lib/firmware/n310.bin
-    mv ${D}/lib/firmware/usrp_n310_fpga_HG.dtbo ${D}/lib/firmware/n310.dtbo
-    mv ${D}/lib/firmware/usrp_n320_fpga_HG.bin ${D}/lib/firmware/n320.bin
-    mv ${D}/lib/firmware/usrp_n320_fpga_HG.dtbo ${D}/lib/firmware/n320.dtbo
+    mv ${D}${libdir}/firmware/usrp_n300_fpga_HG.bin ${D}${libdir}/firmware/n300.bin
+    mv ${D}${libdir}/firmware/usrp_n300_fpga_HG.dtbo ${D}${libdir}/firmware/n300.dtbo
+    mv ${D}${libdir}/firmware/usrp_n310_fpga_HG.bin ${D}${libdir}/firmware/n310.bin
+    mv ${D}${libdir}/firmware/usrp_n310_fpga_HG.dtbo ${D}${libdir}/firmware/n310.dtbo
+    mv ${D}${libdir}/firmware/usrp_n320_fpga_HG.bin ${D}${libdir}/firmware/n320.bin
+    mv ${D}${libdir}/firmware/usrp_n320_fpga_HG.dtbo ${D}${libdir}/firmware/n320.dtbo
 }

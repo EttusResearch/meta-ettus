@@ -3,8 +3,8 @@ inherit uhd_images_downloader
 FILES:${PN}:ni-neon = "${UHD_IMAGES_INSTALL_PATH}/usrp_e320_*.*"
 FILES:${PN}-inventory:ni-neon = "${UHD_IMAGES_INSTALL_PATH}/inventory.json"
 FILES:${PN}-firmware:ni-neon = " \
-    /lib/firmware/e320.bin \
-    /lib/firmware/e320.dtbo \
+    ${libdir}/firmware/e320.bin \
+    ${libdir}/firmware/e320.dtbo \
     "
 
 UHD_IMAGES_TO_DOWNLOAD:ni-neon ?= " \
@@ -20,6 +20,6 @@ do_install:append:ni-neon() {
     install -m 0644 ${S}/usrp_e320_fpga*.* ${D}/${UHD_IMAGES_INSTALL_PATH}
     install -m 0644 ${S}/inventory.json    ${D}/${UHD_IMAGES_INSTALL_PATH}
 
-    mv ${D}/lib/firmware/usrp_e320_fpga_1G.bin ${D}/lib/firmware/e320.bin
-    mv ${D}/lib/firmware/usrp_e320_fpga_1G.dtbo ${D}/lib/firmware/e320.dtbo
+    mv ${D}${libdir}/firmware/usrp_e320_fpga_1G.bin ${D}${libdir}/firmware/e320.bin
+    mv ${D}${libdir}/firmware/usrp_e320_fpga_1G.dtbo ${D}${libdir}/firmware/e320.dtbo
 }
