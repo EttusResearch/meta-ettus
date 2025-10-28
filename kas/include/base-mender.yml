@@ -8,7 +8,7 @@ env:
 local_conf_header:
   mender: |
     INHERIT += "mender-full"
-    PREFERRED_PROVIDER_mender = "mender-client"
+    PREFERRED_PROVIDER:mender = "mender-client"
   licenses: |
     COPY_LIC_MANIFEST = "1"
     COPY_LIC_DIRS = "1"
