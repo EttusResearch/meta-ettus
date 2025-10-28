@@ -21,9 +21,6 @@ repos:
   meta-openamp:
     url: https://github.com/Xilinx/meta-openamp
     commit: e44e4a3b4abe9cc5fdfe75c43181ba82750f6865
-  meta-stm32:
-    url: https://github.com/EttusResearch/meta-stm32
-    commit: 87aaa6b9b0f7186d0c1574a5322e14dc86a039e3
   meta-arm:
     url: https://git.yoctoproject.org/meta-arm
     commit: 8e0f8af90fefb03f08cd2228cde7a89902a6b37c
