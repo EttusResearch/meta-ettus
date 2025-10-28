@@ -9,7 +9,7 @@ MENDER_STORAGE_DEVICE = "/dev/mmcblk0"
 MENDER_FEATURES_ENABLE:append:ni-e31x-mender = " mender-uboot mender-image mender-systemd mender-image-sd"
 MENDER_FEATURES_DISABLE:append:ni-e31x-mender = " mender-grub mender-image-uefi"
 
-IMAGE_INSTALL:append = " mender-client-migrate-configuration"
+IMAGE_INSTALL:append = " mender-migrate-configuration"
 PACKAGECONFIG:remove = "split-mender-config"
 MENDER_PERSISTENT_CONFIGURATION_VARS = "RootfsPartA RootfsPartB"
 # MENDER_ARTIFACT_EXTRA_ARGS:append = " -v 2"
