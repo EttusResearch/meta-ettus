@@ -32,7 +32,12 @@ MACHINE_ESSENTIAL_EXTRA_RDEPENDS += "kernel-image kernel-devicetree"
 
 EXTRA_IMAGEDEPENDS += "u-boot"
 IMAGE_BOOT_FILES ?= "u-boot.${UBOOT_SUFFIX} ${SPL_BINARY} ${KERNEL_IMAGETYPE} ${KERNEL_DEVICETREE}"
-IMAGE_FSTYPES += "${@bb.utils.contains('MENDER_FEATURES', 'mender-image-sd', '', ' wic.xz wic.bmap', d)} tar.xz"
+
+# On non-Mender devices, build "wic.xz" and "wic.bmap"
+# On Mender enabled devices build "sdimg.bz2" (instead of "sdimg") and "sdimg.bmap"
+IMAGE_FSTYPES += "${@bb.utils.contains('MENDER_FEATURES', 'mender-image-sd', ' sdimg.bz2', ' wic.xz wic.bmap', d)} tar.xz"
+IMAGE_FSTYPES:remove = "${@bb.utils.contains('MENDER_FEATURES', 'mender-image-sd', ' sdimg', '', d)}"
+
 WKS_FILE ?= "sdimage-minimal.wks"
 
 MACHINE_EXTRA_RRECOMMENDS = " \

@@ -4,8 +4,6 @@ MENDER_FEATURES_ENABLE:append:ni-titanium-mender = " mender-uboot mender-image \
     mender-image-sd"
 MENDER_FEATURES_DISABLE:append:ni-titanium-mender = " mender-grub mender-image-uefi"
 
-IMAGE_FSTYPES:remove:ni-titanium-mender = "wic wic.bmap"
-
 IMAGE_INSTALL:append = " mender-migrate-configuration"
 PACKAGECONFIG:remove = "split-mender-config"
 MENDER_PERSISTENT_CONFIGURATION_VARS = "RootfsPartA RootfsPartB"
