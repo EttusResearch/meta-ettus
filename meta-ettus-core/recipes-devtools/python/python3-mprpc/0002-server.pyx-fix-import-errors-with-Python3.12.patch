@@ -1,0 +1,28 @@
+From f4167c954c81f6652ee93c8c8e3526264321b323 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Wed, 29 Oct 2025 14:52:38 +0100
+Subject: [PATCH 2/2] server.pyx: fix import errors with Python3.12
+
+Add the missing scope "mpmrpc." when importing.
+---
+ mprpc/server.pyx | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/mprpc/server.pyx b/mprpc/server.pyx
+index 0b719a3..056277e 100644
+--- a/mprpc/server.pyx
++++ b/mprpc/server.pyx
+@@ -4,8 +4,8 @@
+ import gevent.socket
+ import msgpack
+ 
+-from constants import MSGPACKRPC_REQUEST, MSGPACKRPC_RESPONSE, SOCKET_RECV_SIZE
+-from exceptions import MethodNotFoundError, RPCProtocolError
++from mprpc.constants import MSGPACKRPC_REQUEST, MSGPACKRPC_RESPONSE, SOCKET_RECV_SIZE
++from mprpc.exceptions import MethodNotFoundError, RPCProtocolError
+ from gevent.local import local
+ 
+ 
+-- 
+2.34.1
+
