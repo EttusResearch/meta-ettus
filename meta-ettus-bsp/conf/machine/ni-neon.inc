@@ -51,6 +51,7 @@ MACHINE_EXTRA_RRECOMMENDS = " \
                              mpmd-tools \
                              eeprom-hostname-systemd \
                              gpsd-machine-conf \
+                             udev-machine-conf \
                             "
 
 # IMAGE_INSTALL:append:ni-neon = " kernel-image \

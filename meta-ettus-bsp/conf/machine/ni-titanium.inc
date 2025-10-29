@@ -74,6 +74,7 @@ MACHINE_EXTRA_RRECOMMENDS = " \
                              ledctrl \
 			     mmc-utils \
 			     uhd-cpld-images \
+                             udev-machine-conf \
           "
 
 do_image_wic[depends] += " \
