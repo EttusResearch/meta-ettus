@@ -21,7 +21,7 @@ KERNEL_CLASSES += "kernel-fitimage"
 KERNEL_IMAGETYPE = "fitImage"
 KERNEL_DEFCONFIG ?= "multi_v7_defconfig"
 KERNEL_DEVICETREE = "${DTB_FILES}"
-FIT_CONF_PREFIX = "conf@"
+FIT_CONF_PREFIX = "conf@ni_"
 
 INITRAMFS_IMAGE = "manufacturing-image"
 # INITRAMFS_IMAGE_BUNDLE = "1"
