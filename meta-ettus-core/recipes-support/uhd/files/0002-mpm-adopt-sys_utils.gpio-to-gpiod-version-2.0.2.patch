@@ -1,0 +1,26 @@
+From c0c27e1d8da47d36d59af06fc8bbfec7e522b46e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Wed, 29 Oct 2025 14:39:05 +0100
+Subject: [PATCH] mpm: adopt sys_utils.gpio to gpiod version >=2.0.2
+
+---
+ mpm/python/usrp_mpm/sys_utils/gpio.py | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/mpm/python/usrp_mpm/sys_utils/gpio.py b/mpm/python/usrp_mpm/sys_utils/gpio.py
+index a34464130..27b422ae7 100644
+--- a/mpm/python/usrp_mpm/sys_utils/gpio.py
++++ b/mpm/python/usrp_mpm/sys_utils/gpio.py
+@@ -30,9 +30,9 @@ class Gpio:
+     The GPIO line is requested when the object is created.
+     """
+ 
+-    INPUT = gpiod.LINE_REQ_DIR_IN
+-    OUTPUT = gpiod.LINE_REQ_DIR_OUT
+-    FALLING_EDGE = gpiod.LINE_REQ_EV_FALLING_EDGE
++    INPUT = gpiod.line.Direction.INPUT
++    OUTPUT = gpiod.line.Direction.OUTPUT
++    FALLING_EDGE = gpiod.line.Edge.FALLING
+ 
+     def __init__(self, name, direction=INPUT, default_val=None):
+         """Create new Gpio object.
