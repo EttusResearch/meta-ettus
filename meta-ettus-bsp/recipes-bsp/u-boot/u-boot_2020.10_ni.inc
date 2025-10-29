@@ -54,7 +54,7 @@ do_install:append:ni-titanium() {
 
 CROS_EC_DEPLOY_DIR_IMAGE:ni-titanium ?= "${TOPDIR}/tmp-stm32-baremetal/deploy/images/ni-titanium-ec-rev5"
 python __anonymous() {
-    if "ni-titanium-ec" in d.getVar('BBMULTICONFIG').split(' '):
+    if "ni-titanium-ec" in (d.getVar('BBMULTICONFIG') or "").split(' '):
         d.appendVarFlag('do_deploy', 'mcdepends', ' mc:ni-titanium:ni-titanium-ec:chromium-ec:do_deploy')
 }
 

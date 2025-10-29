@@ -161,10 +161,10 @@ do_install:append:ni-neon() {
 CROS_EC_DEPLOY_DIR_IMAGE:ni-titanium ?= "${TOPDIR}/tmp-stm32-baremetal/deploy/images/ni-titanium-ec-rev5"
 
 python __anonymous() {
-    if "ni-neon-ec" in d.getVar('BBMULTICONFIG').split(' '):
+    if "ni-neon-ec" in (d.getVar('BBMULTICONFIG') or "").split(' '):
         d.appendVarFlag('do_install', 'mcdepends', ' mc::ni-neon-ec:chromium-ec:do_deploy')
         d.setVar('CROS_EC_DEPLOY_DIR_IMAGE', '${TOPDIR}/tmp-stm32-baremetal/deploy/images/ni-neon-ec-rev3')
-    if "ni-titanium-ec" in d.getVar('BBMULTICONFIG').split(' '):
+    if "ni-titanium-ec" in (d.getVar('BBMULTICONFIG') or "").split(' '):
         d.appendVarFlag('do_install', 'mcdepends', ' mc::ni-titanium-ec:chromium-ec:do_deploy')
 }
 
