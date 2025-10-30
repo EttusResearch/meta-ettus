@@ -4,7 +4,7 @@
 
 require conf/machine/ni-zynq.inc
 
-MACHINEOVERRIDES:append = ":ni-sulfur"
+MACHINEOVERRIDES:append = ":ni-common:ni-sulfur"
 
 MACHINE_FEATURES = "vfat ethernet usbhost ext2 rtc"
 

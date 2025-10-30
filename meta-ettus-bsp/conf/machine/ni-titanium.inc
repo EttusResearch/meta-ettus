@@ -3,7 +3,7 @@ PREFERRED_PROVIDER_virtual/kernel ?= "linux-x4xx"
 require conf/machine/ni-zynqmp.inc
 require conf/machine/include/arm/armv8a/tune-cortexa53.inc
 
-MACHINEOVERRIDES = "zynqmp:ni-titanium:${MACHINE}"
+MACHINEOVERRIDES = "zynqmp:ni-common:ni-titanium:${MACHINE}"
 MACHINE_FEATURES = "rtc ethernet ext2 ext3 vfat usbhost"
 
 PREFERRED_PROVIDER_virtual/bootloader = "u-boot"

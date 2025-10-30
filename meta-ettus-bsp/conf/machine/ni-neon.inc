@@ -4,7 +4,7 @@
 
 require conf/machine/ni-zynq.inc
 
-MACHINEOVERRIDES:append = ":ni-neon"
+MACHINEOVERRIDES:append = ":ni-common:ni-neon"
 
 MACHINE_FEATURES = "vfat ethernet usbhost ext2 rtc"
 
