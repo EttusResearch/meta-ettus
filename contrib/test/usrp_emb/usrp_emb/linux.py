@@ -66,6 +66,8 @@ class Linux:
         time.sleep(5)
         self.uart.sendline("ifconfig -a")
         self.uart.expect("#")
+        self.uart.sendline(f"umount {dest}*")
+        self.uart.expect("#")
         old_timeout = self.uart.timeout
         self.uart.timeout = 900
         self.uart.sendline(f"bmaptool -q copy --nobmap {url} {dest}; echo bmaptool finished: $?")
