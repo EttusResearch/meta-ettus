@@ -5,7 +5,7 @@ FILESEXTRAPATHS:prepend:ni-neon := "${THISDIR}/files/ni-neon:"
 FILESEXTRAPATHS:prepend:ni-sulfur := "${THISDIR}/files/ni-sulfur:"
 FILESEXTRAPATHS:prepend:ni-titanium := "${THISDIR}/files/ni-titanium:"
 
-SRC_URI = " \
+SRC_URI:ni-common = " \
     file://gpsd-machine \
     file://device-hook \
 "
@@ -18,10 +18,7 @@ ALTERNATIVE_LINK_NAME[gpsd-defaults] = "${sysconfdir}/default/gpsd"
 ALTERNATIVE_TARGET[gpsd-defaults] = "${sysconfdir}/default/gpsd.machine"
 ALTERNATIVE_PRIORITY[gpsd-defaults] = "100"
 
-COMPATIBLE_MACHINE:ni-e31x = ".*"
-COMPATIBLE_MACHINE:ni-neon = ".*"
-COMPATIBLE_MACHINE:ni-sulfur = ".*"
-COMPATIBLE_MACHINE:ni-titanium = ".*"
+COMPATIBLE_MACHINE:ni-common = ".*"
 
 RREPLACES:${PN} += "gpsd-conf"
 
@@ -31,7 +28,7 @@ do_compile:append:ni-e31x() {
     ${CC} ${WORKDIR}/ubx.c -o ${B}/ubx
 }
 
-do_install() {
+do_install:ni-common() {
     install -d ${D}/${sysconfdir}/default
     install -m 0644 ${WORKDIR}/gpsd-machine ${D}/${sysconfdir}/default/gpsd.machine
     install -d ${D}${sysconfdir}/gpsd/
