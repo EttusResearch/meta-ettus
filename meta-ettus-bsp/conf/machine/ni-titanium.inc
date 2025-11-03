@@ -20,6 +20,13 @@ UBOOT_DTBO_LOADADDRESS = "0x79000"
 SPL_BINARY ?= "spl/boot.bin"
 PREFERRED_VERSION_u-boot ?= "2020.10"
 
+PREFERRED_PROVIDER_virtual/arm-trusted-firmware = "arm-trusted-firmware"
+# TODO: check why newer versions of arm-trusted-firmware do not work:
+# with newer versions than 2.6-xilinx-v2022.2+git, U-Boot SPL (boot.bin)
+# is loaded but U-Boot (u-boot.itb) is not
+PREFERRED_VERSION_arm-trusted-firmware = "2.6-xilinx-v2022.2+git"
+# PREFERRED_VERSION_arm-trusted-firmware = "2.8-xilinx-v2023.1+git"
+
 SERIAL_CONSOLES ?= "115200;ttyPS0"
 SERIAL_CONSOLES_CHECK ?= "${SERIAL_CONSOLES}"
 
