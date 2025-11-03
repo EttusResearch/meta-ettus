@@ -1,17 +1,63 @@
-From c0c27e1d8da47d36d59af06fc8bbfec7e522b46e Mon Sep 17 00:00:00 2001
+From b5061a183398305562796dfe60a93e5e7e9b5c96 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
-Date: Wed, 29 Oct 2025 14:39:05 +0100
-Subject: [PATCH] mpm: adopt sys_utils.gpio to gpiod version >=2.0.2
+Date: Mon, 3 Nov 2025 15:39:47 +0100
+Subject: [PATCH] mpm: adopt sys_utils.gpio to gpiod version 2.0.2
 
 ---
- mpm/python/usrp_mpm/sys_utils/gpio.py | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ mpm/python/usrp_mpm/sys_utils/gpio.py | 72 +++++++++++++++++++--------
+ 1 file changed, 50 insertions(+), 22 deletions(-)
 
 diff --git a/mpm/python/usrp_mpm/sys_utils/gpio.py b/mpm/python/usrp_mpm/sys_utils/gpio.py
-index a34464130..27b422ae7 100644
+index a34464130a..70e125db4b 100644
 --- a/mpm/python/usrp_mpm/sys_utils/gpio.py
 +++ b/mpm/python/usrp_mpm/sys_utils/gpio.py
-@@ -30,9 +30,9 @@ class Gpio:
+@@ -6,22 +6,35 @@ Access to GPIOs via libgpiod.
+ """
+ 
+ import contextlib
++import os
+ 
+ import gpiod
+ 
+ 
+-@contextlib.contextmanager
+-def request_gpio(line, direction):
+-    """Context manager for a GPIO line.
++# From bindings/python/examples/find_line_by_name.py in libgpiod repo
++def generate_gpio_chips():
++    """Generator function which returns the gpiochip paths."""
++    for entry in os.scandir("/dev/"):
++        if gpiod.is_gpiochip_device(entry.path):
++            yield entry.path
+ 
+-    :param line: The GPIO line to request
+-    :param direction: The direction to requested for line
++
++# From bindings/python/examples/find_line_by_name.py in libgpiod repo; slightly adopted
++def find_line_by_name(line_name):
++    """Find the chip paths and the offset of a given GPIO line name.
++
++    Names are not guaranteed unique, so this finds the first line with
++    the given name.
+     """
+-    line.request(consumer="mpm", type=direction)
+-    try:
+-        yield line
+-    finally:
+-        line.release()
++    for path in generate_gpio_chips():
++        with gpiod.Chip(path) as chip:
++            try:
++                offset = chip.line_offset_from_id(line_name)
++                return path, offset
++            except OSError:
++                # An OSError is raised if the name is not found.
++                continue
++    raise RuntimeError("line '{}' not found".format(line_name))
+ 
+ 
+ class Gpio:
+@@ -30,9 +43,9 @@ class Gpio:
      The GPIO line is requested when the object is created.
      """
  
@@ -24,3 +70,68 @@ index a34464130..27b422ae7 100644
  
      def __init__(self, name, direction=INPUT, default_val=None):
          """Create new Gpio object.
+@@ -42,14 +55,29 @@ class Gpio:
+         :param default_val: The default value to assume for an output GPIO
+         """
+         self._direction = direction
+-        self._line = gpiod.find_line(name)
++        self._chip_path, self._offset = find_line_by_name(name)
+         self._out_value = False
+-        if self._line is None:
+-            raise RuntimeError("failed to find gpio with name %s" % name)
+ 
+         if default_val is not None and direction == Gpio.OUTPUT:
+             self.set(default_val)
+ 
++    @contextlib.contextmanager
++    def request_gpio(self):
++        """Context manager for a GPIO line.
++
++        :param line: The GPIO line to request
++        :param direction: The direction to requested for line
++        """
++        request = gpiod.request_lines(
++            self._chip_path,
++            consumer="mpm",
++            config={self._offset: gpiod.LineSettings(direction=self._direction)},
++        )
++        try:
++            yield request
++        finally:
++            request.release()
++
+     def get(self):
+         """Read the value of this GPIO.
+ 
+@@ -58,16 +86,16 @@ class Gpio:
+         if self._direction == self.OUTPUT:
+             return self._out_value
+ 
+-        with request_gpio(self._line, self._direction) as gpio:
+-            return bool(gpio.get_value())
++        with self.request_gpio() as request:
++            return bool(request.get_value(self._offset).value)
+ 
+     def set(self, value):
+         """Set the value of this GPIO.
+ 
+         :param value: The value to set the GPIO line to.
+         """
+-        with request_gpio(self._line, self._direction) as gpio:
+-            gpio.set_value(int(value))
++        with self.request_gpio() as request:
++            request.set_value(self._offset, gpiod.line.Value(value))
+             self._out_value = bool(value)
+ 
+     def event_wait(self, timeout=1):
+@@ -77,5 +105,5 @@ class Gpio:
+                 The timeout has to be passed in full seconds as an int.
+         :return: True if an event happened, False if the wait timed out.
+         """
+-        with request_gpio(self._line, self._direction) as gpio:
+-            return gpio.event_wait(sec=timeout)
++        with self.request_gpio() as request:
++            return request.wait_edge_events(timeout=timeout)
+-- 
+2.43.0
+
