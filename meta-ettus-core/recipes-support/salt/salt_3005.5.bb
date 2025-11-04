@@ -21,7 +21,8 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 SRC_URI = "https://files.pythonhosted.org/packages/source/s/${BPN}/${BPN}-${PV}.tar.gz \
            file://0001-salt-fix-issue-during-installation-don-t-install-scr.patch \
-"
+           file://0002-import-urllib3.util.ssl_match_hostname.patch \
+           "
 
 SRC_URI[md5sum] = "aef81205425597930fade7ee62b721c9"
 SRC_URI[sha256sum] = "51f33a1c72ea87ed7483258c8f4137f12c7a88a57d1237ad874e99eebda6e5b9"
