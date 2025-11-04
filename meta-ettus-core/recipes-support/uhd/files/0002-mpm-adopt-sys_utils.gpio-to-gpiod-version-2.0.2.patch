@@ -1,14 +1,14 @@
-From b5061a183398305562796dfe60a93e5e7e9b5c96 Mon Sep 17 00:00:00 2001
+From 09ff2b515388b3f752858d204c3977db876a3b68 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
 Date: Mon, 3 Nov 2025 15:39:47 +0100
-Subject: [PATCH] mpm: adopt sys_utils.gpio to gpiod version 2.0.2
+Subject: [PATCH 2/4] mpm: adopt sys_utils.gpio to gpiod version 2.0.2
 
 ---
- mpm/python/usrp_mpm/sys_utils/gpio.py | 72 +++++++++++++++++++--------
- 1 file changed, 50 insertions(+), 22 deletions(-)
+ mpm/python/usrp_mpm/sys_utils/gpio.py | 76 +++++++++++++++++++--------
+ 1 file changed, 54 insertions(+), 22 deletions(-)
 
 diff --git a/mpm/python/usrp_mpm/sys_utils/gpio.py b/mpm/python/usrp_mpm/sys_utils/gpio.py
-index a34464130a..70e125db4b 100644
+index a34464130a..bb0e80a56f 100644
 --- a/mpm/python/usrp_mpm/sys_utils/gpio.py
 +++ b/mpm/python/usrp_mpm/sys_utils/gpio.py
 @@ -6,22 +6,35 @@ Access to GPIOs via libgpiod.
@@ -124,14 +124,18 @@ index a34464130a..70e125db4b 100644
              self._out_value = bool(value)
  
      def event_wait(self, timeout=1):
-@@ -77,5 +105,5 @@ class Gpio:
+@@ -77,5 +105,9 @@ class Gpio:
                  The timeout has to be passed in full seconds as an int.
          :return: True if an event happened, False if the wait timed out.
          """
 -        with request_gpio(self._line, self._direction) as gpio:
 -            return gpio.event_wait(sec=timeout)
 +        with self.request_gpio() as request:
-+            return request.wait_edge_events(timeout=timeout)
++            try:
++                retval = request.wait_edge_events(timeout=timeout)
++            except KeyboardInterrupt:
++                retval = False
++        return retval
 -- 
 2.43.0
 

@@ -1,7 +1,7 @@
-From 55c24d357fa431d747e3176b8d87eb85ada83e61 Mon Sep 17 00:00:00 2001
+From 21a70e15c660002b211685740a3c505540ff6326 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
 Date: Fri, 24 Oct 2025 08:10:45 +0200
-Subject: [PATCH] mpm: rfdc: applied patch to fix C++ compilation issue
+Subject: [PATCH 1/4] mpm: rfdc: applied patch to fix C++ compilation issue
 
 This is the following patch adopted to MPM:
 https://github.com/Xilinx/embeddedsw/commit/32d1f2056233cc399a4ff3147c9cc78ddb2b3c66.patch
