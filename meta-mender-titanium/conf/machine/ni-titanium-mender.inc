@@ -4,7 +4,7 @@ MENDER_FEATURES_ENABLE:append:ni-titanium-mender = " mender-uboot mender-image \
     mender-image-sd"
 MENDER_FEATURES_DISABLE:append:ni-titanium-mender = " mender-grub mender-image-uefi"
 
-IMAGE_INSTALL:append = " mender-migrate-configuration"
+IMAGE_INSTALL:append = " mender-migrate-configuration mender-is-mender-update"
 PACKAGECONFIG:remove = "split-mender-config"
 MENDER_PERSISTENT_CONFIGURATION_VARS = "RootfsPartA RootfsPartB"
 # MENDER_ARTIFACT_EXTRA_ARGS:append = " -v 2"
