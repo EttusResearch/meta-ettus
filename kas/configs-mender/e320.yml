@@ -14,6 +14,7 @@ local_conf_header:
     SDK_DEPLOY:append = "/e320"
 repos:
   meta-ettus:
+    path: /repo
     layers:
       meta-neon:
       meta-mender-neon:

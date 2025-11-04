@@ -10,6 +10,7 @@ local_conf_header:
     SDK_DEPLOY:append = "/n3xx"
 repos:
   meta-ettus:
+    path: /repo
     layers:
       meta-sulfur:
       meta-mender-sulfur:

@@ -5,6 +5,7 @@ header:
 machine: ni-e31x-sg3
 repos:
   meta-ettus:
+    path: /repo
     layers:
       meta-e31x:
 

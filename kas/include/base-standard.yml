@@ -14,6 +14,7 @@ local_conf_header:
   #   EXTERNALSRC:pn-uhd-fpga-images = "/work/fpga"
 repos:
   meta-ettus:
+    path: /repo
     layers:
       meta-ettus-bsp:
       meta-ettus-core:
@@ -23,7 +24,7 @@ repos:
     branch: '2.8'
     path: bitbake
     layers:
-      .: excluded
+      .: disabled
   meta-openembedded:
     url: https://github.com/openembedded/meta-openembedded
     branch: scarthgap

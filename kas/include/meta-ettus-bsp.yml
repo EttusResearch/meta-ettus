@@ -2,5 +2,6 @@ header:
   version: 10
 repos:
   meta-ettus:
+    path: /repo
     layers:
       meta-ettus-bsp:

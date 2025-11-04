@@ -10,6 +10,7 @@ local_conf_header:
     SDK_DEPLOY:append = "/e310_sg3"
 repos:
   meta-ettus:
+    path: /repo
     layers:
       meta-e31x:
       meta-mender-e31x:

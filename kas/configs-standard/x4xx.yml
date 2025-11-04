@@ -17,6 +17,7 @@ target:
 #     DISTRO_FEATURES:remove = "opengl"
 repos:
   meta-ettus:
+    path: /repo
     layers:
       meta-titanium:
   meta-openamp:

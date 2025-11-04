@@ -15,6 +15,7 @@ local_conf_header:
     SDK_DEPLOY:append = "/x4xx"
 repos:
   meta-ettus:
+    path: /repo
     layers:
       meta-titanium:
       meta-mender-titanium:
