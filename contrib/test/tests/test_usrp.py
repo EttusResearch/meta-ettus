@@ -239,7 +239,7 @@ class TestGnuradio(TestCommon):
 
     @unittest.skipUnless(package_installed('gnuradio'), 'gnuradio is not installed')
     def test_gnuradio_version(self):
-        expected_version = '3.10.12.0'
+        expected_version = 'v3.11.0.0git-913-g25af1c73'
         version = subprocess.check_output(['gnuradio-config-info', '-v']).decode('utf-8').splitlines()[0]
         self.assertEqual(version, expected_version)
 
