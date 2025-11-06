@@ -1,0 +1,22 @@
+From 777c98ee42997302448f7eb5456ad2c55f1e2d84 Mon Sep 17 00:00:00 2001
+From: kas User <kas@example.com>
+Date: Thu, 6 Nov 2025 16:53:18 +0100
+Subject: [PATCH] pyproject.toml: use license.text for specifying the license
+
+---
+ pyproject.toml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pyproject.toml b/pyproject.toml
+index 45d50ae..01ee930 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -10,7 +10,7 @@ name = "gpiod"
+ dynamic = ["version"]
+ description = "Python bindings for libgpiod"
+ readme = "README.md"
+-license = "LGPL-2.1-or-later"
++license.text = "LGPL-2.1-or-later"
+ requires-python = ">=3.9.0"
+ authors = [
+   {name = "Bartosz Golaszewski", email = "brgl@bgdev.pl"},
