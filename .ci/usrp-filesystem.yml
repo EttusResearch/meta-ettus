@@ -113,7 +113,7 @@ resources:
       source: 'usrp-kas'
       branch: kirkstone
     - pipeline: uhddev-fpga-pipeline
-      source: 'uhddev fpga pipeline'
+      source: 'uhddev mono pipeline'
       branch: master
     - pipeline: usrp-filesystem-pipeline
       source: 'usrp-filesystem'
