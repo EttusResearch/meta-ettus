@@ -19,6 +19,7 @@ IMAGE_INSTALL += "\
     i2c-tools \
     iperf3 \
     libgpiod \
+    libgpiod-tools \
     libudev \
     mpmd \
     nano \
