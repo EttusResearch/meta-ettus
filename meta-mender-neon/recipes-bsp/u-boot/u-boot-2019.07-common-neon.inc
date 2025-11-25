@@ -16,7 +16,7 @@ SRC_URI:append:ni-neon-rev2-mender = " \
 
 # Don't overwrite variable bootcommand with CONFIG_MENDER_BOOTCOMMAND
 # instead, variable sdboot is patched by our own patch
-SRC_URI:remove:ni-neon-mender = "file://0004-Disable-CONFIG_BOOTCOMMAND-and-enable-CONFIG_MENDER_.patch"
+SRC_URI:remove:ni-neon-mender = "file://0004-Disable-CONFIG_BOOTCOMMAND-and-enable-CONFIG_MENDER_.patch file://0002-Integration-of-Mender-boot-code-into-U-Boot.patch"
 
 do_provide_mender_defines:append:ni-neon-mender() {
   # fix boot command when using fitImage:
