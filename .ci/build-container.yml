@@ -1,7 +1,7 @@
 trigger:
   branches:
     include:
-    - kirkstone
+    - scarthgap
   paths:
     include:
     - .ci/Dockerfile
@@ -10,7 +10,7 @@ trigger:
 pr:
   branches:
     include:
-    - kirkstone
+    - scarthgap
   paths:
     include:
     - .ci/Dockerfile
@@ -21,7 +21,7 @@ schedules:
   displayName: Weekly kas Docker Build
   branches:
     include:
-    - kirkstone
+    - scarthgap
   always: true
 
 variables:

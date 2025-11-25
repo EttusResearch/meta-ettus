@@ -107,13 +107,13 @@ resources:
   pipelines:
     - pipeline: usrp-kas-pipeline
       source: 'usrp-kas'
-      branch: kirkstone
+      branch: scarthgap
     - pipeline: uhddev-fpga-pipeline
       source: 'uhddev fpga pipeline'
       branch: master
     - pipeline: usrp-filesystem-pipeline
       source: 'usrp-filesystem'
-      branch: kirkstone
+      branch: scarthgap
   repositories:
     - repository: linuxdev
       type: github

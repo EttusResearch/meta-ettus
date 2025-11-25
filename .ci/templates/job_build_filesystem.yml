@@ -61,7 +61,7 @@ parameters:
     default: "uhd:do_run_tests"
   - name: cache_base_name
     type: string
-    default: "kirkstone"
+    default: "scarthgap"
 
 jobs:
   - job: get_usrp_kas_docker_image
