@@ -5,7 +5,6 @@ header:
     - ../include/meta-stm32.yml
 machine: ni-neon-rev2-mender
 target:
-  - mc:ni-neon-ec:chromium-ec
   - mc:ni-neon:gnuradio-image
 env:
   MENDER_ARTIFACT_NAME: git_e320

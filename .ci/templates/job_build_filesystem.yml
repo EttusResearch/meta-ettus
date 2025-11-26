@@ -90,9 +90,9 @@ jobs:
         ${{ each machine in parameters.machines }}:
           ${{ machine }}:
             machineName: ${{ machine }}
-            ${{ if eq(machine, 'e320') }}:
-              pre_targets: mc:ni-neon-ec:chromium-ec ${{ parameters.pre_targets }}
-            ${{ elseif length(trim(parameters.pre_targets)) }}:
+            # ${{ if eq(machine, 'e320') }}:
+            #   pre_targets: mc:ni-neon-ec:chromium-ec ${{ parameters.pre_targets }}
+            ${{ if length(trim(parameters.pre_targets)) }}:
               pre_targets: ${{ parameters.pre_targets }}
             ${{ else }}:
               pre_targets: --parse-only
