@@ -1,8 +1,8 @@
 header:
   version: 10
   includes:
-    - ../include/base-standard.yml
-    - ../include/meta-stm32.yml
+    - kas/include/base-standard.yml
+    - kas/include/meta-stm32.yml
 machine: ni-titanium-rev5
 target:
   # - mc:zynqmp-pmufw:pmu-firmware
@@ -17,7 +17,6 @@ target:
 #     DISTRO_FEATURES:remove = "opengl"
 repos:
   meta-ettus:
-    path: /repo
     layers:
       meta-titanium:
   meta-openamp:

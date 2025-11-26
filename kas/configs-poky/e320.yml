@@ -1,9 +1,9 @@
 header:
   version: 10
   includes:
-  - '../include/poky.yml'
-  - '../include/meta-ettus-core.yml'
-  - '../include/meta-ettus-bsp.yml'
+  - 'kas/include/poky.yml'
+  - 'kas/include/meta-ettus-core.yml'
+  - 'kas/include/meta-ettus-bsp.yml'
 machine: ni-neon-rev2
 target:
 - flashing-image

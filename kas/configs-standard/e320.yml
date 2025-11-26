@@ -1,14 +1,13 @@
 header:
   version: 10
   includes:
-    - ../include/base-standard.yml
-    - ../include/meta-stm32.yml
+    - kas/include/base-standard.yml
+    - kas/include/meta-stm32.yml
 machine: ni-neon-rev2
 target:
   - mc:ni-neon-ec:chromium-ec
   - mc:ni-neon:gnuradio-image
 repos:
   meta-ettus:
-    path: /repo
     layers:
       meta-neon:

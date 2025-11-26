@@ -1,8 +1,8 @@
 header:
   version: 10
   includes:
-  - '../include/poky.yml'
-  - '../include/meta-ettus-core.yml'
+  - 'kas/include/poky.yml'
+  - 'kas/include/meta-ettus-core.yml'
 repos:
   meta-yocto-bsp:
     url: https://git.yoctoproject.org/meta-yocto

@@ -1,7 +1,7 @@
 header:
   version: 10
   includes:
-    - ../include/base-mender.yml
+    - kas/include/base-mender.yml
 machine: ni-sulfur-rev11-mender
 env:
   MENDER_ARTIFACT_NAME: git_n3xx
@@ -10,7 +10,6 @@ local_conf_header:
     SDK_DEPLOY:append = "/n3xx"
 repos:
   meta-ettus:
-    path: /repo
     layers:
       meta-sulfur:
       meta-mender-sulfur:

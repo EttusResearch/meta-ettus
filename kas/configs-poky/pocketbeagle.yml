@@ -1,9 +1,9 @@
 header:
   version: 10
   includes:
-  - '../include/poky.yml'
-  - '../include/meta-ettus-core.yml'
-  - '../include/meta-sdr.yml'
+  - 'kas/include/poky.yml'
+  - 'kas/include/meta-ettus-core.yml'
+  - 'kas/include/meta-sdr.yml'
 repos:
   meta-pocketbeagle:
     url: https://github.com/twoerner/meta-pocketbeagle.git

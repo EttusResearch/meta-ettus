@@ -1,7 +1,7 @@
 header:
   version: 10
   includes:
-    - ../include/base-mender.yml
+    - kas/include/base-mender.yml
 machine: qemux86-64
 local_conf_header:
   "SDK deploy directory": |

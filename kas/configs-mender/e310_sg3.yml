@@ -1,7 +1,7 @@
 header:
   version: 10
   includes:
-    - ../include/base-mender.yml
+    - kas/include/base-mender.yml
 machine: ni-e31x-sg3-mender
 env:
   MENDER_ARTIFACT_NAME: git_e310_sg3
@@ -10,7 +10,6 @@ local_conf_header:
     SDK_DEPLOY:append = "/e310_sg3"
 repos:
   meta-ettus:
-    path: /repo
     layers:
       meta-e31x:
       meta-mender-e31x:

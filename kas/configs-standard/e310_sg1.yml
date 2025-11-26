@@ -1,11 +1,10 @@
 header:
   version: 10
   includes:
-    - ../include/base-standard.yml
+    - kas/include/base-standard.yml
 machine: ni-e31x-sg1
 repos:
   meta-ettus:
-    path: /repo
     layers:
       meta-e31x:
 

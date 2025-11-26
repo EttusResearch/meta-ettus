@@ -1,8 +1,8 @@
 header:
   version: 10
   includes:
-    - ../include/base-mender.yml
-    - ../include/meta-stm32.yml
+    - kas/include/base-mender.yml
+    - kas/include/meta-stm32.yml
 machine: ni-neon-rev2-mender
 target:
   - mc:ni-neon:gnuradio-image
@@ -13,7 +13,6 @@ local_conf_header:
     SDK_DEPLOY:append = "/e320"
 repos:
   meta-ettus:
-    path: /repo
     layers:
       meta-neon:
       meta-mender-neon:

@@ -7,6 +7,5 @@ repos:
     layers:
       meta-oe:
   meta-ettus:
-    path: /repo
     layers:
       meta-ettus-core:

@@ -1,7 +1,7 @@
 header:
   version: 10
   includes:
-    - ../include/base-standard.yml
+    - kas/include/base-standard.yml
 machine: qemuarm64
 target:
   - deployment-image

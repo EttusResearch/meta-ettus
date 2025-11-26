@@ -14,7 +14,6 @@ local_conf_header:
   #   EXTERNALSRC:pn-uhd-fpga-images = "/work/fpga"
 repos:
   meta-ettus:
-    path: /repo
     layers:
       meta-ettus-bsp:
       meta-ettus-core:
