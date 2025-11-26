@@ -60,13 +60,13 @@ jobs:
       echo "###vso[task.setVariable variable=MenderPath]$(Agent.BuildDirectory)/$(deviceType)-images/$(image)-$(machine).mender"
     displayName: set image path (from current)
     condition: and(succeeded(), ne(variables.build_result, 'Skipped'), ${{ parameters.flash_image }})
-  - download: usrp-filesystem-pipeline
+  - download: self
     artifact: $(deviceType)-images
     displayName: download artifacts from last run
     condition: and(succeeded(), eq(variables.build_result, 'Skipped'), ${{ parameters.flash_image }})
   - script: |
-      echo "###vso[task.setVariable variable=ImagePath]$(Agent.BuildDirectory)/usrp-filesystem-pipeline/$(deviceType)-images/$(image)-$(machine).$(image-ext)"
-      echo "###vso[task.setVariable variable=MenderPath]$(Agent.BuildDirectory)/usrp-filesystem-pipeline/$(deviceType)-images/$(image)-$(machine).mender"
+      echo "###vso[task.setVariable variable=ImagePath]$(Agent.BuildDirectory)/$(deviceType)-images/$(image)-$(machine).$(image-ext)"
+      echo "###vso[task.setVariable variable=MenderPath]$(Agent.BuildDirectory)/$(deviceType)-images/$(image)-$(machine).mender"
     displayName: set image path (from last run)
     condition: and(succeeded(), eq(variables.build_result, 'Skipped'), ${{ parameters.flash_image }})
   - script: |
