@@ -115,7 +115,7 @@ resources:
     - repository: linuxdev
       type: github
       name: EttusResearch/linuxdev
-      ref: refs/heads/usrp-v5.10
+      ref: refs/heads/usrp-v6.12
       endpoint: EttusResearch
     - repository: uhddev
       type: github
@@ -167,12 +167,12 @@ stages:
                 rm $AUTO_CONF
                 touch $AUTO_CONF
           - ${{ if parameters.ext_linux }}:
-            - script: |
-                cat <<EOF >>$AUTO_CONF
-                PREFERRED_PROVIDER_virtual/kernel = "linux-usrp"
-                PREFERRED_VERSION_linux-yocto = "5.10%"
-                KBUILD_DEFCONFIG = "usrp_defconfig"
-                EOF
+            # - script: |
+            #     cat <<EOF >>$AUTO_CONF
+            #     PREFERRED_PROVIDER_virtual/kernel = "linux-usrp"
+            #     PREFERRED_VERSION_linux-yocto = "5.10%"
+            #     KBUILD_DEFCONFIG = "usrp_defconfig"
+            #     EOF
             - template: templates/oe_localconf_externalsrc.yml
               parameters:
                 conf_file: $AUTO_CONF
