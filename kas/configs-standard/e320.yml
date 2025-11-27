@@ -5,7 +5,6 @@ header:
     - kas/include/meta-stm32.yml
 machine: ni-neon-rev2
 target:
-  - mc:ni-neon-ec:chromium-ec
   - mc:ni-neon:gnuradio-image
 repos:
   meta-ettus:
