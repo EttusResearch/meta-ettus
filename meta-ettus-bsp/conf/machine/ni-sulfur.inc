@@ -17,10 +17,6 @@ UBOOT_SUFFIX = "img"
 UBOOT_ENTRYPOINT = "0000000"
 UBOOT_LOADADDRESS = "0000000"
 
-# UBOOT_BINARY:ni-sulfur = "u-boot.${UBOOT_SUFFIX}"
-# SPL_BINARY:ni-sulfur = "spl/boot.bin"
-# IMAGE_BOOT_FILES ?= "boot.bin ${UBOOT_BINARY}"
-
 KERNEL_CLASSES += "kernel-fitimage"
 KERNEL_IMAGETYPE = "fitImage"
 KERNEL_DEFCONFIG ?= "ni_sulfur_defconfig"
@@ -40,7 +36,7 @@ MACHINE_ESSENTIAL_EXTRA_RDEPENDS += " \
                             "
 
 EXTRA_IMAGEDEPENDS += "u-boot"
-IMAGE_BOOT_FILES ?= "u-boot.${UBOOT_SUFFIX} ${SPL_BINARY} ${KERNEL_IMAGETYPE} ${KERNEL_DEVICETREE}"
+IMAGE_BOOT_FILES ?= "u-boot.${UBOOT_SUFFIX} ${SPL_BINARY} ${KERNEL_IMAGETYPE}"
 
 # On non-Mender devices, build "wic.xz" and "wic.bmap"
 # On Mender enabled devices build "sdimg.bz2" (instead of "sdimg") and "sdimg.bmap"

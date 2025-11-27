@@ -51,7 +51,7 @@ KERNEL_DEVICETREE:ni-titanium ?= "\
 "
 FIT_CONF_PREFIX = "conf@ni_"
 
-IMAGE_BOOT_FILES ?= "boot.bin ${UBOOT_BINARY}"
+IMAGE_BOOT_FILES ?= "boot.bin ${UBOOT_BINARY} ${KERNEL_IMAGETYPE}"
 PMU_FIRMWARE_DEPLOY_DIR ?= "${TOPDIR}/tmp-xilinx/deploy/images/zynqmp-pmu"
 PMU_FIRMWARE_IMAGE_NAME ?= "pmu-firmware-zynqmp-pmu"
 

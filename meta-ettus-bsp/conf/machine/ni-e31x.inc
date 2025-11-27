@@ -31,7 +31,7 @@ PREFERRED_VERSION_linux-yocto = "5.2.%"
 MACHINE_ESSENTIAL_EXTRA_RDEPENDS += "kernel-image kernel-devicetree"
 
 EXTRA_IMAGEDEPENDS += "u-boot"
-IMAGE_BOOT_FILES ?= "u-boot.${UBOOT_SUFFIX} ${SPL_BINARY} ${KERNEL_IMAGETYPE} ${KERNEL_DEVICETREE}"
+IMAGE_BOOT_FILES ?= "u-boot.${UBOOT_SUFFIX} ${SPL_BINARY} ${KERNEL_IMAGETYPE}"
 
 # On non-Mender devices, build "wic.xz" and "wic.bmap"
 # On Mender enabled devices build "sdimg.bz2" (instead of "sdimg") and "sdimg.bmap"
