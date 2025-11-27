@@ -1,0 +1,24 @@
+From a7007f0039745ae560e452a39709cd7ec0f1e697 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Thu, 27 Nov 2025 09:03:20 +0100
+Subject: [PATCH] mpm: include missing header in mykonos lib
+
+---
+ mpm/lib/mykonos/ad937x_device_types.hpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/mpm/lib/mykonos/ad937x_device_types.hpp b/mpm/lib/mykonos/ad937x_device_types.hpp
+index bdf995c15c..7eddb2ec22 100644
+--- a/mpm/lib/mykonos/ad937x_device_types.hpp
++++ b/mpm/lib/mykonos/ad937x_device_types.hpp
+@@ -10,6 +10,7 @@
+ 
+ #include <uhd/types/direction.hpp>
+ #include <uhd/types/ranges.hpp>
++#include <cstdint>
+ 
+ namespace mpm { namespace ad937x { namespace device {
+ enum class build_type_t { RELEASE, DEBUG, TEST_OBJECT };
+-- 
+2.43.0
+
