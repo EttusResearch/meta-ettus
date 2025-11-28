@@ -49,7 +49,7 @@ KERNEL_DEVICETREE:ni-titanium ?= "\
 	ni/x4xx-db0-db-flash.dtbo \
 	ni/x4xx-db1-db-flash.dtbo \
 "
-FIT_CONF_PREFIX = "conf@ni_"
+FIT_CONF_PREFIX = "conf@"
 
 IMAGE_BOOT_FILES ?= "boot.bin ${UBOOT_BINARY} ${KERNEL_IMAGETYPE}"
 PMU_FIRMWARE_DEPLOY_DIR ?= "${TOPDIR}/tmp-xilinx/deploy/images/zynqmp-pmu"
