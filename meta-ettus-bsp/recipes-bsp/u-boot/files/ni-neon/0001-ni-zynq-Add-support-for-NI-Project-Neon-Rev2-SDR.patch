@@ -1316,7 +1316,7 @@ index 0000000000..6b1f5a9933
 +	"ec_disable_swsync=0\0"		\
 +	"ec_image=lib/firmware/ni/ec-neon-rev2.RW.bin\0"	\
 +	"expand_ec_image=setenv ec_image lib/firmware/ni/ec-neon-rev${ec_compat}.RW.bin\0" \
-+	"bootargs=root=/dev/mmcblk0p2 rw rootwait uio_pdrv_genirq.of_id=usrp-uio\0" \
++	"bootargs=root=/dev/mmcblk0p2 rw rootwait uio_pdrv_genirq.of_id=usrp-uio at24.io_limit=64\0" \
 +	"load_addr=0x2000000\0"		\
 +	"fit_size=0x800000\0"           \
 +	"fdt_high=0x20000000\0"         \

@@ -52,7 +52,7 @@ index 6b1f5a9933..46b3431951 100644
  	"fdt_high=0x20000000\0"         \
  	"initrd_high=0x20000000\0"      \
 +	"netargs=printenv serverip && printenv tftproot && printenv nfsroot && setenv bootargs root=/dev/nfs " \
-+		"nfsroot=${serverip}:${nfsroot},v3,tcp ip=dhcp uio_pdrv_genirq.of_id=usrp-uio\0" \
++		"nfsroot=${serverip}:${nfsroot},v3,tcp ip=dhcp uio_pdrv_genirq.of_id=usrp-uio at24.io_limit=64\0" \
 +	"netboot=run netargs && run swsync_net && " \
 +		"echo Loading FIT to RAM via DHCP/TFTP && " \
 +		"dhcp ${load_addr} ${tftproot}/${fit_image} && "\

@@ -1564,7 +1564,7 @@ index 0000000000..a1a5dd9fb3
 +#define CONFIG_EXTRA_ENV_SETTINGS	\
 +	"fit_image=boot/fitImage\0"	\
 +	"mboard=e31x-sg3\0"	\
-+	"bootargs=root=/dev/mmcblk0p2 rw rootwait uio_pdrv_genirq.of_id=usrp-uio\0" \
++	"bootargs=root=/dev/mmcblk0p2 rw rootwait uio_pdrv_genirq.of_id=usrp-uio at24.io_limit=64\0" \
 +	"load_addr=0x2000000\0"		\
 +	"fit_size=0x800000\0"           \
 +	"fdt_high=0x20000000\0"         \
