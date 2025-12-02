@@ -15,7 +15,10 @@ SRCREV_meta = "2987fc4250f2ad7f6e2df663bba0742638fbae51"
 LINUX_VERSION_EXTENSION = "-usrp"
 KMETA = "kernel-meta"
 SRC_URI = "git://git@github.com/EttusResearch/linuxdev.git;name=machine;protocol=ssh;branch=${KBRANCH} \
-           git://git.yoctoproject.org/yocto-kernel-cache;type=kmeta;name=meta;branch=yocto-6.12;destsuffix=${KMETA};protocol=https"
+           git://git.yoctoproject.org/yocto-kernel-cache;type=kmeta;name=meta;branch=yocto-6.12;destsuffix=${KMETA};protocol=https \
+           file://netfilter_minimal.cfg \
+           file://sound.cfg \
+           "
 KCONFIG_MODE ?= "--alldefconfig"
 PV = "${LINUX_VERSION}+git${SRCPV}"
 
