@@ -1,4 +1,4 @@
-From 2a2a1fe8548b06d760e4f5c14bc2e9982463b893 Mon Sep 17 00:00:00 2001
+From 0e10033b3abf91fa8f625bd63200d3bcdbc74104 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
 Date: Tue, 2 Dec 2025 17:13:42 +0100
 Subject: [PATCH] mpm: sys_utils.i2c_dev: rework, e.g. don't rely on
@@ -40,21 +40,21 @@ Overall, two functions are now provided by sys_utils.i2c_dev:
  9 files changed, 57 insertions(+), 98 deletions(-)
 
 diff --git a/mpm/python/n3xx_bist b/mpm/python/n3xx_bist
-index 66810f3eaa..7737e78f7e 100755
+index a49171e7b6..cf8d7f1567 100755
 --- a/mpm/python/n3xx_bist
 +++ b/mpm/python/n3xx_bist
-@@ -400,9 +400,9 @@ class N3XXBIST(bist.UsrpBIST):
+@@ -417,9 +417,9 @@ class N3XXBIST(bist.UsrpBIST):
+         """
          if self.args.dry_run:
              return True, bist.get_sfp_bist_defaults()
-         from usrp_mpm.periph_manager import n3xx
 -        from usrp_mpm.sys_utils import i2c_dev
-+        from usrp_mpm.sys_utils.i2c_dev import dt_symbol_get_i2c_bus
- 
++        from usrp_mpm.sys_utils.i2c_dev import of_get_i2c_bus
+         from usrp_mpm.periph_manager import n3xx
 -        qsfp_i2c = i2c_dev.of_get_i2c_adapter(n3xx.N32X_QSFP_I2C_LABEL)
-+        qsfp_i2c = dt_symbol_get_i2c_bus(n3xx.N32X_QSFP_I2C_SYMBOL)
++        qsfp_i2c = of_get_i2c_bus(n3xx.N32X_QSFP_I2C_SYMBOL)
          if qsfp_i2c is None:
              raise RuntimeError("Could not find QSFP board!")
-         qsfp_port = int(self.args.option.get("qsfp_port", "0"))
+         qsfp_port = int(self.args.option.get('qsfp_port', '0'))
 diff --git a/mpm/python/usrp_mpm/dboard_manager/magnesium.py b/mpm/python/usrp_mpm/dboard_manager/magnesium.py
 index 1ffbc6f164..37fec7b8df 100644
 --- a/mpm/python/usrp_mpm/dboard_manager/magnesium.py
@@ -262,20 +262,20 @@ index c83456c6ce..4224959aec 100644
              raise RuntimeError("RPLL I2C bus could not be found")
          self.log.trace("Using RPLL I2C bus: %s", str(rpll_i2c_bus))
 diff --git a/mpm/python/usrp_mpm/periph_manager/x4xx_periphs.py b/mpm/python/usrp_mpm/periph_manager/x4xx_periphs.py
-index 64a58b839a..9560c3d309 100644
+index 06ef49ad2f..aad729d1c1 100644
 --- a/mpm/python/usrp_mpm/periph_manager/x4xx_periphs.py
 +++ b/mpm/python/usrp_mpm/periph_manager/x4xx_periphs.py
-@@ -14,8 +14,8 @@ from statistics import mean
+@@ -11,8 +11,8 @@ import time
+ import struct
+ from statistics import mean
  from usrp_mpm import lib  # Pulls in everything from C++-land
- from usrp_mpm.mpmutils import poll_with_timeout
- from usrp_mpm.periph_manager.common import MboardRegsCommon
 -from usrp_mpm.sys_utils import i2c_dev
  from usrp_mpm.sys_utils.gpio import Gpio
 +from usrp_mpm.sys_utils.i2c_dev import dt_symbol_get_i2c_device_node
- from usrp_mpm.sys_utils.sysfs_gpio import GPIOBank
- from usrp_mpm.sys_utils.sysfs_thermal import read_thermal_sensor_value
  from usrp_mpm.sys_utils.uio import UIO
-@@ -645,7 +645,7 @@ class QSFPModule:
+ from usrp_mpm.mpmutils import poll_with_timeout
+ from usrp_mpm.sys_utils.sysfs_thermal import read_thermal_sensor_value
+@@ -625,7 +625,7 @@ class QSFPModule:
          self.modprs = Gpio(gpio_modprs, Gpio.INPUT, 0)
  
          # resolve device node name for I2C communication

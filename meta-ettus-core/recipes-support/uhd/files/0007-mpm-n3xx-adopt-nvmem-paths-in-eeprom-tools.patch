@@ -1,0 +1,27 @@
+From d8bcff6909377304d3690912837d4ac9ca6dcadc Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Wed, 3 Dec 2025 10:38:45 +0100
+Subject: [PATCH] mpm: n3xx: adopt nvmem paths in eeprom tools
+
+---
+ mpm/tools/eeprom.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/mpm/tools/eeprom.h b/mpm/tools/eeprom.h
+index 47b6b3f711..3e629af14a 100644
+--- a/mpm/tools/eeprom.h
++++ b/mpm/tools/eeprom.h
+@@ -18,8 +18,8 @@ typedef uint8_t u8;
+ /* TODO: Come up with a smarter way to do this when we start using this on
+  * another device */
+ #define NVMEM_PATH_SLOT_A "/sys/bus/nvmem/devices/9-00500/nvmem"
+-#define NVMEM_PATH_SLOT_B "/sys/bus/nvmem/devices/10-00500/nvmem"
+-#define NVMEM_PATH_MB "/sys/bus/nvmem/devices/2-00500/nvmem"
++#define NVMEM_PATH_SLOT_B "/sys/bus/nvmem/devices/10-00501/nvmem"
++#define NVMEM_PATH_MB "/sys/bus/nvmem/devices/2-00502/nvmem"
+ 
+ /* Despite the "sulfur" name, this also applies for E320 ("neon")
+  */
+-- 
+2.43.0
+
