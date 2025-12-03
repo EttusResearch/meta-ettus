@@ -8,4 +8,5 @@ SRC_URI += " file://0001-mpm-rfdc-applied-patch-to-fix-C-compilation-issue.patch
              file://0003-mpm-sys_utils-linting.patch;patchdir=.. \
              file://0004-mpm-adopt-sys_utils.net-to-pyroute2-version-0.7.0.patch;patchdir=.. \
              file://0005-mpm-include-missing-header-in-mykonos-lib.patch;patchdir=.. \
+             file://0006-mpm-sys_utils.i2c_dev-rework-e.g.-don-t-rely-on-i2c-.patch;patchdir=.. \
             "

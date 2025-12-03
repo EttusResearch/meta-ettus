@@ -1,0 +1,398 @@
+From 2a2a1fe8548b06d760e4f5c14bc2e9982463b893 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Tue, 2 Dec 2025 17:13:42 +0100
+Subject: [PATCH] mpm: sys_utils.i2c_dev: rework, e.g. don't rely on
+ i2c-adapter
+
+The i2c-adapter subsystem was meant as a temporary compatibility
+layer. The recommended option always was to rely on i2c-dev
+subsystem only. With commit 7e722083fc the i2c-adapter subsystem
+was finally removed from Linux kernel 6.12.
+
+The logic for resolving the i2c-dev device node was changed
+accordingly.
+
+This change also adopts all occurances in the code where the I2C
+bus or device node is resolved to use resolving by devicetree
+symbol. E.g. in n3xx.py, the N32X QSFP I2C node was resolved by
+devicetree label before.
+
+Overall, two functions are now provided by sys_utils.i2c_dev:
+
+- dt_symbol_get_i2c_bus: Get the I2C bus (as pyudev.Device) for
+  a given device tree symbol. This function is used if the
+  returned value is further used for filtering devices using
+  udev, e.g. searching for certain devices on the same I2C bus.
+- dt_symbol_get_i2c_device_node: Get the i2c-dev device node
+  (e.g. "/dev/i2c-0") for a given device tree symbol. This function
+  is used in cases where only the device node is of interest, e.g.
+  when passing it to a C/C++ library.
+---
+ mpm/python/n3xx_bist                          |  4 +-
+ .../usrp_mpm/dboard_manager/magnesium.py      | 20 ++---
+ mpm/python/usrp_mpm/dboard_manager/rhodium.py | 21 ++---
+ mpm/python/usrp_mpm/periph_manager/n3xx.py    |  6 +-
+ .../usrp_mpm/periph_manager/n3xx_periphs.py   |  1 -
+ .../usrp_mpm/periph_manager/x4xx_clk_aux.py   |  6 +-
+ .../periph_manager/x4xx_clock_ctrl.py         |  4 +-
+ .../usrp_mpm/periph_manager/x4xx_periphs.py   |  4 +-
+ mpm/python/usrp_mpm/sys_utils/i2c_dev.py      | 89 +++++++------------
+ 9 files changed, 57 insertions(+), 98 deletions(-)
+
+diff --git a/mpm/python/n3xx_bist b/mpm/python/n3xx_bist
+index 66810f3eaa..7737e78f7e 100755
+--- a/mpm/python/n3xx_bist
++++ b/mpm/python/n3xx_bist
+@@ -400,9 +400,9 @@ class N3XXBIST(bist.UsrpBIST):
+         if self.args.dry_run:
+             return True, bist.get_sfp_bist_defaults()
+         from usrp_mpm.periph_manager import n3xx
+-        from usrp_mpm.sys_utils import i2c_dev
++        from usrp_mpm.sys_utils.i2c_dev import dt_symbol_get_i2c_bus
+ 
+-        qsfp_i2c = i2c_dev.of_get_i2c_adapter(n3xx.N32X_QSFP_I2C_LABEL)
++        qsfp_i2c = dt_symbol_get_i2c_bus(n3xx.N32X_QSFP_I2C_SYMBOL)
+         if qsfp_i2c is None:
+             raise RuntimeError("Could not find QSFP board!")
+         qsfp_port = int(self.args.option.get("qsfp_port", "0"))
+diff --git a/mpm/python/usrp_mpm/dboard_manager/magnesium.py b/mpm/python/usrp_mpm/dboard_manager/magnesium.py
+index 1ffbc6f164..37fec7b8df 100644
+--- a/mpm/python/usrp_mpm/dboard_manager/magnesium.py
++++ b/mpm/python/usrp_mpm/dboard_manager/magnesium.py
+@@ -16,6 +16,7 @@ from usrp_mpm.dboard_manager.mg_init import MagnesiumInitManager
+ from usrp_mpm.dboard_manager.mg_periphs import DboardClockControl
+ from usrp_mpm.cores import nijesdcore
+ from usrp_mpm.mpmlog import get_logger
++from usrp_mpm.sys_utils.i2c_dev import dt_symbol_get_i2c_bus
+ from usrp_mpm.sys_utils.uio import open_uio
+ from usrp_mpm.user_eeprom import BfrfsEEPROM
+ from usrp_mpm.mpmutils import async_exec
+@@ -95,10 +96,6 @@ class Magnesium(BfrfsEEPROM, DboardManagerBase):
+         "lmk": create_spidev_iface_lmk,
+         "phase_dac": create_spidev_iface_phasedac,
+     }
+-    #file system path to i2c-adapter/mux
+-    base_i2c_adapter = '/sys/class/i2c-adapter'
+-    # Map I2C channel to slot index
+-    i2c_chan_map = {0: 'i2c-9', 1: 'i2c-10'}
+     # This map describes how the user data is stored in EEPROM. If a dboard rev
+     # changes the way the EEPROM is used, we add a new entry. If a dboard rev
+     # is not found in the map, then we go backward until we find a suitable rev
+@@ -151,7 +148,10 @@ class Magnesium(BfrfsEEPROM, DboardManagerBase):
+         """
+         Initialize power and peripherals that don't need user-settings
+         """
+-        self._port_expander = TCA6408(self._get_i2c_dev(self.slot_idx))
++        i2c_bus = dt_symbol_get_i2c_bus(f"usrpio_i2c{self.slot_idx}")
++        if i2c_bus is None:
++            raise RuntimeError("Failed to resolve I2C bus")
++        self._port_expander = TCA6408(i2c_bus)
+         self._power_on()
+         self.log.debug("Loading C++ drivers...")
+ 
+@@ -203,16 +203,6 @@ class Magnesium(BfrfsEEPROM, DboardManagerBase):
+         self._port_expander.reset("PWR-EN-5.5V")
+         self._port_expander.reset("LED")
+ 
+-    def _get_i2c_dev(self, slot_idx):
+-        " Return the I2C path for this daughterboard "
+-        import pyudev
+-        context = pyudev.Context()
+-        i2c_dev_path = os.path.join(
+-            self.base_i2c_adapter,
+-            self.i2c_chan_map[slot_idx]
+-        )
+-        return pyudev.Devices.from_sys_path(context, i2c_dev_path)
+-
+     def _init_myk_api(self, myk):
+         """
+         Propagate the C++ Mykonos API into Python land.
+diff --git a/mpm/python/usrp_mpm/dboard_manager/rhodium.py b/mpm/python/usrp_mpm/dboard_manager/rhodium.py
+index 93b9f2186f..f629156b95 100644
+--- a/mpm/python/usrp_mpm/dboard_manager/rhodium.py
++++ b/mpm/python/usrp_mpm/dboard_manager/rhodium.py
+@@ -18,6 +18,7 @@ from usrp_mpm.cores import nijesdcore
+ from usrp_mpm.dboard_manager.adc_rh import AD9695Rh
+ from usrp_mpm.dboard_manager.dac_rh import DAC37J82Rh
+ from usrp_mpm.mpmlog import get_logger
++from usrp_mpm.sys_utils.i2c_dev import dt_symbol_get_i2c_bus
+ from usrp_mpm.sys_utils.uio import open_uio
+ from usrp_mpm.user_eeprom import BfrfsEEPROM
+ 
+@@ -135,8 +136,6 @@ class Rhodium(BfrfsEEPROM, DboardManagerBase):
+     # See DboardManagerBase for documentation on these fields
+     #########################################################################
+     pids = [0x152]
+-    #file system path to i2c-adapter/mux
+-    base_i2c_adapter = '/sys/class/i2c-adapter'
+     # Maps the chipselects to the corresponding devices:
+     spi_chipselect = {
+         "cpld"             : 0,
+@@ -225,15 +224,6 @@ class Rhodium(BfrfsEEPROM, DboardManagerBase):
+         """
+         Initialize power and peripherals that don't need user-settings
+         """
+-        def _get_i2c_dev():
+-            " Return the I2C path for this daughterboard "
+-            import pyudev
+-            context = pyudev.Context()
+-            i2c_dev_path = os.path.join(
+-                self.base_i2c_adapter,
+-                self.i2c_chan_map[self.slot_idx]
+-            )
+-            return pyudev.Devices.from_sys_path(context, i2c_dev_path)
+         def _init_spi_devices():
+             " Returns abstraction layers to all the SPI devices "
+             self.log.trace("Loading SPI interfaces...")
+@@ -241,11 +231,14 @@ class Rhodium(BfrfsEEPROM, DboardManagerBase):
+                 key: self.spi_factories[key](self._spi_nodes[key])
+                 for key in self._spi_nodes
+             }
+-        self._port_expander = TCA6408(_get_i2c_dev())
++        i2c_bus = dt_symbol_get_i2c_bus(f"usrpio_i2c{self.slot_idx}")
++        if i2c_bus is None:
++            raise RuntimeError("Failed to resolve I2C bus")
++        self._port_expander = TCA6408(i2c_bus)
+         self._daughterboard_gpio = FPGAtoDbGPIO(self.slot_idx)
+-        if FPGAtoLoDist.lo_dist_present(_get_i2c_dev()):
++        if FPGAtoLoDist.lo_dist_present(i2c_bus):
+             self.log.info("Enabling LO distribution board")
+-            self._lo_dist = FPGAtoLoDist(_get_i2c_dev())
++            self._lo_dist = FPGAtoLoDist(i2c_bus)
+         else:
+             self.log.debug("No LO distribution board detected")
+         self.log.debug("Turning on Module and RF power supplies")
+diff --git a/mpm/python/usrp_mpm/periph_manager/n3xx.py b/mpm/python/usrp_mpm/periph_manager/n3xx.py
+index afee316cc3..22f07db339 100644
+--- a/mpm/python/usrp_mpm/periph_manager/n3xx.py
++++ b/mpm/python/usrp_mpm/periph_manager/n3xx.py
+@@ -20,7 +20,7 @@ from usrp_mpm.periph_manager import PeriphManagerBase
+ from usrp_mpm.mpmutils import assert_compat_number, str2bool, poll_with_timeout
+ from usrp_mpm.rpc_utils import no_rpc, get_map_for_rpc
+ from usrp_mpm.sys_utils import dtoverlay
+-from usrp_mpm.sys_utils import i2c_dev
++from usrp_mpm.sys_utils.i2c_dev import dt_symbol_get_i2c_device_node
+ from usrp_mpm.sys_utils.sysfs_thermal import read_thermal_sensor_value
+ from usrp_mpm.xports import XportMgrUDP
+ from usrp_mpm.periph_manager.n3xx_periphs import TCA6424
+@@ -38,7 +38,7 @@ N3XX_DEFAULT_ENABLE_FPGPIO = True
+ N3XX_DEFAULT_ENABLE_PPS_EXPORT = True
+ N32X_DEFAULT_QSFP_RATE_PRESET = 'Ethernet'
+ N32X_DEFAULT_QSFP_DRIVER_PRESET = 'Optical'
+-N32X_QSFP_I2C_LABEL = 'qsfp-i2c'
++N32X_QSFP_I2C_SYMBOL = 'qsfp_i2c'
+ N3XX_FPGA_COMPAT = (8, 1)
+ N3XX_REMOTE_STREAMING_COMPAT = (8, 1)
+ N3XX_MONITOR_THREAD_INTERVAL = 1.0 # seconds
+@@ -366,7 +366,7 @@ class n3xx(ZynqComponents, PeriphManagerBase):
+         # Init GPSd iface and GPS sensors
+         self._init_gps_sensors()
+         # Init QSFP board (if available)
+-        qsfp_i2c = i2c_dev.of_get_i2c_adapter(N32X_QSFP_I2C_LABEL)
++        qsfp_i2c = dt_symbol_get_i2c_device_node(N32X_QSFP_I2C_SYMBOL)
+         if qsfp_i2c:
+             self.log.debug("Creating QSFP Retimer control object...")
+             self._qsfp_retimer = RetimerQSFP(qsfp_i2c)
+diff --git a/mpm/python/usrp_mpm/periph_manager/n3xx_periphs.py b/mpm/python/usrp_mpm/periph_manager/n3xx_periphs.py
+index 0e06342e16..1dec0bf8a4 100644
+--- a/mpm/python/usrp_mpm/periph_manager/n3xx_periphs.py
++++ b/mpm/python/usrp_mpm/periph_manager/n3xx_periphs.py
+@@ -10,7 +10,6 @@ N3xx peripherals
+ 
+ from usrp_mpm import lib
+ from usrp_mpm.sys_utils.sysfs_gpio import SysFSGPIO, GPIOBank
+-from usrp_mpm.sys_utils import i2c_dev
+ from usrp_mpm.chips.ds125df410 import DS125DF410
+ from usrp_mpm.periph_manager.common import MboardRegsCommon
+ 
+diff --git a/mpm/python/usrp_mpm/periph_manager/x4xx_clk_aux.py b/mpm/python/usrp_mpm/periph_manager/x4xx_clk_aux.py
+index 8e632132e5..332746265b 100644
+--- a/mpm/python/usrp_mpm/periph_manager/x4xx_clk_aux.py
++++ b/mpm/python/usrp_mpm/periph_manager/x4xx_clk_aux.py
+@@ -12,9 +12,9 @@ from usrp_mpm import lib  # Pulls in everything from C++-land
+ from usrp_mpm import tlv_eeprom
+ from usrp_mpm.mpmlog import get_logger
+ from usrp_mpm.sys_utils.gpio import Gpio
++from usrp_mpm.sys_utils.i2c_dev import dt_symbol_get_i2c_device_node
+ from usrp_mpm.sys_utils.udev import dt_symbol_get_spidev
+ from usrp_mpm.sys_utils.udev import get_eeprom_paths_by_symbol
+-from usrp_mpm.sys_utils import i2c_dev
+ from usrp_mpm.chips import LMK05318
+ 
+ # DAC AD5338R provides V_out = V_ref * gain (tune_word / 2^N)
+@@ -36,7 +36,7 @@ def _check_i2c_bus():
+     Assert that the I2C connection to the clocking board is available in the
+     device tree.
+     """
+-    i2c_bus = i2c_dev.dt_symbol_get_i2c_bus(X400_CLKAUX_I2C_LABEL)
++    i2c_bus = dt_symbol_get_i2c_device_node(X400_CLKAUX_I2C_LABEL)
+     if i2c_bus is None:
+         raise RuntimeError("ClockingAuxBrdControl I2C bus not found")
+ 
+@@ -169,7 +169,7 @@ class ClockingAuxBrdControl:
+         Initializes i2c bus to communicate with the DAC and configures the
+         tuning word for both voltage outputs
+         """
+-        dac_i2c_bus = i2c_dev.dt_symbol_get_i2c_bus(X400_CLKAUX_I2C_LABEL)
++        dac_i2c_bus = dt_symbol_get_i2c_device_node(X400_CLKAUX_I2C_LABEL)
+         self._dac_i2c_iface = lib.i2c.make_i2cdev(
+             dac_i2c_bus,
+             0xC,    # addr
+diff --git a/mpm/python/usrp_mpm/periph_manager/x4xx_clock_ctrl.py b/mpm/python/usrp_mpm/periph_manager/x4xx_clock_ctrl.py
+index c83456c6ce..4224959aec 100644
+--- a/mpm/python/usrp_mpm/periph_manager/x4xx_clock_ctrl.py
++++ b/mpm/python/usrp_mpm/periph_manager/x4xx_clock_ctrl.py
+@@ -14,8 +14,8 @@ The eCPRI PLL is controlled from the ClockingAuxBrdControl class.
+ """
+ 
+ from usrp_mpm import lib # Pulls in everything from C++-land
+-from usrp_mpm.sys_utils import i2c_dev
+ from usrp_mpm.sys_utils.gpio import Gpio
++from usrp_mpm.sys_utils.i2c_dev import dt_symbol_get_i2c_device_node
+ from usrp_mpm.sys_utils.udev import dt_symbol_get_spidev
+ from usrp_mpm.periph_manager.x4xx_periphs import MboardRegsControl
+ from usrp_mpm.periph_manager.x4xx_sample_pll import LMK04832X4xx
+@@ -71,7 +71,7 @@ class X4xxClockCtrl:
+             0,          # Write flag
+         )
+         # Initialize I2C connection to RPLL
+-        rpll_i2c_bus = i2c_dev.dt_symbol_get_i2c_bus(X400_RPLL_I2C_LABEL)
++        rpll_i2c_bus = dt_symbol_get_i2c_device_node(X400_RPLL_I2C_LABEL)
+         if rpll_i2c_bus is None:
+             raise RuntimeError("RPLL I2C bus could not be found")
+         self.log.trace("Using RPLL I2C bus: %s", str(rpll_i2c_bus))
+diff --git a/mpm/python/usrp_mpm/periph_manager/x4xx_periphs.py b/mpm/python/usrp_mpm/periph_manager/x4xx_periphs.py
+index 64a58b839a..9560c3d309 100644
+--- a/mpm/python/usrp_mpm/periph_manager/x4xx_periphs.py
++++ b/mpm/python/usrp_mpm/periph_manager/x4xx_periphs.py
+@@ -14,8 +14,8 @@ from statistics import mean
+ from usrp_mpm import lib  # Pulls in everything from C++-land
+ from usrp_mpm.mpmutils import poll_with_timeout
+ from usrp_mpm.periph_manager.common import MboardRegsCommon
+-from usrp_mpm.sys_utils import i2c_dev
+ from usrp_mpm.sys_utils.gpio import Gpio
++from usrp_mpm.sys_utils.i2c_dev import dt_symbol_get_i2c_device_node
+ from usrp_mpm.sys_utils.sysfs_gpio import GPIOBank
+ from usrp_mpm.sys_utils.sysfs_thermal import read_thermal_sensor_value
+ from usrp_mpm.sys_utils.uio import UIO
+@@ -645,7 +645,7 @@ class QSFPModule:
+         self.modprs = Gpio(gpio_modprs, Gpio.INPUT, 0)
+ 
+         # resolve device node name for I2C communication
+-        devname = i2c_dev.dt_symbol_get_i2c_bus(devsymbol)
++        devname = dt_symbol_get_i2c_device_node(devsymbol)
+ 
+         # create an object to access I2C register interface
+         self.qsfp_regs = lib.i2c.make_i2cdev_regs_iface(
+diff --git a/mpm/python/usrp_mpm/sys_utils/i2c_dev.py b/mpm/python/usrp_mpm/sys_utils/i2c_dev.py
+index b84086e550..23fa92dd28 100644
+--- a/mpm/python/usrp_mpm/sys_utils/i2c_dev.py
++++ b/mpm/python/usrp_mpm/sys_utils/i2c_dev.py
+@@ -10,71 +10,48 @@ Utilities for i2c lookups
+ import pyudev
+ from usrp_mpm.sys_utils.udev import get_device_from_dt_symbol
+ 
+-def _get_i2c_adapter_from_parent(parent, context):
++def dt_symbol_get_i2c_bus(symbol: str):
+     """
+-    Helper to get the i2c adapter from a given parent device.
+-    This logic is common for different device lookup methods.
++    Return the I2C bus for a given device tree symbol.
++    
++    :param symbol: The device tree symbol
++    :type symbol: str
++    :return: The I2C bus
++    :rtype: Optional[pyudev.Device]
+     """
+-    if not parent:
+-        return None
+-    devices = list(context.list_devices(parent=parent, subsystem="i2c-dev"))
+-    properties = [dict(d.properties) for d in devices]
+-    # The i2c-adapter will have the lowest minor number
+-    # FIXME: This likely isn't API--It just happens to work as of this writing
+-    chosen = min([(int(p['MINOR']), p['DEVNAME']) for p in properties])
+-    return chosen[1]
+-
+-def of_get_i2c_adapter(of_name):
+-    """
+-    Return bus adapter device for given device tree name. To use the OF_NAME
+-    for matching (as this function does), it must be a unique property in the
+-    device tree (and this must be a device-tree platform).
+-
+-    The return value is a string, e.g. '/dev/i2c-0'. If nothing is found, it'll
+-    return None.
+-    """
+-    # If has i2c-dev, follow to grab i2c-%d node
+     context = pyudev.Context()
+-    parents = list(context.list_devices(subsystem="i2c-adapter", OF_NAME=of_name))
+-    if len(parents) > 1:
+-        raise RuntimeError("Non-unique OF_NAME when getting i2c bus id")
+-    if len(parents) == 0:
++    try:
++        return get_device_from_dt_symbol(symbol, subsystem='i2c', context=context)
++    except FileNotFoundError:
+         return None
+-    parent = parents[0]
+-    return _get_i2c_adapter_from_parent(parent, context)
+ 
+ 
+-def dt_symbol_get_i2c_bus(symbol):
++def i2c_bus_to_device_node(i2c_bus: pyudev.Device):
+     """
+-    Return i2c bus associated with the given device tree symbol
+-
+-    The return value is a string, e.g. '/dev/i2c-0'. If nothing is found, it'll
+-    return None.
++    Return the i2c device node (e.g. "/dev/i2c-0") for a given
++    I2C bus.
++    
++    :param i2c_bus: The I2C bus
++    :type i2c_bus: pyudev.Device
++    :return: The i2c-dev device node
++    :rtype: Optional[str]
+     """
+-    context = pyudev.Context()
+-    parent = get_device_from_dt_symbol(symbol, subsystem='i2c', context=context)
+-    return _get_i2c_adapter_from_parent(parent, context)
++    for child in i2c_bus.children:
++        if child.subsystem == "i2c-dev":
++            return child.device_node
++    # Fallthrough: return None if no i2c-dev node was found
++    return None
+ 
+ 
+-def sysname_get_i2c_adapter(sys_name):
++def dt_symbol_get_i2c_device_node(symbol: str):
+     """
+-    Return bus adapter device for given device tree sys_name.
+-
+-    The return value is a string, e.g. '/dev/i2c-0'. If nothing is found, it'll
+-    return None.
+-    """
+-    parent = sysname_get_i2c_parent(sys_name)
+-    return _get_i2c_adapter_from_parent(parent, pyudev.Context())
+-
+-def sysname_get_i2c_parent(sys_name):
++    Return the i2c device node (e.g. "/dev/i2c-0") for a given
++    device tree symbol.
++    
++    :param symbol: The device tree symbol
++    :type symbol: str
++    :return: The i2c-dev device node
++    :rtype: Optional[pyudev.Device]
+     """
+-    Returns the parent of an i2c adapter found by sys_name
+-    """
+-    # If has i2c-dev, follow to grab i2c-%d node
+-    context = pyudev.Context()
+-    parents = list(context.list_devices(subsystem="i2c-adapter", sys_name=sys_name))
+-    if len(parents) > 1:
+-        raise RuntimeError("Non-unique sys_name when getting i2c bus id")
+-    if len(parents) == 0:
+-        return None
+-    return parents[0]
++    i2c_bus = dt_symbol_get_i2c_bus(symbol)
++    return i2c_bus_to_device_node(i2c_bus) if i2c_bus else None
+-- 
+2.43.0
+
