@@ -29,7 +29,7 @@ RDEPENDS:${PN} = " \
                   python3-statistics \
                   udev \
                   dtc \
-                  iptables \
+                  nftables \
                   python3-gpiod \
                  "
 RDEPENDS:${PN}:append:ni-e31x = " \
