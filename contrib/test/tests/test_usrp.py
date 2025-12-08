@@ -27,9 +27,8 @@ class TestUsrpMethods(TestCommon):
     def test_boot_kernel(self):
 
         def filter_known_fails(lines):
-            pattern="^(reg-userspace-consumer db[01]_supply: Failed to get supplies: -517" \
-                    "|dwc3 fe200000.usb: Failed to get clk 'ref': -2" \
-                    "|OF: overlay: WARNING: memory leak will occur if overlay removed, property:.*)$"
+            pattern_default = "^(OF: overlay: WARNING: memory leak will occur if overlay removed, property:.*)$"
+            pattern = os.getenv("KERNEL_MSG_FILTER", pattern_default)
             prog = re.compile(pattern)
             to_be_removed = []
             for (i,line) in enumerate(lines):
