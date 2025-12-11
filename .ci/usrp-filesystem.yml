@@ -108,8 +108,8 @@ resources:
     - pipeline: usrp-kas-pipeline
       source: 'usrp-kas'
       branch: scarthgap
-    - pipeline: uhddev-fpga-pipeline
-      source: 'uhddev fpga pipeline'
+    - pipeline: uhddev-mono-pipeline
+      source: 'uhddev mono pipeline'
       branch: master
   repositories:
     - repository: linuxdev
@@ -193,7 +193,7 @@ stages:
             - template: templates/oe_localconf_externalsrc_pipeline.yml
               parameters:
                 conf_file: $AUTO_CONF
-                pipeline: uhddev-fpga-pipeline
+                pipeline: uhddev-mono-pipeline
                 patterns: |
                   usrp_e310_*_fpga.*
                   usrp_e320_fpga_*.*
@@ -203,7 +203,7 @@ stages:
                 - uhd-fpga-images
                 flatten: true
             - script: |
-                ls -l $(Agent.BuildDirectory)/uhddev-fpga-pipeline
+                ls -l $(Agent.BuildDirectory)/uhddev-mono-pipeline
               displayName: list fpga images
         kas_subdirectory: ${{ parameters.kas_subdirectory }}
         build_default_targets: ${{ parameters.build_default_targets }}
