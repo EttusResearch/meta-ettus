@@ -45,7 +45,7 @@ parameters:
   - name: ext_linux
     displayName: Override linux source
     type: boolean
-    default: false
+    default: true
   - name: ext_uhd
     displayName: Override UHD source
     type: boolean
