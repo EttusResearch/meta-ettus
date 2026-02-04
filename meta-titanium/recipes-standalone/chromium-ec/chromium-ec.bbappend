@@ -9,6 +9,7 @@ SRC_URI:ni-titanium-ec = " \
     file://0002-ignore-reprecation-warning-ftdi_usb_purge_buffers-is.patch \
     file://0002-ina2xx-add-support-for-both-INA219-and-INA231.patch \
     file://0003-Enable-DB-sensors-for-X420.patch \
+    file://0004-Rename-8V6-sensors-to-8V7.patch \
     "
 
 SRCREV:ni-titanium-ec = "82c52e33a801e19af7187b1cf8da36673778f12f"
