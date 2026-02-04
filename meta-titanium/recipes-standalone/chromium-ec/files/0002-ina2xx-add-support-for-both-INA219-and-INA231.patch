@@ -1,7 +1,7 @@
 From e1c2997d83aa545cf548cede052ccffd4b403b35 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
 Date: Wed, 30 Apr 2025 10:42:58 +0200
-Subject: [PATCH 2/3] ina2xx: add support for both INA219 and INA231
+Subject: [PATCH 2/4] ina2xx: add support for both INA219 and INA231
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -16,7 +16,7 @@ Signed-off-by: Jörg Hofrichter <joerg.hofrichter@emerson.com>
  3 files changed, 54 insertions(+), 26 deletions(-)
 
 diff --git a/board/titanium/board.c b/board/titanium/board.c
-index 571c76562..d9a3ade3f 100644
+index 571c765625..d9a3ade3fe 100644
 --- a/board/titanium/board.c
 +++ b/board/titanium/board.c
 @@ -337,13 +337,13 @@ BUILD_ASSERT(ARRAY_SIZE(ioex_config) == CONFIG_IO_EXPANDER_PORT_COUNT);
@@ -41,7 +41,7 @@ index 571c76562..d9a3ade3f 100644
  BUILD_ASSERT(ARRAY_SIZE(ina2xx_sensors) == INA2XX_COUNT);
  #endif
 diff --git a/driver/ina2xx.c b/driver/ina2xx.c
-index e135e55de..7cba45424 100644
+index e135e55ded..7cba454241 100644
 --- a/driver/ina2xx.c
 +++ b/driver/ina2xx.c
 @@ -41,6 +41,18 @@ static int ina2xx_get_addr(uint8_t idx)
@@ -129,7 +129,7 @@ index e135e55de..7cba45424 100644
  	ccprintf("Calibration  : %04x\n", calib);
  	ccprintf("Mask/Enable  : %04x\n", mask);
 diff --git a/driver/ina2xx.h b/driver/ina2xx.h
-index ad55b3bea..7746aef8c 100644
+index ad55b3bea6..7746aef8cc 100644
 --- a/driver/ina2xx.h
 +++ b/driver/ina2xx.h
 @@ -8,6 +8,8 @@

@@ -1,7 +1,7 @@
 From cafdccfbf392beee0d3cb89df72d179c2434ea1b Mon Sep 17 00:00:00 2001
 From: Martin Anderseck <martin.anderseck@ni.com>
 Date: Tue, 20 May 2025 10:26:46 +0200
-Subject: [PATCH 3/3] Enable DB sensors for X420
+Subject: [PATCH 3/4] Enable DB sensors for X420
 
 This commit enables all daughterboard power sensors for X420.
 ---
@@ -13,7 +13,7 @@ This commit enables all daughterboard power sensors for X420.
  5 files changed, 349 insertions(+), 213 deletions(-)
 
 diff --git a/board/titanium/board.c b/board/titanium/board.c
-index d9a3ade3f..73a6bad0e 100644
+index d9a3ade3fe..73a6bad0e9 100644
 --- a/board/titanium/board.c
 +++ b/board/titanium/board.c
 @@ -29,6 +29,8 @@
@@ -425,7 +425,7 @@ index d9a3ade3f..73a6bad0e 100644
 +	} else return 0;
 +}
 diff --git a/board/titanium/board.h b/board/titanium/board.h
-index e80307db4..70d1cb51e 100644
+index e80307db44..70d1cb51ee 100644
 --- a/board/titanium/board.h
 +++ b/board/titanium/board.h
 @@ -45,12 +45,16 @@
@@ -483,7 +483,7 @@ index e80307db4..70d1cb51e 100644
  
  #endif /* !__ASSEMBLER__ */
 diff --git a/board/titanium/power.c b/board/titanium/power.c
-index 4dc497b63..8c5c46a27 100644
+index 4dc497b637..8c5c46a275 100644
 --- a/board/titanium/power.c
 +++ b/board/titanium/power.c
 @@ -20,6 +20,7 @@
@@ -719,7 +719,7 @@ index 4dc497b63..8c5c46a27 100644
  #endif
  
 diff --git a/driver/ina2xx.c b/driver/ina2xx.c
-index 7cba45424..a0f20a403 100644
+index 7cba454241..a0f20a403f 100644
 --- a/driver/ina2xx.c
 +++ b/driver/ina2xx.c
 @@ -12,9 +12,10 @@
@@ -820,7 +820,7 @@ index 7cba45424..a0f20a403 100644
  	ccprintf("Current      : %04x => %d mA\n", curr, curr);
  	ccprintf("Calibration  : %04x\n", calib);
 diff --git a/driver/ina2xx.h b/driver/ina2xx.h
-index 7746aef8c..800f01d52 100644
+index 7746aef8cc..800f01d52c 100644
 --- a/driver/ina2xx.h
 +++ b/driver/ina2xx.h
 @@ -10,28 +10,28 @@

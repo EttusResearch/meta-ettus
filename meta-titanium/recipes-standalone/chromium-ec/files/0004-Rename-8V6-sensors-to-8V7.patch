@@ -1,0 +1,47 @@
+From 5fd9f18aa6be81db4cb071b149dd72f05be9654c Mon Sep 17 00:00:00 2001
+From: Martin Anderseck <martin.anderseck@ni.com>
+Date: Tue, 5 Aug 2025 13:00:23 +0200
+Subject: [PATCH 4/4] Rename 8V6 sensors to 8V7
+
+Since we have seen that our 8.6V sensors are at a place where we have
+rather 8.7V, this change adapts the naming accordingly.
+---
+ board/titanium/board.c | 4 ++--
+ board/titanium/board.h | 2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/board/titanium/board.c b/board/titanium/board.c
+index 73a6bad0e9..74ffd1a2cd 100644
+--- a/board/titanium/board.c
++++ b/board/titanium/board.c
+@@ -402,12 +402,12 @@ const struct ina2xx_t ina2xx_sensors[] = {
+ 	{ "1V2N", I2C_PORT_MON, INA2XX_I2C_ADDR(2, 0), 0x219f, INA2XX_CALIB_1MA(2), false },
+ 	{ "1V2S", I2C_PORT_MON, INA2XX_I2C_ADDR(2, 2), 0x219f, INA2XX_CALIB_1MA(2), false },
+ 	{ "DB0_12V0", I2C_PORT_DB0, INA2XX_I2C_ADDR(0, 0), 0x45E7, INA231_CALIB_1MA(1), true },
+-	{ "DB0_8V6",  I2C_PORT_DB0, INA2XX_I2C_ADDR(0, 1), 0x45E7, INA231_CALIB_1MA(1), true },
++	{ "DB0_8V7",  I2C_PORT_DB0, INA2XX_I2C_ADDR(0, 1), 0x45E7, INA231_CALIB_1MA(1), true },
+ 	// { "DB0_3V7",  I2C_PORT_DB0, INA2XX_I2C_ADDR(0, 2), 0x4127, INA231_CALIB_1MA(1), true },
+ 	{ "DB0_5V6",  I2C_PORT_DB0, INA2XX_I2C_ADDR(1, 0), 0x45E7, INA231_CALIB_1MA(1), true },
+ 	{ "DB0_4V0",  I2C_PORT_DB0, INA2XX_I2C_ADDR(1, 1), 0x45E7, INA231_CALIB_1MA(1), true },
+ 	{ "DB1_12V0", I2C_PORT_DB1, INA2XX_I2C_ADDR(0, 0), 0x45E7, INA231_CALIB_1MA(1), true },
+-	{ "DB1_8V6",  I2C_PORT_DB1, INA2XX_I2C_ADDR(0, 1), 0x45E7, INA231_CALIB_1MA(1), true },
++	{ "DB1_8V7",  I2C_PORT_DB1, INA2XX_I2C_ADDR(0, 1), 0x45E7, INA231_CALIB_1MA(1), true },
+ 	// { "DB1_3V7",  I2C_PORT_DB1, INA2XX_I2C_ADDR(0, 2), 0x4127, INA231_CALIB_1MA(1), true },
+ 	{ "DB1_5V6",  I2C_PORT_DB1, INA2XX_I2C_ADDR(1, 0), 0x45E7, INA231_CALIB_1MA(1), true },
+ 	{ "DB1_4V0",  I2C_PORT_DB1, INA2XX_I2C_ADDR(1, 1), 0x45E7, INA231_CALIB_1MA(1), true },
+diff --git a/board/titanium/board.h b/board/titanium/board.h
+index 70d1cb51ee..4dfbaa2cfc 100644
+--- a/board/titanium/board.h
++++ b/board/titanium/board.h
+@@ -329,7 +329,7 @@ enum ina2xx_id {
+ };
+ enum ina231_id {
+ 	INA231_12V0,
+-	INA231_8V6,
++	INA231_8V7,
+ 	INA231_3V7,
+ 	INA231_5V6,
+ 	INA231_4V0,
+-- 
+2.34.1
+
