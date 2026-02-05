@@ -7,7 +7,7 @@ PACKAGE_ARCH = "${MACHINE_ARCH}"
 
 DEPENDS += "kern-tools-native"
 
-inherit uboot-config uboot-extlinux-config uboot-sign deploy cml1
+inherit uboot-config uboot-extlinux-config uboot-sign deploy python3native cml1
 
 DEPENDS += "swig-native python3-native"
 
@@ -137,6 +137,7 @@ do_compile () {
 }
 
 do_install () {
+    echo "UBOOT_ELF value: ${UBOOT_ELF}"
     if [ -n "${UBOOT_CONFIG}" ]
     then
         for config in ${UBOOT_MACHINE}; do
@@ -164,6 +165,9 @@ do_install () {
     then
         if [ -n "${UBOOT_CONFIG}" ]
         then
+            bbnote "UBOOT_ELF value: ${UBOOT_ELF}"
+            bbnote "Looking for: ${B}/${UBOOT_ELF}"
+            [ -f ${B}/${UBOOT_ELF} ] && bbnote "Found!" || bbnote "Not found!"
             for config in ${UBOOT_MACHINE}; do
                 i=$(expr $i + 1);
                 for type in ${UBOOT_CONFIG}; do

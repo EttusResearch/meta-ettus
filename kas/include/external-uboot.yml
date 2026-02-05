@@ -1,0 +1,12 @@
+header:
+  version: 10
+
+local_conf_header:
+  external_uboot_vars: |
+    EXTERNAL_UBOOT_RECIPE ?= "u-boot"
+    EXTERNAL_UBOOT_SRC_PATH ?= "${TOPDIR}/../u-boot-dev"
+  external_uboot: |
+    INHERIT += "externalsrc"
+    PREFERRED_PROVIDER_virtual/bootloader = "${EXTERNAL_UBOOT_RECIPE}"
+    PREFERRED_VERSION_u-boot = "2026.01%"
+    EXTERNALSRC:pn-${EXTERNAL_UBOOT_RECIPE} = "${EXTERNAL_UBOOT_SRC_PATH}"
