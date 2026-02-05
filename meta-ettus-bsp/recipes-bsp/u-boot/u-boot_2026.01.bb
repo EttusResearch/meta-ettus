@@ -167,10 +167,20 @@ do_deploy:append:ni-titanium() {
   UBOOT_JTAG_FILES_TARGET=u-boot-jtag-files-${MACHINE}-${PV}.zip
   UBOOT_JTAG_FILES_SYMLINK1=u-boot-jtag-files-${MACHINE}.zip
   UBOOT_JTAG_FILES_SYMLINK2=u-boot-jtag-files.zip
-  zip -j -MM ${DEPLOYDIR}/${UBOOT_JTAG_FILES_TARGET} \
-    ${B}/pmu-firmware.elf \
-    ${B}/spl/u-boot-spl.bin ${B}/bl31.elf ${B}/${UBOOT_ELF} \
-    ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-titanium-rev*.bin
+
+  # Only add EC files if they exist
+  if ls ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-titanium-rev*.bin 1>/dev/null 2>&1; then
+    zip -j -MM ${DEPLOYDIR}/${UBOOT_JTAG_FILES_TARGET} \
+      ${B}/pmu-firmware.elf \
+      ${B}/spl/u-boot-spl.bin ${B}/bl31.elf ${B}/${UBOOT_ELF} \
+      ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-titanium-rev*.bin
+  else
+    bbnote "EC firmware not found, building JTAG zip without EC files"
+    zip -j -MM ${DEPLOYDIR}/${UBOOT_JTAG_FILES_TARGET} \
+      ${B}/pmu-firmware.elf \
+      ${B}/spl/u-boot-spl.bin ${B}/bl31.elf ${B}/${UBOOT_ELF}
+  fi
+
   ln -sf ${UBOOT_JTAG_FILES_TARGET} ${DEPLOYDIR}/${UBOOT_JTAG_FILES_SYMLINK1}
   ln -sf ${UBOOT_JTAG_FILES_TARGET} ${DEPLOYDIR}/${UBOOT_JTAG_FILES_SYMLINK2}
 }
