@@ -1,0 +1,11 @@
+header:
+  version: 10
+
+local_conf_header:
+  external_kernel_vars: |
+    EXTERNAL_KERNEL_RECIPE ?= "linux-usrp"
+    EXTERNAL_KERNEL_PATH ?= "${TOPDIR}/../linux-usrp"
+  external_kernel: |
+    INHERIT += "externalsrc"
+    PREFERRED_PROVIDER_virtual/kernel = "${EXTERNAL_KERNEL_RECIPE}"
+    EXTERNALSRC:pn-${EXTERNAL_KERNEL_RECIPE} = "${EXTERNAL_KERNEL_PATH}"

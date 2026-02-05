@@ -15,8 +15,10 @@ SRCREV_meta = "2987fc4250f2ad7f6e2df663bba0742638fbae51"
 LINUX_VERSION_EXTENSION = "-usrp"
 KMETA = "kernel-meta"
 SRC_URI = "git://git@github.com/EttusResearch/linuxdev.git;name=machine;protocol=ssh;branch=${KBRANCH} \
-           git://git.yoctoproject.org/yocto-kernel-cache;type=kmeta;name=meta;branch=yocto-6.12;destsuffix=${KMETA};protocol=https"
-KCONFIG_MODE ?= "--alldefconfig"
+           git://git.yoctoproject.org/yocto-kernel-cache;type=kmeta;name=meta;branch=yocto-6.12;destsuffix=${KMETA};protocol=https \
+           file://fix-addressing.cfg \
+           file://enable-early-debug.cfg"
+KCONFIG_MODE = "alldefconfig"
 PV = "${LINUX_VERSION}+git${SRCPV}"
 
 KCONF_AUDIT_LEVEL = "2"
@@ -31,3 +33,6 @@ COMPATIBLE_MACHINE:ni-titanium = "ni-titanium-rev2|ni-titanium-rev3|ni-titanium-
 COMPATIBLE_MACHINE:ni-e31x-mender = "ni-e31x-mender-sg3|ni-e31x-mender-sg1"
 COMPATIBLE_MACHINE:ni-neon-mender = "ni-neon-rev1-mender|ni-neon-rev2-mender"
 COMPATIBLE_MACHINE:ni-sulfur-mender = "ni-sulfur-rev3-mender|ni-sulfur-rev4-mender|ni-sulfur-rev5-mender|ni-sulfur-rev6-mender"
+
+# Enable DT symbols for overlay support
+# KERNEL_DTC_FLAGS += "-@"
