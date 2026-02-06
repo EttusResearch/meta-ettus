@@ -62,6 +62,9 @@ parameters:
   - name: cache_base_name
     type: string
     default: "kirkstone"
+  - name: sbom_cve_check
+    type: boolean
+    default: false
   - name: sbom_project_os_id
     type: string
     default: "kirkstone"
@@ -203,12 +206,19 @@ jobs:
 
       - ${{ if parameters.create_sbom }}:
         - script: |
+            if [ "${{ parameters.sbom_cve_check }}" = "True" ]; then
+              ALCHEMY_CREATE_CVE_CHECK="1"
+            else
+              ALCHEMY_CREATE_CVE_CHECK="0"
+            fi
             cat <<EOF >>$(Agent.BuildDirectory)/site.conf
             ALCHEMY_CREATE_SBOM = "1"
+            ALCHEMY_CREATE_CVE_CHECK = "$ALCHEMY_CREATE_CVE_CHECK"
             # Map MG/RH cpld license name to valid, common 
             # SPDX-License-Identifier (for details see US 3116752)
             SPDXLICENSEMAP[Firmware-GPLv2] = "GPL-2.0-only"
             EOF
+            cat $(Agent.BuildDirectory)/site.conf
           displayName: Enable SBOM (SPDX) generation
 
       - ${{ if parameters.ccache }}:
