@@ -78,6 +78,11 @@ PV = "2026.01+git${SRCPV}"
 # ============================================================================
 FILESEXTRAPATHS:prepend:ni-titanium := "${THISDIR}/files/ni-titanium:"
 
+SRC_URI:prepend:ni-titanium = " \
+                  file://boot_u-boot.tcl \
+                  file://boot_u-boot \
+                  "
+
 # For externalsrc builds, patches and source files are not applied
 # All modifications should be in the external source tree
 # Keeping this file for potential runtime configuration overrides
@@ -171,13 +176,13 @@ do_deploy:append:ni-titanium() {
   # Only add EC files if they exist
   if ls ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-titanium-rev*.bin 1>/dev/null 2>&1; then
     zip -j -MM ${DEPLOYDIR}/${UBOOT_JTAG_FILES_TARGET} \
-      ${B}/pmu-firmware.elf \
+      ${WORKDIR}/boot_u-boot ${WORKDIR}/boot_u-boot.tcl ${B}/pmu-firmware.elf \
       ${B}/spl/u-boot-spl.bin ${B}/bl31.elf ${B}/${UBOOT_ELF} \
       ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-titanium-rev*.bin
   else
     bbnote "EC firmware not found, building JTAG zip without EC files"
     zip -j -MM ${DEPLOYDIR}/${UBOOT_JTAG_FILES_TARGET} \
-      ${B}/pmu-firmware.elf \
+      ${WORKDIR}/boot_u-boot ${WORKDIR}/boot_u-boot.tcl ${B}/pmu-firmware.elf \
       ${B}/spl/u-boot-spl.bin ${B}/bl31.elf ${B}/${UBOOT_ELF}
   fi
 
