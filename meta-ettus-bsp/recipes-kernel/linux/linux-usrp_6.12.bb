@@ -1,6 +1,7 @@
 LIC_FILES_CHKSUM ?= "file://COPYING;md5=6bc538ed5bd9a7fc9398086aedcd7e46"
 
 require recipes-kernel/linux/linux-yocto.inc
+require kernel-include-nirio-header.inc
 
 KERNEL_VERSION_SANITY_SKIP="1"
 
@@ -26,6 +27,7 @@ KCONF_BSP_AUDIT_LEVEL = "2"
 
 KMACHINE:ni-titanium = "ni-titanium"
 
+
 COMPATIBLE_MACHINE:ni-e31x = "ni-e31x-sg1|ni-e31x-sg3"
 COMPATIBLE_MACHINE:ni-neon = "ni-neon-rev1|ni-neon-rev2"
 COMPATIBLE_MACHINE:ni-sulfur = "ni-sulfur-rev3|ni-sulfur-rev4|ni-sulfur-rev5|ni-sulfur-rev6|ni-sulfur-rev11"
@@ -36,3 +38,10 @@ COMPATIBLE_MACHINE:ni-sulfur-mender = "ni-sulfur-rev3-mender|ni-sulfur-rev4-mend
 
 # Enable DT symbols for overlay support
 # KERNEL_DTC_FLAGS += "-@"
+FILES:${KERNEL_PACKAGE_NAME}-devicetree += "/usr/lib/firmware/*.dtbo"
+
+do_install:append() {
+    install -d ${D}/usr/lib/firmware
+    ln -sf /boot/x4xx-db0-db-flash.dtbo ${D}/usr/lib/firmware/db0_flash.dtbo
+    ln -sf /boot/x4xx-db1-db-flash.dtbo ${D}/usr/lib/firmware/db1_flash.dtbo
+}

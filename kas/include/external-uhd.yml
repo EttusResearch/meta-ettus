@@ -1,0 +1,11 @@
+header:
+  version: 10
+
+local_conf_header:
+  external_uhd_vars: |
+    EXTERNAL_UHD_RECIPE ?= "uhd"
+    EXTERNAL_UHD_PATH ?= "${TOPDIR}/../uhddev/host"
+  external_uhd: |
+    INHERIT += "externalsrc"
+    EXTERNALSRC:pn-${EXTERNAL_UHD_RECIPE} = "${EXTERNAL_UHD_PATH}"
+    EXTERNALSRC_BUILD:pn-${EXTERNAL_UHD_RECIPE} = "${EXTERNAL_UHD_PATH}/build"
