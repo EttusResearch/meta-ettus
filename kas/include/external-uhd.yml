@@ -3,9 +3,14 @@ header:
 
 local_conf_header:
   external_uhd_vars: |
+    EXTERNAL_UHD_BASE ?= "${TOPDIR}/../uhddev"
     EXTERNAL_UHD_RECIPE ?= "uhd"
-    EXTERNAL_UHD_PATH ?= "${TOPDIR}/../uhddev/host"
+    EXTERNAL_UHD_PATH ?= "${EXTERNAL_UHD_BASE}/host"
+    EXTERNAL_MPM_RECIPE ?= "mpmd"
+    EXTERNAL_MPM_PATH ?= "${EXTERNAL_UHD_BASE}/mpm"
   external_uhd: |
     INHERIT += "externalsrc"
     EXTERNALSRC:pn-${EXTERNAL_UHD_RECIPE} = "${EXTERNAL_UHD_PATH}"
     EXTERNALSRC_BUILD:pn-${EXTERNAL_UHD_RECIPE} = "${EXTERNAL_UHD_PATH}/build"
+    EXTERNALSRC:pn-${EXTERNAL_MPM_RECIPE} = "${EXTERNAL_MPM_PATH}"
+    EXTERNALSRC_BUILD:pn-${EXTERNAL_MPM_RECIPE} = "${EXTERNAL_MPM_PATH}/build"
