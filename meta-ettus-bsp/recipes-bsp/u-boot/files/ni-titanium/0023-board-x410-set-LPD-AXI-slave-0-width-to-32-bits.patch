@@ -1,0 +1,41 @@
+From 4a917c9920b9dd1899d8ad12e6f82bc0273fedc7 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Mon, 8 Jun 2020 08:34:01 -0500
+Subject: [PATCH 23/37] board: x410: set LPD AXI slave 0 width to 32-bits
+
+The PL expects the AXI stream for the RPU to be 32-bits, so ensure this
+is configured appropriately.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ board/ni/zynqmp/x410-rev2/psu_init_gpl.c | 1 +
+ board/ni/zynqmp/x410-rev3/psu_init_gpl.c | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/board/ni/zynqmp/x410-rev2/psu_init_gpl.c b/board/ni/zynqmp/x410-rev2/psu_init_gpl.c
+index d6dbe0a601b..4b6470c7a63 100644
+--- a/board/ni/zynqmp/x410-rev2/psu_init_gpl.c
++++ b/board/ni/zynqmp/x410-rev2/psu_init_gpl.c
+@@ -553,6 +553,7 @@ static unsigned long psu_afi_config(void)
+ 	psu_mask_write(0xFD1A0100, 0x00001F80U, 0x00000000U);
+ 	psu_mask_write(0xFF5E023C, 0x00080000U, 0x00000000U);
+ 	psu_mask_write(0xFD615000, 0x00000300U, 0x00000000U);
++	psu_mask_write(0xFF419000, 0x00000300U, 0x00000000U);
+ 	psu_mask_write(0xFD370000, 0x00000003U, 0x00000000U);
+ 	psu_mask_write(0xFD380000, 0x00000003U, 0x00000000U);
+ 	psu_mask_write(0xFD390000, 0x00000003U, 0x00000000U);
+diff --git a/board/ni/zynqmp/x410-rev3/psu_init_gpl.c b/board/ni/zynqmp/x410-rev3/psu_init_gpl.c
+index 3a2e5e1b762..d3706c028a3 100644
+--- a/board/ni/zynqmp/x410-rev3/psu_init_gpl.c
++++ b/board/ni/zynqmp/x410-rev3/psu_init_gpl.c
+@@ -550,6 +550,7 @@ static unsigned long psu_afi_config(void)
+ 	psu_mask_write(0xFD1A0100, 0x00001F80U, 0x00000000U);
+ 	psu_mask_write(0xFF5E023C, 0x00080000U, 0x00000000U);
+ 	psu_mask_write(0xFD615000, 0x00000300U, 0x00000000U);
++	psu_mask_write(0xFF419000, 0x00000300U, 0x00000000U);
+ 	psu_mask_write(0xFD370000, 0x00000003U, 0x00000000U);
+ 	psu_mask_write(0xFD380000, 0x00000003U, 0x00000000U);
+ 	psu_mask_write(0xFD390000, 0x00000003U, 0x00000000U);
+-- 
+2.43.0
+

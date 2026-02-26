@@ -1,0 +1,39 @@
+From d246c36122f18daf05c6b208760f91e989f75668 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Wed, 12 Feb 2020 16:04:54 -0600
+Subject: [PATCH 17/37] board: x410: enable watchdog timer
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ board/ni/zynqmp/x410-rev3/psu_init_gpl.c | 2 +-
+ configs/ni_x410_rev3_defconfig           | 2 ++
+ 2 files changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/board/ni/zynqmp/x410-rev3/psu_init_gpl.c b/board/ni/zynqmp/x410-rev3/psu_init_gpl.c
+index c5720842482..7387123aee2 100644
+--- a/board/ni/zynqmp/x410-rev3/psu_init_gpl.c
++++ b/board/ni/zynqmp/x410-rev3/psu_init_gpl.c
+@@ -481,7 +481,7 @@ static unsigned long psu_peripherals_pre_init_data(void)
+ 
+ static unsigned long psu_peripherals_init_data(void)
+ {
+-	psu_mask_write(0xFD1A0100, 0x00000044U, 0x00000000U);
++	psu_mask_write(0xFD1A0100, 0x00008044U, 0x00000000U);
+ 	psu_mask_write(0xFF5E0238, 0x001A0000U, 0x00000000U);
+ 	psu_mask_write(0xFF5E023C, 0x0093C018U, 0x00000000U);
+ 	psu_mask_write(0xFF5E0230, 0x00000008U, 0x00000000U);
+diff --git a/configs/ni_x410_rev3_defconfig b/configs/ni_x410_rev3_defconfig
+index b818c3c38b0..f3fecd05f9b 100644
+--- a/configs/ni_x410_rev3_defconfig
++++ b/configs/ni_x410_rev3_defconfig
+@@ -129,5 +129,7 @@ CONFIG_USB_GADGET_MANUFACTURER="National Instruments"
+ CONFIG_USB_GADGET_VENDOR_NUM=0x3923
+ CONFIG_USB_GADGET_PRODUCT_NUM=0x7A7D
+ CONFIG_USB_GADGET_DOWNLOAD=y
++CONFIG_WDT=y
++CONFIG_WDT_CDNS=y
+ CONFIG_OF_LIBFDT_OVERLAY=y
+ CONFIG_EFI_LOADER_BOUNCE_BUFFER=y
+-- 
+2.43.0
+

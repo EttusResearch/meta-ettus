@@ -1,0 +1,193 @@
+From 79736ac3bccaf19848f9db32c810053d05cf36f8 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Fri, 4 Oct 2019 11:31:05 -0500
+Subject: [PATCH 06/37] ni: zynqmp: add our own board.c
+
+Extract the relevant pieces from the zynqmp board.c file, and move them
+into our board support directory. This is necessary since we'll need to
+implement custom functionality in board_late_init().
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ board/ni/zynqmp/Makefile |   1 -
+ board/ni/zynqmp/board.c  | 147 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 147 insertions(+), 1 deletion(-)
+
+diff --git a/board/ni/zynqmp/Makefile b/board/ni/zynqmp/Makefile
+index c5df6bdedd2..ea73330de84 100644
+--- a/board/ni/zynqmp/Makefile
++++ b/board/ni/zynqmp/Makefile
+@@ -4,7 +4,6 @@
+ 
+ ZYNQMP_BASE := ../../xilinx/zynqmp
+ 
+-obj-y += $(ZYNQMP_BASE)/zynqmp.o
+ obj-y += tlv_eeprom.o
+ obj-y += board.o
+ 
+diff --git a/board/ni/zynqmp/board.c b/board/ni/zynqmp/board.c
+index 657107c9a45..eaf4bee3c84 100644
+--- a/board/ni/zynqmp/board.c
++++ b/board/ni/zynqmp/board.c
+@@ -9,7 +9,13 @@
+ #include <dm.h>
+ #include <i2c.h>
+ #include <u-boot/crc.h>
++#include <asm/arch/clk.h>
++#include <asm/arch/hardware.h>
++#include <asm/arch/psu_init_gpl.h>
++#include <asm/arch/sys_proto.h>
++#include <asm/io.h>
+ 
++#include "pm_cfg_obj.h"
+ #include "log.h"
+ #include "tlv_eeprom.h"
+ #include "usrp_eeprom.h"
+@@ -75,3 +81,144 @@ int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
+ 
+ 	return 0;
+ }
++
++int board_early_init_f(void)
++{
++	int ret = 0;
++#if !defined(CONFIG_SPL_BUILD) && defined(CONFIG_CLK_ZYNQMP)
++	u32 pm_api_version;
++
++	pm_api_version = zynqmp_pmufw_version();
++	printf("PMUFW:\tv%d.%d\n",
++	       pm_api_version >> ZYNQMP_PM_VERSION_MAJOR_SHIFT,
++	       pm_api_version & ZYNQMP_PM_VERSION_MINOR_MASK);
++
++	if (pm_api_version < ZYNQMP_PM_VERSION)
++		panic("PMUFW version error. Expected: v%d.%d\n",
++		      ZYNQMP_PM_VERSION_MAJOR, ZYNQMP_PM_VERSION_MINOR);
++#endif
++
++#if defined(CONFIG_ZYNQMP_PSU_INIT_ENABLED)
++	ret = psu_init();
++#endif
++
++	return ret;
++}
++
++int board_init(void)
++{
++#if defined(CONFIG_SPL_BUILD)
++	/* Check *at build time* if the filename is an non-empty string */
++	if (sizeof(CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_FILE) > 1)
++		zynqmp_pmufw_load_config_object(zynqmp_pm_cfg_obj,
++						zynqmp_pm_cfg_obj_size);
++#endif
++
++	printf("EL Level:\tEL%d\n", current_el());
++
++	return 0;
++}
++
++int board_early_init_r(void)
++{
++	u32 val;
++
++	if (current_el() != 3)
++		return 0;
++
++	val = readl(&crlapb_base->timestamp_ref_ctrl);
++	val &= ZYNQMP_CRL_APB_TIMESTAMP_REF_CTRL_CLKACT;
++
++	if (!val) {
++		val = readl(&crlapb_base->timestamp_ref_ctrl);
++		val |= ZYNQMP_CRL_APB_TIMESTAMP_REF_CTRL_CLKACT;
++		writel(val, &crlapb_base->timestamp_ref_ctrl);
++
++		/* Program freq register in System counter */
++		writel(zynqmp_get_system_timer_freq(),
++		       &iou_scntr_secure->base_frequency_id_register);
++		/* And enable system counter */
++		writel(ZYNQMP_IOU_SCNTR_COUNTER_CONTROL_REGISTER_EN,
++		       &iou_scntr_secure->counter_control_register);
++	}
++	return 0;
++}
++
++int dram_init_banksize(void)
++{
++	int ret;
++
++	ret = fdtdec_setup_memory_banksize();
++	if (ret)
++		return ret;
++
++	mem_map_fill();
++
++	return 0;
++}
++
++int dram_init(void)
++{
++	if (fdtdec_setup_mem_size_base() != 0)
++		return -EINVAL;
++
++	return 0;
++}
++
++void reset_cpu(ulong addr)
++{
++}
++
++unsigned long do_go_exec(ulong (*entry)(int, char * const []), int argc,
++			 char * const argv[])
++{
++	int ret = 0;
++
++	if (current_el() > 1) {
++		smp_kick_all_cpus();
++		dcache_disable();
++		armv8_switch_to_el1(0x0, 0, 0, 0, (unsigned long)entry,
++				    ES_TO_AARCH64);
++	} else {
++		printf("FAIL: current EL is not above EL1\n");
++		ret = EINVAL;
++	}
++	return ret;
++}
++
++int board_late_init(void)
++{
++	u32 reg = 0;
++	u8 bootmode;
++	int ret;
++
++	ret = zynqmp_mmio_read((ulong)&crlapb_base->boot_mode, &reg);
++	if (ret)
++		return -EINVAL;
++
++	if (reg >> BOOT_MODE_ALT_SHIFT)
++		reg >>= BOOT_MODE_ALT_SHIFT;
++
++	bootmode = reg & BOOT_MODES_MASK;
++
++	puts("Bootmode: ");
++	switch (bootmode) {
++	case JTAG_MODE:
++		puts("JTAG_MODE\n");
++		env_set("modeboot", "jtagboot");
++		break;
++	case EMMC_MODE:
++		puts("EMMC_MODE\n");
++		env_set("modeboot", "emmcboot");
++		break;
++	case SD1_LSHFT_MODE:
++		puts("SD1_LSHFT_MODE\n");
++		env_set("modeboot", "sdboot");
++		break;
++	default:
++		printf("Invalid Boot Mode:0x%x\n", bootmode);
++		break;
++	}
++
++	return 0;
++}
+-- 
+2.43.0
+

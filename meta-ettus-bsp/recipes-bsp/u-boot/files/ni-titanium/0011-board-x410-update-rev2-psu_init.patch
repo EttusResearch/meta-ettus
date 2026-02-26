@@ -1,0 +1,30 @@
+From 8beb9bdd3c123234fcf2cb48837914e1fa0864c2 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Thu, 6 Feb 2020 09:05:20 -0600
+Subject: [PATCH 11/37] board: x410: update rev2 psu_init
+
+Update rev2 psu_init to fix pull types on the CPLD PS SPI interface.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ board/ni/zynqmp/x410-rev2/psu_init_gpl.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/board/ni/zynqmp/x410-rev2/psu_init_gpl.c b/board/ni/zynqmp/x410-rev2/psu_init_gpl.c
+index 789e71558c2..9bb59e4362d 100644
+--- a/board/ni/zynqmp/x410-rev2/psu_init_gpl.c
++++ b/board/ni/zynqmp/x410-rev2/psu_init_gpl.c
+@@ -461,8 +461,8 @@ static unsigned long psu_mio_init_data(void)
+ 	psu_mask_write(0xFF180154, 0x03FFFFFFU, 0x03FFFFFFU);
+ 	psu_mask_write(0xFF180158, 0x03FFFFFFU, 0x03FFFFFFU);
+ 	psu_mask_write(0xFF18015C, 0x03FFFFFFU, 0x03E7FDBFU);
+-	psu_mask_write(0xFF180160, 0x03FFFFFFU, 0x03FFFFFFU);
+-	psu_mask_write(0xFF180164, 0x03FFFFFFU, 0x03FFFFFFU);
++	psu_mask_write(0xFF180160, 0x033FFFFFU, 0x033BFFFFU);
++	psu_mask_write(0xFF180164, 0x03FFFFFFU, 0x03FFFCFFU);
+ 	psu_mask_write(0xFF180168, 0x03FFFFFFU, 0x03FFFE7FU);
+ 	psu_mask_write(0xFF180170, 0x03FFFFFFU, 0x03FFFFFFU);
+ 	psu_mask_write(0xFF180174, 0x03FFFFFFU, 0x03FFFFFFU);
+-- 
+2.43.0
+

@@ -1,0 +1,28 @@
+From 0d8ccada20a76e343c9dbc89fc4b16f7187b0961 Mon Sep 17 00:00:00 2001
+From: Virendra Kakade <virendra.kakade@ni.com>
+Date: Thu, 2 Apr 2020 16:18:41 -0500
+Subject: [PATCH 21/37] ni: zynqmp: add IF Test daughterboard support
+
+Signed-off-by: Virendra Kakade <virendra.kakade@ni.com>
+---
+ board/ni/zynqmp/board.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/board/ni/zynqmp/board.c b/board/ni/zynqmp/board.c
+index 7f0ec6042cb..492f5a5928e 100644
+--- a/board/ni/zynqmp/board.c
++++ b/board/ni/zynqmp/board.c
+@@ -251,6 +251,10 @@ static const struct {
+ 		.pid = 0x4005,
+ 		.dtbo = "ni_x4xx-%s-nogpsdo-rev%u.dtbo",
+ 	},
++	{
++		.pid = 0x4006,
++		.dtbo = "ni_x4xx-%s-iftest-rev%u.dtbo",
++	},
+ };
+ 
+ static const char *find_dtbo(struct eeprom_ctx *ctx, uint8_t *rev)
+-- 
+2.43.0
+

@@ -1,0 +1,113 @@
+From d308cf6428e0eefe21e6171697f7b462845d9dd9 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Tue, 17 Sep 2019 10:49:32 -0500
+Subject: [PATCH 05/37] board: x410: pull eth0 mac address from eeprom
+
+If the motherboard eeprom contains a MAC address for eth0, read it out
+and use it.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ board/ni/zynqmp/Makefile |  1 +
+ board/ni/zynqmp/board.c  | 77 ++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 78 insertions(+)
+ create mode 100644 board/ni/zynqmp/board.c
+
+diff --git a/board/ni/zynqmp/Makefile b/board/ni/zynqmp/Makefile
+index 8983130e341..c5df6bdedd2 100644
+--- a/board/ni/zynqmp/Makefile
++++ b/board/ni/zynqmp/Makefile
+@@ -6,6 +6,7 @@ ZYNQMP_BASE := ../../xilinx/zynqmp
+ 
+ obj-y += $(ZYNQMP_BASE)/zynqmp.o
+ obj-y += tlv_eeprom.o
++obj-y += board.o
+ 
+ obj-$(CONFIG_MMC_SDHCI_ZYNQ) += $(ZYNQMP_BASE)/tap_delays.o
+ 
+diff --git a/board/ni/zynqmp/board.c b/board/ni/zynqmp/board.c
+new file mode 100644
+index 00000000000..657107c9a45
+--- /dev/null
++++ b/board/ni/zynqmp/board.c
+@@ -0,0 +1,77 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * (C) Copyright 2019 Ettus Research, a National Instruments Brand
++ * Michael Auchter <michael.auchter@ni.com>
++ */
++
++#include <common.h>
++#include <dm/uclass.h>
++#include <dm.h>
++#include <i2c.h>
++#include <u-boot/crc.h>
++
++#include "log.h"
++#include "tlv_eeprom.h"
++#include "usrp_eeprom.h"
++
++DECLARE_GLOBAL_DATA_PTR;
++
++static struct tlv_eeprom mb_eeprom;
++
++uint32_t tlv_eeprom_crc(const struct tlv_eeprom *eeprom)
++{
++	return crc32_no_comp(0, (const unsigned char *)&eeprom->size,
++			     sizeof(eeprom->size) + eeprom->size);
++}
++
++static int tlv_eeprom_read(const char *node, struct tlv_eeprom *eeprom)
++{
++	const unsigned int readsz = 64;
++	struct udevice *dev;
++	unsigned int i = 0;
++	ofnode eep;
++	int ret;
++
++	eep = ofnode_get_chosen_node(node);
++	if (!ofnode_valid(eep))
++		return -ENODEV;
++
++	ret = uclass_get_device_by_ofnode(UCLASS_I2C_EEPROM, eep, &dev);
++	if (ret)
++		return ret;
++
++	while (i < sizeof(*eeprom)) {
++		ret = dm_i2c_read(dev, i, (void *)eeprom + i, readsz);
++		if (ret)
++			return ret;
++
++		i += readsz;
++	}
++
++	return 0;
++}
++
++int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
++{
++	const struct usrp_eeprom_mac_addr *hwaddr;
++	int err;
++
++	err = tlv_eeprom_read("ni,mb-eeprom", &mb_eeprom);
++	if (err < 0)
++		return err;
++
++	err = tlv_eeprom_validate(&mb_eeprom, USRP_EEPROM_MAGIC);
++	if (err < 0) {
++		printf("eeprom contents invalid! %d\n", err);
++		return err;
++	}
++
++	hwaddr = tlv_lookup(&mb_eeprom.tlv, mb_eeprom.size,
++			    USRP_EEPROM_ETH0_ADDR_TAG);
++	if (!hwaddr)
++		return -1;
++
++	memcpy(ethaddr, hwaddr->addr, 6);
++
++	return 0;
++}
+-- 
+2.43.0
+

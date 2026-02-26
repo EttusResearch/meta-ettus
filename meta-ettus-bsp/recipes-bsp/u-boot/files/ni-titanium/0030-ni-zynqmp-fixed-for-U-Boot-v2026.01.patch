@@ -1,0 +1,68 @@
+From e721c324bc522bacabe69ad4b53a8c82f2b6551f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Fri, 16 Jan 2026 16:00:02 +0100
+Subject: [PATCH 30/37] ni: zynqmp: fixed for U-Boot v2026.01
+
+---
+ board/ni/zynqmp/Makefile | 2 --
+ board/ni/zynqmp/board.c  | 8 +++++---
+ 2 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/board/ni/zynqmp/Makefile b/board/ni/zynqmp/Makefile
+index ea73330de84..eeb605be422 100644
+--- a/board/ni/zynqmp/Makefile
++++ b/board/ni/zynqmp/Makefile
+@@ -7,8 +7,6 @@ ZYNQMP_BASE := ../../xilinx/zynqmp
+ obj-y += tlv_eeprom.o
+ obj-y += board.o
+ 
+-obj-$(CONFIG_MMC_SDHCI_ZYNQ) += $(ZYNQMP_BASE)/tap_delays.o
+-
+ hw-platform-y := $(shell echo $(CONFIG_DEFAULT_DEVICE_TREE) | sed 's/^ni_//')
+ obj-$(CONFIG_XPL_BUILD) += $(hw-platform-y)/psu_init_gpl.o
+ 
+diff --git a/board/ni/zynqmp/board.c b/board/ni/zynqmp/board.c
+index 492f5a5928e..748b0a05738 100644
+--- a/board/ni/zynqmp/board.c
++++ b/board/ni/zynqmp/board.c
+@@ -4,9 +4,9 @@
+  * Michael Auchter <michael.auchter@ni.com>
+  */
+ 
+-#include <common.h>
+ #include <dm/uclass.h>
+ #include <dm.h>
++#include <env.h>
+ #include <i2c.h>
+ #include <u-boot/crc.h>
+ #include <asm/arch/clk.h>
+@@ -14,6 +14,8 @@
+ #include <asm/arch/psu_init_gpl.h>
+ #include <asm/arch/sys_proto.h>
+ #include <asm/io.h>
++#include <asm/system.h>
++#include <zynqmp_firmware.h>
+ 
+ #include "pm_cfg_obj.h"
+ #include "log.h"
+@@ -108,7 +110,7 @@ int board_early_init_f(void)
+ #if !defined(CONFIG_SPL_BUILD) && defined(CONFIG_CLK_ZYNQMP)
+ 	u32 pm_api_version;
+ 
+-	pm_api_version = zynqmp_pmufw_version();
++	pm_api_version = zynqmp_firmware_version();
+ 	printf("PMUFW:\tv%d.%d\n",
+ 	       pm_api_version >> ZYNQMP_PM_VERSION_MAJOR_SHIFT,
+ 	       pm_api_version & ZYNQMP_PM_VERSION_MINOR_MASK);
+@@ -185,7 +187,7 @@ int dram_init(void)
+ 	return 0;
+ }
+ 
+-void reset_cpu(ulong addr)
++void reset_cpu(void)
+ {
+ }
+ 
+-- 
+2.43.0
+

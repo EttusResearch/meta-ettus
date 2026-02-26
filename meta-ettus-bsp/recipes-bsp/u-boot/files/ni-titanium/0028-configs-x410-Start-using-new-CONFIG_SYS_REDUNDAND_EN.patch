@@ -1,0 +1,73 @@
+From 0c192c0ca4bb961ce0594dfa908a2a7c1d0bc7d0 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Tue, 21 Jul 2020 09:15:18 +0200
+Subject: [PATCH 28/37] configs: x410: Start using new
+ CONFIG_SYS_REDUNDAND_ENVIRONMENT switch
+
+Add to the X410 defconfig files:
+
+CONFIG_SYS_REDUNAND_ENVIRONMENT=y
+CONFIG_ENV_SIZE=0x20000
+CONFIG_ENV_OFFSET=0x800000
+CONFIG_ENV_OFFSET_REDUND=0x1000000
+
+See meta-mender commit
+https://github.com/mendersoftware/meta-mender/commit/e60b35006a82fc5e108b5ef974e485250f6fe462
+---
+ configs/ni_x410_rev2_defconfig | 1 +
+ configs/ni_x410_rev3_defconfig | 1 +
+ configs/ni_x410_rev4_defconfig | 1 +
+ include/configs/ni-x410.h      | 3 ---
+ 4 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/configs/ni_x410_rev2_defconfig b/configs/ni_x410_rev2_defconfig
+index 9d6b8a8a43d..18a2af5f303 100644
+--- a/configs/ni_x410_rev2_defconfig
++++ b/configs/ni_x410_rev2_defconfig
+@@ -6,6 +6,7 @@ CONFIG_SYS_TEXT_BASE=0x8000000
+ CONFIG_SYS_MALLOC_F_LEN=0x8000
+ CONFIG_ENV_SIZE=0x20000
+ CONFIG_ENV_OFFSET=0x800000
++CONFIG_ENV_OFFSET_REDUND=0x1000000
+ CONFIG_SPL=y
+ CONFIG_DEBUG_UART_BASE=0xff000000
+ CONFIG_DEBUG_UART_CLOCK=100000000
+diff --git a/configs/ni_x410_rev3_defconfig b/configs/ni_x410_rev3_defconfig
+index 405f3f01e2f..837bac9c745 100644
+--- a/configs/ni_x410_rev3_defconfig
++++ b/configs/ni_x410_rev3_defconfig
+@@ -6,6 +6,7 @@ CONFIG_SYS_TEXT_BASE=0x8000000
+ CONFIG_SYS_MALLOC_F_LEN=0x8000
+ CONFIG_ENV_SIZE=0x20000
+ CONFIG_ENV_OFFSET=0x800000
++CONFIG_ENV_OFFSET_REDUND=0x1000000
+ CONFIG_SPL=y
+ CONFIG_DEBUG_UART_BASE=0xff000000
+ CONFIG_DEBUG_UART_CLOCK=100000000
+diff --git a/configs/ni_x410_rev4_defconfig b/configs/ni_x410_rev4_defconfig
+index 42a2432e521..54900677d86 100644
+--- a/configs/ni_x410_rev4_defconfig
++++ b/configs/ni_x410_rev4_defconfig
+@@ -6,6 +6,7 @@ CONFIG_SYS_TEXT_BASE=0x8000000
+ CONFIG_SYS_MALLOC_F_LEN=0x8000
+ CONFIG_ENV_SIZE=0x20000
+ CONFIG_ENV_OFFSET=0x800000
++CONFIG_ENV_OFFSET_REDUND=0x1000000
+ CONFIG_SPL=y
+ CONFIG_DEBUG_UART_BASE=0xff000000
+ CONFIG_DEBUG_UART_CLOCK=100000000
+diff --git a/include/configs/ni-x410.h b/include/configs/ni-x410.h
+index f21ada78307..227569bfadb 100644
+--- a/include/configs/ni-x410.h
++++ b/include/configs/ni-x410.h
+@@ -70,7 +70,4 @@
+ 
+ #define CONFIG_SYS_REDUNDAND_ENVIRONMENT
+ 
+-#undef CONFIG_SYS_BOOTM_LEN
+-#define CONFIG_SYS_BOOTM_LEN  (256 << 20)
+-
+ #endif /* __CONFIG_ETTUS_X410_H */
+-- 
+2.43.0
+

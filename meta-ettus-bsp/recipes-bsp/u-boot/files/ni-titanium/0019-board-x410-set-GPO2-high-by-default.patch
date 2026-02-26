@@ -1,0 +1,28 @@
+From f4ff48252deda98632986e0208ae46a57c88a3ac Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Mon, 6 Apr 2020 10:58:30 -0500
+Subject: [PATCH 19/37] board: x410: set GPO2 high by default
+
+GPO2 aka MIO_34 is an active-low shutdown signal to the SCU. Configure
+this to be set to high by default.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ board/ni/zynqmp/x410-rev3/pm_cfg_obj.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/board/ni/zynqmp/x410-rev3/pm_cfg_obj.c b/board/ni/zynqmp/x410-rev3/pm_cfg_obj.c
+index 78ef440e9f2..22e15a5d3c4 100644
+--- a/board/ni/zynqmp/x410-rev3/pm_cfg_obj.c
++++ b/board/ni/zynqmp/x410-rev3/pm_cfg_obj.c
+@@ -556,6 +556,6 @@ const u32 XPm_ConfigObject[] __attribute__((used, section(".sys_cfg_data"))) = {
+ 	PM_CONFIG_GPO_SECTION_ID,		/* GPO Section ID */
+ 	PM_CONFIG_GPO1_MIO_PIN_34_MAP |
+ 	PM_CONFIG_GPO1_MIO_PIN_35_MAP |
+-	0,					/* State of GPO pins */
++	4,					/* State of GPO pins */
+ };
+ 
+-- 
+2.43.0
+

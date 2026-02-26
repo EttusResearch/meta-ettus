@@ -1,0 +1,30 @@
+From eb6ae1943cd2e081fe50e7481e43f8751e036ee0 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Mon, 6 Apr 2020 11:27:44 -0500
+Subject: [PATCH 20/37] board: x410: don't enable pull-down on MIO34
+
+Leave MIO34's configuration at the default pull-up. This is being used
+as an active-low signal to the SCU to indicate that the board should be
+shut down, so make sure it stays high.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ board/ni/zynqmp/x410-rev3/psu_init_gpl.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/board/ni/zynqmp/x410-rev3/psu_init_gpl.c b/board/ni/zynqmp/x410-rev3/psu_init_gpl.c
+index 7387123aee2..3a2e5e1b762 100644
+--- a/board/ni/zynqmp/x410-rev3/psu_init_gpl.c
++++ b/board/ni/zynqmp/x410-rev3/psu_init_gpl.c
+@@ -458,7 +458,7 @@ static unsigned long psu_mio_init_data(void)
+ 	psu_mask_write(0xFF180154, 0x03FFFFFFU, 0x03FFFFFFU);
+ 	psu_mask_write(0xFF180158, 0x03FFFFFFU, 0x03FFFFFFU);
+ 	psu_mask_write(0xFF18015C, 0x03FFFFFFU, 0x01FFFC9FU);
+-	psu_mask_write(0xFF180160, 0x03FFFFFFU, 0x03FFFCFFU);
++	psu_mask_write(0xFF180160, 0x03FFFFFFU, 0x03FFFFFFU);
+ 	psu_mask_write(0xFF180164, 0x03FFFFFFU, 0x03FFFFFFU);
+ 	psu_mask_write(0xFF180168, 0x03FFFFFFU, 0x03F7FF6FU);
+ 	psu_mask_write(0xFF180170, 0x03FFFFFFU, 0x03FFFFFFU);
+-- 
+2.43.0
+

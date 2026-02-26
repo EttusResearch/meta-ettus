@@ -1,0 +1,170 @@
+From 2e2dc32f68fe3d0187392aff17e1052eb0f5d876 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Mon, 20 Jan 2020 10:39:16 -0600
+Subject: [PATCH 13/37] update peripheral config to allow bitbranging GPIO
+
+This switches the MIO pins used for I2C communication with the SCU to
+instead be GPIOs. This is done because the SCL/SDA lines were swapped on
+Rev C, so instead of using the RFSoC's I2C master, we're bitbanging it.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ arch/arm/dts/zynqmp-ni-x410-rev3.dts     | 24 +++++++++++++++++++++++-
+ board/ni/zynqmp/x410-rev3/psu_init_gpl.c |  8 ++++----
+ configs/ni_x410_rev3_defconfig           |  9 +++++++++
+ include/configs/ni-x410.h                | 19 ++++++++++++++-----
+ 4 files changed, 50 insertions(+), 10 deletions(-)
+
+diff --git a/arch/arm/dts/zynqmp-ni-x410-rev3.dts b/arch/arm/dts/zynqmp-ni-x410-rev3.dts
+index c9a946d38e4..674683d46c8 100644
+--- a/arch/arm/dts/zynqmp-ni-x410-rev3.dts
++++ b/arch/arm/dts/zynqmp-ni-x410-rev3.dts
+@@ -5,7 +5,7 @@
+  * (C) Copyright 2019, National Instruments
+  */
+ 
+-#include "ni_x410-rev2.dts"
++#include "zynqmp-ni-x410-rev2.dts"
+ 
+ / {
+ 	model = "Ettus X410 (Rev. C)";
+@@ -16,7 +16,29 @@
+ 	status = "okay";
+ };
+ 
++&i2c0 {
++	compatible = "i2c-gpio";
++	status = "okay";
++	gpios = <&gpio 2 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>,
++		<&gpio 3 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
++	i2c-gpio,delay-us = <10>;
++
++	/delete-property/ interrupt-parent;
++	/delete-property/ interrupts;
++	/delete-property/ reg;
++};
++
+ &i2c1 {
++	compatible = "i2c-gpio";
++	status = "okay";
++	gpios = <&gpio 36 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>,
++		<&gpio 37 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
++	i2c-gpio,delay-us = <10>;
++
++	/delete-property/ interrupt-parent;
++	/delete-property/ interrupts;
++	/delete-property/ reg;
++
+ 	i2c-mux@70 {
+ 		reset-gpios = <&gpio 29 GPIO_ACTIVE_LOW>;
+ 	};
+diff --git a/board/ni/zynqmp/x410-rev3/psu_init_gpl.c b/board/ni/zynqmp/x410-rev3/psu_init_gpl.c
+index 378927e806c..c5720842482 100644
+--- a/board/ni/zynqmp/x410-rev3/psu_init_gpl.c
++++ b/board/ni/zynqmp/x410-rev3/psu_init_gpl.c
+@@ -372,8 +372,8 @@ static unsigned long psu_mio_init_data(void)
+ {
+ 	psu_mask_write(0xFF180000, 0x000000FEU, 0x00000000U);
+ 	psu_mask_write(0xFF180004, 0x000000FEU, 0x00000000U);
+-	psu_mask_write(0xFF180008, 0x000000FEU, 0x00000040U);
+-	psu_mask_write(0xFF18000C, 0x000000FEU, 0x00000040U);
++	psu_mask_write(0xFF180008, 0x000000FEU, 0x00000000U);
++	psu_mask_write(0xFF18000C, 0x000000FEU, 0x00000000U);
+ 	psu_mask_write(0xFF180010, 0x000000FEU, 0x00000000U);
+ 	psu_mask_write(0xFF180014, 0x000000FEU, 0x00000000U);
+ 	psu_mask_write(0xFF180018, 0x000000FEU, 0x00000080U);
+@@ -404,8 +404,8 @@ static unsigned long psu_mio_init_data(void)
+ 	psu_mask_write(0xFF18007C, 0x000000FEU, 0x000000C0U);
+ 	psu_mask_write(0xFF180080, 0x000000FEU, 0x000000C0U);
+ 	psu_mask_write(0xFF180084, 0x000000FEU, 0x000000C0U);
+-	psu_mask_write(0xFF180090, 0x000000FEU, 0x00000040U);
+-	psu_mask_write(0xFF180094, 0x000000FEU, 0x00000040U);
++	psu_mask_write(0xFF180090, 0x000000FEU, 0x00000000U);
++	psu_mask_write(0xFF180094, 0x000000FEU, 0x00000000U);
+ 	psu_mask_write(0xFF180098, 0x000000FEU, 0x00000000U);
+ 	psu_mask_write(0xFF18009C, 0x000000FEU, 0x00000010U);
+ 	psu_mask_write(0xFF1800A0, 0x000000FEU, 0x00000010U);
+diff --git a/configs/ni_x410_rev3_defconfig b/configs/ni_x410_rev3_defconfig
+index 0806c4562a0..e78caff4655 100644
+--- a/configs/ni_x410_rev3_defconfig
++++ b/configs/ni_x410_rev3_defconfig
+@@ -11,6 +11,7 @@ CONFIG_PMUFW_INIT_FILE="board/ni/zynqmp/x410-rev3/pmu_fw.bin"
+ CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_SRC_FILE="board/ni/zynqmp/x410-rev3/pm_cfg_obj.c"
+ CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_FILE="board/ni/zynqmp/x410-rev3/pm_cfg_obj.o"
+ CONFIG_ZYNQMP_USB=y
++CONFIG_SPL_ZYNQMP_TWO_SDHCI=y
+ CONFIG_DEBUG_UART=y
+ CONFIG_SPL_TEXT_BASE=0xfffc0000
+ CONFIG_DISTRO_DEFAULTS=y
+@@ -42,6 +43,7 @@ CONFIG_CMD_FPGA_LOAD_SECURE=y
+ CONFIG_CMD_GPIO=y
+ CONFIG_CMD_I2C=y
+ CONFIG_CMD_MMC=y
++CONFIG_CMD_POWEROFF=y
+ CONFIG_CMD_SF=y
+ CONFIG_CMD_USB=y
+ CONFIG_CMD_USB_MASS_STORAGE=y
+@@ -52,9 +54,13 @@ CONFIG_CMD_EXT4_WRITE=y
+ CONFIG_SPL_OF_CONTROL=y
+ CONFIG_DEFAULT_DEVICE_TREE="ni_x410-rev3"
+ CONFIG_ENV_IS_IN_FAT=y
++CONFIG_ENV_FAT_DEVICE_AND_PART="1:auto"
+ CONFIG_NET_RANDOM_ETHADDR=y
+ CONFIG_SPL_DM=y
+ CONFIG_SPL_DM_SEQ_ALIAS=y
++# CONFIG_BLOCK_CACHE is not set
++CONFIG_BOOTCOUNT_LIMIT=y
++CONFIG_BOOTCOUNT_ENV=y
+ CONFIG_CLK_ZYNQMP=y
+ CONFIG_DFU_RAM=y
+ CONFIG_FPGA_XILINX=y
+@@ -62,6 +68,7 @@ CONFIG_FPGA_ZYNQMPPL=y
+ CONFIG_DM_GPIO=y
+ CONFIG_DM_I2C=y
+ CONFIG_I2C_CROS_EC_TUNNEL=y
++CONFIG_DM_I2C_GPIO=y
+ CONFIG_SYS_I2C_CADENCE=y
+ CONFIG_I2C_MUX=y
+ CONFIG_I2C_MUX_PCA954x=y
+@@ -76,6 +83,8 @@ CONFIG_SYS_I2C_EEPROM_ADDR=0x0
+ CONFIG_SYS_I2C_EEPROM_ADDR_OVERFLOW=0x0
+ CONFIG_MMC_IO_VOLTAGE=y
+ CONFIG_SPL_MMC_IO_VOLTAGE=y
++CONFIG_MMC_UHS_SUPPORT=y
++CONFIG_SPL_MMC_UHS_SUPPORT=y
+ CONFIG_MMC_HS200_SUPPORT=y
+ CONFIG_SPL_MMC_HS200_SUPPORT=y
+ CONFIG_MMC_SDHCI=y
+diff --git a/include/configs/ni-x410.h b/include/configs/ni-x410.h
+index 788d85f9f97..20455a4ea55 100644
+--- a/include/configs/ni-x410.h
++++ b/include/configs/ni-x410.h
+@@ -16,11 +16,20 @@
+         "ec_image=lib/firmware/ni/ec-titanium-rev2.RW.bin\0" \
+         "expand_ec_image=setenv ec_image lib/firmware/ni/ec-titanium-rev${ec_compat}.RW.bin\0" \
+         "load_addr=0x2000000\0" \
+-        "fit_image=boot/fitImage\0" \
+-        "uboot_root=mmc 0:2\0" \
+-        "bootargs=root=/dev/mmcblk0p2 uio_pdrv_genirq.of_id=usrp-uio at24.io_limit=64\0" \
+-        "emmcboot=run swsync_emmc; " \
+-          "echo Copying FIT from eMMC to RAM... && " \
++        "bootargs=uio_pdrv_genirq.of_id=usrp-uio at24.io_limit=64 rootwait clk_ignore_unused\0" \
++        "emmcboot=" \
++          "setenv disk_name eMMC && " \
++          "setenv uboot_root \"mmc 0:2\" && " \
++          "setenv kernel_root \"/dev/mmcblk0p2\" && " \
++          "run disk_bootcmd\0" \
++        "sdboot=" \
++          "setenv disk_name SD && " \
++          "setenv uboot_root \"mmc 1:2\" && " \
++          "setenv kernel_root \"/dev/mmcblk1p2\" && " \
++          "run disk_bootcmd\0" \
++        "disk_bootcmd=run swsync_disk; " \
++          "echo Copying FIT from ${disk_name} to RAM... && " \
++          "setenv bootargs root=${kernel_root} ${bootargs} && " \
+           "load ${uboot_root} $load_addr ${fit_image} && " \
+           "bootm ${load_addr}#conf@${variant}.dtb${overlays}\0" \
+         "swsync_emmc=if test ${ec_disable_swsync} = 0; then " \
+-- 
+2.43.0
+

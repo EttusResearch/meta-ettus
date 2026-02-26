@@ -18,7 +18,7 @@ UBOOT_DTB_LOADADDRESS = "0x70000"
 UBOOT_DTBO_LOADADDRESS = "0x7C000"
 
 SPL_BINARY ?= "spl/boot.bin"
-PREFERRED_VERSION_u-boot ?= "2020.10"
+PREFERRED_VERSION_u-boot ?= "2026.01%"
 
 PREFERRED_PROVIDER_virtual/arm-trusted-firmware = "arm-trusted-firmware"
 # TODO: check why newer versions of arm-trusted-firmware do not work:

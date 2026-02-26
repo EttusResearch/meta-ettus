@@ -1,0 +1,30 @@
+From 609b097296a63de13df279e0f6fa80df8ee4d203 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Mon, 27 Jul 2020 17:27:47 -0500
+Subject: [PATCH 27/37] board: x410: allow larger initrd
+
+Bump up the max size of file that can be extracted to support a larger
+initrd.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ include/configs/ni-x410.h | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/include/configs/ni-x410.h b/include/configs/ni-x410.h
+index 2aed4030527..f21ada78307 100644
+--- a/include/configs/ni-x410.h
++++ b/include/configs/ni-x410.h
+@@ -68,4 +68,9 @@
+ #define CONFIG_SYS_MMC_ENV_DEV 0
+ #endif
+ 
++#define CONFIG_SYS_REDUNDAND_ENVIRONMENT
++
++#undef CONFIG_SYS_BOOTM_LEN
++#define CONFIG_SYS_BOOTM_LEN  (256 << 20)
++
+ #endif /* __CONFIG_ETTUS_X410_H */
+-- 
+2.43.0
+

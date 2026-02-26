@@ -1,0 +1,323 @@
+From 542f3d31bbcde92ec8e6fe502090f3b32e5d0380 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Tue, 17 Sep 2019 10:49:16 -0500
+Subject: [PATCH 04/37] board: x410: add tlv_eeprom support
+
+Add support for reading TLV based EEPROMs as used on X410.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ board/ni/zynqmp/Makefile      |  1 +
+ board/ni/zynqmp/tlv_eeprom.c  | 93 ++++++++++++++++++++++++++++++++
+ board/ni/zynqmp/tlv_eeprom.h  | 99 +++++++++++++++++++++++++++++++++++
+ board/ni/zynqmp/usrp_eeprom.h | 80 ++++++++++++++++++++++++++++
+ 4 files changed, 273 insertions(+)
+ create mode 100644 board/ni/zynqmp/tlv_eeprom.c
+ create mode 100644 board/ni/zynqmp/tlv_eeprom.h
+ create mode 100644 board/ni/zynqmp/usrp_eeprom.h
+
+diff --git a/board/ni/zynqmp/Makefile b/board/ni/zynqmp/Makefile
+index 002ee9f55ab..8983130e341 100644
+--- a/board/ni/zynqmp/Makefile
++++ b/board/ni/zynqmp/Makefile
+@@ -5,6 +5,7 @@
+ ZYNQMP_BASE := ../../xilinx/zynqmp
+ 
+ obj-y += $(ZYNQMP_BASE)/zynqmp.o
++obj-y += tlv_eeprom.o
+ 
+ obj-$(CONFIG_MMC_SDHCI_ZYNQ) += $(ZYNQMP_BASE)/tap_delays.o
+ 
+diff --git a/board/ni/zynqmp/tlv_eeprom.c b/board/ni/zynqmp/tlv_eeprom.c
+new file mode 100644
+index 00000000000..1ba2fb89095
+--- /dev/null
++++ b/board/ni/zynqmp/tlv_eeprom.c
+@@ -0,0 +1,93 @@
++#include <string.h>
++#include "tlv_eeprom.h"
++
++struct tlv_eeprom *tlv_eeprom_init(void *data)
++{
++	struct tlv_eeprom *e = data;
++
++	return e;
++}
++
++void tlv_eeprom_seal(struct tlv_eeprom *e, uint32_t magic, size_t len)
++{
++	e->magic = magic;
++	e->size = len;
++	e->crc = tlv_eeprom_crc(e);
++}
++
++int tlv_eeprom_validate(const struct tlv_eeprom *e, uint32_t magic)
++{
++	uint32_t crc;
++
++	if (e->magic != magic)
++		return -1;
++
++	if (e->size > TLV_EEPROM_SIZE)
++		return -2;
++
++	crc = tlv_eeprom_crc(e);
++	if (e->crc != crc)
++		return -3;
++
++	return 0;
++}
++
++struct tlv {
++	uint8_t tag;
++	uint8_t len;
++	uint8_t val[0];
++};
++
++
++static inline const struct tlv *tlv_next(const struct tlv *tlv, const void *end)
++{
++	const void *p = &tlv->val;
++
++	p += tlv->len;
++	if (p >= end)
++		return NULL;
++	return p;
++}
++
++static inline const struct tlv *tlv_find(const struct tlv *tlv,
++					 const void *end, uint8_t tag)
++{
++	do {
++		if (tlv->tag == tag)
++			break;
++	} while ((tlv = tlv_next(tlv, end)));
++
++	return tlv;
++}
++
++void tlv_for_each(const void *buf, size_t bufsz,
++		  void (*fn)(uint8_t tag, uint8_t len, const void *val))
++{
++	const struct tlv *tlv = buf;
++
++	do {
++		fn(tlv->tag, tlv->len, tlv->val);
++	} while ((tlv = tlv_next(tlv, buf + bufsz)));
++}
++
++const void *tlv_lookup(const void *buf, size_t bufsz, uint8_t tag)
++{
++	const struct tlv *tlv;
++
++	tlv = tlv_find(buf, buf + bufsz, tag);
++	if (!tlv)
++		return tlv;
++
++	return tlv->val;
++}
++
++size_t tlv_write(void *buf, uint8_t tag, uint8_t len, const void *val)
++{
++	struct tlv *tlv = buf;
++
++	tlv->tag = tag;
++	tlv->len = len;
++	memcpy(tlv->val, val, len);
++
++	return sizeof(*tlv) + len;
++}
+diff --git a/board/ni/zynqmp/tlv_eeprom.h b/board/ni/zynqmp/tlv_eeprom.h
+new file mode 100644
+index 00000000000..cb8e3baa179
+--- /dev/null
++++ b/board/ni/zynqmp/tlv_eeprom.h
+@@ -0,0 +1,99 @@
++#pragma once
++
++#include <stddef.h>
++#include <stdint.h>
++
++/*
++ * All eeproms on this platform are 256 bytes long
++ */
++#define TLV_EEPROM_SIZE (256)
++
++/**
++ * struct tlv_eeprom - structure describing the eeprom layout
++ *
++ * NOTE: All fields stored to eeprom are little endian, and this library
++ * assumes the processor running it is also little endian (i.e., no endianess
++ * conversion is performed).
++ *
++ * @magic: magic to identify the eeprom
++ * @crc: crc over the size field plus the following size bytes
++ * @size: size of remaining data in bytes
++ * @tlv: up to 244 bytes of tlv data
++ */
++struct tlv_eeprom {
++	uint32_t magic;
++	uint32_t crc;
++	uint32_t size;
++	uint8_t  tlv[TLV_EEPROM_SIZE - 3 * sizeof(uint32_t)];
++} __attribute__((packed));
++
++/**
++ * tlv_eeprom_init - create tlv_eeprom from backing store
++ * @data: backing store, which must be at least TLV_EEPROM_SIZE bytes
++ */
++struct tlv_eeprom *tlv_eeprom_init(void *data);
++
++/**
++ * tlv_eeprom_validate - check if an eeprom is valid
++ * @e: eeprom to validate
++ * @magic: expected magic for this eeprom
++ *
++ * Checks to see whether the eeprom is valid. This validates the magic, the
++ * size, and the CRC of the data.
++ *
++ * Return: zero on success, -1 for a magic mismatch, -2 for an invalid size, -3
++ *         for an invalid crc
++ */
++int tlv_eeprom_validate(const struct tlv_eeprom *e, uint32_t magic);
++
++/**
++ * tlv_eeprom_seal - seal an eeprom
++ * @e: eeprom to seal
++ * @magic: magic to use for this eeprom
++ * @len: size of tlv data stored in eeprom
++ *
++ * Updates the magic, size, and crc of the eeprom. This should be called prior
++ * to writing an eeprom.
++ */
++void tlv_eeprom_seal(struct tlv_eeprom *e, uint32_t magic, size_t len);
++
++/*
++ * tlv_eeprom_crc - return the CRC for the eeprom
++ * @eeprom: eeprom to compute the crc
++ *
++ * Note: e->size must be valid!
++ *
++ * Returns: the crc
++ */
++extern uint32_t tlv_eeprom_crc(const struct tlv_eeprom *e);
++
++/**
++ * tlv_write - writes a tlv tuple to the buffer
++ * @buf: buffer to write to
++ * @tag: tag for this data
++ * @len: length of value
++ * @val: value to write
++ *
++ * Return: number of bytes written to buffer, including tag and size
++ */
++size_t tlv_write(void *buf, uint8_t tag, uint8_t len, const void *val);
++
++/**
++ * tlv_lookup - lookup the value associated with a tag
++ * @buf: buffer containing tlv data
++ * @bufsz: size of buffer containing tlv data
++ * @tag: tag to lookup
++ *
++ * Return: pointer to value at tag, or NULL if tag was not found
++ */
++const void *tlv_lookup(const void *buf, size_t bufsz, uint8_t tag);
++
++/*
++ * tlv_for_each - call fn for each value in buffer
++ * @buf: buffer containing tlv data
++ * @bufsz: size of buffer containing tlv data
++ * @fn: function to invoke for each value
++ */
++void tlv_for_each(const void *buf, size_t bufsz,
++		  void (*fn)(uint8_t tag, uint8_t len, const void *val));
++
+diff --git a/board/ni/zynqmp/usrp_eeprom.h b/board/ni/zynqmp/usrp_eeprom.h
+new file mode 100644
+index 00000000000..7baaef2a1e5
+--- /dev/null
++++ b/board/ni/zynqmp/usrp_eeprom.h
+@@ -0,0 +1,80 @@
++#pragma once
++
++#include <stdint.h>
++
++#define USRP_EEPROM_MAGIC 0x55535250
++
++#define USRP_EEPROM_BOARD_INFO_TAG (0x10)
++struct usrp_eeprom_board_info {
++	uint16_t pid;
++	uint16_t rev;
++	uint16_t compat_rev;
++	char serial[8];
++} __attribute__((packed));
++
++#define USRP_EEPROM_CCA_INFO_TAG (0x11)
++struct usrp_eeprom_cca_info {
++	uint16_t pid;
++	uint16_t rev;
++	char serial[8];
++} __attribute__((packed));
++
++#define USRP_EEPROM_ETH0_ADDR_TAG  (0xA0)
++#define USRP_EEPROM_QSFP0_ADDR_TAG (0xA1)
++#define USRP_EEPROM_QSFP1_ADDR_TAG (0xA2)
++struct usrp_eeprom_mac_addr {
++	uint8_t addr[6];
++} __attribute__((packed));
++
++
++#include <stdio.h>
++
++static void __maybe_unused usrp_eeprom_trace(uint8_t tag, uint8_t len,
++					     const void *val)
++{
++	uint8_t i;
++
++	switch (tag) {
++	case USRP_EEPROM_BOARD_INFO_TAG:
++	{
++		const struct usrp_eeprom_board_info *v = val;
++		assert(sizeof(*v) == len);
++		printf("%s (0x%02x) ", "usrp_eeprom_board_info", tag);
++		printf("pid: 0x%04x, rev: 0x%04x, compat_rev: 0x%04x, serial: %s\n",
++		       v->pid, v->rev, v->compat_rev, v->serial);
++	}
++	break;
++	case USRP_EEPROM_CCA_INFO_TAG:
++	{
++		const struct usrp_eeprom_cca_info *v = val;
++		assert(sizeof(*v) == len);
++		printf("%s (0x%02x) ", "usrp_eeprom_cca_info", tag);
++		printf("pid: 0x%04x, rev: 0x%04x, serial: %s\n",
++		       v->pid, v->rev, v->serial);
++	}
++	break;
++	case USRP_EEPROM_ETH0_ADDR_TAG:
++	case USRP_EEPROM_QSFP0_ADDR_TAG:
++	case USRP_EEPROM_QSFP1_ADDR_TAG:
++	{
++		static const char *macs[] = {"eth0", "qsfp0", "qsfp1"};
++		const struct usrp_eeprom_mac_addr *v = val;
++		assert(sizeof(*v) == len);
++		printf("%s %s (0x%02x) ", "usrp_eeprom_mac_addr",
++		       macs[tag - USRP_EEPROM_ETH0_ADDR_TAG], tag);
++		for (i = 0; i < 6; i++)
++			printf("%02x%c", v->addr[i], i == 5 ? ' ' : ':');
++		printf("\n");
++	}
++	break;
++	default:
++	{
++		const uint8_t *ptr = val;
++		printf("%s (0x%02x) len: %hhu, val: ", "unknown", tag, len);
++		for (i = 0; i < len; i++)
++			printf("%02x ", ptr[i]);
++		printf("\n");
++		break;
++	}
++	}
++}
+-- 
+2.43.0
+

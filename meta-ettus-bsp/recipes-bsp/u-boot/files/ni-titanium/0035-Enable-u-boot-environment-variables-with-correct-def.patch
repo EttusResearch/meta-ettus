@@ -1,0 +1,39 @@
+From f9b4747c21ba3e61ecf54b973f59927264f1863c Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Tue, 27 Jan 2026 15:48:17 +0100
+Subject: [PATCH 35/37] Enable u-boot environment variables with correct define
+ name. Disable u-boot relocation causing a panic during serial init.
+
+---
+ configs/ni_x410_rev4_defconfig | 1 +
+ include/configs/ni-x410.h      | 2 +-
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/configs/ni_x410_rev4_defconfig b/configs/ni_x410_rev4_defconfig
+index 48a17ff2239..fc022faf92b 100644
+--- a/configs/ni_x410_rev4_defconfig
++++ b/configs/ni_x410_rev4_defconfig
+@@ -25,6 +25,7 @@ CONFIG_DEBUG_UART=y
+ CONFIG_SYS_MEMTEST_START=0x00000000
+ CONFIG_SYS_MEMTEST_END=0x00001000
+ CONFIG_CC_OPTIMIZE_FOR_DEBUG=y
++CONFIG_SKIP_RELOCATE=y
+ CONFIG_EFI_LOADER_BOUNCE_BUFFER=y
+ CONFIG_FIT=y
+ CONFIG_FIT_VERBOSE=y
+diff --git a/include/configs/ni-x410.h b/include/configs/ni-x410.h
+index 1b9bb62f0e7..6b252369566 100644
+--- a/include/configs/ni-x410.h
++++ b/include/configs/ni-x410.h
+@@ -14,7 +14,7 @@
+ #error undefined
+ #endif
+ 
+-#define CONFIG_EXTRA_ENV_SETTINGS \
++#define CFG_EXTRA_ENV_SETTINGS \
+         "fit_image=boot/fitImage\0" \
+         "ec_disable_swsync=0\0" \
+         "expand_ec_image=setenv ec_image lib/firmware/ni/ec-${ec_mboard}-rev${ec_compat}.RW.bin\0" \
+-- 
+2.43.0
+

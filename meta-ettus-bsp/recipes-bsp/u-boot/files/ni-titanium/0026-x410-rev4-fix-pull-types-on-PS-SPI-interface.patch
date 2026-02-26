@@ -1,0 +1,44 @@
+From 2b6394ce1b80a31009d7d11f28e3b4f2926b6b1b Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Wed, 19 Aug 2020 17:10:07 -0500
+Subject: [PATCH 26/37] x410-rev4: fix pull types on PS SPI interface
+
+Updated from the latest hwdef provided by Max.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ arch/arm/dts/zynqmp-ni-x410-rev4.dts     | 2 +-
+ board/ni/zynqmp/x410-rev4/psu_init_gpl.c | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm/dts/zynqmp-ni-x410-rev4.dts b/arch/arm/dts/zynqmp-ni-x410-rev4.dts
+index 168f0343744..215903e0596 100644
+--- a/arch/arm/dts/zynqmp-ni-x410-rev4.dts
++++ b/arch/arm/dts/zynqmp-ni-x410-rev4.dts
+@@ -5,7 +5,7 @@
+  * (C) Copyright 2020, National Instruments
+  */
+ 
+-#include "ni_x410-rev2.dts"
++#include "zynqmp-ni-x410-rev2.dts"
+ #include <dt-bindings/interrupt-controller/irq.h>
+ 
+ / {
+diff --git a/board/ni/zynqmp/x410-rev4/psu_init_gpl.c b/board/ni/zynqmp/x410-rev4/psu_init_gpl.c
+index 71f56e81cec..39cac33519a 100644
+--- a/board/ni/zynqmp/x410-rev4/psu_init_gpl.c
++++ b/board/ni/zynqmp/x410-rev4/psu_init_gpl.c
+@@ -452,8 +452,8 @@ static unsigned long psu_mio_init_data(void)
+ 	psu_mask_write(0xFF180138, 0x03FFFFFFU, 0x03FFFFFFU);
+ 	psu_mask_write(0xFF18013C, 0x03FFFFFFU, 0x03FFFFFFU);
+ 	psu_mask_write(0xFF180140, 0x03FFFFFFU, 0x033FFE7FU);
+-	psu_mask_write(0xFF180144, 0x03FFFFFFU, 0x03FFFFFFU);
+-	psu_mask_write(0xFF180148, 0x03FFFFFFU, 0x03FFFFFFU);
++	psu_mask_write(0xFF180144, 0x03FFF3FFU, 0x03FFF3BFU);
++	psu_mask_write(0xFF180148, 0x03FFFFFFU, 0x03FFF3FFU);
+ 	psu_mask_write(0xFF18014C, 0x03FFFFFFU, 0x03FFFFFFU);
+ 	psu_mask_write(0xFF180154, 0x03FFFFFFU, 0x03FFFFFFU);
+ 	psu_mask_write(0xFF180158, 0x03FFFFFFU, 0x03FFFFFFU);
+-- 
+2.43.0
+

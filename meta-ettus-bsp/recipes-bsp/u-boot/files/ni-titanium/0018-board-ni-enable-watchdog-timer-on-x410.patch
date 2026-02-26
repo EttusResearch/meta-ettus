@@ -1,0 +1,28 @@
+From 4ca67c16267f3e82e4736b4019c3da96a5defded Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Wed, 12 Feb 2020 16:05:36 -0600
+Subject: [PATCH 18/37] board: ni: enable watchdog timer on x410
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ arch/arm/dts/zynqmp-ni-x410-rev2.dts | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/arch/arm/dts/zynqmp-ni-x410-rev2.dts b/arch/arm/dts/zynqmp-ni-x410-rev2.dts
+index 3c0cb2e3478..34ae2b0df83 100644
+--- a/arch/arm/dts/zynqmp-ni-x410-rev2.dts
++++ b/arch/arm/dts/zynqmp-ni-x410-rev2.dts
+@@ -46,6 +46,10 @@
+ 	status = "okay";
+ };
+ 
++&watchdog0 {
++	status = "okay";
++};
++
+ &sdhci0 {
+ 	status = "okay";
+ 	// doesn't look like this is really used, unless it's 2
+-- 
+2.43.0
+

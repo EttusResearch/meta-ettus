@@ -1,0 +1,45 @@
+From ff2b2324f09552f150738548a14ec09c8d1ee172 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Tue, 28 Apr 2020 16:24:25 -0500
+Subject: [PATCH 22/37] board: x410: require "noautoboot" to interrupt boot
+
+To be consistent with other USRPs, require the user to type "noautoboot"
+to prevent an automatic boot.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ configs/ni_x410_rev2_defconfig | 3 +++
+ configs/ni_x410_rev3_defconfig | 3 +++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/configs/ni_x410_rev2_defconfig b/configs/ni_x410_rev2_defconfig
+index 2dd3300fe2e..f92531e2483 100644
+--- a/configs/ni_x410_rev2_defconfig
++++ b/configs/ni_x410_rev2_defconfig
+@@ -33,6 +33,9 @@ CONFIG_SPL_RAM_DEVICE=y
+ CONFIG_SPL_ATF=y
+ CONFIG_SPL_ATF_NO_PLATFORM_PARAM=y
+ CONFIG_SYS_PROMPT="ZynqMP> "
++CONFIG_AUTOBOOT_KEYED=y
++CONFIG_AUTOBOOT_PROMPT="Autoboot in %d seconds\nEnter 'noautoboot' to enter prompt without timeout\n"
++CONFIG_AUTOBOOT_STOP_STR="noautoboot"
+ CONFIG_CMD_MD5SUM=y
+ CONFIG_CMD_MEMTEST=y
+ CONFIG_CMD_CLK=y
+diff --git a/configs/ni_x410_rev3_defconfig b/configs/ni_x410_rev3_defconfig
+index f3fecd05f9b..e23628e4cca 100644
+--- a/configs/ni_x410_rev3_defconfig
++++ b/configs/ni_x410_rev3_defconfig
+@@ -34,6 +34,9 @@ CONFIG_SPL_RAM_DEVICE=y
+ CONFIG_SPL_ATF=y
+ CONFIG_SPL_ATF_NO_PLATFORM_PARAM=y
+ CONFIG_SYS_PROMPT="ZynqMP> "
++CONFIG_AUTOBOOT_KEYED=y
++CONFIG_AUTOBOOT_PROMPT="Autoboot in %d seconds\nEnter 'noautoboot' to enter prompt without timeout\n"
++CONFIG_AUTOBOOT_STOP_STR="noautoboot"
+ CONFIG_CMD_MD5SUM=y
+ CONFIG_CMD_MEMTEST=y
+ CONFIG_CMD_CLK=y
+-- 
+2.43.0
+

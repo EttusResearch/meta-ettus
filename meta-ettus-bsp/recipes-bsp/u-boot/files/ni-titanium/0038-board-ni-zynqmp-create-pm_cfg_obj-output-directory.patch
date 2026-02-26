@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Yocto Builder <builder@yoctoproject.org>
+Date: Tue, 4 Feb 2026 14:45:00 +0000
+Subject: [PATCH] board: ni: zynqmp: create pm_cfg_obj output directory
+
+When building with O= (out-of-tree build, as done by Yocto), the
+board/ni/zynqmp/x410-rev4/ subdirectory does not exist in the build
+output tree. The zynqmp_pm_cfg_obj_convert.py script writes to
+CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_FILE which is relative to the build
+directory, so the directory must be created first.
+
+In older U-Boot versions (2020.10), CONFIG_SPL_FIT_SOURCE was set and
+do_compile:prepend would mkdir the directory as a side effect of copying
+fit.its. In 2026.01 CONFIG_SPL_FIT_SOURCE is gone (binman handles SPL
+FIT), so the directory is never created.
+
+Use $$(dirname ...) so the shell handles path stripping rather than
+make's $(dir ...) function, which leaves an unterminated quote when
+Kconfig string values expand with surrounding double-quotes.
+
+Signed-off-by: Yocto Builder <builder@yoctoproject.org>
+---
+ board/ni/zynqmp/Makefile | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/board/ni/zynqmp/Makefile b/board/ni/zynqmp/Makefile
+index 1111111..2222222 100644
+--- a/board/ni/zynqmp/Makefile
++++ b/board/ni/zynqmp/Makefile
+@@ -23,6 +23,7 @@ ifneq ($(CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_SRC_FILE),"")
+ # a source file is provided, use the zynqmp_pm_cfg_obj_convert.py tool
+ # to create the CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_FILE
+ $(CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_FILE): FORCE
++	@mkdir -p $$(dirname $(CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_FILE))
+ 	$(srctree)/tools/zynqmp_pm_cfg_obj_convert.py \
+ 		$(shell cd $(srctree); readlink -f $(CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_SRC_FILE)) \
+ 		$(CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_FILE)
+-- 
+2.34.1

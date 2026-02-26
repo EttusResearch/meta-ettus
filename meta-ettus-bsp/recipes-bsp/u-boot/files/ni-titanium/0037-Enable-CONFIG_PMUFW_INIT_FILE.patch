@@ -1,0 +1,21 @@
+From 0faa9bc011366c6b100bbbd8eca27c09f172e119 Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Wed, 25 Feb 2026 10:47:30 +0100
+Subject: [PATCH 37/37] Enable CONFIG_PMUFW_INIT_FILE.
+
+---
+ configs/ni_x410_rev4_defconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/configs/ni_x410_rev4_defconfig b/configs/ni_x410_rev4_defconfig
+index 95795ac9ef4..24849c453f4 100644
+--- a/configs/ni_x410_rev4_defconfig
++++ b/configs/ni_x410_rev4_defconfig
+@@ -141,3 +141,4 @@ CONFIG_WDT_CDNS=y
+ # CONFIG_BINMAN_FDT is not set
+ CONFIG_BINMAN_DTB="./arch/arm/dts/zynqmp-binman.dtb"
+ CONFIG_TRACE=y
++CONFIG_PMUFW_INIT_FILE="board/ni/zynqmp/x410-rev4/pmu_fw.bin"
+-- 
+2.43.0
+

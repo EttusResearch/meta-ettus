@@ -1,0 +1,79 @@
+From 0fc12182c7811f3192e601c8dc9e8394bc77b0e3 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Fri, 4 Oct 2019 12:54:35 -0500
+Subject: [PATCH 07/37] ni: zynqmp: add helper for loading eeprom
+
+Add a helper to load the eeprom and validate it, and keep track of that
+in an eeprom_ctx struct. This is useful because there are multiple
+eeproms located on daughter-/aux-boards which may not be connected.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+---
+ board/ni/zynqmp/board.c | 37 +++++++++++++++++++++++++++----------
+ 1 file changed, 27 insertions(+), 10 deletions(-)
+
+diff --git a/board/ni/zynqmp/board.c b/board/ni/zynqmp/board.c
+index eaf4bee3c84..e9583dd0fb1 100644
+--- a/board/ni/zynqmp/board.c
++++ b/board/ni/zynqmp/board.c
+@@ -22,7 +22,12 @@
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+-static struct tlv_eeprom mb_eeprom;
++struct eeprom_ctx {
++	struct tlv_eeprom eeprom;
++	bool valid;
++};
++
++static struct eeprom_ctx mb_eeprom;
+ 
+ uint32_t tlv_eeprom_crc(const struct tlv_eeprom *eeprom)
+ {
+@@ -57,22 +62,34 @@ static int tlv_eeprom_read(const char *node, struct tlv_eeprom *eeprom)
+ 	return 0;
+ }
+ 
+-int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
++static void load_eeprom(const char *node, struct eeprom_ctx *ctx)
+ {
+-	const struct usrp_eeprom_mac_addr *hwaddr;
+ 	int err;
+ 
+-	err = tlv_eeprom_read("ni,mb-eeprom", &mb_eeprom);
+-	if (err < 0)
+-		return err;
++	err = tlv_eeprom_read(node, &ctx->eeprom);
++	if (err < 0) {
++		printf("failed to read from %s: %d\n", node, err);
++		return;
++	}
+ 
+-	err = tlv_eeprom_validate(&mb_eeprom, USRP_EEPROM_MAGIC);
++	err = tlv_eeprom_validate(&ctx->eeprom, USRP_EEPROM_MAGIC);
+ 	if (err < 0) {
+-		printf("eeprom contents invalid! %d\n", err);
+-		return err;
++		printf("%s eeprom contents invalid! %d\n", node, err);
++		return;
+ 	}
+ 
+-	hwaddr = tlv_lookup(&mb_eeprom.tlv, mb_eeprom.size,
++	ctx->valid = true;
++}
++
++int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
++{
++	const struct usrp_eeprom_mac_addr *hwaddr;
++
++	load_eeprom("ni,mb-eeprom", &mb_eeprom);
++	if (!mb_eeprom.valid)
++		return -1;
++
++	hwaddr = tlv_lookup(&mb_eeprom.eeprom.tlv, mb_eeprom.eeprom.size,
+ 			    USRP_EEPROM_ETH0_ADDR_TAG);
+ 	if (!hwaddr)
+ 		return -1;
+-- 
+2.43.0
+
