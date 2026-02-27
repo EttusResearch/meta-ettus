@@ -35,11 +35,10 @@ steps:
       echo "Repository name: $BUILD_REPO_NAME"
       build_repo_name_path=$(echo $BUILD_REPO_NAME | sed 's/.*\///')
       echo "Repository name path: $build_repo_name_path"
-      echo "##vso[task.setvariable variable=buildRepoNamePath;isOutput=true;]$build_repo_name_path"
+      echo "##vso[task.setvariable variable=buildRepoNamePath;]$build_repo_name_path"
     condition: and(succeeded(), ${{ eq( parameters.repository, 'self' ) }})
     env:
       BUILD_REPO_NAME: $(Build.Repository.Name)
-    name: getSelfPath
     displayName: Get Path to Self Repo
 
   - ${{ each pkg in parameters.packages }}:
@@ -48,7 +47,7 @@ steps:
         conf_file: ${{ parameters.conf_file }}
         package: ${{ pkg }}
         ${{ if eq( parameters.repository, 'self' ) }}:
-          path: $(Build.SourcesDirectory)/$(getSelfPath.buildRepoNamePath)
+          path: $(Build.SourcesDirectory)/$(buildRepoNamePath)
         ${{ else }}:
           path: $(Build.SourcesDirectory)/${{ parameters.repository }}
         build_in_src: ${{ parameters.build_in_src }}
@@ -59,7 +58,7 @@ steps:
         conf_file: ${{ parameters.conf_file }}
         package: ${{ pkg.package }}
         ${{ if eq( parameters.repository, 'self' ) }}:
-          path: $(Build.SourcesDirectory)/$(getSelfPath.buildRepoNamePath)/${{ pkg.path }}
+          path: $(Build.SourcesDirectory)/$(buildRepoNamePath)/${{ pkg.path }}
         ${{ else }}:
           path: $(Build.SourcesDirectory)/${{ parameters.repository }}/${{ pkg.path }}
         build_in_src: ${{ parameters.build_in_src }}
