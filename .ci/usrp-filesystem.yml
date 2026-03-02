@@ -102,6 +102,10 @@ parameters:
   - name: post_targets
     type: string
     default: "uhd:do_run_tests"
+  - name: create_sbom
+    displayName: Create SBOM artifact
+    type: boolean
+    default: true
 
 resources:
   pipelines:
@@ -149,6 +153,7 @@ stages:
         cache_downloads: ${{ and(parameters.cache_downloads, not(parameters.release_build)) }}
         use_custom_mender_prefix: ${{ parameters.use_custom_mender_prefix }}
         custom_mender_prefix: ${{ parameters.custom_mender_prefix }}
+        create_sbom: ${{ parameters.create_sbom }}
         machines:
           - ${{ if parameters.build_e310_sg1 }}:
             - e310_sg1

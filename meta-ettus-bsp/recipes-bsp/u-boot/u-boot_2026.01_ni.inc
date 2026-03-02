@@ -78,6 +78,14 @@ require u-boot-configure-2026.01.inc
 
 UBOOT_ELF:aarch64 = "u-boot"
 
+# Output the ELF generated. Some platforms can use the ELF file and directly
+# load it (JTAG booting, QEMU) additionally the ELF can be used for debugging
+# purposes.
+UBOOT_ELF_SUFFIX ?= "elf"
+UBOOT_ELF_IMAGE ?= "u-boot-${MACHINE}-${PV}-${PR}.${UBOOT_ELF_SUFFIX}"
+UBOOT_ELF_BINARY ?= "u-boot.${UBOOT_ELF_SUFFIX}"
+UBOOT_ELF_SYMLINK ?= "u-boot-${MACHINE}.${UBOOT_ELF_SUFFIX}"
+
 do_savedefconfig() {
 	bbplain "Saving defconfig to:\n${B}/defconfig"
 	oe_runmake -C ${B} savedefconfig
@@ -550,18 +558,24 @@ do_deploy:append:ni-titanium() {
   UBOOT_JTAG_FILES_SYMLINK1=u-boot-jtag-files-${MACHINE}.zip
   UBOOT_JTAG_FILES_SYMLINK2=u-boot-jtag-files.zip
 
+  # Create a symlink to rename u-boot as u-boot.elf for the zip
+  rm -f ${B}/u-boot.elf
+  ln -s ${UBOOT_ELF} ${B}/u-boot.elf
+
   # Only add EC files if they exist
   if ls ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-titanium-rev*.bin 1>/dev/null 2>&1; then
     zip -j -MM ${DEPLOYDIR}/${UBOOT_JTAG_FILES_TARGET} \
       ${WORKDIR}/boot_u-boot ${WORKDIR}/boot_u-boot.tcl ${B}/pmu-firmware.elf \
-      ${B}/spl/u-boot-spl.bin ${B}/bl31.elf ${B}/${UBOOT_ELF} \
+      ${B}/spl/u-boot-spl.bin ${B}/bl31.elf ${B}/u-boot.elf \
       ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-titanium-rev*.bin
   else
     bbnote "EC firmware not found, building JTAG zip without EC files"
     zip -j -MM ${DEPLOYDIR}/${UBOOT_JTAG_FILES_TARGET} \
       ${WORKDIR}/boot_u-boot ${WORKDIR}/boot_u-boot.tcl ${B}/pmu-firmware.elf \
-      ${B}/spl/u-boot-spl.bin ${B}/bl31.elf ${B}/${UBOOT_ELF}
+      ${B}/spl/u-boot-spl.bin ${B}/bl31.elf ${B}/u-boot.elf
   fi
+
+  rm -f ${B}/u-boot.elf
 
   ln -sf ${UBOOT_JTAG_FILES_TARGET} ${DEPLOYDIR}/${UBOOT_JTAG_FILES_SYMLINK1}
   ln -sf ${UBOOT_JTAG_FILES_TARGET} ${DEPLOYDIR}/${UBOOT_JTAG_FILES_SYMLINK2}

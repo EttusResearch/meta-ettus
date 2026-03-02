@@ -90,5 +90,5 @@ do_image_wic[depends] += " \
 
 # On non-Mender devices, build "wic.xz" and "wic.bmap"
 # On Mender enabled devices build "sdimg.bz2" (instead of "sdimg") and "sdimg.bmap"
-IMAGE_FSTYPES += "${@bb.utils.contains('MENDER_FEATURES', 'mender-image-sd', ' sdimg.bz2', ' wic.xz wic.bmap', d)} tar.xz"
+IMAGE_FSTYPES += "${@bb.utils.contains('MENDER_FEATURES', 'mender-image-sd', ' sdimg.bz2', ' wic.bz2 wic.bmap', d)} tar.xz"
 IMAGE_FSTYPES:remove = "${@bb.utils.contains('MENDER_FEATURES', 'mender-image-sd', ' sdimg', '', d)}"
