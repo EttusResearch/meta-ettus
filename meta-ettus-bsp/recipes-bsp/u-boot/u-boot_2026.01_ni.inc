@@ -537,20 +537,6 @@ python __anonymous() {
         d.appendVarFlag('do_deploy', 'mcdepends', ' mc:ni-titanium:ni-titanium-ec:chromium-ec:do_deploy')
 }
 
-# do_deploy:append:ni-titanium() {
-#   # prepare a zip file which includes all necessary files for loading u-boot
-#   # via JTAG
-#   UBOOT_JTAG_FILES_TARGET=u-boot-jtag-files-${MACHINE}-${PV}.zip
-#   UBOOT_JTAG_FILES_SYMLINK1=u-boot-jtag-files-${MACHINE}.zip
-#   UBOOT_JTAG_FILES_SYMLINK2=u-boot-jtag-files.zip
-#   zip -j -MM ${DEPLOYDIR}/${UBOOT_JTAG_FILES_TARGET} \
-#     ${B}/pmu-firmware.elf \
-#     ${B}/spl/u-boot-spl.bin ${B}/bl31.elf ${B}/u-boot \
-#     ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-titanium-rev*.bin
-#   ln -sf ${UBOOT_JTAG_FILES_TARGET} ${DEPLOYDIR}/${UBOOT_JTAG_FILES_SYMLINK1}
-#   ln -sf ${UBOOT_JTAG_FILES_TARGET} ${DEPLOYDIR}/${UBOOT_JTAG_FILES_SYMLINK2}
-# }
-
 do_deploy:append:ni-titanium() {
   # prepare a zip file which includes all necessary files for loading u-boot
   # via JTAG
@@ -559,9 +545,6 @@ do_deploy:append:ni-titanium() {
   UBOOT_JTAG_FILES_SYMLINK2=u-boot-jtag-files.zip
 
   # Create a symlink to rename u-boot as u-boot.elf for the zip
-  rm -f ${B}/u-boot.elf
-  ln -s ${UBOOT_ELF} ${B}/u-boot.elf
-
   # Only add EC files if they exist
   if ls ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-titanium-rev*.bin 1>/dev/null 2>&1; then
     zip -j -MM ${DEPLOYDIR}/${UBOOT_JTAG_FILES_TARGET} \
@@ -574,8 +557,6 @@ do_deploy:append:ni-titanium() {
       ${WORKDIR}/boot_u-boot ${WORKDIR}/boot_u-boot.tcl ${B}/pmu-firmware.elf \
       ${B}/spl/u-boot-spl.bin ${B}/bl31.elf ${B}/u-boot.elf
   fi
-
-  rm -f ${B}/u-boot.elf
 
   ln -sf ${UBOOT_JTAG_FILES_TARGET} ${DEPLOYDIR}/${UBOOT_JTAG_FILES_SYMLINK1}
   ln -sf ${UBOOT_JTAG_FILES_TARGET} ${DEPLOYDIR}/${UBOOT_JTAG_FILES_SYMLINK2}
