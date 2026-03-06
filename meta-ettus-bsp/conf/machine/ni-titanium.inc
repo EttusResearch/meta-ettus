@@ -1,5 +1,3 @@
-PREFERRED_PROVIDER_virtual/kernel ?= "linux-x4xx"
-
 require conf/machine/ni-zynqmp.inc
 require conf/machine/include/arm/armv8a/tune-cortexa53.inc
 
