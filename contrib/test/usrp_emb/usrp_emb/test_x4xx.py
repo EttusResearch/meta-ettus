@@ -51,7 +51,7 @@ def flash_emmc():
         ti.linux.login()
 
         with HTTPServer(BRINGUP_PATH, ip) as server:
-            image_name = list(BRINGUP_PATH.glob("*.sdimg.bz2"))[0].name
+            image_name = [file_list for ext_pat in ("*.sdimg.bz2", "*.wic.bz2") for file_list in BRINGUP_PATH.glob(ext_pat)][0].name
             ti.linux.bmap_copy(server.get_url(image_name), "/dev/mmcblk0")
 
         ti.linux.poweroff()
