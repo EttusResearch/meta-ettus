@@ -47,6 +47,8 @@ SRC_URI:prepend:ni-titanium = " \
     file://0037-Enable-CONFIG_PMUFW_INIT_FILE.patch \
     file://0038-board-ni-zynqmp-create-pm_cfg_obj-output-directory.patch \
     file://0039-board-x410-add-support-for-x410-rev5.patch \
+    file://0040-Fix-Set-CONFIG_REMAKE_ELF-to-attach-dtb.patch \
+    file://0041-board-ni-zynqmp-fix-overlay-name-format.patch \
     "
 
 DEPENDS += "${@bb.utils.contains('UBOOT_ENV_SUFFIX', 'scr', 'u-boot-mkimage-native', '', d)}"

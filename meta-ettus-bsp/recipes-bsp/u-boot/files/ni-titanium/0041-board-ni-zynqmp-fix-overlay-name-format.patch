@@ -1,0 +1,128 @@
+From 3f6e41c4438024531f80292f12e71c39ac2dbf1e Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Fri, 6 Mar 2026 14:00:31 +0100
+Subject: [PATCH 2/2] board: ni: zynqmp: fix overlay name format and missing
+ pid 0x4002.
+
+---
+ board/ni/zynqmp/board.c   | 58 ++++-----------------------------------
+ include/configs/ni-x410.h | 10 +++++++
+ 2 files changed, 16 insertions(+), 52 deletions(-)
+
+diff --git a/board/ni/zynqmp/board.c b/board/ni/zynqmp/board.c
+index 651d0bdb46e..84c56f0cc04 100644
+--- a/board/ni/zynqmp/board.c
++++ b/board/ni/zynqmp/board.c
+@@ -264,67 +264,21 @@ static const char *get_mboard_dtb(u16 pid)
+ 	return "unsupported";
+ }
+ 
+-/*
+- * dtbo is a format string containing %s (slot) and %u (rev) in that order
+- */
+-static const struct {
+-	uint16_t pid;
+-	const char *dtbo;
+-} dtbo_map[] = {
+-	{
+-		.pid = 0x4001,
+-		.dtbo = "ni_x4xx-%s-rfchar-rev%u.dtbo",
+-	},
+-	{
+-		.pid = 0x4003,
+-		.dtbo = "ni_x4xx-%s-hdmise-rev%u.dtbo",
+-	},
+-	{
+-		.pid = 0x4004,
+-		.dtbo = "ni_x4xx-%s-gpsdo-rev%u.dtbo",
+-	},
+-	{
+-		.pid = 0x4005,
+-		.dtbo = "ni_x4xx-%s-nogpsdo-rev%u.dtbo",
+-	},
+-	{
+-		.pid = 0x4006,
+-		.dtbo = "ni_x4xx-%s-iftest-rev%u.dtbo",
+-	},
+-};
+-
+-static const char *find_dtbo(struct eeprom_ctx *ctx, uint8_t *rev)
++static void append_overlay(char *overlays, struct eeprom_ctx *ctx, const char *slot)
+ {
+ 	const struct usrp_eeprom_board_info *info;
++	char overlay[128];
+ 
+ 	if (!ctx->valid)
+-		return NULL;
++		return;
+ 
+ 	info = tlv_lookup(ctx->eeprom.tlv, ctx->eeprom.size,
+ 			  USRP_EEPROM_BOARD_INFO_TAG);
+ 	if (!info)
+-		return NULL;
+-
+-	*rev = info->compat_rev;
+-
+-	for (size_t i = 0; i < ARRAY_SIZE(dtbo_map); i++)
+-		if (info->pid == dtbo_map[i].pid)
+-			return dtbo_map[i].dtbo;
+-
+-	return NULL;
+-}
+-
+-static void append_overlay(char *overlays, struct eeprom_ctx *ctx, const char *slot)
+-{
+-	const char *dtbo;
+-	char overlay[128];
+-	uint8_t rev;
+-
+-	dtbo = find_dtbo(ctx, &rev);
+-	if (!dtbo)
+ 		return;
+ 
+-	sprintf(overlay, dtbo, slot, rev);
++	sprintf(overlay, "ni_x4xx-%s-0x%04x-rev%u.dtbo", slot, info->pid,
++		info->compat_rev);
+ 	printf("applying overlay: %s\n", overlay);
+ 	sprintf(overlays, "%s#conf@%s", overlays, overlay);
+ }
+@@ -365,7 +319,7 @@ int board_late_init(void)
+ 	u32 reg = 0;
+ 	u8 bootmode;
+ 	int ret;
+-
++	printf("Execute board_late_init\n");
+ 	ret = zynqmp_mmio_read((ulong)&crlapb_base->boot_mode, &reg);
+ 	if (ret)
+ 		return -EINVAL;
+diff --git a/include/configs/ni-x410.h b/include/configs/ni-x410.h
+index 6b252369566..766d5078a20 100644
+--- a/include/configs/ni-x410.h
++++ b/include/configs/ni-x410.h
+@@ -14,6 +14,11 @@
+ #error undefined
+ #endif
+ 
++#define X410_UPDATE_OVERLAYS(slot) \
++        "test \"${" #slot "_pid}\" != \"\" && " \
++        "test \"${" #slot "_crev}\" != \"\" && " \
++        "env set overlays \"${overlays}#conf@ni_x4xx-" #slot "-${" #slot "_pid}-rev${" #slot "_crev}.dtbo\";"
++
+ #define CFG_EXTRA_ENV_SETTINGS \
+         "fit_image=boot/fitImage\0" \
+         "ec_disable_swsync=0\0" \
+@@ -49,6 +54,11 @@
+           "echo Loading FIT to RAM via DHCP/TFTP && " \
+           "dhcp ${load_addr} ${tftproot}/${fit_image} && "\
+           "bootm ${load_addr}#conf@$ni_{variant}.dtb${overlays}\0" \
++        "update_overlays=env set overlays \"\"; " \
++           X410_UPDATE_OVERLAYS(db0) \
++           X410_UPDATE_OVERLAYS(db1) \
++           X410_UPDATE_OVERLAYS(dioaux) \
++           X410_UPDATE_OVERLAYS(clkaux) "true \0" \
+         "swsync_net=if test ${ec_disable_swsync} = 0; then " \
+           "echo Copying MCU FW to RAM via DHCP/TFTP... && " \
+           "run expand_ec_image; " \
+-- 
+2.43.0
+
