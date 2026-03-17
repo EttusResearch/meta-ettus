@@ -1,7 +1,7 @@
-From 6071906756bde3ef21e499546ef2a3791f0545e4 Mon Sep 17 00:00:00 2001
+From e418f0fdf3adb8349011d531a70af94bb4ae1080 Mon Sep 17 00:00:00 2001
 From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
 Date: Tue, 3 Mar 2026 14:18:05 +0100
-Subject: [PATCH] Add X410 Rev5 support.
+Subject: [PATCH 4/7] Add X410 Rev5 support.
 
 ---
  arch/arm/dts/Makefile                    |   3 +-

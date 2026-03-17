@@ -41,7 +41,6 @@ SRC_URI:prepend:ni-titanium = " \
     file://0031-RENAME-fixes.patch \
     file://0032-Fix-Initial-stack-was-in-uninitialized-DDR-causing-c.patch \
     file://0033-Fix-Correct-ni_x410_dev4_defconfig-to-progress-in-th.patch \
-    file://0034-x410-update-config-for-Mender.patch \
     file://0035-Enable-u-boot-environment-variables-with-correct-def.patch \
     file://0036-fix-SP-address-during-SPL.patch \
     file://0037-Enable-CONFIG_PMUFW_INIT_FILE.patch \
@@ -49,6 +48,7 @@ SRC_URI:prepend:ni-titanium = " \
     file://0039-board-x410-add-support-for-x410-rev5.patch \
     file://0040-Fix-Set-CONFIG_REMAKE_ELF-to-attach-dtb.patch \
     file://0041-board-ni-zynqmp-fix-overlay-name-format.patch \
+    file://0042-Fix-Kernel-6.12-did-NOT-successfully.patch \
     "
 
 DEPENDS += "${@bb.utils.contains('UBOOT_ENV_SUFFIX', 'scr', 'u-boot-mkimage-native', '', d)}"

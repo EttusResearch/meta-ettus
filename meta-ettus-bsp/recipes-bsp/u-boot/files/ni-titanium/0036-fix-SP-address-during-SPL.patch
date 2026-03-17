@@ -1,7 +1,7 @@
-From 00bd314633b0304b9e25dae1c9375c6b1417c2d0 Mon Sep 17 00:00:00 2001
+From bc759532119f69aa49a499d5b65b6294f5835b9d Mon Sep 17 00:00:00 2001
 From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
 Date: Thu, 29 Jan 2026 11:14:01 +0100
-Subject: [PATCH 36/37] fix SP address during SPL.
+Subject: [PATCH 2/7] fix SP address during SPL.
 
 ---
  configs/ni_x410_rev4_defconfig | 7 +++++--

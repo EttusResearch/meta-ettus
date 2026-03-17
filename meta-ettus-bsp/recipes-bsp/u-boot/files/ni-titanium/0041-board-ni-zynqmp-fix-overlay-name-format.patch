@@ -1,7 +1,7 @@
-From 3f6e41c4438024531f80292f12e71c39ac2dbf1e Mon Sep 17 00:00:00 2001
+From d47f411aea8623bb3c1abe9349f7674c196f68fe Mon Sep 17 00:00:00 2001
 From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
 Date: Fri, 6 Mar 2026 14:00:31 +0100
-Subject: [PATCH 2/2] board: ni: zynqmp: fix overlay name format and missing
+Subject: [PATCH 6/7] board: ni: zynqmp: fix overlay name format and missing
  pid 0x4002.
 
 ---
@@ -96,7 +96,7 @@ index 651d0bdb46e..84c56f0cc04 100644
  	if (ret)
  		return -EINVAL;
 diff --git a/include/configs/ni-x410.h b/include/configs/ni-x410.h
-index 6b252369566..766d5078a20 100644
+index 5bc52828285..8fc32381918 100644
 --- a/include/configs/ni-x410.h
 +++ b/include/configs/ni-x410.h
 @@ -14,6 +14,11 @@
@@ -111,7 +111,7 @@ index 6b252369566..766d5078a20 100644
  #define CFG_EXTRA_ENV_SETTINGS \
          "fit_image=boot/fitImage\0" \
          "ec_disable_swsync=0\0" \
-@@ -49,6 +54,11 @@
+@@ -47,6 +52,11 @@
            "echo Loading FIT to RAM via DHCP/TFTP && " \
            "dhcp ${load_addr} ${tftproot}/${fit_image} && "\
            "bootm ${load_addr}#conf@$ni_{variant}.dtb${overlays}\0" \

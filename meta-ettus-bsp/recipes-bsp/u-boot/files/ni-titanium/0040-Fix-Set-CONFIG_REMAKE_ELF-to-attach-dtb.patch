@@ -1,7 +1,7 @@
-From f48fd72af70c66b564bd2cb236c1278028a8167f Mon Sep 17 00:00:00 2001
+From 4b5e257e7d645aa606714130d5a99f0ab95c82d7 Mon Sep 17 00:00:00 2001
 From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
 Date: Fri, 6 Mar 2026 13:49:13 +0100
-Subject: [PATCH 1/2] Fix: Set CONFIG_REMAKE_ELF to enable u-boot.elf build
+Subject: [PATCH 5/7] Fix: Set CONFIG_REMAKE_ELF to enable u-boot.elf build
  from the u-boot.bin including the dtb and no debug symbols.
 
 ---

@@ -1,7 +1,7 @@
-From 0faa9bc011366c6b100bbbd8eca27c09f172e119 Mon Sep 17 00:00:00 2001
+From 9ef43301ae78f925f8d39412c621bdbc0992c361 Mon Sep 17 00:00:00 2001
 From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
 Date: Wed, 25 Feb 2026 10:47:30 +0100
-Subject: [PATCH 37/37] Enable CONFIG_PMUFW_INIT_FILE.
+Subject: [PATCH 3/7] Enable CONFIG_PMUFW_INIT_FILE.
 
 ---
  configs/ni_x410_rev4_defconfig | 1 +
