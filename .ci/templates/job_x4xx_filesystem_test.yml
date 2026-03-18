@@ -6,6 +6,9 @@ parameters:
     type: boolean
   - name: dutMatrix
     type: object
+  - name: kas_subdirectory
+    type: string
+    default: 'configs-mender'
 
 jobs:
 - job: 'test'
@@ -52,4 +55,5 @@ jobs:
   - template: steps_run_test.yml
   - template: steps_run_mpm_test.yml
   - template: steps_run_bist.yml
-  - template: usrp_emb_run_mender_tests.yml
+  - ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
+    - template: usrp_emb_run_mender_tests.yml

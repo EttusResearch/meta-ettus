@@ -222,6 +222,7 @@ stages:
     jobs:
       - template: templates/job_x4xx_filesystem_test.yml
         parameters:
+          kas_subdirectory: ${{ parameters.kas_subdirectory }}
           dutMatrix:
             x410:
               dutEmbeddedImagesArtifact: 'x4xx-images'

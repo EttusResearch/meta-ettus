@@ -348,11 +348,6 @@ class EmbeddedTests(unittest.TestCase):
             ti.uboot.wait_for_uboot()
             ti.linux.login()
 
-    def test_mender_sanity(self):
-        with Titanium(FTDI_SERIAL) as ti:
-            boot_and_login(ti)
-            check_mender_config_sanity(ti)
-
 
 class MenderTests(unittest.TestCase):
     def test_mender_update(self):
