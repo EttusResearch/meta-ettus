@@ -15,7 +15,7 @@ def parse_kconfig():
             continue
         if line[0] == '#':
             continue
-        k, v = line.split('=')
+        k, v = line.split('=', 1)
         kconfig[k] = v
     print("done with kconfig parsing\n")
     return kconfig

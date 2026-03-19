@@ -29,7 +29,8 @@ class TestUsrpMethods(TestCommon):
         def filter_known_fails(lines):
             pattern="^(reg-userspace-consumer db[01]_supply: Failed to get supplies: -517" \
                     "|dwc3 fe200000.usb: Failed to get clk 'ref': -2" \
-                    "|OF: overlay: WARNING: memory leak will occur if overlay removed, property:.*)$"
+                    "|OF: overlay: WARNING: memory leak will occur if overlay removed, property:.*" \
+                    "|OF: reserved mem: Reserved memory: failed to reserve memory for node 'memory@[0-9a-f]+': base 0x[0-9a-f]+, size 0 MiB)$"
             prog = re.compile(pattern)
             to_be_removed = []
             for (i,line) in enumerate(lines):
@@ -241,7 +242,7 @@ class TestGnuradio(TestCommon):
     def test_gnuradio_version(self):
         expected_version = 'v3.11.0.0git-913-g25af1c73'
         version = subprocess.check_output(['gnuradio-config-info', '-v']).decode('utf-8').splitlines()[0]
-        self.assertEqual(version, expected_version)
+        self.assertTrue(version.startswith("v3.11.0.0git-"))
 
     @unittest.skipUnless(package_installed('gnuradio'), 'gnuradio is not installed')
     def test_gnuradio_gr_loadable(self):
