@@ -49,6 +49,9 @@ SRC_URI:prepend:ni-titanium = " \
     file://0040-Fix-Set-CONFIG_REMAKE_ELF-to-attach-dtb.patch \
     file://0041-board-ni-zynqmp-fix-overlay-name-format.patch \
     file://0042-Fix-Kernel-6.12-did-NOT-successfully.patch \
+    file://0008-board-ni-add-support-for-X440.patch \
+    file://0009-board-ni-fix-PS-dram-configuration.patch \
+    file://0010-board-ni-add-support-for-X420.patch \
     "
 
 DEPENDS += "${@bb.utils.contains('UBOOT_ENV_SUFFIX', 'scr', 'u-boot-mkimage-native', '', d)}"
