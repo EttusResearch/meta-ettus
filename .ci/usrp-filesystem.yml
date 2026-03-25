@@ -106,6 +106,10 @@ parameters:
   - name: post_targets
     type: string
     default: "uhd:do_run_tests"
+  - name: run_embedded_test
+    displayName: run embedded test
+    type: boolean
+    default: false
 
 resources:
   pipelines:
@@ -250,44 +254,45 @@ stages:
               machineName: x4xx
               agentDevice: sdr-test-x440-0
 
-- stage: filesystem_embedded_test
-  displayName: Run embedded test
-  dependsOn: build_meta_ettus
-  jobs:
-    - template: templates/job_filesystem_embedded_test.yml
-      parameters:
-        machines:
-          ${{ if parameters.build_e310_sg3 }}:
-            e310_sg3:
-              deviceType: e310_sg3
-              ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
-                machine: ni-e31x-sg3-mender
-              ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
-                machine: ni-e31x-sg3
-          ${{ if parameters.build_e320 }}:
-            e320:
-              deviceType: e320
-              ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
-                machine: ni-neon-rev2-mender
-              ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
-                machine: ni-neon-rev2
-          ${{ if parameters.build_n3xx }}:
-            n3xx:
-              deviceType: n3xx
-              ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
-                machine: ni-sulfur-rev11-mender
-              ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
-                machine: ni-sulfur-rev11
-          ${{ if parameters.build_x4xx }}:
-            x4xx:
-              deviceType: x4xx
-              ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
-                machine: ni-titanium-rev5-mender
-              ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
-                machine: ni-titanium-rev5
-        image: ${{ parameters.image }}
-        ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
-          image_ext: 'sdimg.bz2'
-        ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
-          image_ext: 'wic.xz'
-        flash_image: ${{ parameters.flash_image }}
+- ${{ if parameters.run_embedded_test }}:
+  - stage: filesystem_embedded_test
+    displayName: Run embedded test
+    dependsOn: build_meta_ettus
+    jobs:
+      - template: templates/job_filesystem_embedded_test.yml
+        parameters:
+          machines:
+            ${{ if parameters.build_e310_sg3 }}:
+              e310_sg3:
+                deviceType: e310_sg3
+                ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
+                  machine: ni-e31x-sg3-mender
+                ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
+                  machine: ni-e31x-sg3
+            ${{ if parameters.build_e320 }}:
+              e320:
+                deviceType: e320
+                ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
+                  machine: ni-neon-rev2-mender
+                ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
+                  machine: ni-neon-rev2
+            ${{ if parameters.build_n3xx }}:
+              n3xx:
+                deviceType: n3xx
+                ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
+                  machine: ni-sulfur-rev11-mender
+                ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
+                  machine: ni-sulfur-rev11
+            ${{ if parameters.build_x4xx }}:
+              x4xx:
+                deviceType: x4xx
+                ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
+                  machine: ni-titanium-rev5-mender
+                ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
+                  machine: ni-titanium-rev5
+          image: ${{ parameters.image }}
+          ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
+            image_ext: 'sdimg.bz2'
+          ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
+            image_ext: 'wic.xz'
+          flash_image: ${{ parameters.flash_image }}
