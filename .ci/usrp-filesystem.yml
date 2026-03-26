@@ -110,6 +110,14 @@ parameters:
     displayName: run embedded test
     type: boolean
     default: false
+  - name: create_sbom
+    displayName: Create SBOM
+    type: boolean
+    default: true
+  - name: sbom_cve_check
+    displayName: Enable CVE check when creating SBOM
+    type: boolean
+    default: false
 
 resources:
   pipelines:
@@ -160,6 +168,8 @@ stages:
         cache_downloads: ${{ and(parameters.cache_downloads, not(parameters.release_build)) }}
         use_custom_mender_prefix: ${{ parameters.use_custom_mender_prefix }}
         custom_mender_prefix: ${{ parameters.custom_mender_prefix }}
+        create_sbom: ${{ parameters.create_sbom }}
+        sbom_cve_check: ${{ parameters.sbom_cve_check }}
         machines:
           - ${{ if parameters.build_e310_sg1 }}:
             - e310_sg1
