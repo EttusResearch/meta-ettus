@@ -1,0 +1,37 @@
+From f4f101851d9f177b7a0bd3a61591528d61260fc8 Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Fri, 27 Mar 2026 09:27:52 +0100
+Subject: [PATCH] Add altbootcmd which was missing
+
+---
+ configs/ni_x410_rev4_defconfig | 1 +
+ configs/ni_x410_rev5_defconfig | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/configs/ni_x410_rev4_defconfig b/configs/ni_x410_rev4_defconfig
+index ebb8ad8b833..c2c43707079 100644
+--- a/configs/ni_x410_rev4_defconfig
++++ b/configs/ni_x410_rev4_defconfig
+@@ -78,6 +78,7 @@ CONFIG_SPL_DM_SEQ_ALIAS=y
+ # CONFIG_BLOCK_CACHE is not set
+ CONFIG_BOOTCOUNT_LIMIT=y
+ CONFIG_BOOTCOUNT_ENV=y
++CONFIG_BOOTCOUNT_ALTBOOTCMD="run mender_altbootcmd; run bootcmd"
+ CONFIG_CLK_ZYNQMP=y
+ CONFIG_DFU_RAM=y
+ CONFIG_FPGA_XILINX=y
+diff --git a/configs/ni_x410_rev5_defconfig b/configs/ni_x410_rev5_defconfig
+index 7f9910d2b44..277e35211f3 100644
+--- a/configs/ni_x410_rev5_defconfig
++++ b/configs/ni_x410_rev5_defconfig
+@@ -81,6 +81,7 @@ CONFIG_SPL_DM_SEQ_ALIAS=y
+ # CONFIG_BLOCK_CACHE is not set
+ CONFIG_BOOTCOUNT_LIMIT=y
+ CONFIG_BOOTCOUNT_ENV=y
++CONFIG_BOOTCOUNT_ALTBOOTCMD="run mender_altbootcmd; run bootcmd"
+ CONFIG_CLK_ZYNQMP=y
+ CONFIG_DFU_RAM=y
+ CONFIG_FPGA_XILINX=y
+-- 
+2.43.0
+

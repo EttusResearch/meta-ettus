@@ -33,6 +33,7 @@ MENDER_UBOOT_AUTO_CONFIGURE = "0"
 #   0011 - Renames CONFIG_MENDER_BOOTCOMMAND -> MENDER_BOOTCOMMAND in
 #           env_mender.h to avoid the "ad-hoc CONFIG_ option" Kconfig error.
 SRC_URI:append:ni-titanium-mender = " \
+    file://0001-Add-altbootcmd-which-was-missing.patch \
     file://0043-configs-ni_x410_rev5-add-redundant-env-for-Mender.patch \
     file://0010-x410-update-config-for-Mender.patch \
     file://0011-include-env_mender-rename-CONFIG_MENDER_BOOTCOMMAND.patch \
