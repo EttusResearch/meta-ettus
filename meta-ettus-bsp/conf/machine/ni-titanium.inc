@@ -1,5 +1,5 @@
 require conf/machine/ni-zynqmp.inc
-require conf/machine/include/arm/armv8a/tune-cortexa53.inc
+# require conf/machine/include/arm/armv8a/tune-cortexa53.inc
 
 MACHINEOVERRIDES = "zynqmp:ni-common:ni-titanium:${MACHINE}"
 MACHINE_FEATURES = "rtc ethernet ext2 ext3 vfat usbhost"
@@ -19,11 +19,7 @@ SPL_BINARY ?= "spl/boot.bin"
 PREFERRED_VERSION_u-boot ?= "2026.01%"
 
 PREFERRED_PROVIDER_virtual/arm-trusted-firmware = "arm-trusted-firmware"
-# TODO: check why newer versions of arm-trusted-firmware do not work:
-# with newer versions than 2.6-xilinx-v2022.2+git, U-Boot SPL (boot.bin)
-# is loaded but U-Boot (u-boot.itb) is not
-PREFERRED_VERSION_arm-trusted-firmware = "2.6-xilinx-v2022.2+git"
-# PREFERRED_VERSION_arm-trusted-firmware = "2.8-xilinx-v2023.1+git"
+PREFERRED_VERSION_arm-trusted-firmware = "2.8-xilinx-v2023.1+git"
 
 SERIAL_CONSOLES ?= "115200;ttyPS0"
 SERIAL_CONSOLES_CHECK ?= "${SERIAL_CONSOLES}"
@@ -50,8 +46,8 @@ KERNEL_DEVICETREE:ni-titanium ?= "\
 FIT_CONF_PREFIX = "conf@ni_"
 
 IMAGE_BOOT_FILES ?= "boot.bin ${UBOOT_BINARY} ${KERNEL_IMAGETYPE}"
-PMU_FIRMWARE_DEPLOY_DIR ?= "${TOPDIR}/tmp-xilinx/deploy/images/zynqmp-pmu"
-PMU_FIRMWARE_IMAGE_NAME ?= "pmu-firmware-zynqmp-pmu"
+# PMU_FIRMWARE_DEPLOY_DIR ?= "${TOPDIR}/tmp-xilinx/deploy/images/zynqmp-pmu"
+# PMU_FIRMWARE_IMAGE_NAME ?= "pmu-firmware-zynqmp-pmu"
 
 KERNEL_CLASSES += "kernel-fitimage"
 KERNEL_IMAGETYPE = "fitImage"
