@@ -137,7 +137,7 @@ def mender_update():
             dest_rootdev = ti.linux.mender_install(url)
 
         assert dest_rootdev in POSSIBLE_ROOTDEVS
-        ti.linux.reboot()
+        ti.linux.reboot(timeout_sec=350)
         ti.uboot.wait_for_uboot()
         ti.linux.login()
 
@@ -377,7 +377,7 @@ class MenderTests(unittest.TestCase):
                 dest_rootdev = ti.linux.mender_install(url)
 
             assert dest_rootdev in POSSIBLE_ROOTDEVS
-            ti.linux.reboot()
+            ti.linux.reboot(timeout_sec=350)
             ti.uboot.wait_for_uboot()
             ti.linux.login()
 
@@ -438,7 +438,7 @@ class MenderTests(unittest.TestCase):
             new_rootdev = ti.linux.get_root_dev()
             print("new rootdev: ", new_rootdev)
             assert orig_rootdev == new_rootdev
-
+            ti.linux.mender_rollback()
 
 def suite(test_class):
     def is_test(x):

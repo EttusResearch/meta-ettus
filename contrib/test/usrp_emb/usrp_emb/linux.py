@@ -49,10 +49,10 @@ class Linux:
         self.uart.sendline("poweroff")
         self.wait_for_power_down()
 
-    def reboot(self):
+    def reboot(self, timeout_sec=300):
         self.uart.sendline("reboot")
         old_timeout = self.uart.timeout
-        self.uart.timeout = 300
+        self.uart.timeout = timeout_sec
         self.uart.expect(["reboot: Restarting system", pexpect.EOF])
         self.uart.timeout = old_timeout
 
@@ -78,18 +78,39 @@ class Linux:
         old_timeout = self.uart.timeout
         self.uart.timeout = 600
         self.uart.sendline(f"mender install {url}")
-        self.uart.expect("Performing remote update from:")
-        self.uart.expect("Opening device \"([^\"]+)\" for writing")
-        target =  self.uart.match.group(1).decode('ascii')
-        self.uart.expect("All bytes were successfully written to the new partition")
-        self.uart.expect("At least one payload requested a reboot of the device it updated")
-        self.uart.expect("#")
+        client_type = self.uart.expect([
+            "Performing remote update from:",
+            "Installing artifact...",
+        ])
+        if client_type == 0:
+            # old mender client - target partition is printed in the log during install
+            self.uart.expect("Opening device \"([^\"]+)\" for writing")
+            target =  self.uart.match.group(1).decode('ascii')
+            self.uart.expect("All bytes were successfully written to the new partition")
+            self.uart.expect("At least one payload requested a reboot of the device it updated")
+            self.uart.expect("#")
+        else:  # client_type == 1
+            # new mender client: wait for ALL mender output + prompt before sending any command
+            self.uart.expect("Installed, but not committed.")
+            self.uart.expect("At least one payload requested a reboot of the device it updated")
+            self.uart.expect("#")  # mender has exited, shell is ready
+            self.uart.sendline("fw_printenv mender_boot_part")
+            self.uart.expect(r"mender_boot_part=(\d+)")
+            part_num = self.uart.match.group(1).decode('ascii')
+            target = f"/dev/mmcblk0p{part_num}"
+            self.uart.expect("#")
         self.uart.timeout = old_timeout
         return target
 
     def mender_commit(self):
         self.uart.sendline("mender commit")
-        self.uart.expect("Committing update")
+        self.uart.expect(["Committing update", "Committed."])
+        self.uart.expect("#")
+
+    def mender_rollback(self):
+        self.uart.sendline("mender rollback")
+        self.uart.expect(["Rolled back."])
+        self.uart.expect("#")
 
     def mount(self, dev, mountpoint):
         self.uart.sendline(f"mkdir -p {mountpoint} && echo OK")
