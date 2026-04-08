@@ -12,7 +12,7 @@ KERNEL_VERSION_SANITY_SKIP="1"
 
 LINUX_VERSION_EXTENSION = "-x4xx"
 SRC_URI:ni-titanium = "git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git;branch=${KBRANCH} \
-                       git://git.yoctoproject.org/yocto-kernel-cache;type=kmeta;name=meta;branch=yocto-5.10;destsuffix=${KMETA}"
+                       git://git.yoctoproject.org/yocto-kernel-cache;type=kmeta;name=meta;branch=yocto-5.10;destsuffix=${KMETA};protocol=https"
 COMPATIBLE_MACHINE:ni-titanium = "ni-titanium-rev2|ni-titanium-rev3|ni-titanium-rev4|ni-titanium-rev5"
 KMACHINE:ni-titanium = "ni-titanium"
 KMETA = "kernel-meta"

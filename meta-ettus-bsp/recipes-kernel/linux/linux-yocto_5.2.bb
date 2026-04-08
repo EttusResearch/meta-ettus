@@ -26,8 +26,8 @@ SRCREV_meta ?= "dd6019025cbb701b9818102f267c26e87031a59b"
 # remap qemuarm to qemuarma15 for the 5.2 kernel
 # Kmachine:qemuarm ?= "qemuarma15"
 
-SRC_URI = "git://git.yoctoproject.org/linux-yocto.git;name=machine;branch=${KBRANCH}; \
-           git://git.yoctoproject.org/yocto-kernel-cache;type=kmeta;name=meta;branch=yocto-5.2;destsuffix=${KMETA}"
+SRC_URI = "git://git.yoctoproject.org/linux-yocto;name=machine;branch=${KBRANCH};protocol=https \
+           git://git.yoctoproject.org/yocto-kernel-cache;type=kmeta;name=meta;branch=yocto-5.2;destsuffix=${KMETA};protocol=https"
 
 LIC_FILES_CHKSUM = "file://COPYING;md5=bbea815ee2795b2f4230826c0c6b8814"
 LINUX_VERSION ?= "5.2.28"
