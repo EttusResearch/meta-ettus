@@ -58,7 +58,7 @@ repos:
     #     repo: meta-ettus
     #     path: kas/patches/oe-core/0002-microblaze-tune-Allow-no-version-to-be-set.patch
   meta-security:
-    url: git://git.yoctoproject.org/meta-security
+    url: https://git.yoctoproject.org/meta-security
     commit: b9cf9cd639bc8d1b4828eb0bd012b71486d35176
     layers:
       meta-tpm:

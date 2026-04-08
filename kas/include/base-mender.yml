@@ -79,7 +79,7 @@ repos:
         repo: meta-ettus
         path: kas/patches/meta-mender/0002-systemd-don-t-set-SOURCE_DATE_EPOCH-to-0.patch
   meta-security:
-    url: git://git.yoctoproject.org/meta-security
+    url: https://git.yoctoproject.org/meta-security
     commit: b9cf9cd639bc8d1b4828eb0bd012b71486d35176
     layers:
       meta-tpm:
