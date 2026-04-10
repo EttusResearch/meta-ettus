@@ -122,7 +122,7 @@ class TestUsrpMethods(TestCommon):
         service_starting = False
         service_started = False
         for line in output.splitlines():
-            match = re.match("^\w{3} \d+ \d+\:\d+\:\d+ (\S+)\[\d+\]\: (.*)$", line)
+            match = re.match(r"^\w{3} \d+ \d+\:\d+\:\d+ (\S+)\[\d+\]\: (.*)$", line)
             if match:
                 systemd_module = match.group(1)
                 systemd_message = match.group(2)
@@ -132,7 +132,7 @@ class TestUsrpMethods(TestCommon):
                     elif systemd_message.startswith("Started"):
                         service_started = True
                 elif systemd_module == "usrp_hwd.py":
-                    match = re.match("\[(\S+)\] \[(\S+)\] (.*)$", systemd_message)
+                    match = re.match(r"\[(\S+)\] \[(\S+)\] (.*)$", systemd_message)
                     if match:
                         module = match.group(1)
                         level = match.group(2)
