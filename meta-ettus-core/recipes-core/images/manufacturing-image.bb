@@ -1,5 +1,5 @@
 DESCRIPTION = "Small image for use by manufacturing test. Includes tools for flashing eMMC and SD cards"
-PACKAGE_INSTALL = "packagegroup-core-boot bmaptool util-linux-lsblk"
+PACKAGE_INSTALL = "packagegroup-core-boot bmaptool util-linux-lsblk udev-machine-conf"
 
 IMAGE_FEATURES = "debug-tweaks"
 
@@ -21,7 +21,7 @@ COMPATIBLE_HOST = "aarch64-oe-linux|arm-oe-linux-gnueabi"
 # Remove this to reduce the end image size
 BAD_RECOMMENDATIONS = "udev-hwdb"
 
-ROOTFS_POSTPROCESS_COMMAND:remove = "mender_update_fstab_file;"
+ROOTFS_POSTPROCESS_COMMAND:remove = "mender_update_fstab_file"
 
 # remove .rootfs appendix
 IMAGE_NAME_SUFFIX = ""
