@@ -114,7 +114,7 @@ index 5bc52828285..8fc32381918 100644
 @@ -47,6 +52,11 @@
            "echo Loading FIT to RAM via DHCP/TFTP && " \
            "dhcp ${load_addr} ${tftproot}/${fit_image} && "\
-           "bootm ${load_addr}#conf@$ni_{variant}.dtb${overlays}\0" \
+           "bootm ${load_addr}#conf@ni_${variant}.dtb${overlays}\0" \
 +        "update_overlays=env set overlays \"\"; " \
 +           X410_UPDATE_OVERLAYS(db0) \
 +           X410_UPDATE_OVERLAYS(db1) \

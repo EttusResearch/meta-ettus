@@ -21,8 +21,8 @@ Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
  configs/ni_x410_rev3_defconfig |  2 +-
  include/configs/ni-x410-rev2.h | 20 +++++++++++++
  include/configs/ni-x410-rev3.h | 20 +++++++++++++
- include/configs/ni-x410.h      | 16 +++++-----
- 6 files changed, 104 insertions(+), 9 deletions(-)
+ include/configs/ni-x410.h      | 14 ++++++++------
+ 6 files changed, 103 insertions(+), 8 deletions(-)
  create mode 100644 include/configs/ni-x410-rev2.h
  create mode 100644 include/configs/ni-x410-rev3.h
 
@@ -213,16 +213,7 @@ index d74342809cb..2aed4030527 100644
          "swsync_disk=if test ${ec_disable_swsync} = 0; then " \
            "echo Copying MCU FW from ${disk_name} to RAM... && " \
            "run expand_ec_image; " \
-@@ -44,14 +46,14 @@
-         "netboot=run netargs && run swsync_net && " \
-           "echo Loading FIT to RAM via DHCP/TFTP && " \
-           "dhcp ${load_addr} ${tftproot}/${fit_image} && "\
--          "bootm ${load_addr}#conf@ni_${variant}.dtb${overlays}\0" \
-+          "bootm ${load_addr}#conf@$ni_{variant}.dtb${overlays}\0" \
-         "swsync_net=if test ${ec_disable_swsync} = 0; then " \
-           "echo Copying MCU FW to RAM via DHCP/TFTP... && " \
-           "run expand_ec_image; " \
-           "dhcp ${load_addr} ${tftproot}/${ec_image} && " \
+@@ -52,5 +54,5 @@
            "crosec swsync ${load_addr} ${filesize}; fi;\0" \
          "distro_bootcmd=run $modeboot\0" \
 -        "variant=" CONFIG_DEFAULT_DEVICE_TREE "\0"
