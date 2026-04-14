@@ -1,0 +1,39 @@
+targets:
+  main:
+    resources:
+    - USBSerialPort:
+        name: ps
+        match:
+          ID_SERIAL_SHORT: '${uartSerial}'
+          ID_USB_INTERFACE_NUM: '00'
+        speed: 115200
+    drivers:
+    - SerialDriver:
+        name: scu_console
+        bindings:
+          port: scu
+    - SerialDriver:
+        name: ps_console
+        bindings:
+          port: ps
+    - ChromiumEcPowerDriver:
+        bindings:
+          console: scu_console
+    - UBootDriver:
+        autoboot: "Enter 'noautoboot' to enter prompt without timeout"
+        interrupt: 'noautoboot'
+        prompt: 'ni-e31x-uboot> '
+        boot_command: 'if test $bootcount > $bootlimit; then run altbootcmd; else run bootcmd; fi'
+        bindings:
+          console: ps_console
+    - ShellDriver:
+        prompt: 'root@(ni-e31x-sg3|ni-e31x-sg3-mender|ni-e31x-[A-F0-9]+):~# '
+        login_prompt: '(ni-e31x-sg3|ni-e31x-sg3-mender|ni-e31x-[A-F0-9]+) login: '
+        username: root
+        bindings:
+          console: ps_console
+    - UBootStrategy:
+        bindings:
+          console: ps_console
+imports:
+- usrp_emb.custom_drivers.shellstoragedriver

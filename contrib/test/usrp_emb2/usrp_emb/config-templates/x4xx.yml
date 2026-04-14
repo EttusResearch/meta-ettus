@@ -1,0 +1,48 @@
+targets:
+  main:
+    resources:
+    - USBSerialPort:
+        name: scu
+        match:
+          ID_SERIAL_SHORT: '${uartSerial}'
+          ID_USB_INTERFACE_NUM: '02'
+        speed: 115200
+    - USBSerialPort:
+        name: ps
+        match:
+          ID_SERIAL_SHORT: '${uartSerial}'
+          ID_USB_INTERFACE_NUM: '03'
+        speed: 115200
+    drivers:
+    - SerialDriver:
+        name: scu_console
+        bindings:
+          port: scu
+    - SerialDriver:
+        name: ps_console
+        bindings:
+          port: ps
+    - ChromiumEcPowerDriver:
+        bindings:
+          console: scu_console
+    - UBootDriver:
+        autoboot: "Enter 'noautoboot' to enter prompt without timeout"
+        interrupt: 'noautoboot'
+        prompt: 'ZynqMP> '
+        boot_command: 'if test $bootcount > $bootlimit; then run altbootcmd; else run bootcmd; fi'
+        bindings:
+          console: ps_console
+    - ShellDriver:
+        prompt: 'root@(ni-titanium-rev[0-9]+]|ni-titanium-rev[0-9]+-mender|ni-x4xx-[A-F0-9]+):~# '
+        login_prompt: '(ni-titanium-rev[0-9]+|ni-titanium-rev[0-9]+-mender|ni-x4xx-[A-F0-9]+) login: '
+        username: root
+        post_login_settle_time: 4
+        login_timeout: 50
+        bindings:
+          console: ps_console
+    - UBootStrategy:
+        bindings:
+          console: ps_console
+imports:
+- usrp_emb.custom_drivers.chromiumecdriver
+- usrp_emb.custom_drivers.shellstoragedriver

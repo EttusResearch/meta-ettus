@@ -41,6 +41,8 @@ jobs:
       value: $[ stageDependencies.build_meta_ettus.build.result ]
     - name: runTests
       value: true
+    - name: lgConfigPath
+      value: '$(Agent.TempDirectory)/lg-config.yml'
 
   pool:
     name: de-dre-lab
@@ -85,6 +87,7 @@ jobs:
       source $(labgrid-venv)/bin/activate
       pip install --upgrade pip
       pip install $(Build.SourcesDirectory)/labgrid
+      pip install $(Build.SourcesDirectory)/contrib/usrp_emb2
     displayName: 'Setup labgrid-venv'
 
   - script: |
@@ -125,6 +128,13 @@ jobs:
     displayName: flash image
     condition: and(succeeded(), ${{ parameters.flash_image }})
 
+  - script: |
+      source $(labgrid-venv)/bin/activate
+      uartSerial=$(labgrid-client -p + get-tags | tr ' ' '\n' | grep '^uartSerial=' | cut -d= -f2)
+      echo "uartSerial=$uartSerial"
+      python -m usrp_emb -s "$uartSerial" -t $(deviceType) write_config -o "$(lgConfigPath)"
+    displayName: 'generate labgrid config'
+
   - ${{ each test in parameters.tests }}:
     - script: |
         source $(labgrid-venv)/bin/activate
@@ -135,7 +145,7 @@ jobs:
         else
           additional_args=""
         fi
-        pytest --junitxml=$(Common.TestResultsDirectory)/${{ test }}.xml --lg-env $(labgridClientConfigDir)/$(LG_PLACE).yaml $(Build.SourcesDirectory)/ettus-rts/labgrid/tests/${{ test }}.py -vv $(typeArgs) ${additional_args}
+        pytest --junitxml=$(Common.TestResultsDirectory)/${{ test }}.xml --lg-env $(lgConfigPath) $(Build.SourcesDirectory)/ettus-rts/labgrid/tests/${{ test }}.py -vv $(typeArgs) ${additional_args}
       displayName: run ${{ test }}
       condition: and(eq(variables.runTests, 'true'), not(canceled()))
 
