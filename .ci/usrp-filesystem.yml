@@ -131,11 +131,6 @@ resources:
       name: EttusResearch/ettus-rts
       ref: refs/heads/labgrid
       endpoint: EttusResearch
-    - repository: labgrid
-      type: github
-      name: joergho/labgrid
-      branch: master-ettus
-      endpoint: EttusResearch
 
 variables:
   - name: AUTO_CONF

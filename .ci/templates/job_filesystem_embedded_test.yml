@@ -51,7 +51,6 @@ jobs:
   steps:
   - checkout: self
   - checkout: ettus-rts
-  - checkout: labgrid
   - ${{ if parameters.flash_image }}:
     - download: current
       artifact: $(deviceType)-images
