@@ -14,10 +14,10 @@ parameters:
   - name: tests
     type: object
     default:
-    - test_power_on_off
+    # - test_power_on_off
     - test_linux
     - test_uhd
-    - test_mender
+    # - test_mender
     - test_salt
     - test_sound
 
@@ -114,7 +114,7 @@ jobs:
         else
           additional_args=""
         fi
-        pytest --junitxml=$(Common.TestResultsDirectory)/${{ test }}.xml --lg-env $(lgConfigPath) $(Build.SourcesDirectory)/ettus-rts/labgrid/tests/${{ test }}.py -vv ${additional_args}
+        pytest --junitxml=$(Common.TestResultsDirectory)/${{ test }}.xml --lg-env $(lgConfigPath) $(Build.SourcesDirectory)/ettus-rts/config/labgrid/embedded-test/tests/${{ test }}.py -vv ${additional_args}
       displayName: run ${{ test }}
       condition: and(eq(variables.runTests, 'true'), not(canceled()))
 

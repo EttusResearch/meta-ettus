@@ -129,7 +129,7 @@ resources:
     - repository: ettus-rts
       type: github
       name: EttusResearch/ettus-rts
-      ref: refs/heads/labgrid
+      ref: refs/heads/master
       endpoint: EttusResearch
 
 variables:
