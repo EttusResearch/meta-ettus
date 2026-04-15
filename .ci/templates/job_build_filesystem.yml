@@ -190,6 +190,13 @@ jobs:
             path: $(CCACHE_DIR)
 
       - script: |
+          set -e
+          wget http://http.us.debian.org/debian/pool/main/n/ncurses/libtinfo5_6.4-4_amd64.deb
+          echo "SHA256 (libtinfo5_6.4-4_amd64.deb) = dd347f794e651039e7b4c391f86c674fed7f415b3dca6b0937beb0d470f09c1a" | sha256sum -c -
+          sudo dpkg -i libtinfo5_6.4-4_amd64.deb
+        displayName: install libtinfo5
+
+      - script: |
           rm $(Agent.BuildDirectory)/site.conf
           touch $(Agent.BuildDirectory)/site.conf
         displayName: create site.conf
