@@ -43,6 +43,9 @@ targets:
     - UBootStrategy:
         bindings:
           console: ps_console
+    options:
+      type: x4xx
+      product: x410
 imports:
 - usrp_emb.custom_drivers.chromiumecdriver
 - usrp_emb.custom_drivers.shellstoragedriver

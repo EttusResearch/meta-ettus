@@ -35,5 +35,8 @@ targets:
     - UBootStrategy:
         bindings:
           console: ps_console
+    options:
+      type: e31x
+      product: e310_sg1
 imports:
 - usrp_emb.custom_drivers.shellstoragedriver

@@ -44,6 +44,9 @@ targets:
     - UBootStrategy:
         bindings:
           console: ps_console
+    options:
+      type: n3xx
+      product: n310
 imports:
 - usrp_emb.custom_drivers.chromiumecdriver
 - usrp_emb.custom_drivers.shellstoragedriver
