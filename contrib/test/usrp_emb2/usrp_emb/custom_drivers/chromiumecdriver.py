@@ -21,8 +21,8 @@ class ChromiumEcPowerDriver(Driver, PowerResetMixin, PowerProtocol):
     cycle_mode = attr.ib(default="reboot", validator=attr.validators.instance_of(str))
     reboot_autostart = attr.ib(default=False, validator=attr.validators.instance_of(bool))
     watchdog_workaround = attr.ib(default=False, validator=attr.validators.instance_of(bool))
-    default_timeout = attr.ib(default=2, validator=attr.validators.instance_of(int))
-    on_timeout = attr.ib(default=2, validator=attr.validators.instance_of(int))
+    default_timeout = attr.ib(default=10, validator=attr.validators.instance_of(int))
+    on_timeout = attr.ib(default=10, validator=attr.validators.instance_of(int))
 
     def __attrs_post_init__(self):
         super().__attrs_post_init__()
