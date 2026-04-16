@@ -107,14 +107,15 @@ jobs:
   - ${{ each test in parameters.tests }}:
     - script: |
         source $(labgrid-venv)/bin/activate
-        pip install -r $(Build.SourcesDirectory)/ettus-rts/labgrid/tests/requirements.txt
+        cd $(Build.SourcesDirectory)/ettus-rts/config/remote/embedded_tests
+        pip install -r requirements.txt
         export PYTEST_ADDOPTS="--color=yes"
         if [ "${{ test }}" = "test_mender" ]; then
           additional_args="--mender=$(MenderPath)"
         else
           additional_args=""
         fi
-        pytest --junitxml=$(Common.TestResultsDirectory)/${{ test }}.xml --lg-env $(lgConfigPath) $(Build.SourcesDirectory)/ettus-rts/config/labgrid/embedded-test/tests/${{ test }}.py -vv ${additional_args}
+        pytest --junitxml=$(Common.TestResultsDirectory)/${{ test }}.xml --lg-env $(lgConfigPath) ${{ test }}.py -vv ${additional_args}
       displayName: run ${{ test }}
       condition: and(eq(variables.runTests, 'true'), not(canceled()))
 
