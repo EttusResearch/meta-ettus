@@ -26,14 +26,17 @@ repos:
     commit: e44e4a3b4abe9cc5fdfe75c43181ba82750f6865
   meta-arm:
     url: https://git.yoctoproject.org/meta-arm
-    commit: 8e0f8af90fefb03f08cd2228cde7a89902a6b37c
+    commit: a81c19915b5b9e71ed394032e9a50fd06919e1cd # tag: yocto-5.0.3
     layers:
       meta-arm:
       meta-arm-toolchain:
   meta-xilinx:
     url: https://github.com/Xilinx/meta-xilinx
-    commit: 5edb50aaf6b09b3aa02af3d6bad560dc66f6d757
+    commit: f24f5dde78fe9a8a30d56f0ee6699bed29f21bcf # tag: xlnx-rel-v2025.1
     layers:
       meta-xilinx-core:
       meta-xilinx-bsp:
       meta-xilinx-standalone:
+  meta-xilinx-tools:
+    url: https://github.com/Xilinx/meta-xilinx-tools
+    commit: 982572c8efe0070b198ed162c0a3f268b4a15d4a # tag: xlnx-rel-v2025.1
