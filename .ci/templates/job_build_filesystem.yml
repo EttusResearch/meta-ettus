@@ -102,7 +102,10 @@ jobs:
               pre_targets: ${{ parameters.pre_targets }}
             ${{ else }}:
               pre_targets: --parse-only
-            post_targets: ${{ parameters.post_targets }}
+            ${{ if length(trim(parameters.post_targets)) }}:
+              post_targets: ${{ parameters.post_targets }}
+            ${{ else }}:
+              post_targets: --parse-only
     pool:
       name: Drivers-NIBuildFarm-RFMIBuild
       demands:
