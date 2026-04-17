@@ -579,3 +579,5 @@ do_zynq_platform_init:ni-titanium() {
 }
 
 addtask deploy before do_build after do_compile
+
+SYSROOT_DIRS:append:ni-titanium = " /uboot"
