@@ -47,10 +47,10 @@ class ChromiumEcPowerDriver(Driver, PowerResetMixin, PowerProtocol):
 
     def off(self):
         self.console.sendline("apshutdown")
-        time.sleep(self.on_timeout)
+        time.sleep(2*self.default_timeout)
         self.console.sendline("powerinfo")
         self.console.expect("power state 0 = G3", self.default_timeout)
-        time.sleep(11)
+        time.sleep(2*self.default_timeout)
         self.console.sendline("powerinfo")
         self.console.expect("power state 0 = G3", self.default_timeout)
 
