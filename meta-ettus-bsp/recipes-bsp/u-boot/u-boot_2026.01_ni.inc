@@ -538,7 +538,15 @@ do_compile:prepend:ni-titanium() {
 
 do_install:append:ni-titanium() {
     mv ${D}/boot ${D}/uboot
+    mkdir -p ${D}/boot/devicetree
+    cp ${B}/dts/dt.dtb ${D}/boot/system.dtb
+    cp ${B}/dts/dt.dtb ${D}/boot/devicetree/system-top.dtb
 }
+
+PACKAGES:append:ni-titanium = " ${PN}-devicetree"
+
+FILES:${PN}-devicetree = "/boot/system.dtb /boot/devicetree/system-top.dtb"
+PROVIDES:append:ni-titanium = " virtual/dtb"
 
 CROS_EC_DEPLOY_DIR_IMAGE:ni-titanium ?= "${TOPDIR}/tmp-stm32-baremetal/deploy/images/ni-titanium-ec-rev5"
 python __anonymous() {

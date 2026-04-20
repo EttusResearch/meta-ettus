@@ -5,6 +5,7 @@ MACHINEOVERRIDES = "zynqmp:ni-common:ni-titanium:${MACHINE}"
 MACHINE_FEATURES = "rtc ethernet ext2 ext3 vfat usbhost"
 
 PREFERRED_PROVIDER_virtual/bootloader = "u-boot"
+PREFERRED_PROVIDER_virtual/dtb = "u-boot"
 
 UBOOT_SUFFIX:zynqmp ?= "itb"
 UBOOT_BINARY ?= "u-boot.${UBOOT_SUFFIX}"
