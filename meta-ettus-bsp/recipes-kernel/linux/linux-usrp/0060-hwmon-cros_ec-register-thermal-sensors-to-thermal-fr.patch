@@ -1,0 +1,40 @@
+From 2d52fd1565cc15c750d70d3d8ece178d00dfa179 Mon Sep 17 00:00:00 2001
+From: "Sung-Chi, Li" <lschyi@chromium.org>
+Date: Wed, 13 Nov 2024 10:39:51 +0800
+Subject: [PATCH 060/110] hwmon: (cros_ec) register thermal sensors to thermal
+ framework
+
+cros_ec hwmon driver probes available thermal sensors when probing the
+driver.  Register these thermal sensors to the thermal framework as well
+via setting HWMON_C_REGISTER_TZ as a chip info, such that thermal
+framework can adopt these sensors as well.
+
+To make cros_ec registrable to thermal framework, the cros_ec dts need
+the corresponding changes:
+
+&cros_ec {
+	#thermal-sensor-cells = <1>;
+};
+
+Signed-off-by: Sung-Chi, Li <lschyi@chromium.org>
+Message-ID: <20241113024000.3327161-1-lschyi@chromium.org>
+Signed-off-by: Guenter Roeck <linux@roeck-us.net>
+---
+ drivers/hwmon/cros_ec_hwmon.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/hwmon/cros_ec_hwmon.c b/drivers/hwmon/cros_ec_hwmon.c
+index 5514cf780b8be..9991c3fa020ac 100644
+--- a/drivers/hwmon/cros_ec_hwmon.c
++++ b/drivers/hwmon/cros_ec_hwmon.c
+@@ -141,6 +141,7 @@ static umode_t cros_ec_hwmon_is_visible(const void *data, enum hwmon_sensor_type
+ }
+ 
+ static const struct hwmon_channel_info * const cros_ec_hwmon_info[] = {
++	HWMON_CHANNEL_INFO(chip, HWMON_C_REGISTER_TZ),
+ 	HWMON_CHANNEL_INFO(fan,
+ 			   HWMON_F_INPUT | HWMON_F_FAULT,
+ 			   HWMON_F_INPUT | HWMON_F_FAULT,
+-- 
+2.43.0
+

@@ -1,0 +1,352 @@
+From dbc2ab08a55a49d6820480e877335ccd5f75f9ae Mon Sep 17 00:00:00 2001
+From: Ravikanth Tuniki <ravikanth.tuniki@amd.com>
+Date: Mon, 6 Jan 2025 22:45:05 -1200
+Subject: [PATCH 095/110] net: axienet: Add Page allocation/deallocation for
+ GRO
+
+GRO Supports for 15 queues, so allocate/deallocate page for received
+packet descriptors of each queue.
+
+Signed-off-by: Ravikanth Tuniki <ravikanth.tuniki@amd.com>
+Signed-off-by: Suraj Gupta <suraj.gupta2@amd.com>
+Reviewed-by: Radhey Shyam Pandey <radhey.shyam.pandey@amd.com>
+State: pending
+Message-ID: <20250107104507.359136-28-suraj.gupta2@amd.com>
+---
+ drivers/net/ethernet/xilinx/xilinx_axienet.h  |   2 +
+ .../net/ethernet/xilinx/xilinx_axienet_eoe.c  | 123 ++++++++++++++++++
+ .../net/ethernet/xilinx/xilinx_axienet_eoe.h  |  56 ++++++++
+ .../net/ethernet/xilinx/xilinx_axienet_main.c |   5 +-
+ .../ethernet/xilinx/xilinx_axienet_mcdma.c    |  53 +++++---
+ 5 files changed, 217 insertions(+), 22 deletions(-)
+
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet.h b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+index bf032dced4124..029dc5fb28a10 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet.h
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+@@ -989,6 +989,7 @@ struct skbuf_dma_descriptor {
+  * @restart_work: delayable work queue.
+  * @eoe_regs: Ethernet offload IP base address.
+  * @eoe_connected: Tells whether ethernet offload IP is connected to Ethernet IP.
++ * @eoe_features: EOE IP supported configuration.
+  */
+ struct axienet_local {
+ 	struct net_device *ndev;
+@@ -1103,6 +1104,7 @@ struct axienet_local {
+ 	struct delayed_work restart_work;
+ 	void __iomem *eoe_regs;
+ 	bool eoe_connected;
++	u32 eoe_features;
+ };
+ 
+ /**
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.c b/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.c
+index 75c13e2a8bbf3..417e9bbe2c766 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.c
+@@ -46,3 +46,126 @@ int axienet_eoe_probe(struct platform_device *pdev)
+ 
+ 	return 0;
+ }
++
++static inline int axienet_eoe_packet_header_length(struct sk_buff *skb)
++{
++	u32 hdr_len = skb_mac_header_len(skb) + skb_network_header_len(skb);
++
++	if (skb->sk->sk_protocol == IPPROTO_UDP)
++		hdr_len += sizeof(struct udphdr);
++	else if (skb->sk->sk_protocol == IPPROTO_TCP)
++		hdr_len += tcp_hdrlen(skb);
++
++	return hdr_len;
++}
++
++void axienet_eoe_config_hwcso(struct net_device *ndev,
++			      struct aximcdma_bd *cur_p)
++{
++	/* 1) When total length < MSS, APP0 can be made all 0's and no need to program
++	 * valid values on other fields except bits 8 to 11 in APP1
++	 * 2) When APP0 is all 0's, the total length is assumed to be less than the MSS
++	 * size
++	 * 3) Bit 9(checksum offload) must be 0 to calculate checksum on segmented
++	 * packets.
++	 */
++	cur_p->app1 |= (ndev->mtu << XMCDMA_APP1_MSS_SIZE_SHIFT) &
++			XMCDMA_APP1_MSS_SIZE_MASK;
++
++	cur_p->app1 |= (XMCDMA_APP1_GSO_PKT_MASK |
++			XMCDMA_APP1_UDP_SO_MASK |
++			XMCDMA_APP1_TCP_SO_MASK);
++}
++
++void axienet_eoe_config_hwgso(struct net_device *ndev,
++			      struct sk_buff *skb,
++			      struct aximcdma_bd *cur_p)
++{
++	/* 1) Total length, MSS, Header length has to be filled out correctly. There is
++	 * no error checking mechanism in the code. Code blindly believes in this
++	 * information for segmentation.
++	 * 2) When total length < MSS, APP0 can be made all 0's and no need to program
++	 * valid values on other fields except bits 8 to 11 in APP1
++	 * 3) When APP0 is all 0's, the total length is assumed to be less than the MSS
++	 * size and no segmentation will be performed
++	 * 4) TCP segmentation is performed when bit 10 (TCP segmentation offload) and
++	 * bit 8(is GSO packet) are 0's in APP1. Otherwise the packets are bypassed.
++	 * 5) UDP segmentation is performed when bit 11 (UDP segmentation offload) and
++	 * bit 8(is GSO packet) are 0's in APP1.Otherwise the packets are bypassed.
++	 * 6) Bit 9(checksum offload) must be 0 to calculate checksum on segmented
++	 * packets.
++	 */
++	cur_p->app1 = (ndev->mtu << XMCDMA_APP1_MSS_SIZE_SHIFT) &
++		       XMCDMA_APP1_MSS_SIZE_MASK;
++
++	if (skb_shinfo(skb)->gso_size) {
++		cur_p->app0 = (skb->len - XAE_HDR_SIZE) & XMCDMA_APP0_TOTAL_PKT_LEN_MASK;
++		cur_p->app0 |= (axienet_eoe_packet_header_length(skb) <<
++				XMCDMA_APP0_PKT_HEAD_LEN_SHIFT) &
++				XMCDMA_APP0_PKT_HEAD_LEN_MASK;
++
++		if (skb_shinfo(skb)->gso_type == SKB_GSO_UDP_L4)
++			cur_p->app1 |= XMCDMA_APP1_TCP_SO_MASK;
++		else if (skb_shinfo(skb)->gso_type == SKB_GSO_TCPV4)
++			cur_p->app1 |= XMCDMA_APP1_UDP_SO_MASK;
++
++	} else {
++		cur_p->app1 |= (XMCDMA_APP1_GSO_PKT_MASK | XMCDMA_APP1_UDP_SO_MASK |
++				XMCDMA_APP1_TCP_SO_MASK);
++	}
++}
++
++int __maybe_unused axienet_eoe_mcdma_gro_q_init(struct net_device *ndev,
++						struct axienet_dma_q *q,
++						int i)
++{
++	dma_addr_t mapping;
++	struct page *page;
++
++	page = alloc_pages(GFP_KERNEL, 0);
++	if (!page) {
++		netdev_err(ndev, "page allocation failed\n");
++		goto out;
++	}
++	q->rxq_bd_v[i].page = page;
++	mapping = dma_map_page(ndev->dev.parent, page, 0,
++			       PAGE_SIZE, DMA_FROM_DEVICE);
++	if (unlikely(dma_mapping_error(ndev->dev.parent, mapping))) {
++		netdev_err(ndev, "dma mapping error\n");
++		goto free_page;
++	}
++	q->rxq_bd_v[i].phys = mapping;
++	q->rxq_bd_v[i].cntrl = PAGE_SIZE;
++
++	return 0;
++
++free_page:
++	__free_pages(q->rxq_bd_v[i].page, 0);
++out:
++	return -ENOMEM;
++}
++
++void __maybe_unused axienet_eoe_mcdma_gro_bd_free(struct net_device *ndev,
++						  struct axienet_dma_q *q)
++{
++	struct axienet_local *lp = netdev_priv(ndev);
++	int i;
++
++	if (!q->rxq_bd_v)
++		return;
++
++	for (i = 0; i < lp->rx_bd_num; i++) {
++		if (q->rxq_bd_v[i].phys) {
++			dma_unmap_page(ndev->dev.parent, q->rxq_bd_v[i].phys, PAGE_SIZE,
++				       DMA_FROM_DEVICE);
++			__free_pages(q->rxq_bd_v[i].page, 0);
++		}
++	}
++
++	dma_free_coherent(ndev->dev.parent,
++			  sizeof(*q->rxq_bd_v) * lp->rx_bd_num,
++			  q->rxq_bd_v,
++			  q->rx_bd_p);
++
++	q->rxq_bd_v = NULL;
++}
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.h b/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.h
+index 01fa986e54a71..84885c21e48ca 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.h
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.h
+@@ -10,13 +10,69 @@
+ 
+ #include "xilinx_axienet.h"
+ 
++/* UDP Tx : GSO- Generic Segmentation offload APP0/APP1 HW offset */
++#define XMCDMA_APP0_TOTAL_PKT_LEN_MASK	GENMASK(23, 0)
++#define XMCDMA_APP0_PKT_HEAD_LEN_MASK	GENMASK(31, 24)
++#define XMCDMA_APP0_PKT_HEAD_LEN_SHIFT	24
++
++#define XMCDMA_APP1_MSS_SIZE_MASK	GENMASK(29, 16)
++#define XMCDMA_APP1_UDP_SO_MASK		BIT(11)
++#define XMCDMA_APP1_TCP_SO_MASK		BIT(10)
++#define XMCDMA_APP1_CSO_MASK		BIT(9)
++#define XMCDMA_APP1_GSO_PKT_MASK	BIT(8)
++
++#define XMCDMA_APP1_MSS_SIZE_SHIFT	16
++
++#define XEOE_UDP_NON_GRO_CHAN_ID	1
++
++/* EOE Features */
++#define RX_HW_NO_OFFLOAD		BIT(0)
++#define RX_HW_CSO			BIT(1)
++#define RX_HW_UDP_GRO			BIT(2)
++
+ #ifdef CONFIG_XILINX_AXI_EOE
+ int axienet_eoe_probe(struct platform_device *pdev);
++void axienet_eoe_config_hwcso(struct net_device *ndev,
++			      struct aximcdma_bd *cur_p);
++void axienet_eoe_config_hwgso(struct net_device *ndev,
++			      struct sk_buff *skb,
++			      struct aximcdma_bd *cur_p);
++int __maybe_unused axienet_eoe_mcdma_gro_q_init(struct net_device *ndev,
++						struct axienet_dma_q *q,
++						int i);
++void __maybe_unused axienet_eoe_mcdma_gro_bd_free(struct net_device *ndev,
++						  struct axienet_dma_q *q);
+ #else
+ static inline int axienet_eoe_probe(struct platform_device *pdev)
+ {
+ 	return -ENODEV;
+ }
++
++static inline void axienet_eoe_config_hwcso(struct net_device *ndev,
++					    struct aximcdma_bd *cur_p)
++{ }
++
++static inline void axienet_eoe_config_hwgso(struct net_device *ndev,
++					    struct sk_buff *skb,
++					    struct aximcdma_bd *cur_p)
++{ }
++
++static inline int __maybe_unused axienet_eoe_mcdma_gro_q_init(struct net_device *ndev,
++							      struct axienet_dma_q *q,
++							      int i)
++{
++	return 0;
++}
++
++static inline void __maybe_unused axienet_eoe_mcdma_gro_bd_free(struct net_device *ndev,
++								struct axienet_dma_q *q)
++{ }
+ #endif
+ 
++static inline bool axienet_eoe_is_channel_gro(struct axienet_local *lp,
++					      struct axienet_dma_q *q)
++{
++	return ((lp->eoe_features & RX_HW_UDP_GRO) && q->chan_id != XEOE_UDP_NON_GRO_CHAN_ID);
++}
++
+ #endif /* XILINX_AXIENET_EOE_H */
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+index b9b7f4c5d6d6b..ca6fcc26d8d79 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+@@ -246,7 +246,10 @@ void axienet_dma_bd_release(struct net_device *ndev)
+ #endif
+ 	for_each_rx_dma_queue(lp, i) {
+ #ifdef CONFIG_AXIENET_HAS_MCDMA
+-		axienet_mcdma_rx_bd_free(ndev, lp->dq[i]);
++		if (axienet_eoe_is_channel_gro(lp, lp->dq[i]))
++			axienet_eoe_mcdma_gro_bd_free(ndev, lp->dq[i]);
++		else
++			axienet_mcdma_rx_bd_free(ndev, lp->dq[i]);
+ #else
+ 		axienet_bd_free(ndev, lp->dq[i]);
+ #endif
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_mcdma.c b/drivers/net/ethernet/xilinx/xilinx_axienet_mcdma.c
+index 462cb1e1a81f4..92c85b6fd4589 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_mcdma.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_mcdma.c
+@@ -23,6 +23,7 @@
+ #include <linux/platform_device.h>
+ 
+ #include "xilinx_axienet.h"
++#include "xilinx_axienet_eoe.h"
+ 
+ struct axienet_stat {
+ 	const char *name;
+@@ -261,6 +262,7 @@ int __maybe_unused axienet_mcdma_rx_q_init(struct net_device *ndev,
+ 	struct sk_buff *skb;
+ 	struct axienet_local *lp = netdev_priv(ndev);
+ 	dma_addr_t mapping;
++	int ret;
+ 
+ 	q->rx_bd_ci = 0;
+ 	q->rx_offset = XMCDMA_CHAN_RX_OFFSET;
+@@ -276,27 +278,33 @@ int __maybe_unused axienet_mcdma_rx_q_init(struct net_device *ndev,
+ 				      sizeof(*q->rxq_bd_v) *
+ 				      ((i + 1) % lp->rx_bd_num);
+ 
+-		skb = netdev_alloc_skb(ndev, lp->max_frm_size);
+-		if (!skb)
+-			goto out;
+-
+-		/* Ensure that the skb is completely updated
+-		 * prio to mapping the DMA
+-		 */
+-		wmb();
+-
+-		q->rxq_bd_v[i].sw_id_offset = (phys_addr_t)skb;
+-		mapping = dma_map_single(ndev->dev.parent,
+-					 skb->data,
+-					 lp->max_frm_size,
+-					 DMA_FROM_DEVICE);
+-		if (unlikely(dma_mapping_error(ndev->dev.parent, mapping))) {
+-			dev_err(&ndev->dev, "mcdma map error\n");
+-			goto out;
++		if (axienet_eoe_is_channel_gro(lp, q)) {
++			ret = axienet_eoe_mcdma_gro_q_init(ndev, q, i);
++			if (ret)
++				goto out;
++		} else {
++			skb = netdev_alloc_skb(ndev, lp->max_frm_size);
++			if (!skb)
++				goto out;
++
++			/* Ensure that the skb is completely updated
++			 * prior to mapping the DMA
++			 */
++			wmb();
++
++			q->rxq_bd_v[i].sw_id_offset = (phys_addr_t)skb;
++			mapping = dma_map_single(ndev->dev.parent,
++						 skb->data,
++						 lp->max_frm_size,
++						 DMA_FROM_DEVICE);
++			if (unlikely(dma_mapping_error(ndev->dev.parent, mapping))) {
++				dev_err(&ndev->dev, "mcdma map error\n");
++				goto out;
++			}
++
++			mcdma_desc_set_phys_addr(lp, mapping, &q->rxq_bd_v[i]);
++			q->rxq_bd_v[i].cntrl = lp->max_frm_size;
+ 		}
+-
+-		mcdma_desc_set_phys_addr(lp, mapping, &q->rxq_bd_v[i]);
+-		q->rxq_bd_v[i].cntrl = lp->max_frm_size;
+ 	}
+ 
+ 	/* Start updating the Rx channel control register */
+@@ -340,7 +348,10 @@ int __maybe_unused axienet_mcdma_rx_q_init(struct net_device *ndev,
+ 
+ out:
+ 	for_each_rx_dma_queue(lp, i) {
+-		axienet_mcdma_rx_bd_free(ndev, lp->dq[i]);
++		if (axienet_eoe_is_channel_gro(lp, lp->dq[i]))
++			axienet_eoe_mcdma_gro_bd_free(ndev, lp->dq[i]);
++		else
++			axienet_mcdma_rx_bd_free(ndev, lp->dq[i]);
+ 	}
+ 	return -ENOMEM;
+ }
+-- 
+2.43.0
+

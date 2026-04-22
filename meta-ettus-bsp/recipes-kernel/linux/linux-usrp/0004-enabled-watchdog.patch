@@ -1,0 +1,25 @@
+From 9c6e7bc2e35c3710637a920c0f990fcc99866c44 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Wed, 28 Aug 2024 11:10:42 +0000
+Subject: [PATCH 004/110] enabled watchdog
+
+---
+ arch/arm/boot/dts/zynq-e3xx.dtsi | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/arch/arm/boot/dts/zynq-e3xx.dtsi b/arch/arm/boot/dts/zynq-e3xx.dtsi
+index 13afbe55955a7..57987b4fef29e 100644
+--- a/arch/arm/boot/dts/zynq-e3xx.dtsi
++++ b/arch/arm/boot/dts/zynq-e3xx.dtsi
+@@ -136,3 +136,8 @@ &usb0 {
+ 	dr_mode = "host";
+ 	usb-phy = <&usb_phy0>;
+ };
++
++&watchdog0 {
++        status = "okay";
++        reset-on-timeout;
++};
+-- 
+2.43.0
+

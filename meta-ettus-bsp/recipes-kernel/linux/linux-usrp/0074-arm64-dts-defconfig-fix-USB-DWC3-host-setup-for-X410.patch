@@ -1,0 +1,87 @@
+From 6b9f72ac24ff44d96ee0cde27b1c46ff34318d29 Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Thu, 19 Mar 2026 16:26:49 +0100
+Subject: [PATCH 074/110] arm64: dts/defconfig: fix USB DWC3 host setup for
+ X410 on kernel 6.12
+
+The DWC3 core properties must be placed on the inner snps,dwc3 child
+node (&dwc3_0), not the USB wrapper node (&usb0), as required by the
+6.12 DT binding. Additionally, the TUSB320 Type-C mux is not populated
+on X410 hardware, so configure host-only mode.
+
+- Separate &usb0 and &dwc3_0 DTS nodes per the 6.12 binding requirement
+- Set dr_mode = "host"; remove extcon reference to the absent TUSB320
+- Disable tusb320@61 (chip not populated on X410 hardware)
+- Comment out quirk properties renamed/removed in 6.12
+- usrp_defconfig: enable CONFIG_USB_DWC3_XILINX and CONFIG_TYPEC
+
+Signed-off-by: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+---
+ arch/arm64/boot/dts/ni/x410-rev2.dts | 21 ++++++++++++++-------
+ arch/arm64/configs/usrp_defconfig    |  2 ++
+ 2 files changed, 16 insertions(+), 7 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/ni/x410-rev2.dts b/arch/arm64/boot/dts/ni/x410-rev2.dts
+index e1f8391be8033..ee06c7ac76bd6 100644
+--- a/arch/arm64/boot/dts/ni/x410-rev2.dts
++++ b/arch/arm64/boot/dts/ni/x410-rev2.dts
+@@ -434,7 +434,7 @@ i2c@5 {
+ 			#size-cells = <0>;
+ 			reg = <5>;
+ 			typec_otg: tusb320@61 {
+-				status = "okay";
++				status = "disabled"; /* chip not populated on X410 hardware */
+ 				compatible = "ti,tusb320";
+ 				reg = <0x61>;
+ 				interrupt-parent = <&gpio>;
+@@ -580,14 +580,21 @@ phy0: phy@7 {
+ 
+ &usb0 {
+ 	status = "okay";
++};
++
++/* DWC3 core: properties must go on the inner snps,dwc3 child node */
++&dwc3_0 {
++	status = "okay";
++	/* TUSB320 Type-C mux not populated on X410 hardware; use host-only mode */
++	dr_mode = "host";
+ 	maximum-speed = "high-speed";
+ 	snps,quirk-frame-length-adjustment = <0x20>;
+-	snps,refclk_fladj;
+-	snps,enable_guctl1_resume_quirk;
+-	snps,enable_guctl1_ipd_quirk;
+-	snps,xhci-stream-quirk;
+-	extcon = <&typec_otg>;
+-	dr_mode = "otg";
++	/* snps,refclk_fladj enables GFLADJ_REFCLK_FLADJ field update (Xilinx quirk) */
++/*	snps,refclk_fladj; */
++	/* snps,resume-hs-terminations is the upstream name for GUCTL1 bit 10 (was snps,enable_guctl1_resume_quirk) */
++/*	snps,resume-hs-terminations; */
++	/* snps,enable_guctl1_ipd_quirk enables GUCTL1 bit 9 to fix IPD for VIA-LAB hubs (Xilinx quirk) */
++/*	snps,enable_guctl1_ipd_quirk; */
+ };
+ 
+ &gpio {
+diff --git a/arch/arm64/configs/usrp_defconfig b/arch/arm64/configs/usrp_defconfig
+index da4ce904be17e..1014de78e65e5 100644
+--- a/arch/arm64/configs/usrp_defconfig
++++ b/arch/arm64/configs/usrp_defconfig
+@@ -255,6 +255,7 @@ CONFIG_USB_OHCI_HCD=y
+ CONFIG_USB_STORAGE=y
+ CONFIG_USB_UAS=y
+ CONFIG_USB_DWC3=y
++CONFIG_USB_DWC3_XILINX=y
+ CONFIG_USB_DWC3_ULPI=y
+ CONFIG_USB_SERIAL=y
+ CONFIG_USB_SERIAL_CONSOLE=y
+@@ -263,6 +264,7 @@ CONFIG_USB_ULPI=y
+ CONFIG_USB_GADGET=y
+ CONFIG_USB_CONFIGFS=y
+ CONFIG_USB_CONFIGFS_MASS_STORAGE=y
++CONFIG_TYPEC=y
+ CONFIG_MMC=y
+ # CONFIG_PWRSEQ_SIMPLE is not set
+ CONFIG_MMC_SDHCI=y
+-- 
+2.43.0
+

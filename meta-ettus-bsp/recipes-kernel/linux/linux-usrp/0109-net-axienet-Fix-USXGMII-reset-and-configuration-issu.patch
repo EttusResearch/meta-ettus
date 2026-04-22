@@ -1,0 +1,96 @@
+From 1bf67dc92196c9beb7c7081873858906536c86ac Mon Sep 17 00:00:00 2001
+From: Suraj Gupta <suraj.gupta2@amd.com>
+Date: Tue, 30 Sep 2025 11:02:27 +0530
+Subject: [PATCH 109/110] net: axienet: Fix USXGMII reset and configuration
+ issues
+
+Fix following issues in the existing USXGMII driver:
+
+1. Add reset sequence before configuring the auto-negotiation
+settings to ensure proper initialization.
+
+2. Add missing GT reset function assignment for USXGMII configuration
+to ensure proper hardware initialization.
+
+3. Skip runtime speed switching configuration for USXGMII mode
+as it is not applicable.
+
+These fixes ensure that USXGMII mode works correctly with proper
+reset sequencing.
+
+Signed-off-by: Suraj Gupta <suraj.gupta2@amd.com>
+Reviewed-by: Harini Katakam <harini.katakam@amd.com>
+Message-ID: <20250930053227.176452-1-suraj.gupta2@amd.com>
+---
+ drivers/net/ethernet/xilinx/xilinx_axienet.h      |  1 +
+ drivers/net/ethernet/xilinx/xilinx_axienet_main.c | 14 ++++++++++++--
+ 2 files changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet.h b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+index f3da7e715b1c2..054c5a3e16467 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet.h
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+@@ -550,6 +550,7 @@ enum temac_stat {
+ #define USXGMII_RATE_10G	0x06000300
+ #define USXGMII_FD		BIT(28)
+ #define USXGMII_LINK_STS	BIT(31)
++#define USXGMII_RESET		(BIT(0) | BIT(29) | BIT(30) | BIT(31))
+ 
+ /* USXGMII AN STS register mask definitions */
+ #define USXGMII_AN_STS_COMP_MASK	BIT(16)
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+index 166206d50b2a3..34dfb588d8990 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+@@ -2944,6 +2944,12 @@ static int axienet_open(struct net_device *ndev)
+ 	}
+ 
+ 	if (lp->phy_mode == PHY_INTERFACE_MODE_USXGMII) {
++		/* Reset before configuring AN */
++		reg = axienet_ior(lp, XXVS_RESET_OFFSET);
++		axienet_iow(lp, XXVS_RESET_OFFSET, reg | USXGMII_RESET);
++		mdelay(DELAY_1MS);
++		axienet_iow(lp, XXVS_RESET_OFFSET, reg);
++
+ 		netdev_dbg(ndev, "RX reg: 0x%x\n",
+ 			   axienet_ior(lp, XXV_RCW1_OFFSET));
+ 		/* USXGMII setup at selected speed */
+@@ -3059,6 +3065,7 @@ static int axienet_open(struct net_device *ndev)
+ 
+ 	/* If Runtime speed switching supported */
+ 	if (lp->axienet_config->mactype == XAXIENET_10G_25G &&
++	    lp->phy_mode != PHY_INTERFACE_MODE_USXGMII &&
+ 	    (axienet_ior(lp, XXV_STAT_CORE_SPEED_OFFSET) &
+ 	     XXV_STAT_CORE_SPEED_RTSW_MASK)) {
+ 		axienet_iow(lp, XXVS_AN_ABILITY_OFFSET,
+@@ -4878,6 +4885,7 @@ static const struct axienet_config axienet_usxgmii_config = {
+ 	.setoptions = xxvenet_setoptions,
+ 	.clk_init = xxvenet_clk_init,
+ 	.tx_ptplen = 0,
++	.gt_reset = xxv_gt_reset,
+ };
+ 
+ static const struct axienet_config axienet_mrmac_config = {
+@@ -5712,7 +5720,8 @@ static int axienet_probe(struct platform_device *pdev)
+ 		of_node_put(np);
+ 	}
+ 
+-	if (lp->axienet_config->mactype != XAXIENET_MRMAC) {
++	if (lp->axienet_config->mactype != XAXIENET_MRMAC &&
++	    lp->phy_mode != PHY_INTERFACE_MODE_USXGMII) {
+ 		lp->pcs.ops = &axienet_pcs_ops;
+ 		lp->pcs.neg_mode = true;
+ 		lp->pcs.poll = true;
+@@ -5801,7 +5810,8 @@ static int axienet_probe(struct platform_device *pdev)
+ 
+ 	__set_bit(lp->phy_mode, lp->phylink_config.supported_interfaces);
+ 
+-	if (lp->axienet_config->mactype != XAXIENET_MRMAC)
++	if (lp->axienet_config->mactype != XAXIENET_MRMAC &&
++	    lp->phy_mode != PHY_INTERFACE_MODE_USXGMII)
+ 		lp->phylink = phylink_create(&lp->phylink_config, pdev->dev.fwnode,
+ 					     lp->phy_mode,
+ 					     &axienet_phylink_ops);
+-- 
+2.43.0
+

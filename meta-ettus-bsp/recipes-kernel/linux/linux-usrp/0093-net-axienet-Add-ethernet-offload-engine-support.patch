@@ -1,0 +1,193 @@
+From 6f2d9b9768007e2d621db50c83179a9475546e7b Mon Sep 17 00:00:00 2001
+From: Ravikanth Tuniki <ravikanth.tuniki@amd.com>
+Date: Mon, 6 Jan 2025 22:45:02 -1200
+Subject: [PATCH 093/110] net: axienet: Add ethernet offload engine support
+
+Add support for ethernet offload engine.
+
+This IP helps to offload the TCP/UDP stack to the network controller by
+doing operations like checksum computations and packet segmentation and
+reassembly. The system's CPU is freed of part of its processing loadby
+offloading these tasks,which can improve network speed and reduce CPU use.
+
+Signed-off-by: Ravikanth Tuniki <ravikanth.tuniki@amd.com>
+Signed-off-by: Suraj Gupta <suraj.gupta2@amd.com>
+Reviewed-by: Radhey Shyam Pandey <radhey.shyam.pandey@amd.com>
+State: pending
+Message-ID: <20250107104507.359136-25-suraj.gupta2@amd.com>
+---
+ drivers/net/ethernet/xilinx/Kconfig           |  9 ++++
+ drivers/net/ethernet/xilinx/Makefile          |  1 +
+ drivers/net/ethernet/xilinx/xilinx_axienet.h  |  4 ++
+ .../net/ethernet/xilinx/xilinx_axienet_eoe.c  | 48 +++++++++++++++++++
+ .../net/ethernet/xilinx/xilinx_axienet_eoe.h  | 22 +++++++++
+ .../net/ethernet/xilinx/xilinx_axienet_main.c | 10 ++++
+ 6 files changed, 94 insertions(+)
+ create mode 100644 drivers/net/ethernet/xilinx/xilinx_axienet_eoe.c
+ create mode 100644 drivers/net/ethernet/xilinx/xilinx_axienet_eoe.h
+
+diff --git a/drivers/net/ethernet/xilinx/Kconfig b/drivers/net/ethernet/xilinx/Kconfig
+index df0f9b19785b4..e741b5a174511 100644
+--- a/drivers/net/ethernet/xilinx/Kconfig
++++ b/drivers/net/ethernet/xilinx/Kconfig
+@@ -44,6 +44,15 @@ config  AXIENET_HAS_MCDMA
+ 	help
+ 	  When hardware is generated with AXI Ethernet with MCDMA select this option.
+ 
++config XILINX_AXI_EOE
++	bool "Xilinx Ethernet Offload Engine support"
++	depends on AXIENET_HAS_MCDMA
++	help
++	  When hardware is configured with Ethernet Offload Engine select this option.
++	  It supports hardware segmentation/receive offload and checksum offload,
++	  by offloading of the packet if its size is over MTU. It improves the network
++	  speed and overall CPU efficiency.
++
+ config XILINX_LL_TEMAC
+ 	tristate "Xilinx LL TEMAC (LocalLink Tri-mode Ethernet MAC) driver"
+ 	depends on HAS_IOMEM
+diff --git a/drivers/net/ethernet/xilinx/Makefile b/drivers/net/ethernet/xilinx/Makefile
+index 6eed81e784581..12f86dcf89129 100644
+--- a/drivers/net/ethernet/xilinx/Makefile
++++ b/drivers/net/ethernet/xilinx/Makefile
+@@ -9,3 +9,4 @@ obj-$(CONFIG_XILINX_EMACLITE) += xilinx_emaclite.o
+ xilinx_emac-objs := xilinx_axienet_main.o xilinx_axienet_mdio.o xilinx_axienet_dma.o
+ obj-$(CONFIG_XILINX_AXI_EMAC) += xilinx_emac.o
+ obj-$(CONFIG_AXIENET_HAS_MCDMA) += xilinx_axienet_mcdma.o
++obj-$(CONFIG_XILINX_AXI_EOE) += xilinx_axienet_eoe.o
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet.h b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+index 307dbb2ff1e1d..676bf9b9ace44 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet.h
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+@@ -985,6 +985,8 @@ struct skbuf_dma_descriptor {
+  * @gt_lane: MRMAC GT lane index used.
+  * @switch_lock: Spinlock for switchable IP.
+  * @restart_work: delayable work queue.
++ * @eoe_regs: Ethernet offload IP base address.
++ * @eoe_connected: Tells whether ethernet offload IP is connected to Ethernet IP.
+  */
+ struct axienet_local {
+ 	struct net_device *ndev;
+@@ -1097,6 +1099,8 @@ struct axienet_local {
+ 	u32 gt_lane;		/* MRMAC GT lane index used */
+ 	spinlock_t switch_lock;	/* To protect Link training programming from multiple context */
+ 	struct delayed_work restart_work;
++	void __iomem *eoe_regs;
++	bool eoe_connected;
+ };
+ 
+ /**
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.c b/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.c
+new file mode 100644
+index 0000000000000..75c13e2a8bbf3
+--- /dev/null
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.c
+@@ -0,0 +1,48 @@
++// SPDX-License-Identifier: GPL-2.0
++
++/* Xilinx AXI EOE (EOE programming)
++ *
++ * Copyright (c) 2024 Advanced Micro Devices, Inc.
++ *
++ * This file contains probe function for EOE TX and RX programming.
++ */
++
++#include <linux/of_address.h>
++#include <linux/platform_device.h>
++
++#include "xilinx_axienet_eoe.h"
++
++/**
++ * axienet_eoe_probe - Axi EOE probe function
++ * @pdev:       Pointer to platform device structure.
++ *
++ * Return: 0, on success
++ *         Non-zero error value on failure.
++ *
++ * This is the probe routine for Ethernet Offload Engine and called when
++ * EOE is connected to Ethernet IP. It allocates the address space
++ * for EOE.
++ */
++int axienet_eoe_probe(struct platform_device *pdev)
++{
++	struct net_device *ndev = platform_get_drvdata(pdev);
++	struct axienet_local *lp = netdev_priv(ndev);
++	struct resource eoe_res;
++	int index, ret = 0;
++
++	index = of_property_match_string(pdev->dev.of_node, "reg-names", "eoe");
++
++	if (index < 0)
++		return dev_err_probe(&pdev->dev, -EINVAL, "failed to find EOE registers\n");
++
++	ret = of_address_to_resource(pdev->dev.of_node, index, &eoe_res);
++	if (ret)
++		return dev_err_probe(&pdev->dev, ret, "unable to get EOE resource\n");
++
++	lp->eoe_regs = devm_ioremap_resource(&pdev->dev, &eoe_res);
++
++	if (IS_ERR(lp->eoe_regs))
++		return dev_err_probe(&pdev->dev, PTR_ERR(lp->eoe_regs), "couldn't map EOE regs\n");
++
++	return 0;
++}
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.h b/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.h
+new file mode 100644
+index 0000000000000..01fa986e54a71
+--- /dev/null
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.h
+@@ -0,0 +1,22 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Definitions for Xilinx Ethernet Offload Engine.
++ *
++ * Copyright (c) 2024 Advanced Micro Devices, Inc.
++ */
++
++#ifndef XILINX_AXIENET_EOE_H
++#define XILINX_AXIENET_EOE_H
++
++#include "xilinx_axienet.h"
++
++#ifdef CONFIG_XILINX_AXI_EOE
++int axienet_eoe_probe(struct platform_device *pdev);
++#else
++static inline int axienet_eoe_probe(struct platform_device *pdev)
++{
++	return -ENODEV;
++}
++#endif
++
++#endif /* XILINX_AXIENET_EOE_H */
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+index 3440c19082764..b9b7f4c5d6d6b 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+@@ -54,6 +54,7 @@
+ #include <linux/gpio/consumer.h>
+ 
+ #include "xilinx_axienet.h"
++#include "xilinx_axienet_eoe.h"
+ 
+ /* Descriptors defines for Tx and Rx DMA */
+ #define RX_BD_NUM_DEFAULT		128
+@@ -5094,7 +5095,16 @@ static int axienet_probe(struct platform_device *pdev)
+ 		spin_lock_init(&lp->ptp_tx_lock);
+ 		of_node_put(np);
+ #endif
++		lp->eoe_connected = of_property_read_bool(pdev->dev.of_node,
++							  "xlnx,has-hw-offload");
+ 
++		if (lp->eoe_connected) {
++			ret = axienet_eoe_probe(pdev);
++			if (ret) {
++				dev_err(&pdev->dev, "Ethernet Offload not Supported\n");
++				goto cleanup_clk;
++			}
++		}
+ 	} else {
+ 		struct xilinx_vdma_config cfg;
+ 		struct dma_chan *tx_chan;
+-- 
+2.43.0
+

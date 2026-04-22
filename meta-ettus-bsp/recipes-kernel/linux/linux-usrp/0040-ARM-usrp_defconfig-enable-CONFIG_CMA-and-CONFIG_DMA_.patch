@@ -1,0 +1,33 @@
+From 687d78ee2e30aacf41f7b2f6f27db6f1c24ae6c4 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@emerson.com>
+Date: Fri, 28 Nov 2025 14:03:17 +0100
+Subject: [PATCH 040/110] ARM: usrp_defconfig: enable CONFIG_CMA and
+ CONFIG_DMA_CMA
+
+---
+ arch/arm/configs/usrp_defconfig | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/arm/configs/usrp_defconfig b/arch/arm/configs/usrp_defconfig
+index d54d846907f74..7a51d0d686597 100644
+--- a/arch/arm/configs/usrp_defconfig
++++ b/arch/arm/configs/usrp_defconfig
+@@ -54,6 +54,7 @@ CONFIG_NEON=y
+ CONFIG_MODULES=y
+ CONFIG_MODULE_UNLOAD=y
+ CONFIG_BINFMT_MISC=m
++CONFIG_CMA=y
+ CONFIG_NET=y
+ CONFIG_PACKET=y
+ CONFIG_UNIX=y
+@@ -461,6 +462,7 @@ CONFIG_CRYPTO_MD5=y
+ CONFIG_CRYPTO_MICHAEL_MIC=m
+ CONFIG_CRYPTO_WP512=m
+ CONFIG_CRYPTO_XCBC=m
++CONFIG_DMA_CMA=y
+ CONFIG_PRINTK_TIME=y
+ CONFIG_KGDB=y
+ CONFIG_KGDB_KDB=y
+-- 
+2.43.0
+

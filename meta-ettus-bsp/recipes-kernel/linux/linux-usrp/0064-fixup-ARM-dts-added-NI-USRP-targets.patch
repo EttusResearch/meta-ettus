@@ -1,0 +1,124 @@
+From 34cac0b2af88f49b4d4e97b8090def0547e798e8 Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Fri, 19 Dec 2025 12:11:36 +0100
+Subject: [PATCH 064/110] fixup! ARM: dts: added NI USRP targets
+
+Added fan0 and fan1 labels to reference them with &fan0 and &fan1.
+Automatically registers EC temperature sensors with the thermal
+framework.
+---
+ .../boot/dts/xilinx/zynq-ni-sulfur-rev3.dts   | 44 +++++++------------
+ drivers/hwmon/cros_ec_hwmon.c                 |  1 +
+ 2 files changed, 17 insertions(+), 28 deletions(-)
+
+diff --git a/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts
+index c52d0738cb688..44c298511a37d 100644
+--- a/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts
++++ b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts
+@@ -71,12 +71,21 @@ usb_phy0: phy0 {
+ 		reset-gpios = <&gpio0 51 GPIO_ACTIVE_LOW>;
+ 	};
+ 
++	/* EC-controlled fans - actual control via cros_ec_hwmon */
++	fan0: fan-0 {
++		#cooling-cells = <2>;
++	};
++
++	fan1: fan-1 {
++		#cooling-cells = <2>;
++	};
++
+ 	thermal_zones: thermal-zones {
+ 		fpga_thermal: fpga-thermal-zone {
+ 			polling-delay-passive = <5000>;
+ 			polling-delay = <5000>;
+ 
+-			thermal-sensors = <&thermal0 1>;
++			thermal-sensors = <&cros_ec 0>;
+ 
+ 			trips  {
+ 				fpga_alert0: fpga-alert0 {
+@@ -109,25 +118,25 @@ fpga_crit: fpga-crit {
+ 			cooling-maps {
+ 				map0 {
+ 					trip = <&fpga_alert0>;
+-					cooling-device = <&fan0 0 6000>;
++					cooling-device = <&fan0 0 64>;  /* 0-25% PWM */
+ 					contribution = <100>;
+ 				};
+ 
+ 				map1 {
+ 					trip = <&fpga_alert1>;
+-					cooling-device = <&fan0 6000 8000>;
++					cooling-device = <&fan0 64 128>;  /* 25-50% PWM */
+ 					contribution = <100>;
+ 				};
+ 
+ 				map2 {
+ 					trip = <&fpga_alert2>;
+-					cooling-device = <&fan0 8000 12500>;
++					cooling-device = <&fan0 128 192>;  /* 50-75% PWM */
+ 					contribution = <100>;
+ 				};
+ 
+ 				map3 {
+ 					trip = <&fpga_crit>;
+-					cooling-device = <&fan0 12500 12500>;
++					cooling-device = <&fan0 192 255>;  /* 75-100% PWM */
+ 					contribution = <100>;
+ 				};
+ 
+@@ -233,7 +242,7 @@ &i2c1 {
+ 	status = "okay";
+ 	clock-frequency = <400000>;
+ 
+-	embedded-controller@1e {
++	cros_ec: embedded-controller@1e {
+ 		reg = <0x1e>;
+ 		compatible = "ni,embedded-controller-i2c",
+ 			     "google,cros-ec-i2c";
+@@ -241,28 +250,7 @@ embedded-controller@1e {
+ 		interrupt-parent = <&gpio0>;
+ 		google,has-vbc-nvram;
+ 
+-		wakeup-source;
+-
+-		thermal0: thermal {
+-			compatible = "google,cros-ec-thermal";
+-			#thermal-sensor-cells = <1>;
+-
+-			fans {
+-				fan0: fan@0 {
+-					compatible = "google,cros-ec-fan";
+-					#cooling-cells = <2>;
+-					cooling-min-state = <3300>;
+-					cooling-max-state = <12500>;
+-				};
+-
+-				fan1: fan@1 {
+-					compatible = "google,cros-ec-fan";
+-					#cooling-cells = <2>;
+-					cooling-min-state = <3300>;
+-					cooling-max-state = <12500>;
+-				};
+-			};
+-		};
++		#thermal-sensor-cells = <1>;
+ 
+ 		tun: i2c-tunnel {
+ 			compatible = "google,cros-ec-i2c-tunnel";
+diff --git a/drivers/hwmon/cros_ec_hwmon.c b/drivers/hwmon/cros_ec_hwmon.c
+index 48331703f2f50..8b34538734280 100644
+--- a/drivers/hwmon/cros_ec_hwmon.c
++++ b/drivers/hwmon/cros_ec_hwmon.c
+@@ -495,6 +495,7 @@ static int cros_ec_hwmon_probe(struct platform_device *pdev)
+ 	cros_ec_hwmon_probe_temp_sensors(dev, priv, thermal_version);
+ 	cros_ec_hwmon_probe_fans(priv);
+ 	priv->fan_control_supported = cros_ec_hwmon_probe_fan_control_supported(priv->cros_ec);
++	
+ 	cros_ec_hwmon_register_fan_cooling_devices(dev, priv);
+ 
+ 	hwmon_dev = devm_hwmon_device_register_with_info(dev, "cros_ec", priv,
+-- 
+2.43.0
+

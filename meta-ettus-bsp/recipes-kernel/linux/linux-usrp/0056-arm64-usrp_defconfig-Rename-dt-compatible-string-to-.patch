@@ -1,0 +1,27 @@
+From 142409d6fd2912eb4d854f2731825cd90146f9e9 Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Fri, 12 Dec 2025 07:39:25 +0100
+Subject: [PATCH 056/110] arm64: usrp_defconfig: Rename dt compatible string to
+ 'cros-ec-gpio'.
+
+Signed-off-by: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+---
+ arch/arm64/boot/dts/ni/x410-rev2.dts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/ni/x410-rev2.dts b/arch/arm64/boot/dts/ni/x410-rev2.dts
+index 31b8cf0555d53..e0dcce04431a6 100644
+--- a/arch/arm64/boot/dts/ni/x410-rev2.dts
++++ b/arch/arm64/boot/dts/ni/x410-rev2.dts
+@@ -276,7 +276,7 @@ cros-ec@3c {
+ 		interrupt-parent = <&gpio>;
+ 
+ 		ec_gpio: ec-gpio {
+-			compatible = "ni,cros-ec-gpio";
++			compatible = "cros-ec-gpio";
+ 			#gpio-cells = <2>;
+ 			gpio-controller;
+ 		};
+-- 
+2.43.0
+

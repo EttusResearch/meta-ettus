@@ -1,0 +1,29 @@
+From 145da0d20f04315373d1ee585d7d96ff8b0972d5 Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Tue, 24 Feb 2026 10:00:13 +0100
+Subject: [PATCH 071/110] arm64: usrp_defconfig: Enable nft support
+
+---
+ arch/arm64/configs/usrp_defconfig | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/arch/arm64/configs/usrp_defconfig b/arch/arm64/configs/usrp_defconfig
+index 986b1cab99753..998471b7b056d 100644
+--- a/arch/arm64/configs/usrp_defconfig
++++ b/arch/arm64/configs/usrp_defconfig
+@@ -111,6 +111,12 @@ CONFIG_NETLABEL=y
+ CONFIG_NETWORK_PHY_TIMESTAMPING=y
+ CONFIG_NETFILTER=y
+ CONFIG_NF_CONNTRACK=y
++CONFIG_NF_TABLES=y
++CONFIG_NF_TABLES_INET=y
++CONFIG_NFT_CT=y
++CONFIG_NFT_MASQ=y
++CONFIG_NFT_REDIR=y
++CONFIG_NFT_NAT=y
+ CONFIG_IP_NF_IPTABLES=y
+ CONFIG_IP_NF_FILTER=y
+ CONFIG_IP_NF_TARGET_REJECT=y
+-- 
+2.43.0
+

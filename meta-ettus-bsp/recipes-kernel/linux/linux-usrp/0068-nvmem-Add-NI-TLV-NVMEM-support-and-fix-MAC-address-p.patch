@@ -1,0 +1,455 @@
+From ef5f1bb145d74fc888d11a31d2c5978c08804146 Mon Sep 17 00:00:00 2001
+From: Michael Auchter <michael.auchter@ni.com>
+Date: Thu, 12 Sep 2019 16:46:25 -0500
+Subject: [PATCH 068/110] nvmem: Add NI TLV NVMEM support and fix MAC address
+ provisioning
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Add a new nitlv_nvmem driver that interprets the tag-length-value (TLV)
+format used on the X410. The driver acts as an nvmem proxy: it consumes
+an nvmem cell providing raw access to the TLV EEPROM and exports named
+cells (keyed by tag) for use by client drivers.
+
+Fix the at24 EEPROM driver to expose device tree cell definitions to the
+NVMEM framework by enabling add_legacy_fixed_of_cells during probe. Without
+this, consumers calling devm_nvmem_cell_get() received -ENOENT and failed
+to probe, breaking the dependency chain:
+
+  EEPROM (at24) → TLV parser (nitlv_nvmem) → Ethernet (gem3)
+
+Also enable add_legacy_fixed_of_cells in nitlv_nvmem so its own child
+nodes are registered as NVMEM cells.
+
+Reorder MAC address lookup priority in of_get_mac_address() to check
+NVMEM cells before the local-mac-address property. The latter may be
+set by firmware to a random value when no valid MAC is found in hardware,
+while NVMEM cells are explicitly configured in device tree and should
+take precedence.
+
+Add probe diagnostics to nitlv_nvmem to aid diagnosis of cell lookup
+failures and TLV data validation errors. These logs should be converted
+to dev_dbg() once the driver is considered stable.
+
+Signed-off-by: Michael Auchter <michael.auchter@ni.com>
+Signed-off-by: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+---
+ drivers/misc/eeprom/at24.c  |   1 +
+ drivers/nvmem/Kconfig       |   7 ++
+ drivers/nvmem/Makefile      |   2 +
+ drivers/nvmem/nitlv_nvmem.c | 220 ++++++++++++++++++++++++++++++++++++
+ net/core/of_net.c           |  51 +++++++--
+ net/ethernet/eth.c          |  13 ++-
+ 6 files changed, 283 insertions(+), 11 deletions(-)
+ create mode 100644 drivers/nvmem/nitlv_nvmem.c
+
+diff --git a/drivers/misc/eeprom/at24.c b/drivers/misc/eeprom/at24.c
+index ca872e3465ed9..e88d61b844242 100644
+--- a/drivers/misc/eeprom/at24.c
++++ b/drivers/misc/eeprom/at24.c
+@@ -751,6 +751,7 @@ static int at24_probe(struct i2c_client *client)
+ 	nvmem_config.stride = 1;
+ 	nvmem_config.word_size = 1;
+ 	nvmem_config.size = byte_len;
++	nvmem_config.add_legacy_fixed_of_cells = true;
+ 
+ 	i2c_set_clientdata(client, at24);
+ 
+diff --git a/drivers/nvmem/Kconfig b/drivers/nvmem/Kconfig
+index d2c384f58028d..9af73d551983a 100644
+--- a/drivers/nvmem/Kconfig
++++ b/drivers/nvmem/Kconfig
+@@ -405,6 +405,13 @@ config NVMEM_ZYNQMP
+ 
+ 	  If sure, say yes. If unsure, say no.
+ 
++config NVMEM_NITLV
++	bool "National Instruments TLV nvmem support"
++	help
++	  This is a driver to access values stored as TLV in an eeprom.
++
++	  If sure, say yes. If unsure, say no.
++
+ config NVMEM_QORIQ_EFUSE
+ 	tristate "NXP QorIQ eFuse support"
+ 	depends on PPC_85xx || COMPILE_TEST
+diff --git a/drivers/nvmem/Makefile b/drivers/nvmem/Makefile
+index cdd01fbf1313b..aeba422a6bf95 100644
+--- a/drivers/nvmem/Makefile
++++ b/drivers/nvmem/Makefile
+@@ -81,5 +81,7 @@ obj-$(CONFIG_NVMEM_VF610_OCOTP)		+= nvmem-vf610-ocotp.o
+ nvmem-vf610-ocotp-y			:= vf610-ocotp.o
+ obj-$(CONFIG_NVMEM_ZYNQMP)		+= nvmem_zynqmp_nvmem.o
+ nvmem_zynqmp_nvmem-y			:= zynqmp_nvmem.o
++obj-$(CONFIG_NVMEM_NITLV)       += nvmem_nitlv_nvmem.o
++nvmem_nitlv_nvmem-y             := nitlv_nvmem.o
+ obj-$(CONFIG_NVMEM_QORIQ_EFUSE)		+= nvmem-qoriq-efuse.o
+ nvmem-qoriq-efuse-y			:= qoriq-efuse.o
+diff --git a/drivers/nvmem/nitlv_nvmem.c b/drivers/nvmem/nitlv_nvmem.c
+new file mode 100644
+index 0000000000000..4aa35affa9a04
+--- /dev/null
++++ b/drivers/nvmem/nitlv_nvmem.c
+@@ -0,0 +1,220 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Copyright (C) 2019 National Instruments Corporation
++ */
++
++#include <linux/module.h>
++#include <linux/nvmem-provider.h>
++#include <linux/nvmem-consumer.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/crc32.h>
++#include <linux/of_platform.h>
++
++struct tlv_eeprom {
++	__le32 magic;
++	__le32 crc;
++	__le32 size;
++	uint8_t data[0];
++} __attribute__((packed));
++
++struct tlv {
++	uint8_t tag;
++	uint8_t len;
++	uint8_t val[0];
++} __attribute__((packed));
++
++static const struct tlv *tlv_next(const struct tlv *tlv, const void *end)
++{
++	const void *p = &tlv->val;
++
++	p += tlv->len;
++	if (p >= end)
++		return NULL;
++	return p;
++}
++
++static const struct tlv *tlv_find(const void *start, const void *end,
++				  uint8_t tag)
++{
++	const struct tlv *tlv = start;
++
++	do {
++		if (tlv->tag == tag)
++			break;
++	} while ((tlv = tlv_next(tlv, end)));
++
++	return tlv;
++}
++
++struct nitlv_nvmem_data {
++	struct device *dev;
++	struct nvmem_device *nvmem;
++	struct tlv_eeprom *eeprom;
++};
++
++static int nitlv_nvmem_fail_read(void *context, unsigned int offset, void *val,
++				 size_t bytes)
++{
++	return -ENXIO;
++}
++
++static int nitlv_nvmem_read(void *context, unsigned int offset,
++			     void *val, size_t bytes)
++{
++	struct nitlv_nvmem_data *priv = context;
++	const struct tlv *tlv;
++	const void *end;
++
++	end = priv->eeprom->data + le32_to_cpu(priv->eeprom->size);
++	tlv = tlv_find(priv->eeprom->data, end, offset);
++	if (!tlv) {
++		dev_err(priv->dev, "failed to find tag\n");
++		return -ENXIO;
++	}
++	if (bytes != tlv->len) {
++		dev_err(priv->dev, "wrong len: %zu vs %u\n", bytes, tlv->len);
++		return -ENXIO;
++	}
++	if (((void *)tlv->val + bytes) > end) {
++		dev_err(priv->dev, "would read past end of buf\n");
++		return -ENXIO;
++	}
++
++	memcpy(val, tlv->val, bytes);
++
++	return 0;
++}
++
++static struct nvmem_config econfig = {
++	.name = "nitlv-nvmem",
++	.owner = THIS_MODULE,
++	.word_size = 1,
++	.size = 1,
++	.read_only = true,
++	.add_legacy_fixed_of_cells = true,
++};
++
++static const struct of_device_id nitlv_nvmem_match[] = {
++	{ .compatible = "ni,tlv-nvmem", },
++	{ /* sentinel */ },
++};
++MODULE_DEVICE_TABLE(of, nitlv_nvmem_match);
++
++static bool tlv_eeprom_valid(struct device *dev, struct tlv_eeprom *eeprom,
++			     size_t size)
++{
++	uint32_t crc;
++	uint32_t eeprom_size;
++
++	dev_info(dev, "tlv_eeprom_valid: Validating EEPROM, total size=%zu\n", size);
++
++	if (le32_to_cpu(eeprom->magic) != 0x55535250) {
++		dev_err(dev, "tlv_eeprom_valid: wrong magic: %08x\n", le32_to_cpu(eeprom->magic));
++		return false;
++	}
++	dev_info(dev, "tlv_eeprom_valid: Magic check passed\n");
++
++	eeprom_size = le32_to_cpu(eeprom->size);
++
++	if (eeprom_size > size - sizeof(*eeprom)) {
++		dev_err(dev, "tlv_eeprom_valid: invalid size: %u (max %zu)\n", eeprom_size, size - sizeof(*eeprom));
++		return false;
++	}
++	dev_info(dev, "tlv_eeprom_valid: Size check passed (eeprom_size=%u)\n", eeprom_size);
++
++	crc = crc32(0, &eeprom->size, sizeof(eeprom->size) + eeprom_size);
++
++	if (le32_to_cpu(eeprom->crc) != crc) {
++		dev_err(dev, "tlv_eeprom_valid: crc mismatch, read: %08x, expected: %08x\n",
++			le32_to_cpu(eeprom->crc), crc);
++		return false;
++	}
++	dev_info(dev, "tlv_eeprom_valid: CRC check passed\n");
++
++	return true;
++}
++
++static int nitlv_nvmem_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct nitlv_nvmem_data *priv;
++	struct nvmem_cell *cell;
++	void *tlv_data;
++	size_t size;
++	int ret;
++
++	dev_info(dev, "nitlv_nvmem_probe: Starting probe\n");
++
++	priv = devm_kzalloc(dev, sizeof(struct nitlv_nvmem_data), GFP_KERNEL);
++	if (!priv) {
++		dev_err(dev, "nitlv_nvmem_probe: Failed to allocate priv\n");
++		return -ENOMEM;
++	}
++
++	priv->dev = dev;
++	dev_info(dev, "nitlv_nvmem_probe: Allocated priv structure\n");
++
++	cell = devm_nvmem_cell_get(dev, "tlv");
++	if (IS_ERR(cell)) {
++		ret = PTR_ERR(cell);
++		dev_err(dev, "nitlv_nvmem_probe: devm_nvmem_cell_get failed with error %d\n", ret);
++		if (ret == -EPROBE_DEFER) {
++			dev_info(dev, "nitlv_nvmem_probe: Deferring probe (waiting for NVMEM cell)\n");
++			return -EPROBE_DEFER;
++		}
++		return -ENODEV;
++	}
++	dev_info(dev, "nitlv_nvmem_probe: Got NVMEM cell\n");
++
++	tlv_data = nvmem_cell_read(cell, &size);
++	if (IS_ERR(tlv_data)) {
++		ret = PTR_ERR(tlv_data);
++		dev_err(dev, "nitlv_nvmem_probe: nvmem_cell_read failed with error %d\n", ret);
++		return ret;
++	}
++	dev_info(dev, "nitlv_nvmem_probe: Read NVMEM cell, size=%zu\n", size);
++
++	priv->eeprom = devm_kzalloc(dev, size, GFP_KERNEL);
++	if (!priv->eeprom) {
++		dev_err(dev, "nitlv_nvmem_probe: Failed to allocate eeprom buffer\n");
++		return -ENOMEM;
++	}
++	memcpy(priv->eeprom, tlv_data, size);
++	devm_nvmem_cell_put(dev, cell);
++	dev_info(dev, "nitlv_nvmem_probe: Copied eeprom data\n");
++
++	econfig.dev = dev;
++	econfig.priv = priv;
++
++	if (tlv_eeprom_valid(dev, priv->eeprom, size)) {
++		dev_info(dev, "nitlv_nvmem_probe: EEPROM is valid\n");
++		econfig.reg_read = nitlv_nvmem_read;
++	} else {
++		dev_err(dev, "nitlv_nvmem_probe: EEPROM validation failed\n");
++		econfig.reg_read = nitlv_nvmem_fail_read;
++	}
++
++	priv->nvmem = devm_nvmem_register(dev, &econfig);
++	ret = PTR_ERR_OR_ZERO(priv->nvmem);
++	if (ret)
++		dev_err(dev, "nitlv_nvmem_probe: devm_nvmem_register failed with error %d\n", ret);
++	else
++		dev_info(dev, "nitlv_nvmem_probe: Successfully registered NVMEM\n");
++
++	return ret;
++}
++
++static struct platform_driver nitlv_nvmem_driver = {
++	.probe = nitlv_nvmem_probe,
++	.driver = {
++		.name = "nitlv-nvmem",
++		.of_match_table = nitlv_nvmem_match,
++	},
++};
++
++module_platform_driver(nitlv_nvmem_driver);
++
++MODULE_AUTHOR("Michael Auchter <michael.auchter@ni.com>");
++MODULE_DESCRIPTION("NI TLV NVMEM provider");
++MODULE_LICENSE("GPL");
+diff --git a/net/core/of_net.c b/net/core/of_net.c
+index 93ea425b9248a..20bc7b02b49fe 100644
+--- a/net/core/of_net.c
++++ b/net/core/of_net.c
+@@ -66,32 +66,47 @@ int of_get_mac_address_nvmem(struct device_node *np, u8 *addr)
+ 	size_t len;
+ 	int ret;
+ 
++	pr_info("%s: called for node %s\n", __func__, np ? np->full_name : "NULL");
++
+ 	/* Try lookup by device first, there might be a nvmem_cell_lookup
+ 	 * associated with a given device.
+ 	 */
+ 	if (pdev) {
++		pr_info("%s: trying nvmem_get_mac_address for platform device\n", __func__);
+ 		ret = nvmem_get_mac_address(&pdev->dev, addr);
+ 		put_device(&pdev->dev);
++		pr_info("%s: nvmem_get_mac_address returned %d\n", __func__, ret);
++		if (!ret)
++			pr_info("%s: got MAC from nvmem: %pM\n", __func__, addr);
+ 		return ret;
+ 	}
+ 
++	pr_info("%s: trying of_nvmem_cell_get\n", __func__);
+ 	cell = of_nvmem_cell_get(np, "mac-address");
+-	if (IS_ERR(cell))
+-		return PTR_ERR(cell);
++	if (IS_ERR(cell)) {
++		ret = PTR_ERR(cell);
++		pr_info("%s: of_nvmem_cell_get failed: %d\n", __func__, ret);
++		return ret;
++	}
+ 
+ 	mac = nvmem_cell_read(cell, &len);
+ 	nvmem_cell_put(cell);
+ 
+-	if (IS_ERR(mac))
+-		return PTR_ERR(mac);
++	if (IS_ERR(mac)) {
++		ret = PTR_ERR(mac);
++		pr_info("%s: nvmem_cell_read failed: %d\n", __func__, ret);
++		return ret;
++	}
+ 
+ 	if (len != ETH_ALEN || !is_valid_ether_addr(mac)) {
++		pr_info("%s: invalid MAC length=%zu or addr=%pM\n", __func__, len, mac);
+ 		kfree(mac);
+ 		return -EINVAL;
+ 	}
+ 
+ 	memcpy(addr, mac, ETH_ALEN);
+ 	kfree(mac);
++	pr_info("%s: success, MAC=%pM\n", __func__, addr);
+ 
+ 	return 0;
+ }
+@@ -130,19 +145,37 @@ int of_get_mac_address(struct device_node *np, u8 *addr)
+ 	if (!np)
+ 		return -ENODEV;
+ 
++	pr_info("%s: checking node %s\n", __func__, np->full_name);
++
+ 	ret = of_get_mac_addr(np, "mac-address", addr);
+-	if (!ret)
++	if (!ret) {
++		pr_info("%s: found 'mac-address' property: %pM\n", __func__, addr);
+ 		return 0;
++	}
++
++	/* Try NVMEM cell before local-mac-address, as the latter may be
++	 * set by firmware to a random value when no valid MAC is found.
++	 * NVMEM cells are explicitly configured in DT and should take precedence.
++	 */
++	pr_info("%s: trying NVMEM lookup\n", __func__);
++	ret = of_get_mac_address_nvmem(np, addr);
++	if (!ret) {
++		pr_info("%s: got MAC from NVMEM: %pM\n", __func__, addr);
++		return 0;
++	}
++	pr_info("%s: NVMEM lookup failed: %d\n", __func__, ret);
+ 
+ 	ret = of_get_mac_addr(np, "local-mac-address", addr);
+-	if (!ret)
++	if (!ret) {
++		pr_info("%s: found 'local-mac-address' property: %pM\n", __func__, addr);
+ 		return 0;
++	}
+ 
+ 	ret = of_get_mac_addr(np, "address", addr);
+ 	if (!ret)
+-		return 0;
+-
+-	return of_get_mac_address_nvmem(np, addr);
++		pr_info("%s: found 'address' property: %pM\n", __func__, addr);
++	
++	return ret;
+ }
+ EXPORT_SYMBOL(of_get_mac_address);
+ 
+diff --git a/net/ethernet/eth.c b/net/ethernet/eth.c
+index 4e3651101b866..49290adedd47c 100644
+--- a/net/ethernet/eth.c
++++ b/net/ethernet/eth.c
+@@ -538,23 +538,32 @@ int nvmem_get_mac_address(struct device *dev, void *addrbuf)
+ 	const void *mac;
+ 	size_t len;
+ 
++	pr_info("%s: looking for 'mac-address' cell for device %s\n", __func__, dev_name(dev));
+ 	cell = nvmem_cell_get(dev, "mac-address");
+-	if (IS_ERR(cell))
++	if (IS_ERR(cell)) {
++		pr_info("%s: nvmem_cell_get failed: %ld\n", __func__, PTR_ERR(cell));
+ 		return PTR_ERR(cell);
++	}
+ 
++	pr_info("%s: found cell, reading...\n", __func__);
+ 	mac = nvmem_cell_read(cell, &len);
+ 	nvmem_cell_put(cell);
+ 
+-	if (IS_ERR(mac))
++	if (IS_ERR(mac)) {
++		pr_info("%s: nvmem_cell_read failed: %ld\n", __func__, PTR_ERR(mac));
+ 		return PTR_ERR(mac);
++	}
+ 
++	pr_info("%s: read %zu bytes\n", __func__, len);
+ 	if (len != ETH_ALEN || !is_valid_ether_addr(mac)) {
++		pr_info("%s: invalid length or MAC\n", __func__);
+ 		kfree(mac);
+ 		return -EINVAL;
+ 	}
+ 
+ 	ether_addr_copy(addrbuf, mac);
+ 	kfree(mac);
++	pr_info("%s: success, MAC=%pM\n", __func__, addrbuf);
+ 
+ 	return 0;
+ }
+-- 
+2.43.0
+

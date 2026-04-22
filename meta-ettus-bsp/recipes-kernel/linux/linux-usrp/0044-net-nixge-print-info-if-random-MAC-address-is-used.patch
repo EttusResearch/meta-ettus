@@ -1,0 +1,24 @@
+From d099434a2ebdaaff83b3d0edb6fc057be2144e5a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Tue, 2 Dec 2025 11:49:17 +0100
+Subject: [PATCH 044/110] net: nixge: print info if random MAC address is used
+
+---
+ drivers/net/ethernet/ni/nixge.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
+index dd3d0b9a8fe2c..13d2f85f110c8 100644
+--- a/drivers/net/ethernet/ni/nixge.c
++++ b/drivers/net/ethernet/ni/nixge.c
+@@ -1322,6 +1322,7 @@ static int nixge_probe(struct platform_device *pdev)
+ 		eth_hw_addr_set(ndev, mac_addr);
+ 		kfree(mac_addr);
+ 	} else {
++		dev_info(&pdev->dev, "Using random MAC address\n");
+ 		eth_hw_addr_random(ndev);
+ 	}
+ 
+-- 
+2.43.0
+

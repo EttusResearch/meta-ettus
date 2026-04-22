@@ -1,0 +1,271 @@
+From 9d211f813021b787e3466df91936eff7a878473a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Tue, 25 Nov 2025 11:12:00 +0100
+Subject: [PATCH 021/110] ARM: dts: added NI USRP targets
+
+---
+ arch/arm/boot/dts/xilinx/Makefile             | 32 +++++++++++++++++++
+ .../dts/{ => xilinx}/ni-magnesium-db0.dtsi    |  0
+ .../dts/{ => xilinx}/ni-magnesium-db1.dtsi    |  0
+ .../{ => xilinx}/ni-rhodium-rev0-thermal.dts  |  0
+ arch/arm/boot/dts/{ => xilinx}/zynq-e3xx.dtsi |  0
+ .../dts/{ => xilinx}/zynq-ni-e31x-sg1.dts     |  0
+ .../dts/{ => xilinx}/zynq-ni-e31x-sg3.dts     |  0
+ .../dts/{ => xilinx}/zynq-ni-e33x-sg1.dts     |  0
+ .../dts/{ => xilinx}/zynq-ni-e33x-sg3.dts     |  0
+ .../dts/{ => xilinx}/zynq-ni-e3xx-factory.dts |  0
+ .../dts/{ => xilinx}/zynq-ni-neon-rev1.dts    |  0
+ ...zynq-ni-phosphorus-rev4-magnesium-rev2.dts |  0
+ ...zynq-ni-phosphorus-rev4-magnesium-rev3.dts |  0
+ ...zynq-ni-phosphorus-rev4-magnesium-rev4.dts |  0
+ .../{ => xilinx}/zynq-ni-phosphorus-rev4.dts  |  0
+ ...zynq-ni-phosphorus-rev6-magnesium-rev2.dts |  0
+ ...zynq-ni-phosphorus-rev6-magnesium-rev3.dts |  0
+ ...zynq-ni-phosphorus-rev6-magnesium-rev4.dts |  0
+ .../{ => xilinx}/zynq-ni-phosphorus-rev6.dts  |  0
+ .../dts/{ => xilinx}/zynq-ni-sulfur-rev2.dts  |  0
+ .../zynq-ni-sulfur-rev3-eiscat-rev1.dts       |  0
+ .../zynq-ni-sulfur-rev3-eiscat-rev2.dts       |  0
+ .../dts/{ => xilinx}/zynq-ni-sulfur-rev3.dts  |  0
+ .../zynq-ni-sulfur-rev4-magnesium-rev2.dts    |  0
+ .../zynq-ni-sulfur-rev4-magnesium-rev3.dts    |  0
+ .../zynq-ni-sulfur-rev4-rhodium-rev0.dts      |  0
+ .../dts/{ => xilinx}/zynq-ni-sulfur-rev4.dts  |  0
+ .../zynq-ni-sulfur-rev5-magnesium-rev2.dts    |  0
+ .../zynq-ni-sulfur-rev5-magnesium-rev3.dts    |  0
+ .../zynq-ni-sulfur-rev5-magnesium-rev4.dts    |  0
+ .../zynq-ni-sulfur-rev5-rhodium-rev0.dts      |  0
+ .../dts/{ => xilinx}/zynq-ni-sulfur-rev5.dts  |  0
+ .../zynq-ni-sulfur-rev6-magnesium-rev2.dts    |  0
+ .../zynq-ni-sulfur-rev6-magnesium-rev3.dts    |  0
+ .../zynq-ni-sulfur-rev6-magnesium-rev4.dts    |  0
+ .../zynq-ni-sulfur-rev6-rhodium-rev0.dts      |  0
+ .../dts/{ => xilinx}/zynq-ni-sulfur-rev6.dts  |  0
+ 37 files changed, 32 insertions(+)
+ rename arch/arm/boot/dts/{ => xilinx}/ni-magnesium-db0.dtsi (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/ni-magnesium-db1.dtsi (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/ni-rhodium-rev0-thermal.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-e3xx.dtsi (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-e31x-sg1.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-e31x-sg3.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-e33x-sg1.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-e33x-sg3.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-e3xx-factory.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-neon-rev1.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-phosphorus-rev4-magnesium-rev2.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-phosphorus-rev4-magnesium-rev3.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-phosphorus-rev4-magnesium-rev4.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-phosphorus-rev4.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-phosphorus-rev6-magnesium-rev2.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-phosphorus-rev6-magnesium-rev3.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-phosphorus-rev6-magnesium-rev4.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-phosphorus-rev6.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-sulfur-rev2.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-sulfur-rev3-eiscat-rev1.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-sulfur-rev3-eiscat-rev2.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-sulfur-rev3.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-sulfur-rev4-magnesium-rev2.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-sulfur-rev4-magnesium-rev3.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-sulfur-rev4-rhodium-rev0.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-sulfur-rev4.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-sulfur-rev5-magnesium-rev2.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-sulfur-rev5-magnesium-rev3.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-sulfur-rev5-magnesium-rev4.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-sulfur-rev5-rhodium-rev0.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-sulfur-rev5.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-sulfur-rev6-magnesium-rev2.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-sulfur-rev6-magnesium-rev3.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-sulfur-rev6-magnesium-rev4.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-sulfur-rev6-rhodium-rev0.dts (100%)
+ rename arch/arm/boot/dts/{ => xilinx}/zynq-ni-sulfur-rev6.dts (100%)
+
+diff --git a/arch/arm/boot/dts/xilinx/Makefile b/arch/arm/boot/dts/xilinx/Makefile
+index 9233e539b192b..cdc29d265b10c 100644
+--- a/arch/arm/boot/dts/xilinx/Makefile
++++ b/arch/arm/boot/dts/xilinx/Makefile
+@@ -3,6 +3,38 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
+ 	zynq-cc108.dtb \
+ 	zynq-ebaz4205.dtb \
+ 	zynq-microzed.dtb \
++	zynq-ni-e31x-sg1.dtb \
++	zynq-ni-e31x-sg3.dtb \
++	zynq-ni-e33x-sg1.dtb \
++	zynq-ni-e33x-sg3.dtb \
++	zynq-ni-e3xx-factory.dtb \
++	zynq-ni-neon-rev1.dtb \
++	zynq-ni-phosphorus-rev4-magnesium-rev2.dtb \
++	zynq-ni-phosphorus-rev4-magnesium-rev3.dtb \
++	zynq-ni-phosphorus-rev4-magnesium-rev4.dtb \
++	zynq-ni-phosphorus-rev4.dtb \
++	zynq-ni-phosphorus-rev6-magnesium-rev2.dtb \
++	zynq-ni-phosphorus-rev6-magnesium-rev3.dtb \
++	zynq-ni-phosphorus-rev6-magnesium-rev4.dtb \
++	zynq-ni-phosphorus-rev6.dtb \
++	zynq-ni-sulfur-rev2.dtb \
++	zynq-ni-sulfur-rev3-eiscat-rev1.dtb \
++	zynq-ni-sulfur-rev3-eiscat-rev2.dtb \
++	zynq-ni-sulfur-rev3.dtb \
++	zynq-ni-sulfur-rev4-magnesium-rev2.dtb \
++	zynq-ni-sulfur-rev4-magnesium-rev3.dtb \
++	zynq-ni-sulfur-rev4-rhodium-rev0.dtb \
++	zynq-ni-sulfur-rev4.dtb \
++	zynq-ni-sulfur-rev5-magnesium-rev2.dtb \
++	zynq-ni-sulfur-rev5-magnesium-rev3.dtb \
++	zynq-ni-sulfur-rev5-magnesium-rev4.dtb \
++	zynq-ni-sulfur-rev5-rhodium-rev0.dtb \
++	zynq-ni-sulfur-rev5.dtb \
++	zynq-ni-sulfur-rev6-magnesium-rev2.dtb \
++	zynq-ni-sulfur-rev6-magnesium-rev3.dtb \
++	zynq-ni-sulfur-rev6-magnesium-rev4.dtb \
++	zynq-ni-sulfur-rev6-rhodium-rev0.dtb \
++	zynq-ni-sulfur-rev6.dtb \
+ 	zynq-parallella.dtb \
+ 	zynq-zc702.dtb \
+ 	zynq-zc706.dtb \
+diff --git a/arch/arm/boot/dts/ni-magnesium-db0.dtsi b/arch/arm/boot/dts/xilinx/ni-magnesium-db0.dtsi
+similarity index 100%
+rename from arch/arm/boot/dts/ni-magnesium-db0.dtsi
+rename to arch/arm/boot/dts/xilinx/ni-magnesium-db0.dtsi
+diff --git a/arch/arm/boot/dts/ni-magnesium-db1.dtsi b/arch/arm/boot/dts/xilinx/ni-magnesium-db1.dtsi
+similarity index 100%
+rename from arch/arm/boot/dts/ni-magnesium-db1.dtsi
+rename to arch/arm/boot/dts/xilinx/ni-magnesium-db1.dtsi
+diff --git a/arch/arm/boot/dts/ni-rhodium-rev0-thermal.dts b/arch/arm/boot/dts/xilinx/ni-rhodium-rev0-thermal.dts
+similarity index 100%
+rename from arch/arm/boot/dts/ni-rhodium-rev0-thermal.dts
+rename to arch/arm/boot/dts/xilinx/ni-rhodium-rev0-thermal.dts
+diff --git a/arch/arm/boot/dts/zynq-e3xx.dtsi b/arch/arm/boot/dts/xilinx/zynq-e3xx.dtsi
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-e3xx.dtsi
+rename to arch/arm/boot/dts/xilinx/zynq-e3xx.dtsi
+diff --git a/arch/arm/boot/dts/zynq-ni-e31x-sg1.dts b/arch/arm/boot/dts/xilinx/zynq-ni-e31x-sg1.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-e31x-sg1.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-e31x-sg1.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-e31x-sg3.dts b/arch/arm/boot/dts/xilinx/zynq-ni-e31x-sg3.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-e31x-sg3.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-e31x-sg3.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-e33x-sg1.dts b/arch/arm/boot/dts/xilinx/zynq-ni-e33x-sg1.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-e33x-sg1.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-e33x-sg1.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-e33x-sg3.dts b/arch/arm/boot/dts/xilinx/zynq-ni-e33x-sg3.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-e33x-sg3.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-e33x-sg3.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-e3xx-factory.dts b/arch/arm/boot/dts/xilinx/zynq-ni-e3xx-factory.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-e3xx-factory.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-e3xx-factory.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-neon-rev1.dts b/arch/arm/boot/dts/xilinx/zynq-ni-neon-rev1.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-neon-rev1.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-neon-rev1.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev2.dts b/arch/arm/boot/dts/xilinx/zynq-ni-phosphorus-rev4-magnesium-rev2.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev2.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-phosphorus-rev4-magnesium-rev2.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev3.dts b/arch/arm/boot/dts/xilinx/zynq-ni-phosphorus-rev4-magnesium-rev3.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev3.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-phosphorus-rev4-magnesium-rev3.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev4.dts b/arch/arm/boot/dts/xilinx/zynq-ni-phosphorus-rev4-magnesium-rev4.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-phosphorus-rev4-magnesium-rev4.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-phosphorus-rev4-magnesium-rev4.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev4.dts b/arch/arm/boot/dts/xilinx/zynq-ni-phosphorus-rev4.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-phosphorus-rev4.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-phosphorus-rev4.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev2.dts b/arch/arm/boot/dts/xilinx/zynq-ni-phosphorus-rev6-magnesium-rev2.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev2.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-phosphorus-rev6-magnesium-rev2.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev3.dts b/arch/arm/boot/dts/xilinx/zynq-ni-phosphorus-rev6-magnesium-rev3.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev3.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-phosphorus-rev6-magnesium-rev3.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev4.dts b/arch/arm/boot/dts/xilinx/zynq-ni-phosphorus-rev6-magnesium-rev4.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-phosphorus-rev6-magnesium-rev4.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-phosphorus-rev6-magnesium-rev4.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-phosphorus-rev6.dts b/arch/arm/boot/dts/xilinx/zynq-ni-phosphorus-rev6.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-phosphorus-rev6.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-phosphorus-rev6.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev2.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-sulfur-rev2.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev2.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev3-eiscat-rev1.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3-eiscat-rev1.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-sulfur-rev3-eiscat-rev1.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3-eiscat-rev1.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev3-eiscat-rev2.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3-eiscat-rev2.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-sulfur-rev3-eiscat-rev2.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3-eiscat-rev2.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-sulfur-rev3.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev2.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev4-magnesium-rev2.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev2.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev4-magnesium-rev2.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev3.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev4-magnesium-rev3.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-sulfur-rev4-magnesium-rev3.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev4-magnesium-rev3.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev4-rhodium-rev0.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev4-rhodium-rev0.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-sulfur-rev4-rhodium-rev0.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev4-rhodium-rev0.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev4.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev4.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-sulfur-rev4.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev4.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev2.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev5-magnesium-rev2.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev2.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev5-magnesium-rev2.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev3.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev5-magnesium-rev3.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev3.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev5-magnesium-rev3.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev4.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev5-magnesium-rev4.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-sulfur-rev5-magnesium-rev4.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev5-magnesium-rev4.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev5-rhodium-rev0.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev5-rhodium-rev0.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-sulfur-rev5-rhodium-rev0.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev5-rhodium-rev0.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev5.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev5.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-sulfur-rev5.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev5.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev2.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev6-magnesium-rev2.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev2.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev6-magnesium-rev2.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev3.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev6-magnesium-rev3.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev3.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev6-magnesium-rev3.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev4.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev6-magnesium-rev4.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-sulfur-rev6-magnesium-rev4.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev6-magnesium-rev4.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev6-rhodium-rev0.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev6-rhodium-rev0.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-sulfur-rev6-rhodium-rev0.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev6-rhodium-rev0.dts
+diff --git a/arch/arm/boot/dts/zynq-ni-sulfur-rev6.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev6.dts
+similarity index 100%
+rename from arch/arm/boot/dts/zynq-ni-sulfur-rev6.dts
+rename to arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev6.dts
+-- 
+2.43.0
+

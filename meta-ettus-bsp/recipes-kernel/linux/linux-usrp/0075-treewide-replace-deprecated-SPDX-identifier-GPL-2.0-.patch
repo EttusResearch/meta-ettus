@@ -1,0 +1,50 @@
+From a8c9590d3585cf1aee77766e07ba0239dea0b879 Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Wed, 8 Apr 2026 15:01:42 +0200
+Subject: [PATCH 075/110] treewide: replace deprecated SPDX identifier GPL-2.0+
+ with GPL-2.0-or-later
+
+The SPDX expression GPL-2.0+ is deprecated in favor of the canonical
+GPL-2.0-or-later. Update three NI-specific files to use the correct
+identifier without changing the license intent.
+
+Signed-off-by: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+---
+ arch/arm64/boot/dts/ni/x410-rev2.dts | 2 +-
+ drivers/nvmem/nitlv_nvmem.c          | 2 +-
+ include/uapi/misc/nirio.h            | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/ni/x410-rev2.dts b/arch/arm64/boot/dts/ni/x410-rev2.dts
+index ee06c7ac76bd6..22691ff7e93e3 100644
+--- a/arch/arm64/boot/dts/ni/x410-rev2.dts
++++ b/arch/arm64/boot/dts/ni/x410-rev2.dts
+@@ -1,4 +1,4 @@
+-// SPDX-License-Identifier: GPL-2.0+
++// SPDX-License-Identifier: GPL-2.0-or-later
+ /*
+  * Device tree for Ettus USRP X410 (Rev. B baseline)
+  *
+diff --git a/drivers/nvmem/nitlv_nvmem.c b/drivers/nvmem/nitlv_nvmem.c
+index 4aa35affa9a04..6ce4cdf084b41 100644
+--- a/drivers/nvmem/nitlv_nvmem.c
++++ b/drivers/nvmem/nitlv_nvmem.c
+@@ -1,4 +1,4 @@
+-// SPDX-License-Identifier: GPL-2.0+
++// SPDX-License-Identifier: GPL-2.0-or-later
+ /*
+  * Copyright (C) 2019 National Instruments Corporation
+  */
+diff --git a/include/uapi/misc/nirio.h b/include/uapi/misc/nirio.h
+index e432d76cb90dd..fd0719db6fa92 100644
+--- a/include/uapi/misc/nirio.h
++++ b/include/uapi/misc/nirio.h
+@@ -1,4 +1,4 @@
+-/* SPDX-License-Identifier: GPL-2.0+ WITH Linux-syscall-note */
++/* SPDX-License-Identifier: GPL-2.0-or-later WITH Linux-syscall-note */
+ #ifndef __NIRIO_H__
+ #define __NIRIO_H__
+ 
+-- 
+2.43.0
+

@@ -1,0 +1,63 @@
+From b8ba3ccdaa3e9f58a5f1060b5871b43c2768b94d Mon Sep 17 00:00:00 2001
+From: Ravikanth Tuniki <ravikanth.tuniki@amd.com>
+Date: Fri, 21 Mar 2025 18:32:57 +0530
+Subject: [PATCH 104/110] net: axienet: Fix reading of "xlnx,addrwidth" DT
+ property
+
+"xlnx,addrwidth" DT property is of 32-bit, using of_property_read_u32
+to read the value.
+
+Signed-off-by: Ravikanth Tuniki <ravikanth.tuniki@amd.com>
+Reviewed-by: Suraj Gupta <Suraj.Gupta2@amd.com>
+Message-ID: <20250321130257.4045259-1-ravikanth.tuniki@amd.com>
+---
+ drivers/net/ethernet/xilinx/xilinx_axienet.h      | 2 +-
+ drivers/net/ethernet/xilinx/xilinx_axienet_main.c | 7 +++----
+ 2 files changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet.h b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+index 9022e7fbd0222..0b6ab7abc951d 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet.h
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+@@ -1118,7 +1118,7 @@ struct axienet_local {
+ 	u16 chan_id;
+ 	u16 weight;
+ 
+-	u8 dma_mask;
++	u32 dma_mask;
+ 	u32 usxgmii_rate;
+ 
+ 	u32 max_speed;		/* Max MAC speed */
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+index 03d0357ae2367..cb1c25bcae868 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+@@ -4016,7 +4016,7 @@ static int __maybe_unused axienet_mcdma_probe(struct platform_device *pdev,
+ 		return ret;
+ 	}
+ 
+-	ret = of_property_read_u8(np, "xlnx,addrwidth", (u8 *)&lp->dma_mask);
++	ret = of_property_read_u32(np, "xlnx,addrwidth", &lp->dma_mask);
+ 	if (ret < 0 || lp->dma_mask < XAE_DMA_MASK_MIN ||
+ 	    lp->dma_mask > XAE_DMA_MASK_MAX) {
+ 		dev_info(&pdev->dev, "missing/invalid xlnx,addrwidth property, using default\n");
+@@ -4080,14 +4080,13 @@ static int __maybe_unused axienet_dma_probe(struct platform_device *pdev,
+ 
+ 			q->eth_hasdre = of_property_read_bool(np,
+ 							      "xlnx,include-dre");
+-			ret = of_property_read_u8(np, "xlnx,addrwidth",
+-						  (u8 *)&lp->dma_mask);
++			ret = of_property_read_u32(np, "xlnx,addrwidth",
++						   &lp->dma_mask);
+ 			if (ret <  0 || lp->dma_mask < XAE_DMA_MASK_MIN ||
+ 			    lp->dma_mask > XAE_DMA_MASK_MAX) {
+ 				dev_info(&pdev->dev, "missing/invalid xlnx,addrwidth property, using default\n");
+ 				lp->dma_mask = XAE_DMA_MASK_MIN;
+ 			}
+-
+ 		} else {
+ 			/* Check for these resources directly on the Ethernet node. */
+ 			q->dma_regs = devm_platform_get_and_ioremap_resource(pdev, 1, NULL);
+-- 
+2.43.0
+

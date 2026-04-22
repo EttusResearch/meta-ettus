@@ -1,0 +1,26 @@
+From 1f8fbcbc8b292e04262684b8898461e070309d9c Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@emerson.com>
+Date: Mon, 8 Dec 2025 14:27:01 +0100
+Subject: [PATCH 048/110] ARM: usrp_defconfig: enable USB sound card
+
+---
+ arch/arm/configs/usrp_defconfig | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/arch/arm/configs/usrp_defconfig b/arch/arm/configs/usrp_defconfig
+index f02c99092ddd2..6362e0a4e49a6 100644
+--- a/arch/arm/configs/usrp_defconfig
++++ b/arch/arm/configs/usrp_defconfig
+@@ -334,6 +334,9 @@ CONFIG_XILINX_WATCHDOG=y
+ CONFIG_CADENCE_WATCHDOG=y
+ CONFIG_REGULATOR=y
+ CONFIG_REGULATOR_GPIO=y
++CONFIG_SOUND=y
++CONFIG_SND=y
++CONFIG_SND_USB_AUDIO=y
+ CONFIG_HID_A4TECH=y
+ CONFIG_HID_APPLE=y
+ CONFIG_HID_BELKIN=y
+-- 
+2.43.0
+

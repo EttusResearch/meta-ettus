@@ -1,0 +1,93 @@
+From 7183284db46259c5bd4e64c1d14f550b9936faa5 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Thu, 5 Sep 2019 16:05:26 +0200
+Subject: [PATCH 033/110] of: mdio: added function of_mdiobus_unregister
+
+Added a new function of_mdiobus_unregister which is the counterpart
+to of_mdiobus_register. It deassociates the OF nodes which were
+previously associated before calling mdiobus_unregister.
+
+This avoids the "OF: ERROR: memory leak" error which otherwise occurs
+for each registered device when just calling mdiobus_unregister.
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ drivers/net/mdio/of_mdio.c | 26 ++++++++++++++++++++++++++
+ include/linux/of_mdio.h    | 17 +++++++++++++++++
+ 2 files changed, 43 insertions(+)
+
+diff --git a/drivers/net/mdio/of_mdio.c b/drivers/net/mdio/of_mdio.c
+index 2f4fc664d2e12..422751822fd89 100644
+--- a/drivers/net/mdio/of_mdio.c
++++ b/drivers/net/mdio/of_mdio.c
+@@ -274,6 +274,32 @@ int __of_mdiobus_register(struct mii_bus *mdio, struct device_node *np,
+ }
+ EXPORT_SYMBOL(__of_mdiobus_register);
+ 
++/**
++ * __of_mdiobus_unregister - Unregister mii_bus and remove PHYs from the device tree
++ * @mdio: pointer to mii_bus structure
++ *
++ * This function unregisters the mii_bus structure and removes the phy_devices.
++ */
++void __of_mdiobus_unregister(struct mii_bus *mdio)
++{
++	struct mdio_device *mdiodev;
++	int i;
++
++	for (i = 0; i < PHY_MAX_ADDR; i++) {
++		mdiodev = mdio->mdio_map[i];
++		if (!mdiodev)
++			continue;
++
++		if (mdiodev->dev.of_node) {
++			of_node_put(mdiodev->dev.of_node);
++			mdiodev->dev.of_node = NULL;
++		}
++	}
++
++	mdiobus_unregister(mdio);
++}
++EXPORT_SYMBOL(__of_mdiobus_unregister);
++
+ /**
+  * of_mdio_find_device - Given a device tree node, find the mdio_device
+  * @np: pointer to the mdio_device's device tree node
+diff --git a/include/linux/of_mdio.h b/include/linux/of_mdio.h
+index 8a52ef2e6fa6b..885d187b18141 100644
+--- a/include/linux/of_mdio.h
++++ b/include/linux/of_mdio.h
+@@ -23,6 +23,13 @@ static inline int of_mdiobus_register(struct mii_bus *mdio,
+ 	return __of_mdiobus_register(mdio, np, THIS_MODULE);
+ }
+ 
++void __of_mdiobus_unregister(struct mii_bus *mdio);
++
++static inline void of_mdiobus_unregister(struct mii_bus *mdio)
++{
++	return __of_mdiobus_unregister(mdio);
++}
++
+ int __devm_of_mdiobus_register(struct device *dev, struct mii_bus *mdio,
+ 			       struct device_node *np, struct module *owner);
+ 
+@@ -88,6 +95,16 @@ static inline int of_mdiobus_register(struct mii_bus *mdio, struct device_node *
+ 	return mdiobus_register(mdio);
+ }
+ 
++static inline void of_mdiobus_unregister(struct mii_bus *mdio)
++{
++	/*
++	 * Fall back to the non-DT function to unregister a bus.
++	 * This way, we don't have to keep compat bits around in drivers.
++	 */
++
++	mdiobus_unregister(mdio);
++}
++
+ static inline int devm_of_mdiobus_register(struct device *dev,
+ 					   struct mii_bus *mdio,
+ 					   struct device_node *np)
+-- 
+2.43.0
+

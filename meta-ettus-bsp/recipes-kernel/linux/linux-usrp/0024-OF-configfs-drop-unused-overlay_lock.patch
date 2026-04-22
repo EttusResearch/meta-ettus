@@ -1,0 +1,41 @@
+From 63ce351b4403af1b9780ab2f0b1a7e5768f3abb7 Mon Sep 17 00:00:00 2001
+From: Quanyang Wang <quanyang.wang@windriver.com>
+Date: Wed, 25 Jun 2025 17:21:44 +0800
+Subject: [PATCH 024/110] OF: configfs: drop unused overlay_lock
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+No one is using this lock and drop it to fix the following error when
+CONFIG_PREEMPT_RT and CONFIG_WERROR are both enabled:
+
+    drivers/of/configfs.c:46:21: error: ‘overlay_lock’ defined but not used [-Werror=unused-variable]
+    46 | static DEFINE_MUTEX(overlay_lock);
+       |                     ^~~~~~~~~~~~
+    include/linux/mutex.h:112:22: note: in definition of macro ‘DEFINE_MUTEX’
+    112 |         struct mutex mutexname = __MUTEX_INITIALIZER(mutexname)
+        |                      ^~~~~~~~~
+
+Signed-off-by: Quanyang Wang <quanyang.wang@windriver.com>
+Message-ID: <20250625092144.4013954-1-quanyang.wang@windriver.com>
+State: pending
+---
+ drivers/of/configfs.c | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/drivers/of/configfs.c b/drivers/of/configfs.c
+index 3c21eec5633b1..a68e8d3933e43 100644
+--- a/drivers/of/configfs.c
++++ b/drivers/of/configfs.c
+@@ -43,8 +43,6 @@ struct cfs_overlay_item {
+ 	void			*mem;
+ };
+ 
+-static DEFINE_MUTEX(overlay_lock);
+-
+ static int create_overlay(struct cfs_overlay_item *overlay, void *blob)
+ {
+ 	int err;
+-- 
+2.43.0
+

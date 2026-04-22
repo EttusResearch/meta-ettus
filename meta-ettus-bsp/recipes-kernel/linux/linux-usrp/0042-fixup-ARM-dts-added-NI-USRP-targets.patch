@@ -1,0 +1,76 @@
+From 6f0754ebc59f17433c3ba7145d0957e1aac94c63 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Mon, 1 Dec 2025 13:13:48 +0100
+Subject: [PATCH 042/110] fixup! ARM: dts: added NI USRP targets
+
+---
+ arch/arm/boot/dts/xilinx/zynq-ni-neon-rev1.dts   |  7 -------
+ arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev2.dts | 16 ----------------
+ arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts | 15 ---------------
+ 3 files changed, 38 deletions(-)
+
+diff --git a/arch/arm/boot/dts/xilinx/zynq-ni-neon-rev1.dts b/arch/arm/boot/dts/xilinx/zynq-ni-neon-rev1.dts
+index 1a6d0845dc3b1..ce4b6338864b8 100644
+--- a/arch/arm/boot/dts/xilinx/zynq-ni-neon-rev1.dts
++++ b/arch/arm/boot/dts/xilinx/zynq-ni-neon-rev1.dts
+@@ -217,10 +217,3 @@ &usb0 {
+ 	dr_mode = "host";
+ 	usb-phy = <&usb_phy0>;
+ };
+-
+-&amba {
+-	ocm: sram@fffc0000 {
+-		compatible = "mmio-sram";
+-		reg = <0xfffc0000 0x10000>;
+-	};
+-};
+diff --git a/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev2.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev2.dts
+index 4652f7a146848..15275cf0ef3ef 100644
+--- a/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev2.dts
++++ b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev2.dts
+@@ -287,19 +287,3 @@ &usb0 {
+ 	dr_mode = "otg";
+ 	usb-phy = <&usb_phy0>;
+ };
+-
+-
+-&amba {
+-	fpga_region0: fpga-region@40000000 {
+-		compatible = "fpga-region";
+-		fpga-mgr = <&devcfg>;
+-		#address-cells = <0x1>;
+-		#size-cells = <0x1>;
+-		ranges;
+-	};
+-
+-	ocm: sram@fffc0000 {
+-		compatible = "mmio-sram";
+-		reg = <0xfffc0000 0x10000>;
+-	};
+-};
+diff --git a/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts
+index 7fa5103f1253e..9c7310b3313f4 100644
+--- a/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts
++++ b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts
+@@ -338,18 +338,3 @@ &usb0 {
+ 	dr_mode = "host";
+ 	usb-phy = <&usb_phy0>;
+ };
+-
+-&amba {
+-	fpga_region0: fpga-region@40000000 {
+-		compatible = "fpga-region";
+-		fpga-mgr = <&devcfg>;
+-		#address-cells = <0x1>;
+-		#size-cells = <0x1>;
+-		ranges;
+-	};
+-
+-	ocm: sram@fffc0000 {
+-		compatible = "mmio-sram";
+-		reg = <0xfffc0000 0x10000>;
+-	};
+-};
+-- 
+2.43.0
+

@@ -1,0 +1,116 @@
+From c1019a8a32e4734bcf3548703a63c1565eac4676 Mon Sep 17 00:00:00 2001
+From: Appana Durga Kedareswara Rao <appana.durga.rao@xilinx.com>
+Date: Mon, 6 Jan 2025 22:44:39 -1200
+Subject: [PATCH 077/110] net: axienet: Fix lost wake-up scenario in xmit
+
+In ndo_start_xmit we are checking for free BD count
+and incase there are no available BD's we stop
+the networking stack.
+
+If these sequence of operation are preemted then
+it will lead to classic Lost Wake-Up Problem.
+
+If interrupt comes after xmit has checked  BD
+count and TX post processing clears up the BD and
+issue wake-up and then later xmit goes for a wait.
+There is no one to wake up xmit and as wake-up
+event is lost.
+
+Signed-off-by: Appana Durga Kedareswara Rao <appana.durga.rao@xilinx.com>
+Acked-by: Harini Katakam <harini.katakam@amd.com>
+Signed-off-by: Suraj Gupta <suraj.gupta2@amd.com>
+Reviewed-by: Radhey Shyam Pandey <radhey.shyam.pandey@amd.com>
+State: pending
+Message-ID: <20250107104507.359136-2-suraj.gupta2@amd.com>
+---
+ drivers/net/ethernet/xilinx/xilinx_axienet.h  |  2 ++
+ .../net/ethernet/xilinx/xilinx_axienet_main.c | 31 ++++++++++++++-----
+ 2 files changed, 25 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet.h b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+index d64b8abcf0186..e9f324e371373 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet.h
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+@@ -518,6 +518,7 @@ struct skbuf_dma_descriptor {
+  * @dma_err_task: Work structure to process Axi DMA errors
+  * @stopping:   Set when @dma_err_task shouldn't do anything because we are
+  *              about to stop the device.
++ * @tx_lock:	Spin lock for tx path
+  * @tx_irq:	Axidma TX IRQ number
+  * @rx_irq:	Axidma RX IRQ number
+  * @eth_irq:	Ethernet core IRQ number
+@@ -595,6 +596,7 @@ struct axienet_local {
+ 
+ 	struct work_struct dma_err_task;
+ 	bool stopping;
++	spinlock_t tx_lock;		/* Spin lock for tx */
+ 
+ 	int tx_irq;
+ 	int rx_irq;
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+index 3339c5e1a57a9..25971e2a9a018 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+@@ -1012,6 +1012,7 @@ axienet_start_xmit(struct sk_buff *skb, struct net_device *ndev)
+ 	u32 orig_tail_ptr, new_tail_ptr;
+ 	struct axienet_local *lp = netdev_priv(ndev);
+ 	struct axidma_bd *cur_p;
++	unsigned long flags;
+ 
+ 	orig_tail_ptr = lp->tx_bd_tail;
+ 	new_tail_ptr = orig_tail_ptr;
+@@ -1019,15 +1020,25 @@ axienet_start_xmit(struct sk_buff *skb, struct net_device *ndev)
+ 	num_frag = skb_shinfo(skb)->nr_frags;
+ 	cur_p = &lp->tx_bd_v[orig_tail_ptr];
+ 
+-	if (axienet_check_tx_bd_space(lp, num_frag + 1)) {
+-		/* Should not happen as last start_xmit call should have
+-		 * checked for sufficient space and queue should only be
+-		 * woken when sufficient space is available.
+-		 */
++	spin_lock_irqsave(&lp->tx_lock, flags);
++	if (axienet_check_tx_bd_space(lp, num_frag)) {
++		if (netif_queue_stopped(ndev)) {
++			spin_unlock_irqrestore(&lp->tx_lock, flags);
++			return NETDEV_TX_BUSY;
++		}
++
+ 		netif_stop_queue(ndev);
+-		if (net_ratelimit())
+-			netdev_warn(ndev, "TX ring unexpectedly full\n");
+-		return NETDEV_TX_BUSY;
++
++		/* Matches barrier in axienet_start_xmit_done */
++		smp_mb();
++
++		/* Space might have just been freed - check again */
++		if (axienet_check_tx_bd_space(lp, num_frag)) {
++			spin_unlock_irqrestore(&lp->tx_lock, flags);
++			return NETDEV_TX_BUSY;
++		}
++
++		netif_wake_queue(ndev);
+ 	}
+ 
+ 	if (skb->ip_summed == CHECKSUM_PARTIAL) {
+@@ -1102,6 +1113,8 @@ axienet_start_xmit(struct sk_buff *skb, struct net_device *ndev)
+ 			netif_wake_queue(ndev);
+ 	}
+ 
++	spin_unlock_irqrestore(&lp->tx_lock, flags);
++
+ 	return NETDEV_TX_OK;
+ }
+ 
+@@ -2853,6 +2866,8 @@ static int axienet_probe(struct platform_device *pdev)
+ 	if (lp->eth_irq <= 0)
+ 		dev_info(&pdev->dev, "Ethernet core IRQ not defined\n");
+ 
++	spin_lock_init(&lp->tx_lock);
++
+ 	/* Retrieve the MAC address */
+ 	ret = of_get_mac_address(pdev->dev.of_node, mac_addr);
+ 	if (!ret) {
+-- 
+2.43.0
+

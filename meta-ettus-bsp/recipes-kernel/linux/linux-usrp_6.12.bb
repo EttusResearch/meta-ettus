@@ -5,19 +5,20 @@ require kernel-include-nirio-header.inc
 
 KERNEL_VERSION_SANITY_SKIP="1"
 
-KBRANCH = "usrp-v6.12"
+KBRANCH = "nilrt/master/6.12"
 LINUX_VERSION = "6.12.57-rt14"
 
 KBUILD_DEFCONFIG ?= "usrp_defconfig"
 
-SRCREV_machine = "cd28beffb5981a06b6d266312e75bcc3c767dc1c"
+SRCREV_machine = "556be4f45e0014252323bd2bb4036129898fc893"
 SRCREV_meta = "2987fc4250f2ad7f6e2df663bba0742638fbae51"
 
 LINUX_VERSION_EXTENSION = "-usrp"
 KMETA = "kernel-meta"
 SRC_URI = " \
-    git://git@github.com/EttusResearch/linuxdev.git;name=machine;protocol=ssh;branch=${KBRANCH} \
+    git://github.com/ni/linux;name=machine;protocol=ssh;branch=${KBRANCH} \
     git://git.yoctoproject.org/yocto-kernel-cache;type=kmeta;name=meta;branch=yocto-6.12;destsuffix=${KMETA};protocol=https \
+    file://usrp.scc \
     file://fix-addressing.cfg \
     file://enable-early-debug.cfg \
     file://sound.cfg \

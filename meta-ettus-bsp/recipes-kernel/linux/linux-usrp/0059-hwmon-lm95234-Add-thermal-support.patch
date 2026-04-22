@@ -1,0 +1,94 @@
+From 8c8dbc09c4e7f778c1976e7f82b5c6073e80a2eb Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Mon, 10 Jul 2017 15:08:20 -0700
+Subject: [PATCH 059/110] hwmon: lm95234: Add thermal support
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+
+Adopted to kernel 6.12
+
+Signed-off-by: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+---
+ drivers/hwmon/lm95234.c | 52 ++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 51 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/hwmon/lm95234.c b/drivers/hwmon/lm95234.c
+index 7da6c8f073322..915a64ad67b1a 100644
+--- a/drivers/hwmon/lm95234.c
++++ b/drivers/hwmon/lm95234.c
+@@ -17,6 +17,7 @@
+ #include <linux/mutex.h>
+ #include <linux/regmap.h>
+ #include <linux/util_macros.h>
++#include <linux/thermal.h>
+ 
+ #define DRVNAME "lm95234"
+ 
+@@ -507,6 +508,51 @@ static int lm95234_init_client(struct device *dev, struct regmap *regmap)
+ 	return ret;
+ }
+ 
++struct lm95234_thermal_sensor {
++	struct regmap *regmap;
++	int index;
++};
++
++static int lm95234_thermal_get_temp(struct thermal_zone_device *tz, int *temp)
++{
++	struct lm95234_thermal_sensor *sensor = thermal_zone_device_priv(tz);
++	long t;
++	int ret;
++
++	ret = lm95234_read_temp(sensor->regmap, sensor->index, &t);
++	if (ret)
++		return ret;
++	*temp = t;
++
++	return 0;
++}
++
++const static struct thermal_zone_device_ops tzd_ops = {
++	.get_temp = lm95234_thermal_get_temp,
++};
++
++static int lm95234_setup_thermal_device(struct device *dev,
++					struct lm95234_data *data)
++					//struct device_node *zone)
++{
++	struct lm95234_thermal_sensor *sensor;
++	int i;
++
++	for (i = 0; i < 5; ++i) {
++		sensor = devm_kzalloc(dev, sizeof(*sensor), GFP_KERNEL);
++		if (!sensor)
++			return -ENOMEM;
++
++		sensor->regmap = data->regmap;
++		sensor->index = i;
++
++		devm_thermal_of_zone_register(dev, i, sensor, &tzd_ops);
++	}
++
++	return 0;
++}
++
++
+ static int lm95234_probe(struct i2c_client *client)
+ {
+ 	struct device *dev = &client->dev;
+@@ -532,7 +578,11 @@ static int lm95234_probe(struct i2c_client *client)
+ 	err = lm95234_init_client(dev, regmap);
+ 	if (err < 0)
+ 		return err;
+-
++    
++    err = lm95234_setup_thermal_device(dev, data);
++    if (err)
++    	return err;
++    
+ 	hwmon_dev = devm_hwmon_device_register_with_info(dev, client->name,
+ 							 data, &lm95234_chip_info, NULL);
+ 	return PTR_ERR_OR_ZERO(hwmon_dev);
+-- 
+2.43.0
+

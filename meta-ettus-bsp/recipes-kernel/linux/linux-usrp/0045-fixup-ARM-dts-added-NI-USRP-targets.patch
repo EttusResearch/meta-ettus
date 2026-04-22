@@ -1,0 +1,111 @@
+From 328cb7502729392ec2c2055fadb07192b880cc89 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Tue, 2 Dec 2025 11:52:18 +0100
+Subject: [PATCH 045/110] fixup! ARM: dts: added NI USRP targets
+
+Put nvmem cells below "nvmem-layout" (of type "fixed-layout") node.
+---
+ arch/arm/boot/dts/xilinx/zynq-e3xx.dtsi       | 13 ++++++----
+ .../arm/boot/dts/xilinx/zynq-ni-neon-rev1.dts | 18 ++++++++------
+ .../boot/dts/xilinx/zynq-ni-sulfur-rev3.dts   | 24 +++++++++++--------
+ 3 files changed, 34 insertions(+), 21 deletions(-)
+
+diff --git a/arch/arm/boot/dts/xilinx/zynq-e3xx.dtsi b/arch/arm/boot/dts/xilinx/zynq-e3xx.dtsi
+index 57987b4fef29e..79c3d1930ae20 100644
+--- a/arch/arm/boot/dts/xilinx/zynq-e3xx.dtsi
++++ b/arch/arm/boot/dts/xilinx/zynq-e3xx.dtsi
+@@ -98,11 +98,16 @@ mpu6050@69 {
+ 	eeprom@51 {
+ 		compatible = "at24,24c02";
+ 		reg = <0x51>;
+-		#address-cells = <1>;
+-		#size-cells = <0>;
+ 		read-only;
+-		eth0_addr: eth-addr@4 {
+-			reg = <0x4 0x6>;
++
++		nvmem-layout {
++			compatible = "fixed-layout";
++			#address-cells = <1>;
++			#size-cells = <1>;
++
++			eth0_addr: eth-addr@4 {
++				reg = <0x4 0x6>;
++			};
+ 		};
+ 	};
+ 
+diff --git a/arch/arm/boot/dts/xilinx/zynq-ni-neon-rev1.dts b/arch/arm/boot/dts/xilinx/zynq-ni-neon-rev1.dts
+index ce4b6338864b8..b688e8654115c 100644
+--- a/arch/arm/boot/dts/xilinx/zynq-ni-neon-rev1.dts
++++ b/arch/arm/boot/dts/xilinx/zynq-ni-neon-rev1.dts
+@@ -143,16 +143,20 @@ tun: i2c-tunnel {
+ 			eeprom@50 {
+ 				compatible = "at24,24c02";
+ 				reg = <0x50>;
+-				#address-cells = <1>;
+-				#size-cells = <0>;
+ 				read-only;
+ 
+-				eth0_addr: eth-addr@24 {
+-					reg = <0x24 0x6>;
+-				};
++				nvmem-layout {
++					compatible = "fixed-layout";
++					#address-cells = <1>;
++					#size-cells = <1>;
++
++					eth0_addr: eth-addr@24 {
++						reg = <0x24 0x6>;
++					};
+ 
+-				eth1_addr: eth-addr@2c {
+-					reg = <0x2c 0x6>;
++					eth1_addr: eth-addr@2c {
++						reg = <0x2c 0x6>;
++					};
+ 				};
+ 			};
+ 		};
+diff --git a/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts
+index 9c7310b3313f4..c52d0738cb688 100644
+--- a/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts
++++ b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts
+@@ -274,20 +274,24 @@ tun: i2c-tunnel {
+ 			eeprom@50 {
+ 				compatible = "at24,24c02";
+ 				reg = <0x50>;
+-				#address-cells = <1>;
+-				#size-cells = <0>;
+ 				read-only;
+ 
+-				eth0_addr: eth-addr@24 {
+-					reg = <0x24 0x6>;
+-				};
++				nvmem-layout {
++					compatible = "fixed-layout";
++					#address-cells = <1>;
++					#size-cells = <1>;
+ 
+-				eth1_addr: eth-addr@2c {
+-					reg = <0x2c 0x6>;
+-				};
++					eth0_addr: eth-addr@24 {
++						reg = <0x24 0x6>;
++					};
++
++					eth1_addr: eth-addr@2c {
++						reg = <0x2c 0x6>;
++					};
+ 
+-				eth2_addr: eth-addr@34 {
+-					reg = <0x34 0x6>;
++					eth2_addr: eth-addr@34 {
++						reg = <0x34 0x6>;
++					};
+ 				};
+ 			};
+ 		};
+-- 
+2.43.0
+

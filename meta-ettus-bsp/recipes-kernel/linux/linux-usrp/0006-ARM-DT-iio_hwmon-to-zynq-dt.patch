@@ -1,0 +1,37 @@
+From 3ca64a00e6eba3ea813dbe1ab7745395d8ebf7a8 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Thu, 30 Mar 2017 17:51:09 -0700
+Subject: [PATCH 006/110] ARM: DT: iio_hwmon to zynq dt
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ arch/arm/boot/dts/xilinx/zynq-7000.dtsi | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/arch/arm/boot/dts/xilinx/zynq-7000.dtsi b/arch/arm/boot/dts/xilinx/zynq-7000.dtsi
+index a7db3f3009f2a..402ebe7ea5200 100644
+--- a/arch/arm/boot/dts/xilinx/zynq-7000.dtsi
++++ b/arch/arm/boot/dts/xilinx/zynq-7000.dtsi
+@@ -92,6 +92,11 @@ replicator_in_port0: endpoint {
+ 		};
+ 	};
+ 
++	iio_hwmon {
++		compatible = "iio-hwmon";
++		io-channels = <&adc 0>;
++	};
++
+ 	amba: axi {
+ 		compatible = "simple-bus";
+ 		#address-cells = <1>;
+@@ -105,6 +110,7 @@ adc: adc@f8007100 {
+ 			interrupts = <0 7 4>;
+ 			interrupt-parent = <&intc>;
+ 			clocks = <&clkc 12>;
++			#io-channel-cells = <1>;
+ 		};
+ 
+ 		can0: can@e0008000 {
+-- 
+2.43.0
+

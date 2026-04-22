@@ -1,0 +1,408 @@
+From d03791e21e474426d99443c25b2db3c1e1a559c5 Mon Sep 17 00:00:00 2001
+From: Ravikanth Tuniki <ravikanth.tuniki@amd.com>
+Date: Mon, 6 Jan 2025 22:45:07 -1200
+Subject: [PATCH 097/110] net: axienet: Add GRO Multiple Port Support
+
+EOE supports 15 queues for GRO and each queue is configured with a UDP
+port.
+
+To support this, add rules for flow-type, port number and queue.
+
+To add rule
+ethtool -N <interface> flow-type <type> dst-port <port number>
+Ex: ethtool -N eth0 flow-type udp4 dst-port 8000
+
+To delete rule
+ethtool -N <interface> delete <rule number>
+Ex: ethtool -N eth0 delete 1
+
+Signed-off-by: Ravikanth Tuniki <ravikanth.tuniki@amd.com>
+Signed-off-by: Suraj Gupta <suraj.gupta2@amd.com>
+Reviewed-by: Radhey Shyam Pandey <radhey.shyam.pandey@amd.com>
+State: pending
+Message-ID: <20250107104507.359136-30-suraj.gupta2@amd.com>
+[michals:
+v6.12 update
+net: axienet: Remove duplicated linux/netdevice.h
+]
+---
+ drivers/net/ethernet/xilinx/xilinx_axienet.h  |  10 +
+ .../net/ethernet/xilinx/xilinx_axienet_eoe.c  | 177 ++++++++++++++++++
+ .../net/ethernet/xilinx/xilinx_axienet_eoe.h  |  20 ++
+ .../net/ethernet/xilinx/xilinx_axienet_main.c |  76 ++++++++
+ 4 files changed, 283 insertions(+)
+
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet.h b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+index de0be07928f49..2355291d28d84 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet.h
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+@@ -870,6 +870,12 @@ struct aximcdma_bd {
+ #else
+ #define XAE_MAX_QUEUES		1
+ #endif
++
++struct ethtool_rx_fs_list {
++	struct list_head list;
++	unsigned int count;
++};
++
+ /**
+  * struct skbuf_dma_descriptor - skb for each dma descriptor
+  * @sgl: Pointer for sglist.
+@@ -991,6 +997,8 @@ struct skbuf_dma_descriptor {
+  * @eoe_connected: Tells whether ethernet offload IP is connected to Ethernet IP.
+  * @eoe_features: EOE IP supported configuration.
+  * @inetaddr_notifier: Notifier callback function for specific event.
++ * @rx_fs_list: RX queue filter rule set.
++ * @assigned_rx_port: Ports assigned to GRO Queue.
+  */
+ struct axienet_local {
+ 	struct net_device *ndev;
+@@ -1107,6 +1115,8 @@ struct axienet_local {
+ 	bool eoe_connected;
+ 	u32 eoe_features;
+ 	struct notifier_block inetaddr_notifier;
++	struct ethtool_rx_fs_list rx_fs_list;
++	u16 assigned_rx_port[XAE_MAX_QUEUES];
+ };
+ 
+ /**
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.c b/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.c
+index 83217548579c2..cf9ad494af4e2 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.c
+@@ -338,3 +338,180 @@ int axienet_eoe_recv_gro(struct net_device *ndev, int budget,
+ 
+ 	return numbdfree;
+ }
++
++int axienet_eoe_add_udp_port_register(struct net_device *ndev, struct ethtool_rx_flow_spec *fs,
++				      int chan_id, struct axienet_local *lp)
++{
++	int udp_port = lp->assigned_rx_port[chan_id - 1];
++	int ret = 0;
++	u32 val;
++
++	/* Configure Control Register to Disable GRO */
++	val = axienet_eoe_ior(lp, XEOE_UDP_GRO_CR_OFFSET(chan_id));
++	axienet_eoe_iow(lp, XEOE_UDP_GRO_CR_OFFSET(chan_id), val & (~XEOE_UDP_GRO_ENABLE));
++
++	/* Set 16 Fragments to stitch other than header and add 3 Tuple and Checksum */
++	axienet_eoe_iow(lp, XEOE_UDP_GRO_RX_COMMON_CR_OFFSET,
++			(XEOE_UDP_GRO_FRAG | XEOE_UDP_GRO_4K_FRAG_SIZE
++			| XEOE_UDP_GRO_TUPLE | XEOE_UDP_GRO_CHKSUM));
++
++	/* Configure Port Number */
++	axienet_eoe_iow(lp, XEOE_UDP_GRO_PORT__OFFSET(chan_id),
++			((udp_port << XEOE_UDP_GRO_DSTPORT_SHIFT) & XEOE_UDP_GRO_DST_PORT_MASK));
++
++	/* Check Status whether GRO Channel is busy */
++	/* Wait for GRO Channel busy with timeout */
++	ret = readl_poll_timeout(lp->eoe_regs + XEOE_UDP_GRO_SR_OFFSET(chan_id),
++				 val, !(val & XEOE_UDP_GRO_BUSY_MASK),
++				 10, DELAY_OF_ONE_MILLISEC);
++	if (ret) {
++		netdev_err(ndev, "GRO Channel %d is busy and can't be configured\n", chan_id);
++		return ret;
++	}
++
++	/* Configure Control Register to Enable GRO */
++	axienet_eoe_iow(lp, XEOE_UDP_GRO_CR_OFFSET(chan_id),
++			(((XEOE_UDP_CR_PROTOCOL << XEOE_UDP_GRO_PROTOCOL_SHIFT) &
++			XEOE_UDP_GRO_PROTOCOL_MASK) | XEOE_UDP_GRO_ENABLE));
++
++	lp->rx_fs_list.count++;
++	return 0;
++}
++
++int axienet_eoe_add_flow_filter(struct net_device *ndev, struct ethtool_rxnfc *cmd)
++{
++	struct axienet_local *lp = netdev_priv(ndev);
++	struct ethtool_rx_flow_spec *fs = &cmd->fs;
++	struct ethtool_rx_fs_item *item, *newfs;
++	int ret = -EINVAL, chan_id = 0;
++	bool added = false;
++
++	newfs = kmalloc(sizeof(*newfs), GFP_KERNEL);
++	if (!newfs)
++		return -ENOMEM;
++	memcpy(&newfs->fs, fs, sizeof(newfs->fs));
++
++	netdev_dbg(ndev,
++		   "Adding flow filter entry,type=%u,queue=%u,loc=%u,src=%08X,dst=%08X,ps=%u,pd=%u\n",
++		   fs->flow_type, (int)fs->ring_cookie, fs->location,
++		   fs->h_u.tcp_ip4_spec.ip4src,
++		   fs->h_u.tcp_ip4_spec.ip4dst,
++		   be16_to_cpu(fs->h_u.udp_ip4_spec.psrc),
++		   be16_to_cpu(fs->h_u.udp_ip4_spec.pdst));
++
++	/* check for Repeated Port Number */
++	for (int i = 0; i < XAE_MAX_QUEUES; i++) {
++		if (lp->assigned_rx_port[i] == be16_to_cpu(fs->h_u.udp_ip4_spec.pdst)) {
++			netdev_err(ndev, "GRO Port %d is Repeated\n", lp->assigned_rx_port[i]);
++			ret = -EBUSY;
++			goto err_kfree;
++		}
++	}
++	/* find correct place to add in list */
++	list_for_each_entry(item, &lp->rx_fs_list.list, list) {
++		if (item->fs.location > newfs->fs.location) {
++			chan_id = lp->dq[newfs->fs.location]->chan_id;
++			lp->assigned_rx_port[newfs->fs.location] =
++				be16_to_cpu(fs->h_u.udp_ip4_spec.pdst);
++			list_add_tail(&newfs->list, &item->list);
++			added = true;
++			break;
++		} else if (item->fs.location == fs->location) {
++			netdev_err(ndev, "Rule not added: location %d not free!\n",
++				   fs->location);
++			ret = -EBUSY;
++			goto err_kfree;
++		}
++	}
++	if (!added) {
++		chan_id = lp->dq[newfs->fs.location]->chan_id;
++		lp->assigned_rx_port[newfs->fs.location] = be16_to_cpu(fs->h_u.udp_ip4_spec.pdst);
++		list_add_tail(&newfs->list, &lp->rx_fs_list.list);
++	}
++
++	switch (fs->flow_type) {
++	case UDP_V4_FLOW:
++		ret = axienet_eoe_add_udp_port_register(ndev, fs, chan_id, lp);
++		if (ret)
++			goto err_del_list;
++		break;
++	default:
++		netdev_err(ndev, "Invalid flow type\n");
++		ret = -EINVAL;
++		goto err_del_list;
++	}
++
++	return ret;
++
++err_del_list:
++	lp->assigned_rx_port[cmd->fs.location] = 0;
++	list_del(&newfs->list);
++err_kfree:
++	kfree(newfs);
++	return ret;
++}
++
++int axienet_eoe_del_flow_filter(struct net_device *ndev,
++				struct ethtool_rxnfc *cmd)
++{
++	struct axienet_local *lp = netdev_priv(ndev);
++	struct ethtool_rx_fs_item *item;
++	struct ethtool_rx_flow_spec *fs;
++
++	list_for_each_entry(item, &lp->rx_fs_list.list, list) {
++		if (item->fs.location == cmd->fs.location) {
++			/* disable screener regs for the flow entry */
++			fs = &item->fs;
++			netdev_dbg(ndev,
++				   "Deleting flow filter entry,type=%u,queue=%u,loc=%u,src=%08X,dst=%08X,ps=%u,pd=%u\n",
++				   fs->flow_type, (int)fs->ring_cookie, fs->location,
++				   fs->h_u.udp_ip4_spec.ip4src,
++				   fs->h_u.udp_ip4_spec.ip4dst,
++				   be16_to_cpu(fs->h_u.tcp_ip4_spec.psrc),
++				   be16_to_cpu(fs->h_u.tcp_ip4_spec.pdst));
++
++			lp->assigned_rx_port[cmd->fs.location] = 0;
++			list_del(&item->list);
++			lp->rx_fs_list.count--;
++			kfree(item);
++			return 0;
++		}
++	}
++
++	return -EINVAL;
++}
++
++int axienet_eoe_get_flow_entry(struct net_device *ndev,
++			       struct ethtool_rxnfc *cmd)
++{
++	struct axienet_local *lp = netdev_priv(ndev);
++	struct ethtool_rx_fs_item *item;
++
++	list_for_each_entry(item, &lp->rx_fs_list.list, list) {
++		if (item->fs.location == cmd->fs.location) {
++			memcpy(&cmd->fs, &item->fs, sizeof(cmd->fs));
++			cmd->fs.ring_cookie = item->fs.location;
++			return 0;
++		}
++	}
++	return -EINVAL;
++}
++
++int axienet_eoe_get_all_flow_entries(struct net_device *ndev,
++				     struct ethtool_rxnfc *cmd, u32 *rule_locs)
++{
++	struct axienet_local *lp = netdev_priv(ndev);
++	struct ethtool_rx_fs_item *item;
++	u32 cnt = 0;
++
++	list_for_each_entry(item, &lp->rx_fs_list.list, list) {
++		if (cnt == cmd->rule_cnt)
++			return -EMSGSIZE;
++		rule_locs[cnt] = item->fs.location;
++		cnt++;
++	}
++	cmd->data = lp->num_rx_queues;
++	cmd->rule_cnt = cnt;
++
++	return 0;
++}
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.h b/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.h
+index dd8a57aeab6e0..c7bcd17e2a16c 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.h
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_eoe.h
+@@ -55,11 +55,22 @@
+ #define XEOE_UDP_GRO_RX_CSUM_MASK	GENMASK(31, 16)
+ #define XEOE_UDP_GRO_RX_CSUM_SHIFT	16
+ 
++#define XEOE_UDP_GRO_DSTPORT_SHIFT	16
++#define XEOE_UDP_GRO_PROTOCOL_SHIFT	24
++
++#define XEOE_UDP_GRO_DST_PORT_MASK	GENMASK(31, 16)
++#define XEOE_UDP_GRO_PROTOCOL_MASK	GENMASK(31, 24)
++
+ /* EOE Features */
+ #define RX_HW_NO_OFFLOAD		BIT(0)
+ #define RX_HW_CSO			BIT(1)
+ #define RX_HW_UDP_GRO			BIT(2)
+ 
++struct ethtool_rx_fs_item {
++	struct ethtool_rx_flow_spec fs;
++	struct list_head list;
++};
++
+ #ifdef CONFIG_XILINX_AXI_EOE
+ int axienet_eoe_probe(struct platform_device *pdev);
+ void axienet_eoe_config_hwcso(struct net_device *ndev,
+@@ -75,6 +86,15 @@ void __maybe_unused axienet_eoe_mcdma_gro_bd_free(struct net_device *ndev,
+ int axienet_eoe_recv_gro(struct net_device *ndev,
+ 			 int budget,
+ 			 struct axienet_dma_q *q);
++int axienet_eoe_add_udp_port_register(struct net_device *ndev,
++				      struct ethtool_rx_flow_spec *fs,
++				      int chan_id, struct axienet_local *lp);
++int axienet_eoe_add_flow_filter(struct net_device *ndev, struct ethtool_rxnfc *cmd);
++int axienet_eoe_del_flow_filter(struct net_device *ndev, struct ethtool_rxnfc *cmd);
++int axienet_eoe_get_flow_entry(struct net_device *ndev, struct ethtool_rxnfc *cmd);
++int axienet_eoe_get_all_flow_entries(struct net_device *ndev,
++				     struct ethtool_rxnfc *cmd,
++				     u32 *rule_locs);
+ #else
+ static inline int axienet_eoe_probe(struct platform_device *pdev)
+ {
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+index c1302c300f763..d6dfcc57cedd5 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+@@ -3006,6 +3006,18 @@ static int axienet_stop(struct net_device *ndev)
+ 	if (lp->axienet_config->mactype == XAXIENET_1G_10G_25G)
+ 		cancel_delayed_work_sync(&lp->restart_work);
+ 
++	/* Delete the GRO Filter Rules when Reset is done */
++	if (lp->eoe_features & RX_HW_UDP_GRO && lp->rx_fs_list.count > 0) {
++		struct ethtool_rx_fs_item *item, *tmp;
++
++		list_for_each_entry_safe(item, tmp, &lp->rx_fs_list.list, list) {
++			lp->assigned_rx_port[item->fs.location] = 0;
++			list_del(&item->list);
++			lp->rx_fs_list.count--;
++			kfree(item);
++		}
++	}
++
+ 	return 0;
+ }
+ 
+@@ -3924,6 +3936,65 @@ static int axienet_ethtools_get_ts_info(struct net_device *ndev,
+ }
+ #endif
+ 
++#ifdef CONFIG_XILINX_AXI_EOE
++static int axienet_eoe_get_rxnfc(struct net_device *ndev, struct ethtool_rxnfc *cmd, u32 *rule_locs)
++{
++	struct axienet_local *lp = netdev_priv(ndev);
++	int ret = 0;
++
++	switch (cmd->cmd) {
++	case ETHTOOL_GRXRINGS:
++		cmd->data = lp->num_rx_queues;
++		break;
++	case ETHTOOL_GRXCLSRLCNT:
++		cmd->rule_cnt = lp->rx_fs_list.count;
++		break;
++	case ETHTOOL_GRXCLSRULE:
++		ret = axienet_eoe_get_flow_entry(ndev, cmd);
++		break;
++	case ETHTOOL_GRXCLSRLALL:
++		ret = axienet_eoe_get_all_flow_entries(ndev, cmd, rule_locs);
++		break;
++	default:
++		netdev_err(ndev, "Command parameter %d is not supported\n", cmd->cmd);
++		ret = -EOPNOTSUPP;
++	}
++
++	return ret;
++}
++
++static int axienet_eoe_set_rxnfc(struct net_device *ndev, struct ethtool_rxnfc *cmd)
++{
++	struct axienet_local *lp = netdev_priv(ndev);
++	int ret = -EOPNOTSUPP;
++
++	if (!(lp->eoe_features & RX_HW_UDP_GRO)) {
++		netdev_err(ndev, "HW GRO is not supported\n");
++		ret = -EINVAL;
++		return ret;
++	}
++
++	switch (cmd->cmd) {
++	case ETHTOOL_SRXCLSRLINS:
++		if (cmd->fs.location >= lp->num_rx_queues || cmd->fs.location == 0) {
++			netdev_err(ndev, "Invalid Location, 1 to 15 are valid GRO locations.");
++			ret = -EINVAL;
++			break;
++		}
++		ret = axienet_eoe_add_flow_filter(ndev, cmd);
++		break;
++	case ETHTOOL_SRXCLSRLDEL:
++		ret = axienet_eoe_del_flow_filter(ndev, cmd);
++		break;
++	default:
++		netdev_err(ndev, "Command parameter %d is not supported\n", cmd->cmd);
++		ret = -EOPNOTSUPP;
++	}
++
++	return ret;
++}
++#endif
++
+ static const struct ethtool_ops axienet_ethtool_ops = {
+ 	.supported_coalesce_params = ETHTOOL_COALESCE_MAX_FRAMES |
+ 				     ETHTOOL_COALESCE_USECS,
+@@ -3950,6 +4021,10 @@ static const struct ethtool_ops axienet_ethtool_ops = {
+ 	.get_eth_mac_stats = axienet_ethtool_get_eth_mac_stats,
+ 	.get_eth_ctrl_stats = axienet_ethtool_get_eth_ctrl_stats,
+ 	.get_rmon_stats = axienet_ethtool_get_rmon_stats,
++#ifdef CONFIG_XILINX_AXI_EOE
++	.get_rxnfc = axienet_eoe_get_rxnfc,
++	.set_rxnfc = axienet_eoe_set_rxnfc,
++#endif
+ };
+ 
+ #ifdef CONFIG_AXIENET_HAS_MCDMA
+@@ -4714,6 +4789,7 @@ static int axienet_probe(struct platform_device *pdev)
+ 	mutex_init(&lp->stats_lock);
+ 	seqcount_mutex_init(&lp->hw_stats_seqcount, &lp->stats_lock);
+ 	INIT_DEFERRABLE_WORK(&lp->stats_work, axienet_refresh_stats);
++	INIT_LIST_HEAD(&lp->rx_fs_list.list);
+ 
+ 	lp->axi_clk = devm_clk_get_optional(&pdev->dev, "s_axi_lite_clk");
+ 	if (!lp->axi_clk) {
+-- 
+2.43.0
+

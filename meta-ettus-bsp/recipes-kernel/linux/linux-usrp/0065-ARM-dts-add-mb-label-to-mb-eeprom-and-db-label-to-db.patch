@@ -1,0 +1,54 @@
+From d1ca16f5da8bfd543f114bf38442a0bf286ddcf7 Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Tue, 31 Mar 2026 11:36:13 +0200
+Subject: [PATCH 065/110] ARM: dts: add 'mb' label to mb eeprom, and 'db' label
+ to db eeprom.
+
+---
+ arch/arm/boot/dts/xilinx/zynq-ni-neon-rev1.dts   | 1 +
+ arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts | 3 +++
+ 2 files changed, 4 insertions(+)
+
+diff --git a/arch/arm/boot/dts/xilinx/zynq-ni-neon-rev1.dts b/arch/arm/boot/dts/xilinx/zynq-ni-neon-rev1.dts
+index b688e8654115c..e1163c078d6f4 100644
+--- a/arch/arm/boot/dts/xilinx/zynq-ni-neon-rev1.dts
++++ b/arch/arm/boot/dts/xilinx/zynq-ni-neon-rev1.dts
+@@ -144,6 +144,7 @@ eeprom@50 {
+ 				compatible = "at24,24c02";
+ 				reg = <0x50>;
+ 				read-only;
++				label = "mb";
+ 
+ 				nvmem-layout {
+ 					compatible = "fixed-layout";
+diff --git a/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts
+index 44c298511a37d..4c267adb42ff8 100644
+--- a/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts
++++ b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts
+@@ -221,6 +221,7 @@ usrpio_i2c0: i2c@6 {
+ 			eeprom@50 {
+ 				compatible = "atmel,24c256";
+ 				reg = <0x50>;
++				label = "db0";
+ 			};
+ 		};
+ 
+@@ -232,6 +233,7 @@ usrpio_i2c1: i2c@7 {
+ 			eeprom@50 {
+ 				compatible = "atmel,24c256";
+ 				reg = <0x50>;
++				label = "db1";
+ 			};
+ 
+ 		};
+@@ -263,6 +265,7 @@ eeprom@50 {
+ 				compatible = "at24,24c02";
+ 				reg = <0x50>;
+ 				read-only;
++				label = "mb";
+ 
+ 				nvmem-layout {
+ 					compatible = "fixed-layout";
+-- 
+2.43.0
+

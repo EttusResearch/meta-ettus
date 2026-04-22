@@ -1,0 +1,42 @@
+From 0c57e8608ee13c2f5feab11454b6a278b199d006 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Thu, 5 Sep 2019 16:09:54 +0200
+Subject: [PATCH 034/110] net: nixge: use of_mdiobus_unregister to avoid memory
+ leak error
+
+Using of_mdiobus_unregister instead of mdiobus_unregister avoids the
+following error:
+
+"OF: ERROR: memory leak, expected refcount 1 instead of 3, of_node_get()/of_node_put()
+unbalanced - destroy cset entry: attach overlay node /amba/ethernet@40008000/ethernet-phy@4"
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ drivers/net/ethernet/ni/nixge.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
+index 6a3e030a7ad63..a3029fd994468 100644
+--- a/drivers/net/ethernet/ni/nixge.c
++++ b/drivers/net/ethernet/ni/nixge.c
+@@ -1392,7 +1392,7 @@ static int nixge_probe(struct platform_device *pdev)
+ 
+ unregister_mdio:
+ 	if (priv->mii_bus)
+-		mdiobus_unregister(priv->mii_bus);
++		of_mdiobus_unregister(priv->mii_bus);
+ 
+ free_netdev:
+ 	free_netdev(ndev);
+@@ -1412,7 +1412,7 @@ static void nixge_remove(struct platform_device *pdev)
+ 	of_node_put(priv->phy_node);
+ 
+ 	if (priv->mii_bus)
+-		mdiobus_unregister(priv->mii_bus);
++		of_mdiobus_unregister(priv->mii_bus);
+ 
+ 	free_netdev(ndev);
+ }
+-- 
+2.43.0
+

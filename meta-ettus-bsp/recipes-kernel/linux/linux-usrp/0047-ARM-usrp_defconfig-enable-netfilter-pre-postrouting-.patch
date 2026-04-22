@@ -1,0 +1,48 @@
+From ce8de956735ffaff577c9fcfac5f4f7d09cf9d94 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@emerson.com>
+Date: Mon, 8 Dec 2025 14:16:29 +0100
+Subject: [PATCH 047/110] ARM: usrp_defconfig: enable netfilter pre/postrouting
+ over IPv4
+
+---
+ arch/arm/configs/usrp_defconfig | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/configs/usrp_defconfig b/arch/arm/configs/usrp_defconfig
+index eaee3608ac9c2..f02c99092ddd2 100644
+--- a/arch/arm/configs/usrp_defconfig
++++ b/arch/arm/configs/usrp_defconfig
+@@ -84,7 +84,7 @@ CONFIG_INET_ESP=m
+ CONFIG_INET_IPCOMP=m
+ # CONFIG_IPV6 is not set
+ CONFIG_NETFILTER=y
+-CONFIG_NF_CONNTRACK=m
++CONFIG_NF_CONNTRACK=y
+ CONFIG_NF_CONNTRACK_AMANDA=m
+ CONFIG_NF_CONNTRACK_FTP=m
+ CONFIG_NF_CONNTRACK_H323=m
+@@ -94,7 +94,12 @@ CONFIG_NF_CONNTRACK_PPTP=m
+ CONFIG_NF_CONNTRACK_SANE=m
+ CONFIG_NF_CONNTRACK_SIP=m
+ CONFIG_NF_CONNTRACK_TFTP=m
+-CONFIG_NF_CT_NETLINK=m
++CONFIG_NF_CT_NETLINK=y
++CONFIG_NF_TABLES=y
++CONFIG_NFT_CT=y
++CONFIG_NFT_MASQ=y
++CONFIG_NFT_REDIR=y
++CONFIG_NFT_NAT=y
+ CONFIG_NETFILTER_XT_TARGET_CLASSIFY=m
+ CONFIG_NETFILTER_XT_TARGET_CONNMARK=m
+ CONFIG_NETFILTER_XT_TARGET_DSCP=m
+@@ -128,6 +133,7 @@ CONFIG_NETFILTER_XT_MATCH_STATISTIC=m
+ CONFIG_NETFILTER_XT_MATCH_STRING=m
+ CONFIG_NETFILTER_XT_MATCH_TCPMSS=m
+ CONFIG_NETFILTER_XT_MATCH_U32=m
++CONFIG_NF_TABLES_IPV4=y
+ CONFIG_IP_NF_IPTABLES=m
+ CONFIG_IP_NF_MATCH_AH=m
+ CONFIG_IP_NF_MATCH_ECN=m
+-- 
+2.43.0
+

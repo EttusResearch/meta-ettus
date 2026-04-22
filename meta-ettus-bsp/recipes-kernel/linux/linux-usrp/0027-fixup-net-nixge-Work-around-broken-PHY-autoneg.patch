@@ -1,0 +1,27 @@
+From ef7c4fa34ec5f1ad0b91c7a3a6843a52ee3dc14a Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Wed, 11 Dec 2019 14:23:11 +0100
+Subject: [PATCH 027/110] fixup! net: nixge: Work around broken PHY autoneg
+
+---
+ drivers/net/ethernet/ni/nixge.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
+index 5684e82efe1f1..6a3e030a7ad63 100644
+--- a/drivers/net/ethernet/ni/nixge.c
++++ b/drivers/net/ethernet/ni/nixge.c
+@@ -876,8 +876,8 @@ static int nixge_open(struct net_device *ndev)
+ 	if (!phy)
+ 		return -ENODEV;
+ 
+-	ndev->phydev->supported &= ~(SUPPORTED_Autoneg);
+-	ndev->phydev->advertising = ndev->phydev->supported;
++	linkmode_clear_bit(ETHTOOL_LINK_MODE_Autoneg_BIT, ndev->phydev->supported);
++	linkmode_copy(ndev->phydev->advertising, ndev->phydev->supported);
+ 	ndev->phydev->autoneg = AUTONEG_DISABLE;
+ 
+ 	phy_start(phy);
+-- 
+2.43.0
+

@@ -1,0 +1,113 @@
+From 55925b11b42e9cc1fef52b870c7f19f25f2f813a Mon Sep 17 00:00:00 2001
+From: Suraj Gupta <suraj.gupta2@amd.com>
+Date: Wed, 25 Jun 2025 12:38:39 +0530
+Subject: [PATCH 107/110] net: axienet: Add 100G MRMAC support
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+MRMAC supports 10G, 25G, 40G, 50G and 100G port rates, which are
+configured during synthesis. Add support for 100G configuration.
+Note: Only 10, 25 and 100G designs are tested and we don’t have 40
+or 50G.
+
+Signed-off-by: Suraj Gupta <suraj.gupta2@amd.com>
+Reviewed-by: Harini Katakam <harini.katakam@amd.com>
+Message-ID: <20250625070839.2473420-3-suraj.gupta2@amd.com>
+---
+ drivers/net/ethernet/xilinx/xilinx_axienet.h  |  5 +++
+ .../net/ethernet/xilinx/xilinx_axienet_main.c | 32 ++++++++++++++-----
+ 2 files changed, 29 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet.h b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+index f61b1abb858b9..960a239a6b4e8 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet.h
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+@@ -697,6 +697,8 @@ enum temac_stat {
+ #define MRMAC_CTL_AXIS_CFG_10G_IND	1
+ #define MRMAC_CTL_AXIS_CFG_25G_IND_64	1
+ #define MRMAC_CTL_AXIS_CFG_25G_IND_128	5
++#define MRMAC_CTL_AXIS_CFG_100G_IND_384		5
++#define MRMAC_CTL_AXIS_CFG_100G_IND_SEG_384	7
+ 
+ #define MRMAC_STREAM_DWIDTH_32		0x20
+ #define MRMAC_STREAM_DWIDTH_64		0x40
+@@ -708,6 +710,8 @@ enum temac_stat {
+ #define MRMAC_CTL_SERDES_WIDTH_10G_WIDE	4
+ #define MRMAC_CTL_SERDES_WIDTH_25G_NRW		2
+ #define MRMAC_CTL_SERDES_WIDTH_25G_WIDE	6
++#define MRMAC_CTL_SERDES_WIDTH_100G_NRW		2
++#define MRMAC_CTL_SERDES_WIDTH_100G_WIDE	6
+ 
+ #define MRMAC_CTL_RATE_CFG_MASK		(MRMAC_CTL_DATA_RATE_MASK |	\
+ 					 MRMAC_CTL_AXIS_CFG_MASK |	\
+@@ -730,6 +734,7 @@ enum temac_stat {
+ #define MRMAC_GT_RST_TX_MASK		BIT(2)
+ #define MRMAC_GT_10G_MASK		0x00000001
+ #define MRMAC_GT_25G_MASK		0x00000002
++#define MRMAC_GT_100G_MASK		0x00000002
+ 
+ #define MRMAC_GT_LANE_OFFSET		BIT(16)
+ #define GT_MODE_NARROW			"Narrow"
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+index fcff18332f514..4bf41339c3297 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+@@ -593,7 +593,14 @@ static inline void axienet_mrmac_reset(struct axienet_local *lp)
+ 	reg = axienet_ior(lp, MRMAC_MODE_OFFSET);
+ 	reg &= ~MRMAC_CTL_RATE_CFG_MASK;
+ 
+-	if (lp->max_speed == SPEED_25000) {
++	if (lp->max_speed == SPEED_100000) {
++		axis_cfg = MRMAC_CTL_AXIS_CFG_100G_IND_384;
++		serdes_width = (lp->gt_mode_narrow ?
++				MRMAC_CTL_SERDES_WIDTH_100G_NRW :
++				MRMAC_CTL_SERDES_WIDTH_100G_WIDE);
++		reg |= MRMAC_CTL_DATA_RATE_100G;
++
++	} else if (lp->max_speed == SPEED_25000) {
+ 		axis_cfg = (lp->mrmac_stream_dwidth == MRMAC_STREAM_DWIDTH_128 ?
+ 			    MRMAC_CTL_AXIS_CFG_25G_IND_128 :
+ 			    MRMAC_CTL_AXIS_CFG_25G_IND_64);
+@@ -883,7 +890,11 @@ static inline int axienet_mrmac_gt_reset(struct net_device *ndev)
+ 		mrmac_pll_rst = 1;
+ 	}
+ 
+-	if (lp->max_speed == SPEED_25000)
++	if (lp->max_speed == SPEED_100000)
++		iowrite32(MRMAC_GT_100G_MASK, (lp->gt_ctrl +
++			  MRMAC_GT_LANE_OFFSET * lp->gt_lane +
++			  MRMAC_GT_RATE_OFFSET));
++	else if (lp->max_speed == SPEED_25000)
+ 		iowrite32(MRMAC_GT_25G_MASK, (lp->gt_ctrl +
+ 			  MRMAC_GT_LANE_OFFSET * lp->gt_lane +
+ 			  MRMAC_GT_RATE_OFFSET));
+@@ -2885,14 +2896,19 @@ static int axienet_open(struct net_device *ndev)
+ 			goto err_phy;
+ 		}
+ 
+-		axienet_iow(lp, MRMAC_STATRX_VALID_CTRL_OFFSET, MRMAC_STS_ALL_MASK);
+-		val = axienet_ior(lp, MRMAC_STATRX_VALID_CTRL_OFFSET);
++		/* Distinguish a mis-reported status=good for 10G/25G MRMAC */
++		if (lp->max_speed == SPEED_10000 ||
++		    lp->max_speed == SPEED_25000) {
++			axienet_iow(lp, MRMAC_STATRX_VALID_CTRL_OFFSET, MRMAC_STS_ALL_MASK);
++			val = axienet_ior(lp, MRMAC_STATRX_VALID_CTRL_OFFSET);
+ 
+-		if (!(val & MRMAC_RX_VALID_MASK)) {
+-			netdev_err(ndev, "MRMAC Link is down! No recent RX Valid Control Code\n");
+-			ret = -ENODEV;
+-			goto err_phy;
++			if (!(val & MRMAC_RX_VALID_MASK)) {
++				netdev_err(ndev, "MRMAC Link is down! No recent RX Valid Control Code\n");
++				ret = -ENODEV;
++				goto err_phy;
++			}
+ 		}
++
+ 		netdev_info(ndev, "MRMAC setup at %d\n", lp->max_speed);
+ 		axienet_iow(lp, MRMAC_TICK_OFFSET, MRMAC_TICK_TRIGGER);
+ 	}
+-- 
+2.43.0
+

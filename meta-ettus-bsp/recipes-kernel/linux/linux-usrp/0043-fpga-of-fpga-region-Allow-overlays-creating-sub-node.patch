@@ -1,0 +1,42 @@
+From f5f6405d4a5f8382c2b8b766751006a0aeeeda1e Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@emerson.com>
+Date: Mon, 1 Dec 2025 13:18:58 +0100
+Subject: [PATCH 043/110] fpga: of-fpga-region: Allow overlays creating
+ sub-nodes
+
+When applying an overlay to a FPGA region, the check if the
+region already has an overlay applied was performed twice.
+
+The first occurance performed the check regardeless if the
+FPGA should be re-programmed (i.e. if a "firmware-name"
+property was set) or not. This made it impossible to create
+sub-nodes of FPGA regions in overlays which don't program
+the FPGA itself.
+
+Allow creation of creating sub-nodes without programming
+the FPGA by removing the first occurance of the check.
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@emerson.com>
+---
+ drivers/fpga/of-fpga-region.c | 5 -----
+ 1 file changed, 5 deletions(-)
+
+diff --git a/drivers/fpga/of-fpga-region.c b/drivers/fpga/of-fpga-region.c
+index 8526a5a86f0cb..df6573b870c9b 100644
+--- a/drivers/fpga/of-fpga-region.c
++++ b/drivers/fpga/of-fpga-region.c
+@@ -200,11 +200,6 @@ of_fpga_region_parse_ov(struct fpga_region *region,
+ 	const char *firmware_name;
+ 	int ret;
+ 
+-	if (region->info) {
+-		dev_err(dev, "Region already has overlay applied.\n");
+-		return ERR_PTR(-EINVAL);
+-	}
+-
+ 	/*
+ 	 * Reject overlay if child FPGA Regions added in the overlay have
+ 	 * firmware-name property (would mean that an FPGA region that has
+-- 
+2.43.0
+

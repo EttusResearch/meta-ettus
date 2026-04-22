@@ -1,0 +1,167 @@
+From 15ae845c2a5c6cac8e99b404e10d56372354ee6d Mon Sep 17 00:00:00 2001
+From: Suraj Gupta <suraj.gupta2@amd.com>
+Date: Fri, 14 Feb 2025 00:55:25 -1200
+Subject: [PATCH 100/110] net: axienet: Add support for MRMAC GT narrow mode
+
+GT Transceiver can be configured to operate in Narrow
+and Wide mode. Add support of GT narrow mode with MRMAC and
+correct MRMRAC mode register configuration based on AXI stream
+data width.
+
+Signed-off-by: Suraj Gupta <suraj.gupta2@amd.com>
+Reviewed-by: Harini Katakam <harini.katakam@amd.com>
+Message-ID: <20250214125525.1066624-3-suraj.gupta2@amd.com>
+---
+ drivers/net/ethernet/xilinx/xilinx_axienet.h  | 18 +++++--
+ .../net/ethernet/xilinx/xilinx_axienet_main.c | 49 ++++++++++++++-----
+ 2 files changed, 53 insertions(+), 14 deletions(-)
+
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet.h b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+index 12b31a4e39f05..127d2661c6354 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet.h
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+@@ -682,12 +682,19 @@ enum temac_stat {
+ #define MRMAC_CTL_AXIS_CFG_MASK		GENMASK(11, 9)
+ #define MRMAC_CTL_AXIS_CFG_SHIFT	9
+ #define MRMAC_CTL_AXIS_CFG_10G_IND	1
+-#define MRMAC_CTL_AXIS_CFG_25G_IND	1
++#define MRMAC_CTL_AXIS_CFG_25G_IND_64	1
++#define MRMAC_CTL_AXIS_CFG_25G_IND_128	5
++
++#define MRMAC_STREAM_DWIDTH_32		0x20
++#define MRMAC_STREAM_DWIDTH_64		0x40
++#define MRMAC_STREAM_DWIDTH_128	0x80
+ 
+ #define MRMAC_CTL_SERDES_WIDTH_MASK	GENMASK(6, 4)
+ #define MRMAC_CTL_SERDES_WIDTH_SHIFT	4
+-#define MRMAC_CTL_SERDES_WIDTH_10G	4
+-#define MRMAC_CTL_SERDES_WIDTH_25G	6
++#define MRMAC_CTL_SERDES_WIDTH_10G_NRW		0
++#define MRMAC_CTL_SERDES_WIDTH_10G_WIDE	4
++#define MRMAC_CTL_SERDES_WIDTH_25G_NRW		2
++#define MRMAC_CTL_SERDES_WIDTH_25G_WIDE	6
+ 
+ #define MRMAC_CTL_RATE_CFG_MASK		(MRMAC_CTL_DATA_RATE_MASK |	\
+ 					 MRMAC_CTL_AXIS_CFG_MASK |	\
+@@ -713,6 +720,7 @@ enum temac_stat {
+ 
+ #define MRMAC_GT_LANE_OFFSET		BIT(16)
+ #define MRMAC_MAX_GT_LANES		4
++#define GT_MODE_NARROW			"Narrow"
+ 
+ /* DCMAC Register Definitions */
+ /* Global registers */
+@@ -992,6 +1000,8 @@ struct skbuf_dma_descriptor {
+  * @gds_gt_rx_reset_done: GPIO descriptor array to get Rx reset status.
+  * @phc_index: Index to corresponding PTP clock used.
+  * @gt_lane: MRMAC GT lane index used.
++ * @gt_mode_narrow: true if GT is configured to operate in Narrow mode, false for Wide mode.
++ * @mrmac_stream_dwidth: MRMAC AXI4-Stream data width (bits).
+  * @switch_lock: Spinlock for switchable IP.
+  * @restart_work: delayable work queue.
+  * @eoe_regs: Ethernet offload IP base address.
+@@ -1110,6 +1120,8 @@ struct axienet_local {
+ 	struct gpio_descs *gds_gt_rx_reset_done;
+ 	u32 phc_index;		/* Index to corresponding PTP clock used  */
+ 	u32 gt_lane;		/* MRMAC GT lane index used */
++	bool gt_mode_narrow;
++	int mrmac_stream_dwidth;
+ 	spinlock_t switch_lock;	/* To protect Link training programming from multiple context */
+ 	struct delayed_work restart_work;
+ 	void __iomem *eoe_regs;
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+index 99a1fcd40a28e..df22e5d00255f 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+@@ -583,7 +583,7 @@ static void xxvenet_setoptions(struct net_device *ndev, u32 options)
+ 
+ static inline void axienet_mrmac_reset(struct axienet_local *lp)
+ {
+-	u32 val, reg;
++	u32 val, reg, serdes_width, axis_cfg;
+ 
+ 	val = axienet_ior(lp, MRMAC_RESET_OFFSET);
+ 	val |= (MRMAC_RX_SERDES_RST_MASK | MRMAC_TX_SERDES_RST_MASK |
+@@ -592,19 +592,25 @@ static inline void axienet_mrmac_reset(struct axienet_local *lp)
+ 	mdelay(DELAY_1MS);
+ 
+ 	reg = axienet_ior(lp, MRMAC_MODE_OFFSET);
++	reg &= ~MRMAC_CTL_RATE_CFG_MASK;
++
+ 	if (lp->max_speed == SPEED_25000) {
+-		reg &= ~MRMAC_CTL_RATE_CFG_MASK;
++		axis_cfg = (lp->mrmac_stream_dwidth == MRMAC_STREAM_DWIDTH_128 ?
++			    MRMAC_CTL_AXIS_CFG_25G_IND_128 :
++			    MRMAC_CTL_AXIS_CFG_25G_IND_64);
++		serdes_width = (lp->gt_mode_narrow ?
++				MRMAC_CTL_SERDES_WIDTH_25G_NRW :
++				MRMAC_CTL_SERDES_WIDTH_25G_WIDE);
+ 		reg |= MRMAC_CTL_DATA_RATE_25G;
+-		reg |= (MRMAC_CTL_AXIS_CFG_25G_IND << MRMAC_CTL_AXIS_CFG_SHIFT);
+-		reg |= (MRMAC_CTL_SERDES_WIDTH_25G <<
+-			MRMAC_CTL_SERDES_WIDTH_SHIFT);
+ 	} else {
+-		reg &= ~MRMAC_CTL_RATE_CFG_MASK;
++		axis_cfg = MRMAC_CTL_AXIS_CFG_10G_IND;
++		serdes_width = (lp->gt_mode_narrow ?
++				MRMAC_CTL_SERDES_WIDTH_10G_NRW :
++				MRMAC_CTL_SERDES_WIDTH_10G_WIDE);
+ 		reg |= MRMAC_CTL_DATA_RATE_10G;
+-		reg |= (MRMAC_CTL_AXIS_CFG_10G_IND << MRMAC_CTL_AXIS_CFG_SHIFT);
+-		reg |= (MRMAC_CTL_SERDES_WIDTH_10G <<
+-			MRMAC_CTL_SERDES_WIDTH_SHIFT);
+ 	}
++	reg |= (axis_cfg << MRMAC_CTL_AXIS_CFG_SHIFT);
++	reg |= (serdes_width <<	MRMAC_CTL_SERDES_WIDTH_SHIFT);
+ 
+ 	/* For tick reg */
+ 	reg |= MRMAC_CTL_PM_TICK_MASK;
+@@ -849,7 +855,7 @@ static inline int axienet_mrmac_gt_reset(struct net_device *ndev)
+ 		/* Wait for PLL lock with timeout */
+ 		err = readl_poll_timeout(lp->gt_pll + MRMAC_GT_PLL_STS_OFFSET,
+ 					 val, (val & MRMAC_GT_PLL_DONE_MASK),
+-					 10, DELAY_OF_ONE_MILLISEC);
++					 10, DELAY_OF_ONE_MILLISEC * 100);
+ 		if (err) {
+ 			netdev_err(ndev, "MRMAC PLL lock not complete! Cross-check the MAC ref clock configuration\n");
+ 			return -ENODEV;
+@@ -2860,7 +2866,7 @@ static int axienet_open(struct net_device *ndev)
+ 		/* Reset MRMAC */
+ 		axienet_mrmac_reset(lp);
+ 
+-		mdelay(DELAY_1MS);
++		mdelay(DELAY_1MS * 100);
+ 		/* Check for block lock bit to be set. This ensures that
+ 		 * MRMAC ethernet IP is functioning normally.
+ 		 */
+@@ -4969,6 +4975,27 @@ static int axienet_probe(struct platform_device *pdev)
+ 			goto cleanup_clk;
+ 		}
+ 	}
++	if (lp->axienet_config->mactype == XAXIENET_MRMAC) {
++		const char *gt_mode;
++
++		/* Default to GT wide mode */
++		lp->gt_mode_narrow = false;
++
++		of_property_read_string(pdev->dev.of_node, "xlnx,gt-mode",
++					&gt_mode);
++		if (!strcasecmp(gt_mode, GT_MODE_NARROW))
++			lp->gt_mode_narrow = true;
++
++		/* Default AXI4-stream data widths */
++		if (lp->max_speed == SPEED_10000)
++			lp->mrmac_stream_dwidth = MRMAC_STREAM_DWIDTH_32;
++		else
++			lp->mrmac_stream_dwidth = MRMAC_STREAM_DWIDTH_64;
++
++		of_property_read_u32(pdev->dev.of_node,
++				     "xlnx,axistream-dwidth",
++				     &lp->mrmac_stream_dwidth);
++	}
+ 
+ 	lp->eth_hasnobuf = of_property_read_bool(pdev->dev.of_node,
+ 						 "xlnx,eth-hasnobuf");
+-- 
+2.43.0
+

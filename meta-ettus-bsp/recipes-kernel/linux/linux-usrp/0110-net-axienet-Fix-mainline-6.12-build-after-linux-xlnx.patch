@@ -1,0 +1,96 @@
+From cc689fc6d93411fc449051b2c50cd2033c91a9b6 Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Tue, 21 Apr 2026 22:10:38 +0200
+Subject: [PATCH 110/110] net: axienet: Fix mainline 6.12 build after
+ linux-xlnx cherry-picks
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Add missing include/linux/ptp/ptp_xilinx.h header required by the
+cherry-picked Xilinx axienet driver (not present in mainline 6.12).
+
+Remove __set_bit() calls for PHY_INTERFACE_MODE_100/200/400GBASER
+in the DCMAC path — these PHY interface modes are not defined in
+mainline 6.12. MAC capability flags are retained.
+
+Enable CONFIG_XILINX_AXI_EMAC_HWTSTAMP in usrp_defconfig.
+---
+ arch/arm64/configs/usrp_defconfig             |  1 +
+ .../net/ethernet/xilinx/xilinx_axienet_main.c |  6 ----
+ include/linux/ptp/ptp_xilinx.h                | 30 +++++++++++++++++++
+ 3 files changed, 31 insertions(+), 6 deletions(-)
+ create mode 100644 include/linux/ptp/ptp_xilinx.h
+
+diff --git a/arch/arm64/configs/usrp_defconfig b/arch/arm64/configs/usrp_defconfig
+index 6278b0cdd93a4..2612abcc2d8c7 100644
+--- a/arch/arm64/configs/usrp_defconfig
++++ b/arch/arm64/configs/usrp_defconfig
+@@ -195,6 +195,7 @@ CONFIG_NI_XGE_MANAGEMENT_ENET=y
+ # CONFIG_NET_VENDOR_VIA is not set
+ # CONFIG_NET_VENDOR_WIZNET is not set
+ CONFIG_XILINX_AXI_EMAC=y
++CONFIG_XILINX_AXI_EMAC_HWTSTAMP=y
+ CONFIG_LED_TRIGGER_PHY=y
+ CONFIG_MICREL_PHY=y
+ # CONFIG_WLAN is not set
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+index 34dfb588d8990..3a10b6bc2765a 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+@@ -5774,16 +5774,10 @@ static int axienet_probe(struct platform_device *pdev)
+ 		} else if (lp->axienet_config->mactype == XAXIENET_DCMAC) {
+ 			if (lp->max_speed == SPEED_100000) {
+ 				lp->phylink_config.mac_capabilities |= MAC_100000FD;
+-				__set_bit(PHY_INTERFACE_MODE_100GBASER,
+-					  lp->phylink_config.supported_interfaces);
+ 			} else if (lp->max_speed == SPEED_200000) {
+ 				lp->phylink_config.mac_capabilities |= MAC_200000FD;
+-				__set_bit(PHY_INTERFACE_MODE_200GBASER,
+-					  lp->phylink_config.supported_interfaces);
+ 			} else if (lp->max_speed == SPEED_400000) {
+ 				lp->phylink_config.mac_capabilities |= MAC_400000FD;
+-				__set_bit(PHY_INTERFACE_MODE_400GBASER,
+-					  lp->phylink_config.supported_interfaces);
+ 			}
+ 
+ 			lp->phylink_config.get_fixed_state = axienet_dcmac_get_fixed_state;
+diff --git a/include/linux/ptp/ptp_xilinx.h b/include/linux/ptp/ptp_xilinx.h
+new file mode 100644
+index 0000000000000..eada146b061e6
+--- /dev/null
++++ b/include/linux/ptp/ptp_xilinx.h
+@@ -0,0 +1,30 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Xilinx PTP driver header file
++ *
++ * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
++ */
++
++#ifndef __PTP_PTP_XILINX_H__
++#define __PTP_PTP_XILINX_H__
++
++#include <linux/ptp_clock_kernel.h>
++
++struct xlnx_ptp_timer {
++	struct device		*dev;
++	void __iomem		*baseaddr;
++	struct ptp_clock	*ptp_clock;
++	struct ptp_clock_info	ptp_clock_info;
++	spinlock_t		reg_lock; /* For reg access */
++	u64			incr;
++	s64			timeoffset;
++	s32			static_delay;
++	int			phc_index;
++	bool			use_sys_timer_only;
++	int			irq;
++	int			extts_enable;
++	u32			period_0;
++	u32			period_1;
++};
++
++#endif /* __PTP_PTP_XILINX_H__ */
+-- 
+2.43.0
+

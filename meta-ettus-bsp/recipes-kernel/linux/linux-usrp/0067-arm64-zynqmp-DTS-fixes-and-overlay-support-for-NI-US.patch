@@ -1,0 +1,118 @@
+From 8f49563143ecad4607a56cdaf3092b1c4d92e4ae Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Thu, 15 Jan 2026 10:47:45 +0100
+Subject: [PATCH 067/110] arm64: zynqmp: DTS fixes and overlay support for NI
+ USRP
+
+- Enable DT symbols when CONFIG_OF_OVERLAY is used (ARM and ARM64).
+
+- Disable zynqmp_ipi which was causing a kernel crash. Recreate
+  reserved memory layout matching 5.10. Fix gem3 PHY node warning.
+
+- Reserve extra space in the base DTB to accommodate runtime overlays.
+
+Signed-off-by: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+---
+ arch/arm64/boot/dts/ni/Makefile      |  8 +++++++
+ arch/arm64/boot/dts/ni/x410-rev2.dts | 33 +++++++++++++++++++++++++---
+ arch/arm64/boot/dts/ni/x410-rev7.dts |  1 +
+ 3 files changed, 39 insertions(+), 3 deletions(-)
+ create mode 120000 arch/arm64/boot/dts/ni/x410-rev7.dts
+
+diff --git a/arch/arm64/boot/dts/ni/Makefile b/arch/arm64/boot/dts/ni/Makefile
+index 82bdf8396bf6f..af8bfc5fe6db7 100644
+--- a/arch/arm64/boot/dts/ni/Makefile
++++ b/arch/arm64/boot/dts/ni/Makefile
+@@ -1,4 +1,12 @@
+ # SPDX-License-Identifier: GPL-2.0
++
++ifeq ($(CONFIG_OF_OVERLAY),y)
++DTC_FLAGS += -@
++# Reserve extra space in the base DTB for runtime overlays
++# so U-Boot's fdt_overlay_apply() can modify it in-place.
++DTC_FLAGS_x410-rev5 := -p 0x1000
++endif
++
+ dtb-$(CONFIG_ARCH_ZYNQMP) += x410-rev2.dtb
+ dtb-$(CONFIG_ARCH_ZYNQMP) += x410-rev3.dtb
+ dtb-$(CONFIG_ARCH_ZYNQMP) += x410-rev4.dtb
+diff --git a/arch/arm64/boot/dts/ni/x410-rev2.dts b/arch/arm64/boot/dts/ni/x410-rev2.dts
+index 55ccef89422de..d88fac64b547b 100644
+--- a/arch/arm64/boot/dts/ni/x410-rev2.dts
++++ b/arch/arm64/boot/dts/ni/x410-rev2.dts
+@@ -146,6 +146,7 @@ led2_r {
+ 	};
+ 
+ 	zynqmp_ipi {
++		status = "disabled";
+ 		compatible = "xlnx,zynqmp-ipi-mailbox";
+ 		interrupt-parent = <&gic>;
+ 		interrupts = <0 29 4>;
+@@ -186,6 +187,16 @@ reserved-memory {
+ 		#address-cells = <2>;
+ 		#size-cells = <2>;
+ 		ranges;
++
++		/* Override upstream reserved memory - make them empty to avoid fragmentation */
++		rproc_0_fw_image: memory@3ed00000 {
++			reg = <0x0 0x3ed00000 0x0 0x0>;
++		};
++
++		rproc_1_fw_image: memory@3ef00000 {
++			reg = <0x0 0x3ef00000 0x0 0x0>;
++		};
++
+ 		/* R5 0 firmware memory in DDR */
+ 		rproc_0_fw_reserved: rproc@30000000 {
+ 			no-map;
+@@ -233,6 +244,7 @@ tcm_1_b: tcm_1b@FFEB0000 {
+ 	};
+ 
+ 	zynqmp-r5-remoteproc@0 {
++		status = "disabled";
+ 		compatible = "xlnx,zynqmp-r5-remoteproc";
+ 		#address-cells = <2>;
+ 		#size-cells = <2>;
+@@ -547,9 +559,15 @@ &gem3 {
+ 	nvmem-cells = <&eth0_addr>;
+ 	nvmem-cell-names = "mac-address";
+ 
+-	phy0: phy@7 {
+-		reg = <0x7>;
+-		#phy-cells = <1>;
++    /* PHY child nodes have 1-cell addresses (32-bit) */
++    #address-cells = <1>;
++	/* PHY child nodes have no size */
++    #size-cells = <0>;     
++
++    /* Child node: address = 7 (MDIO address) */
++    phy0: phy@7 {
++		/* This uses the parent's #address-cells/#size-cells (1 cell for address, 0 cells for size) */
++        reg = <7>;         
+ 	};
+ };
+ 
+@@ -597,3 +615,12 @@ &watchdog0 {
+ 	status = "okay";
+ 	reset-on-timeout;
+ };
++
++/* Disable upstream remoteproc - x410 uses custom implementation */
++&rproc_lockstep {
++	status = "disabled";
++};
++
++&rproc_split {
++	status = "disabled";
++};
+diff --git a/arch/arm64/boot/dts/ni/x410-rev7.dts b/arch/arm64/boot/dts/ni/x410-rev7.dts
+new file mode 120000
+index 0000000000000..ad701b03a4990
+--- /dev/null
++++ b/arch/arm64/boot/dts/ni/x410-rev7.dts
+@@ -0,0 +1 @@
++x410-rev5.dts
+\ No newline at end of file
+-- 
+2.43.0
+

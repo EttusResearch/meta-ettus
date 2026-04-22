@@ -1,0 +1,44 @@
+From 1335c1dff4f61895488ae8802a04a5a48b3b8348 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@emerson.com>
+Date: Mon, 1 Dec 2025 08:26:13 +0100
+Subject: [PATCH 041/110] ARM(64): xilinx: Enable DT symbols when
+ CONFIG_OF_OVERLAY is used
+
+Adopt the patch "kbuild: Enable DT symbols when CONFIG_OF_OVERLAY
+is used" from Geert Uytterhoeven <geert+renesas@glider.be> to
+be applied selectively to the xilinx based devicetrees of the ARM
+and ARM64 architecture.
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@emerson.com>
+---
+ arch/arm/boot/dts/xilinx/Makefile   | 4 ++++
+ arch/arm64/boot/dts/xilinx/Makefile | 4 ++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/arch/arm/boot/dts/xilinx/Makefile b/arch/arm/boot/dts/xilinx/Makefile
+index cdc29d265b10c..86aa390d1ee76 100644
+--- a/arch/arm/boot/dts/xilinx/Makefile
++++ b/arch/arm/boot/dts/xilinx/Makefile
+@@ -47,3 +47,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
+ 	zynq-zturn-v5.dtb \
+ 	zynq-zybo.dtb \
+ 	zynq-zybo-z7.dtb
++
++ifeq ($(CONFIG_OF_OVERLAY),y)
++DTC_FLAGS += -@
++endif
+diff --git a/arch/arm64/boot/dts/xilinx/Makefile b/arch/arm64/boot/dts/xilinx/Makefile
+index 1068b0fa8e984..caa2d5292d917 100644
+--- a/arch/arm64/boot/dts/xilinx/Makefile
++++ b/arch/arm64/boot/dts/xilinx/Makefile
+@@ -29,3 +29,7 @@ zynqmp-smk-k26-revA-sck-kv-g-revA-dtbs := zynqmp-smk-k26-revA.dtb zynqmp-sck-kv-
+ dtb-$(CONFIG_ARCH_ZYNQMP) += zynqmp-smk-k26-revA-sck-kv-g-revA.dtb
+ zynqmp-smk-k26-revA-sck-kv-g-revB-dtbs := zynqmp-smk-k26-revA.dtb zynqmp-sck-kv-g-revB.dtbo
+ dtb-$(CONFIG_ARCH_ZYNQMP) += zynqmp-smk-k26-revA-sck-kv-g-revB.dtb
++
++ifeq ($(CONFIG_OF_OVERLAY),y)
++DTC_FLAGS += -@
++endif
+-- 
+2.43.0
+

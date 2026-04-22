@@ -1,0 +1,88 @@
+From 80f4dfd5d0e6a4906b95213f61ca11f14f9421bb Mon Sep 17 00:00:00 2001
+From: Rajendra Desai <rajendra.desai@emerson.com>
+Date: Thu, 11 Dec 2025 22:49:18 +0530
+Subject: [PATCH 054/110] ARM: usrp_defconfig: Enable ni-e31x pmu, battery and
+ charger
+
+Enabled ni-e31x pmu, battery and charger config options in
+usrp_defconfig.
+
+Signed-off-by: Rajendra Desai <rajendra.desai@emerson.com>
+---
+ arch/arm/configs/usrp_defconfig     | 3 +++
+ drivers/mfd/e31x-pmu.c              | 6 ++++--
+ drivers/power/supply/e31x-battery.c | 1 +
+ drivers/power/supply/e31x-charger.c | 1 +
+ 4 files changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/configs/usrp_defconfig b/arch/arm/configs/usrp_defconfig
+index 6362e0a4e49a6..4406b7fe6401d 100644
+--- a/arch/arm/configs/usrp_defconfig
++++ b/arch/arm/configs/usrp_defconfig
+@@ -481,3 +481,6 @@ CONFIG_LATENCYTOP=y
+ CONFIG_FUNCTION_TRACER=y
+ CONFIG_FTRACE_SYSCALLS=y
+ CONFIG_BLK_DEV_IO_TRACE=y
++CONFIG_E31X_BATTERY=y
++CONFIG_E31X_CHARGER=y
++CONFIG_MFD_E31X_PMU=y
+diff --git a/drivers/mfd/e31x-pmu.c b/drivers/mfd/e31x-pmu.c
+index 3373708b17b41..82c1a15e18914 100644
+--- a/drivers/mfd/e31x-pmu.c
++++ b/drivers/mfd/e31x-pmu.c
+@@ -18,6 +18,8 @@
+ #include <linux/of_device.h>
+ #include <linux/mfd/e31x-pmu.h>
+ #include <linux/platform_device.h>
++#include <linux/of_platform.h>
++#include <linux/of.h>
+ 
+ #define E31X_PMU_MISC_IRQ_MASK         BIT(8)
+ #define E31X_PMU_MISC_IRQ_SHIFT                8
+@@ -139,10 +141,9 @@ static int e31x_pmu_probe(struct platform_device *pdev)
+        return devm_of_platform_populate(&pdev->dev);
+ }
+ 
+-static int e31x_pmu_remove(struct platform_device *pdev)
++static void e31x_pmu_remove(struct platform_device *pdev)
+ {
+        sysfs_remove_group(&pdev->dev.kobj, &e31x_pmu_group);
+-       return 0;
+ }
+ 
+ static const struct of_device_id e31x_pmu_id[] = {
+@@ -154,6 +155,7 @@ static struct platform_driver e31x_pmu_driver = {
+        .driver = {
+                .name = "e31x-pmu",
+                .of_match_table = e31x_pmu_id,
++               .groups = e31x_pmu_groups,
+        },
+        .probe = e31x_pmu_probe,
+        .remove = e31x_pmu_remove,
+diff --git a/drivers/power/supply/e31x-battery.c b/drivers/power/supply/e31x-battery.c
+index 00a1561e7ad26..e28138e6dc245 100644
+--- a/drivers/power/supply/e31x-battery.c
++++ b/drivers/power/supply/e31x-battery.c
+@@ -18,6 +18,7 @@
+ #include <linux/power_supply.h>
+ #include <linux/delay.h>
+ #include <linux/mfd/e31x-pmu.h>
++#include <linux/of.h>
+ 
+ #define E31X_PMU_BATTERY_VOLTAGE_MASK		GENMASK(23, 8)
+ #define E31X_PMU_BATTERY_VOLTAGE_SHIFT		8
+diff --git a/drivers/power/supply/e31x-charger.c b/drivers/power/supply/e31x-charger.c
+index 72d696e128287..d9476eb8281a0 100644
+--- a/drivers/power/supply/e31x-charger.c
++++ b/drivers/power/supply/e31x-charger.c
+@@ -18,6 +18,7 @@
+ #include <linux/power_supply.h>
+ #include <linux/delay.h>
+ #include <linux/mfd/e31x-pmu.h>
++#include <linux/of.h>
+ 
+ #define E31X_PMU_CHARGER_HEALTH_MASK           GENMASK(1,0)
+ #define E31X_PMU_CHARGER_HEALTH_SHIFT          0
+-- 
+2.43.0
+

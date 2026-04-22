@@ -1,0 +1,41 @@
+From fdeb6d14b20828a9b2bd99313727971a88a3360f Mon Sep 17 00:00:00 2001
+From: Ravikanth Tuniki <ravikanth.tuniki@amd.com>
+Date: Mon, 6 Jan 2025 22:45:04 -1200
+Subject: [PATCH 094/110] net: axienet: Add page in struct aximcdma_bd for GRO
+
+The segmented packets are received from the MAC by the generic receive
+offload engine, which then accumulates them to 4K page sizes, with overall
+16 4K Data chunks.
+
+Signed-off-by: Ravikanth Tuniki <ravikanth.tuniki@amd.com>
+Signed-off-by: Suraj Gupta <suraj.gupta2@amd.com>
+Reviewed-by: Radhey Shyam Pandey <radhey.shyam.pandey@amd.com>
+State: pending
+Message-ID: <20250107104507.359136-27-suraj.gupta2@amd.com>
+---
+ drivers/net/ethernet/xilinx/xilinx_axienet.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet.h b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+index 676bf9b9ace44..bf032dced4124 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet.h
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+@@ -837,6 +837,7 @@ struct axidma_bd {
+  *		   Otherwise reserved.
+  * @tx_skb:	  Transmit skb address
+  * @tx_desc_mapping: Tx Descriptor DMA mapping type.
++ * @page:	page buffer to access the data passed by GRO packet
+  */
+ struct aximcdma_bd {
+ 	u32 next;	/* Physical address of next buffer descriptor */
+@@ -857,6 +858,7 @@ struct aximcdma_bd {
+ 	u32 ptp_tx_ts_tag;
+ 	phys_addr_t tx_skb;
+ 	u32 tx_desc_mapping;
++	struct page *page;
+ } __aligned(XAXIDMA_BD_MINIMUM_ALIGNMENT);
+ 
+ #define XAE_NUM_MISC_CLOCKS 3
+-- 
+2.43.0
+

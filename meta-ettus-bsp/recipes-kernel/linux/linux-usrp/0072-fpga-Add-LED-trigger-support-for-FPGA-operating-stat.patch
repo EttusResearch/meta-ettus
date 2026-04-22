@@ -1,0 +1,268 @@
+From 10607889754703b7b7f53e6f6d28349e6cd486ed Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Tue, 24 Feb 2026 14:42:58 +0100
+Subject: [PATCH 072/110] fpga: Add LED trigger support for FPGA operating
+ state
+
+Add an LED trigger that reflects the FPGA manager operating state,
+allowing LEDs to be driven directly by FPGA programming activity.
+Enable the new trigger in usrp_defconfig.
+
+Signed-off-by: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+---
+ drivers/fpga/Kconfig          |  8 +++++
+ drivers/fpga/fpga-mgr.c       | 57 +++++++++++++++++++++++++----------
+ drivers/hwmon/lm75.c          |  2 +-
+ include/linux/fpga/fpga-mgr.h |  5 +++
+ 4 files changed, 55 insertions(+), 17 deletions(-)
+
+diff --git a/drivers/fpga/Kconfig b/drivers/fpga/Kconfig
+index 37b35f58f0dfb..43e7450190e97 100644
+--- a/drivers/fpga/Kconfig
++++ b/drivers/fpga/Kconfig
+@@ -12,6 +12,14 @@ menuconfig FPGA
+ 
+ if FPGA
+ 
++config FPGA_MGR_LEDS
++	bool "Enable FPGA operating state LED trigger"
++	depends on LEDS_CLASS
++	select LEDS_TRIGGERS
++	help
++	  This option enables an LED trigger to indicate when the FPGA is in
++	  the operating state.
++
+ config FPGA_MGR_SOCFPGA
+ 	tristate "Altera SOCFPGA FPGA Manager"
+ 	depends on ARCH_INTEL_SOCFPGA || COMPILE_TEST
+diff --git a/drivers/fpga/fpga-mgr.c b/drivers/fpga/fpga-mgr.c
+index 0f4035b089a2e..981ec31b6d996 100644
+--- a/drivers/fpga/fpga-mgr.c
++++ b/drivers/fpga/fpga-mgr.c
+@@ -25,6 +25,18 @@ struct fpga_mgr_devres {
+ 	struct fpga_manager *mgr;
+ };
+ 
++static void fpga_mgr_set_state(struct fpga_manager *mgr,
++			       enum fpga_mgr_states state)
++{
++#ifdef CONFIG_FPGA_MGR_LEDS
++	if (mgr->state != state)
++		led_trigger_event(mgr->operating_led,
++				  state == FPGA_MGR_STATE_OPERATING ? LED_FULL : LED_OFF);
++#endif
++
++	mgr->state = state;
++}
++
+ static inline void fpga_mgr_fpga_remove(struct fpga_manager *mgr)
+ {
+ 	if (mgr->mops->fpga_remove)
+@@ -61,15 +73,15 @@ static inline int fpga_mgr_write_complete(struct fpga_manager *mgr,
+ {
+ 	int ret = 0;
+ 
+-	mgr->state = FPGA_MGR_STATE_WRITE_COMPLETE;
++	fpga_mgr_set_state(mgr, FPGA_MGR_STATE_WRITE_COMPLETE);
+ 	if (mgr->mops->write_complete)
+ 		ret = mgr->mops->write_complete(mgr, info);
+ 	if (ret) {
+ 		dev_err(&mgr->dev, "Error after writing image data to FPGA\n");
+-		mgr->state = FPGA_MGR_STATE_WRITE_COMPLETE_ERR;
++		fpga_mgr_set_state(mgr, FPGA_MGR_STATE_WRITE_COMPLETE_ERR);
+ 		return ret;
+ 	}
+-	mgr->state = FPGA_MGR_STATE_OPERATING;
++	fpga_mgr_set_state(mgr, FPGA_MGR_STATE_OPERATING);
+ 
+ 	return 0;
+ }
+@@ -154,7 +166,7 @@ static int fpga_mgr_parse_header_mapped(struct fpga_manager *mgr,
+ {
+ 	int ret;
+ 
+-	mgr->state = FPGA_MGR_STATE_PARSE_HEADER;
++	fpga_mgr_set_state(mgr, FPGA_MGR_STATE_PARSE_HEADER);
+ 	ret = fpga_mgr_parse_header(mgr, info, buf, count);
+ 
+ 	if (info->header_size + info->data_size > count) {
+@@ -164,7 +176,7 @@ static int fpga_mgr_parse_header_mapped(struct fpga_manager *mgr,
+ 
+ 	if (ret) {
+ 		dev_err(&mgr->dev, "Error while parsing FPGA image header\n");
+-		mgr->state = FPGA_MGR_STATE_PARSE_HEADER_ERR;
++		fpga_mgr_set_state(mgr, FPGA_MGR_STATE_PARSE_HEADER_ERR);
+ 	}
+ 
+ 	return ret;
+@@ -184,7 +196,7 @@ static int fpga_mgr_parse_header_sg_first(struct fpga_manager *mgr,
+ 	struct sg_mapping_iter miter;
+ 	int ret;
+ 
+-	mgr->state = FPGA_MGR_STATE_PARSE_HEADER;
++	fpga_mgr_set_state(mgr, FPGA_MGR_STATE_PARSE_HEADER);
+ 
+ 	sg_miter_start(&miter, sgt->sgl, sgt->nents, SG_MITER_FROM_SG);
+ 	if (sg_miter_next(&miter) &&
+@@ -196,7 +208,7 @@ static int fpga_mgr_parse_header_sg_first(struct fpga_manager *mgr,
+ 
+ 	if (ret && ret != -EAGAIN) {
+ 		dev_err(&mgr->dev, "Error while parsing FPGA image header\n");
+-		mgr->state = FPGA_MGR_STATE_PARSE_HEADER_ERR;
++		fpga_mgr_set_state(mgr, FPGA_MGR_STATE_PARSE_HEADER_ERR);
+ 	}
+ 
+ 	return ret;
+@@ -248,7 +260,7 @@ static void *fpga_mgr_parse_header_sg(struct fpga_manager *mgr,
+ 
+ 	if (ret) {
+ 		dev_err(&mgr->dev, "Error while parsing FPGA image header\n");
+-		mgr->state = FPGA_MGR_STATE_PARSE_HEADER_ERR;
++		fpga_mgr_set_state(mgr, FPGA_MGR_STATE_PARSE_HEADER_ERR);
+ 		kfree(buf);
+ 		buf = ERR_PTR(ret);
+ 	}
+@@ -272,7 +284,7 @@ static int fpga_mgr_write_init_buf(struct fpga_manager *mgr,
+ 	size_t header_size = info->header_size;
+ 	int ret;
+ 
+-	mgr->state = FPGA_MGR_STATE_WRITE_INIT;
++	fpga_mgr_set_state(mgr, FPGA_MGR_STATE_WRITE_INIT);
+ 
+ 	if (header_size > count)
+ 		ret = -EINVAL;
+@@ -283,7 +295,7 @@ static int fpga_mgr_write_init_buf(struct fpga_manager *mgr,
+ 
+ 	if (ret) {
+ 		dev_err(&mgr->dev, "Error preparing FPGA for writing\n");
+-		mgr->state = FPGA_MGR_STATE_WRITE_INIT_ERR;
++		fpga_mgr_set_state(mgr, FPGA_MGR_STATE_WRITE_INIT_ERR);
+ 		return ret;
+ 	}
+ 
+@@ -369,7 +381,7 @@ static int fpga_mgr_buf_load_sg(struct fpga_manager *mgr,
+ 		return ret;
+ 
+ 	/* Write the FPGA image to the FPGA. */
+-	mgr->state = FPGA_MGR_STATE_WRITE;
++	fpga_mgr_set_state(mgr, FPGA_MGR_STATE_WRITE);
+ 	if (mgr->mops->write_sg) {
+ 		ret = fpga_mgr_write_sg(mgr, sgt);
+ 	} else {
+@@ -404,7 +416,7 @@ static int fpga_mgr_buf_load_sg(struct fpga_manager *mgr,
+ out:
+ 	if (ret) {
+ 		dev_err(&mgr->dev, "Error while writing image data to FPGA\n");
+-		mgr->state = FPGA_MGR_STATE_WRITE_ERR;
++		fpga_mgr_set_state(mgr, FPGA_MGR_STATE_WRITE_ERR);
+ 		return ret;
+ 	}
+ 
+@@ -436,11 +448,11 @@ static int fpga_mgr_buf_load_mapped(struct fpga_manager *mgr,
+ 	/*
+ 	 * Write the FPGA image to the FPGA.
+ 	 */
+-	mgr->state = FPGA_MGR_STATE_WRITE;
++	fpga_mgr_set_state(mgr, FPGA_MGR_STATE_WRITE);
+ 	ret = fpga_mgr_write(mgr, buf, count);
+ 	if (ret) {
+ 		dev_err(&mgr->dev, "Error while writing image data to FPGA\n");
+-		mgr->state = FPGA_MGR_STATE_WRITE_ERR;
++		fpga_mgr_set_state(mgr, FPGA_MGR_STATE_WRITE_ERR);
+ 		return ret;
+ 	}
+ 
+@@ -543,11 +555,11 @@ static int fpga_mgr_firmware_load(struct fpga_manager *mgr,
+ 
+ 	dev_info(dev, "writing %s to %s\n", image_name, mgr->name);
+ 
+-	mgr->state = FPGA_MGR_STATE_FIRMWARE_REQ;
++	fpga_mgr_set_state(mgr, FPGA_MGR_STATE_FIRMWARE_REQ);
+ 
+ 	ret = request_firmware(&fw, image_name, dev);
+ 	if (ret) {
+-		mgr->state = FPGA_MGR_STATE_FIRMWARE_REQ_ERR;
++		fpga_mgr_set_state(mgr, FPGA_MGR_STATE_FIRMWARE_REQ_ERR);
+ 		dev_err(dev, "Error requesting firmware %s\n", image_name);
+ 		return ret;
+ 	}
+@@ -830,6 +842,10 @@ __fpga_mgr_register_full(struct device *parent, const struct fpga_manager_info *
+ 	if (ret)
+ 		goto error_device;
+ 
++#ifdef CONFIG_FPGA_MGR_LEDS
++	led_trigger_register_simple(dev_name(&mgr->dev), &mgr->operating_led);
++#endif
++
+ 	/*
+ 	 * Initialize framework state by requesting low level driver read state
+ 	 * from device.  FPGA may be in reset mode or may have been programmed
+@@ -847,6 +863,11 @@ __fpga_mgr_register_full(struct device *parent, const struct fpga_manager_info *
+ 
+ error_device:
+ 	ida_free(&fpga_mgr_ida, id);
++
++#ifdef CONFIG_FPGA_MGR_LEDS
++	led_trigger_unregister_simple(mgr->operating_led);
++#endif
++
+ error_kfree:
+ 	kfree(mgr);
+ 
+@@ -894,6 +915,10 @@ void fpga_mgr_unregister(struct fpga_manager *mgr)
+ {
+ 	dev_info(&mgr->dev, "%s %s\n", __func__, mgr->name);
+ 
++#ifdef CONFIG_FPGA_MGR_LEDS
++	led_trigger_unregister_simple(mgr->operating_led);
++#endif
++
+ 	/*
+ 	 * If the low level driver provides a method for putting fpga into
+ 	 * a desired state upon unregister, do it.
+diff --git a/drivers/hwmon/lm75.c b/drivers/hwmon/lm75.c
+index cb6d18ba225be..bb19f3dc98a21 100644
+--- a/drivers/hwmon/lm75.c
++++ b/drivers/hwmon/lm75.c
+@@ -583,7 +583,7 @@ static int lm75_thermal_get_temp(struct thermal_zone_device *tz, int *temp)
+ 	return 0;
+ }
+ 
+-const static struct thermal_zone_device_ops tzd_ops = {
++static const struct thermal_zone_device_ops tzd_ops = {
+ 	.get_temp = lm75_thermal_get_temp,
+ };
+ 
+diff --git a/include/linux/fpga/fpga-mgr.h b/include/linux/fpga/fpga-mgr.h
+index 0d4fe068f3d8a..4c9b69c1be5ad 100644
+--- a/include/linux/fpga/fpga-mgr.h
++++ b/include/linux/fpga/fpga-mgr.h
+@@ -10,6 +10,7 @@
+ 
+ #include <linux/mutex.h>
+ #include <linux/platform_device.h>
++#include <linux/leds.h>
+ 
+ struct fpga_manager;
+ struct sg_table;
+@@ -201,6 +202,7 @@ struct fpga_manager_ops {
+  * @state: state of fpga manager
+  * @compat_id: FPGA manager id for compatibility check.
+  * @mops: pointer to struct of fpga manager ops
++ * @operating_led: led trigger to indicate operating state
+  * @mops_owner: module containing the mops
+  * @priv: low level driver private date
+  */
+@@ -211,6 +213,9 @@ struct fpga_manager {
+ 	enum fpga_mgr_states state;
+ 	struct fpga_compat_id *compat_id;
+ 	const struct fpga_manager_ops *mops;
++#ifdef CONFIG_FPGA_MGR_LEDS
++	struct led_trigger *operating_led;
++#endif
+ 	struct module *mops_owner;
+ 	void *priv;
+ };
+-- 
+2.43.0
+

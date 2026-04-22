@@ -1,0 +1,141 @@
+From e2bb66aab680da70ae3a5041c2cb665f06ecdb9b Mon Sep 17 00:00:00 2001
+From: Abin Joseph <abin.joseph@amd.com>
+Date: Thu, 27 Feb 2025 22:32:05 -1200
+Subject: [PATCH 101/110] net: ethernet: xilinx: Fix warnings related to
+ typecast
+
+Remove and fix unnecessary typecasting to ensure accurate pointer
+handling.
+
+Reported-by: kernel test robot <lkp@intel.com>
+Closes: https://lore.kernel.org/oe-kbuild-all/202501120449.n5ZjK816-lkp@intel.com/
+Signed-off-by: Abin Joseph <abin.joseph@amd.com>
+Reviewed-by: Suraj Gupta <suraj.gupta2@amd.com>
+Message-ID: <20250228103206.1165891-2-abin.joseph@amd.com>
+---
+ drivers/net/ethernet/xilinx/xilinx_axienet.h       | 12 ++++++------
+ drivers/net/ethernet/xilinx/xilinx_axienet_dma.c   |  2 +-
+ drivers/net/ethernet/xilinx/xilinx_axienet_main.c  | 13 ++++++-------
+ drivers/net/ethernet/xilinx/xilinx_axienet_mcdma.c |  2 +-
+ 4 files changed, 14 insertions(+), 15 deletions(-)
+
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet.h b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+index 127d2661c6354..5f40fb5a3d258 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet.h
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+@@ -817,10 +817,10 @@ struct axidma_bd {
+ 	u32 app2;	/* TX csum seed */
+ 	u32 app3;
+ 	u32 app4;
+-	phys_addr_t sw_id_offset; /* first unused field by h/w */
+-	phys_addr_t ptp_tx_skb;
++	struct sk_buff *sw_id_offset; /* first unused field by h/w */
++	struct sk_buff *ptp_tx_skb;
+ 	u32 ptp_tx_ts_tag;
+-	phys_addr_t tx_skb;
++	struct sk_buff *tx_skb;
+ 	u32 tx_desc_mapping;
+ } __aligned(XAXIDMA_BD_MINIMUM_ALIGNMENT);
+ /**
+@@ -862,10 +862,10 @@ struct aximcdma_bd {
+ 	u32 app2;	/* TX csum seed */
+ 	u32 app3;
+ 	u32 app4;
+-	phys_addr_t sw_id_offset; /* first unused field by h/w */
+-	phys_addr_t ptp_tx_skb;
++	struct sk_buff *sw_id_offset; /* first unused field by h/w */
++	struct sk_buff *ptp_tx_skb;
+ 	u32 ptp_tx_ts_tag;
+-	phys_addr_t tx_skb;
++	struct sk_buff *tx_skb;
+ 	u32 tx_desc_mapping;
+ 	struct page *page;
+ } __aligned(XAXIDMA_BD_MINIMUM_ALIGNMENT);
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_dma.c b/drivers/net/ethernet/xilinx/xilinx_axienet_dma.c
+index 90d47b0d05dd8..c5355e74d436b 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_dma.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_dma.c
+@@ -152,7 +152,7 @@ static int __dma_rxq_init(struct net_device *ndev,
+ 		 */
+ 		wmb();
+ 
+-		q->rx_bd_v[i].sw_id_offset = (phys_addr_t)skb;
++		q->rx_bd_v[i].sw_id_offset = skb;
+ 
+ 		addr = dma_map_single(lp->dev, skb->data,
+ 				      lp->max_frm_size, DMA_FROM_DEVICE);
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+index df22e5d00255f..2018d068666f2 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+@@ -1825,8 +1825,7 @@ static int axienet_skb_tstsmp(struct sk_buff **__skb, struct axienet_dma_q *q,
+ 							TX_TS_OP_TWOSTEP, q);
+ 				skb_shinfo(skb)->tx_flags |=
+ 						SKBTX_IN_PROGRESS;
+-				cur_p->ptp_tx_skb =
+-					(unsigned long)skb_get(skb);
++				cur_p->ptp_tx_skb = skb_get(skb);
+ 			}
+ 		}
+ 	} else if ((skb_shinfo(skb)->tx_flags & SKBTX_HW_TSTAMP) &&
+@@ -1856,7 +1855,7 @@ static int axienet_skb_tstsmp(struct sk_buff **__skb, struct axienet_dma_q *q,
+ 				/* skb TS passing is required for non one step TS packets */
+ 				if (packet_flags == TX_TS_OP_TWOSTEP) {
+ 					skb_shinfo(skb)->tx_flags |= SKBTX_IN_PROGRESS;
+-					cur_p->ptp_tx_skb = (phys_addr_t)skb_get(skb);
++					cur_p->ptp_tx_skb = skb_get(skb);
+ 				}
+ 			} else {
+ 				if (axienet_create_tsheader(lp->tx_ptpheader,
+@@ -1864,7 +1863,7 @@ static int axienet_skb_tstsmp(struct sk_buff **__skb, struct axienet_dma_q *q,
+ 							    q))
+ 					return NETDEV_TX_BUSY;
+ 				skb_shinfo(skb)->tx_flags |= SKBTX_IN_PROGRESS;
+-				cur_p->ptp_tx_skb = (phys_addr_t)skb_get(skb);
++				cur_p->ptp_tx_skb = skb_get(skb);
+ 			}
+ 	} else if (lp->axienet_config->mactype == XAXIENET_10G_25G ||
+ 		   lp->axienet_config->mactype == XAXIENET_MRMAC) {
+@@ -1972,7 +1971,7 @@ static int axienet_queue_xmit(struct sk_buff *skb,
+ #endif
+ 
+ 	if (!q->eth_hasdre &&
+-	    (((phys_addr_t)skb->data & 0x3) || num_frag > 0)) {
++	    (((uintptr_t)skb->data & 0x3) || num_frag > 0)) {
+ 		skb_copy_and_csum_dev(skb, q->tx_buf[q->tx_bd_tail]);
+ 
+ 		phys = q->tx_bufs_dma + (q->tx_buf[q->tx_bd_tail] - q->tx_bufs);
+@@ -2042,7 +2041,7 @@ static int axienet_queue_xmit(struct sk_buff *skb,
+ 	cur_p->cntrl |= XAXIDMA_BD_CTRL_TXEOF_MASK;
+ 	tail_p = q->tx_bd_p + sizeof(*q->tx_bd_v) * q->tx_bd_tail;
+ #endif
+-	cur_p->tx_skb = (phys_addr_t)skb;
++	cur_p->tx_skb = skb;
+ 
+ 	tail_p = q->tx_bd_p + sizeof(*q->tx_bd_v) * q->tx_bd_tail;
+ 	/* Ensure BD write before starting transfer */
+@@ -2291,7 +2290,7 @@ static int axienet_recv(struct net_device *ndev, int budget,
+ 		}
+ 		cur_p->cntrl = lp->max_frm_size;
+ 		cur_p->status = 0;
+-		cur_p->sw_id_offset = (phys_addr_t)new_skb;
++		cur_p->sw_id_offset = new_skb;
+ 
+ 		if (++q->rx_bd_ci >= lp->rx_bd_num)
+ 			q->rx_bd_ci = 0;
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_mcdma.c b/drivers/net/ethernet/xilinx/xilinx_axienet_mcdma.c
+index 92c85b6fd4589..2fcf20a38148d 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_mcdma.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_mcdma.c
+@@ -292,7 +292,7 @@ int __maybe_unused axienet_mcdma_rx_q_init(struct net_device *ndev,
+ 			 */
+ 			wmb();
+ 
+-			q->rxq_bd_v[i].sw_id_offset = (phys_addr_t)skb;
++			q->rxq_bd_v[i].sw_id_offset = skb;
+ 			mapping = dma_map_single(ndev->dev.parent,
+ 						 skb->data,
+ 						 lp->max_frm_size,
+-- 
+2.43.0
+

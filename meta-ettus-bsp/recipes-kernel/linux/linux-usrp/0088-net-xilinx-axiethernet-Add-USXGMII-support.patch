@@ -1,0 +1,226 @@
+From 5674dd9f5c5afe40eaedc392d4dae6e6e3988fab Mon Sep 17 00:00:00 2001
+From: Srinivas Neeli <srinivas.neeli@amd.com>
+Date: Mon, 6 Jan 2025 22:44:54 -1200
+Subject: [PATCH 088/110] net: xilinx: axiethernet: Add USXGMII support
+
+Add support for USXGMII IP in axiethernet driver.
+This IP has a MAC similar to 10G/25G IP and supports USXGMII phy protocol.
+USXGMII phy supports speeds from 10Mbps to 10Gbps. Only one phy speed
+can be advertised at a time and this choice is obtained from the user
+via a devicetree property. Tested at 1G and 2.5G speeds.
+Since the MAC functionality is similar to 10G/25G, the same mac type is
+used in the config structure. USXGMII IP requires a GT reset and this is
+added to axienet_device_reset with a check based on mac type.
+
+Signed-off-by: Srinivas Neeli <srinivas.neeli@amd.com>
+Acked-by: Harini Katakam <harini.katakam@amd.com>
+Signed-off-by: Suraj Gupta <suraj.gupta2@amd.com>
+Reviewed-by: Radhey Shyam Pandey <radhey.shyam.pandey@amd.com>
+State: not-upstreamable
+Message-ID: <20250107104507.359136-17-suraj.gupta2@amd.com>
+---
+ drivers/net/ethernet/xilinx/xilinx_axienet.h  | 23 +++++
+ .../net/ethernet/xilinx/xilinx_axienet_main.c | 90 +++++++++++++++++++
+ 2 files changed, 113 insertions(+)
+
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet.h b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+index d942d10570044..87338098a0968 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet.h
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+@@ -370,6 +370,7 @@
+ #define XAE_PHY_TYPE_SGMII		4
+ #define XAE_PHY_TYPE_1000BASE_X		5
+ #define XAE_PHY_TYPE_2500		6
++#define XXE_PHY_TYPE_USXGMII		7
+ 
+  /* Total number of entries in the hardware multicast table. */
+ #define XAE_MULTICAST_CAM_TABLE_NUM	4
+@@ -469,6 +470,8 @@ enum temac_stat {
+ #define XXV_STAT_GTWIZ_OFFSET		0x000004A0
+ #define XXV_CONFIG_REVISION		0x00000024
+ #define XXV_AN_CTL1_OFFSET		0x000000e0
++#define XXV_USXGMII_AN_OFFSET		0x000000C8
++#define XXV_USXGMII_AN_STS_OFFSET	0x00000458
+ 
+ /* XXV MAC Register Mask Definitions */
+ #define XXV_GT_RESET_MASK	BIT(0)
+@@ -493,6 +496,24 @@ enum temac_stat {
+ #define XXV_STAT_CORE_SPEED_RTSW_MASK	BIT(1)
+ #define XXV_STAT_CORE_SPEED_10G_MASK	BIT(0)
+ 
++/* USXGMII Register Mask Definitions  */
++#define USXGMII_AN_EN		BIT(5)
++#define USXGMII_AN_RESET	BIT(6)
++#define USXGMII_AN_RESTART	BIT(7)
++#define USXGMII_EN		BIT(16)
++#define USXGMII_RATE_MASK	0x0E000700
++#define USXGMII_RATE_1G		0x04000200
++#define USXGMII_RATE_2G5	0x08000400
++#define USXGMII_RATE_10M	0x0
++#define USXGMII_RATE_100M	0x02000100
++#define USXGMII_RATE_5G		0x0A000500
++#define USXGMII_RATE_10G	0x06000300
++#define USXGMII_FD		BIT(28)
++#define USXGMII_LINK_STS	BIT(31)
++
++/* USXGMII AN STS register mask definitions */
++#define USXGMII_AN_STS_COMP_MASK	BIT(16)
++
+ /* MCDMA Register Definitions */
+ #define XMCDMA_CR_OFFSET	0x00
+ #define XMCDMA_SR_OFFSET	0x04
+@@ -774,6 +795,7 @@ struct skbuf_dma_descriptor {
+  * @chan_id:  MCMDA Channel id used in conjunction with weight parameter.
+  * @weight:   MCDMA Channel weight value to be configured for.
+  * @dma_mask: Specify the width of the DMA address space.
++ * @usxgmii_rate: USXGMII PHY speed.
+  */
+ struct axienet_local {
+ 	struct net_device *ndev;
+@@ -870,6 +892,7 @@ struct axienet_local {
+ 	u16 weight;
+ 
+ 	u8 dma_mask;
++	u32 usxgmii_rate;
+ };
+ 
+ /**
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+index ba0e51d54aca1..bc22f0fa614ea 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+@@ -2156,6 +2156,7 @@ static int axienet_init_legacy_dma(struct net_device *ndev)
+ static int axienet_open(struct net_device *ndev)
+ {
+ 	int ret = 0;
++	u32 reg;
+ 	struct axienet_local *lp = netdev_priv(ndev);
+ 
+ 	/* When we do an Axi Ethernet reset, it resets the complete core
+@@ -2202,6 +2203,78 @@ static int axienet_open(struct net_device *ndev)
+ 			goto err_phy;
+ 	}
+ 
++	if (lp->phy_mode == PHY_INTERFACE_MODE_USXGMII) {
++		netdev_dbg(ndev, "RX reg: 0x%x\n",
++			   axienet_ior(lp, XXV_RCW1_OFFSET));
++		/* USXGMII setup at selected speed */
++		reg = axienet_ior(lp, XXV_USXGMII_AN_OFFSET);
++		reg &= ~USXGMII_RATE_MASK;
++		netdev_dbg(ndev, "usxgmii_rate %d\n", lp->usxgmii_rate);
++		switch (lp->usxgmii_rate) {
++		case SPEED_1000:
++			reg |= USXGMII_RATE_1G;
++			break;
++		case SPEED_2500:
++			reg |= USXGMII_RATE_2G5;
++			break;
++		case SPEED_10:
++			reg |= USXGMII_RATE_10M;
++			break;
++		case SPEED_100:
++			reg |= USXGMII_RATE_100M;
++			break;
++		case SPEED_5000:
++			reg |= USXGMII_RATE_5G;
++			break;
++		case SPEED_10000:
++			reg |= USXGMII_RATE_10G;
++			break;
++		default:
++			reg |= USXGMII_RATE_1G;
++		}
++		reg |= USXGMII_FD;
++		reg |= (USXGMII_EN | USXGMII_LINK_STS);
++		axienet_iow(lp, XXV_USXGMII_AN_OFFSET, reg);
++		reg |= USXGMII_AN_EN;
++		axienet_iow(lp, XXV_USXGMII_AN_OFFSET, reg);
++		/* AN Restart bit should be reset, set and then reset as per
++		 * spec with a 1 ms delay for a raising edge trigger
++		 */
++		axienet_iow(lp, XXV_USXGMII_AN_OFFSET,
++			    reg & ~USXGMII_AN_RESTART);
++		mdelay(1);
++		axienet_iow(lp, XXV_USXGMII_AN_OFFSET,
++			    reg | USXGMII_AN_RESTART);
++		mdelay(1);
++		axienet_iow(lp, XXV_USXGMII_AN_OFFSET,
++			    reg & ~USXGMII_AN_RESTART);
++
++		/* Check block lock bit to make sure RX path is ok with
++		 * USXGMII initialization.
++		 */
++		ret = readl_poll_timeout(lp->regs + XXV_STATRX_BLKLCK_OFFSET,
++					 reg, (reg & XXV_RX_BLKLCK_MASK),
++					 100, DELAY_OF_ONE_MILLISEC);
++		if (ret) {
++			netdev_err(ndev, "%s: USXGMII Block lock bit not set",
++				   __func__);
++			ret = -ENODEV;
++			goto err_free_eth_irq;
++		}
++
++		ret = readl_poll_timeout(lp->regs + XXV_USXGMII_AN_STS_OFFSET,
++					 reg, (reg & USXGMII_AN_STS_COMP_MASK),
++					 1000000, DELAY_OF_ONE_MILLISEC);
++		if (ret) {
++			netdev_err(ndev, "%s: USXGMII AN not complete",
++				   __func__);
++			ret = -ENODEV;
++			goto err_free_eth_irq;
++		}
++
++		netdev_info(ndev, "USXGMII setup at %d\n", lp->usxgmii_rate);
++	}
++
+ 	netif_tx_start_all_queues(ndev);
+ 	return 0;
+ 
+@@ -3779,6 +3852,13 @@ static const struct axienet_config axienet_10g25g_config = {
+ 	.tx_ptplen = XXV_TX_PTP_LEN,
+ };
+ 
++static const struct axienet_config axienet_usxgmii_config = {
++	.mactype = XAXIENET_10G_25G,
++	.setoptions = xxvenet_setoptions,
++	.clk_init = xxvenet_clk_init,
++	.tx_ptplen = 0,
++};
++
+ /* Match table for of_platform binding */
+ static const struct of_device_id axienet_of_match[] = {
+ 	{ .compatible = "xlnx,axi-ethernet-1.00.a", .data = &axienet_1g_config},
+@@ -3789,6 +3869,8 @@ static const struct of_device_id axienet_of_match[] = {
+ 	{ .compatible = "xlnx,ten-gig-eth-mac", .data = &axienet_10g_config},
+ 	{ .compatible = "xlnx,xxv-ethernet-1.0",
+ 						.data = &axienet_10g25g_config},
++	{ .compatible = "xlnx,xxv-usxgmii-ethernet-1.0",
++					.data = &axienet_usxgmii_config},
+ 	{},
+ };
+ 
+@@ -3977,6 +4059,9 @@ static int axienet_probe(struct platform_device *pdev)
+ 		case XAE_PHY_TYPE_1000BASE_X:
+ 			lp->phy_mode = PHY_INTERFACE_MODE_1000BASEX;
+ 			break;
++		case XXE_PHY_TYPE_USXGMII:
++			lp->phy_mode = PHY_INTERFACE_MODE_USXGMII;
++			break;
+ 		default:
+ 			/* Don't error out as phy-type is an optional property */
+ 			break;
+@@ -3993,6 +4078,11 @@ static int axienet_probe(struct platform_device *pdev)
+ 		goto cleanup_clk;
+ 	}
+ 
++	/* Set default USXGMII rate */
++	lp->usxgmii_rate = SPEED_1000;
++	of_property_read_u32(pdev->dev.of_node, "xlnx,usxgmii-rate",
++			     &lp->usxgmii_rate);
++
+ 	lp->eth_hasnobuf = of_property_read_bool(pdev->dev.of_node,
+ 						 "xlnx,eth-hasnobuf");
+ 	if (!of_property_present(pdev->dev.of_node, "dmas")) {
+-- 
+2.43.0
+

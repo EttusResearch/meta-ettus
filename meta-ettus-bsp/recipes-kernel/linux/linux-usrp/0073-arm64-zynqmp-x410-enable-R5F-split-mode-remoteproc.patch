@@ -1,0 +1,440 @@
+From 43988e6c191774a5f080d08d68f0aab44f032e17 Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Thu, 19 Mar 2026 09:02:27 +0100
+Subject: [PATCH 073/110] arm64: zynqmp: x410: enable R5F split-mode remoteproc
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Enable both Cortex-R5F cores on the USRP X410 via the upstream
+xlnx,zynqmp-r5fss remoteproc driver in split (independent) mode.
+
+Changes:
+- usrp_defconfig: enable CONFIG_XLNX_R5_REMOTEPROC and
+  CONFIG_RPMSG_VIRTIO
+- x410-rev2.dts: activate &rproc_split with per-core DDR firmware
+  carveouts (4 × 1 MiB at 0x3000_0000) and IPI mailbox channels;
+  disable &rproc_lockstep; extend &zynqmp_ipi with RPU0/RPU1
+  destination mailbox children instead of duplicating the parent
+  node; remove legacy xlnx,zynqmp-r5-remoteproc node whose
+  compatible string was never in any upstream driver match table
+- zynqmp-ipi-mailbox: fix setup_ipi_fn assigned only to
+  ipi_mboxes[0] before the probe loop, causing a NULL function
+  pointer call on the second iteration when more than one child
+  mailbox is present — latent upstream bug exposed by adding the
+  two RPU channels
+---
+ arch/arm64/boot/dts/ni/x410-rev2.dts | 289 ++++++++++++++++++---------
+ arch/arm64/configs/usrp_defconfig    |   1 +
+ drivers/mailbox/zynqmp-ipi-mailbox.c |   3 +-
+ 3 files changed, 197 insertions(+), 96 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/ni/x410-rev2.dts b/arch/arm64/boot/dts/ni/x410-rev2.dts
+index d88fac64b547b..e1f8391be8033 100644
+--- a/arch/arm64/boot/dts/ni/x410-rev2.dts
++++ b/arch/arm64/boot/dts/ni/x410-rev2.dts
+@@ -1,6 +1,15 @@
+ // SPDX-License-Identifier: GPL-2.0+
+ /*
+- * dts file for Ettus X410
++ * Device tree for Ettus USRP X410 (Rev. B baseline)
++ *
++ * SoC: Xilinx Zynq UltraScale+ RFSoC ZU28DR
++ *   - Quad-core ARM Cortex-A53 (APU) running Linux
++ *   - Dual-core ARM Cortex-R5F (RPU) for real-time firmware
++ *   - Programmable Logic (FPGA) fabric
++ *
++ * This file is the base DTS for all X410 board revisions.
++ * Rev3/Rev4 include this file directly; Rev5/Rev6/Rev7 inherit
++ * via Rev4.  Board-specific overrides are layered on top.
+  *
+  * (C) Copyright 2019, National Instruments
+  */
+@@ -30,11 +39,26 @@ chosen {
+ 		stdout-path = "serial0:115200n8";
+ 	};
+ 
++	/*
++	 * 4 GB PS DDR4 split across two address ranges:
++	 *   Low 2 GB:  0x0000_0000 – 0x7FFF_FFFF  (32-bit addressable)
++	 *   High 2 GB: 0x8_0000_0000 – 0x8_7FFF_FFFF  (above 4 GB boundary)
++	 * The split is required by the ZynqMP memory map; both ranges
++	 * are backed by the same physical DRAM.
++	 */
+ 	memory@0 {
+ 		device_type = "memory";
+ 		reg = <0x0 0x0 0x0 0x80000000>, <0x8 0x00000000 0x0 0x80000000>;
+ 	};
+ 
++	/*
++	 * TLV (Type-Length-Value) NVMEM proxy that exposes structured
++	 * data from the motherboard EEPROM (mb_tlv, accessed via the
++	 * ChromeOS EC I2C tunnel on i2c0).  Each child node is an
++	 * NVMEM cell at a fixed TLV tag offset; eth0_addr–eth10_addr
++	 * hold the factory-programmed MAC addresses consumed by the
++	 * individual network interfaces (e.g. &gem3 → eth0_addr).
++	 */
+ 	nvmem_tlv {
+ 		compatible = "ni,tlv-nvmem";
+ 		#address-cells = <1>;
+@@ -88,6 +112,7 @@ eth10_addr: eth10_addr {
+ 		};
+ 	};
+ 
++	/* 3.3 V rail for the TCA6416 I/O expander on i2c1 bus 6. */
+ 	ioex_fixed: fixedregulator-ioex {
+ 		compatible = "regulator-fixed";
+ 		regulator-name = "ioex_fixed";
+@@ -97,6 +122,8 @@ ioex_fixed: fixedregulator-ioex {
+ 		regulator-boot-on;
+ 	};
+ 
++	/* 3.3 V supply reference for all I2C EEPROM vcc-supply handles
++	 * (daughterboard, clock-aux, power-aux EEPROMs, etc.). */
+ 	reg_3v3_mcu: reg-3v3-mcu {
+ 		compatible = "regulator-fixed";
+ 		regulator-name = "3v3_mcu";
+@@ -106,6 +133,15 @@ reg_3v3_mcu: reg-3v3-mcu {
+ 		regulator-boot-on;
+ 	};
+ 
++	/*
++	 * Status LEDs:
++	 *   heartbeat – MIO40, active-high, kernel heartbeat trigger
++	 *   led0_g/r  – rear panel LED 0, green/red via EC GPIO 2/3
++	 *   led1_g/r  – rear panel LED 1, green/red via EC GPIO 9/10
++	 *   led2_g/r  – rear panel LED 2, green/red via EC GPIO 0/1
++	 * The rear-panel LEDs are driven by the ChromeOS EC GPIO
++	 * expander (ec_gpio) over the I2C0 interface; active-low.
++	 */
+ 	leds: leds {
+ 		compatible = "gpio-leds";
+ 		heartbeat {
+@@ -145,44 +181,24 @@ led2_r {
+ 		};
+ 	};
+ 
+-	zynqmp_ipi {
+-		status = "disabled";
+-		compatible = "xlnx,zynqmp-ipi-mailbox";
+-		interrupt-parent = <&gic>;
+-		interrupts = <0 29 4>;
+-		xlnx,ipi-id = <0>;
+-		#address-cells = <2>;
+-		#size-cells = <2>;
+-		ranges;
+-
+-		/* APU<->RPU0 IPI mailbox controller */
+-		ipi_mailbox_rpu0: mailbox@ff990400 {
+-			reg = <0x0 0xff990400 0x0 0x20>,
+-			      <0x0 0xff990420 0x0 0x20>,
+-			      <0x0 0xff990080 0x0 0x20>,
+-			      <0x0 0xff9900a0 0x0 0x20>;
+-			reg-names = "local_request_region",
+-				    "local_response_region",
+-				    "remote_request_region",
+-				    "remote_response_region";
+-			#mbox-cells = <1>;
+-			xlnx,ipi-id = <1>;
+-		};
+-		/* APU<->RPU1 IPI mailbox controller */
+-		ipi_mailbox_rpu1: mailbox@ff990440 {
+-			reg = <0x0 0xff990440 0x0 0x20>,
+-			      <0x0 0xff990460 0x0 0x20>,
+-			      <0x0 0xff990280 0x0 0x20>,
+-			      <0x0 0xff9902a0 0x0 0x20>;
+-			reg-names = "local_request_region",
+-				    "local_response_region",
+-				    "remote_request_region",
+-				    "remote_response_region";
+-			#mbox-cells = <1>;
+-			xlnx,ipi-id = <2>;
+-		};
+-	};
+-
++	/*
++	 * Reserved memory carveouts for R5 remoteproc and shared DMA
++	 *
++	 * The upstream zynqmp.dtsi defines rproc_0_fw_image and
++	 * rproc_1_fw_image at high DDR addresses that would fragment
++	 * the Linux memory allocator.  We override them to zero size
++	 * so the kernel ignores those upstream reservations.
++	 *
++	 * x410 layout (all in low DDR, below the 1 GB mark):
++	 *   0x3000_0000 – 0x300F_FFFF  R5-0 firmware load region  (1 MB, no-map)
++	 *   0x3010_0000 – 0x301F_FFFF  R5-0 / APU / FPGA DMA pool (1 MB, no-map, shared-dma-pool)
++	 *   0x3020_0000 – 0x302F_FFFF  R5-1 firmware load region  (1 MB, no-map)
++	 *   0x3030_0000 – 0x303F_FFFF  R5-1 / APU / FPGA DMA pool (1 MB, no-map, shared-dma-pool)
++	 *
++	 * "no-map" prevents the kernel from adding these pages to the
++	 * general memory pool; the R5 cores and FPGA access them without
++	 * going through the Linux DMA API.
++	 */
+ 	reserved-memory {
+ 		#address-cells = <2>;
+ 		#size-cells = <2>;
+@@ -222,61 +238,26 @@ rproc_1_dma_reserved: rproc@30300000 {
+ 		};
+ 	};
+ 
+-	tcm_0_a: tcm_0a@FFE00000 {
+-		reg = <0x0 0xFFE00000 0x0 0x10000>;
+-		pnode-id = <0xf>;
+-		compatible = "xlnx,tcm";
+-	};
+-	tcm_0_b: tcm_0b@FFE20000 {
+-		reg = <0x0 0xFFE20000 0x0 0x10000>;
+-		pnode-id = <0x10>;
+-		compatible = "xlnx,tcm";
+-	};
+-	tcm_1_a: tcm_1a@FFE90000 {
+-		reg = <0x0 0xFFE90000 0x0 0x10000>;
+-		pnode-id = <0x11>;
+-		compatible = "xlnx,tcm";
+-	};
+-	tcm_1_b: tcm_1b@FFEB0000 {
+-		reg = <0x0 0xFFEB0000 0x0 0x10000>;
+-		pnode-id = <0x12>;
+-		compatible = "xlnx,tcm";
+-	};
+-
+-	zynqmp-r5-remoteproc@0 {
+-		status = "disabled";
+-		compatible = "xlnx,zynqmp-r5-remoteproc";
+-		#address-cells = <2>;
+-		#size-cells = <2>;
+-		ranges;
+-		r5_0: r5@0 {
+-			#address-cells = <2>;
+-			#size-cells = <2>;
+-			ranges;
+-			memory-regions = <&rproc_0_fw_reserved>,
+-					 <&rproc_0_dma_reserved>;
+-			meta-memory-regions = <&tcm_0_a>, <&tcm_0_b>;
+-			pnode-id = <0x7>;
+-			mboxes = <&ipi_mailbox_rpu0 0>,
+-				 <&ipi_mailbox_rpu0 1>;
+-			mbox-names = "tx", "rx";
+-		};
+-
+-		r5_1: r5@1 {
+-			#address-cells = <2>;
+-			#size-cells = <2>;
+-			ranges;
+-			memory-regions = <&rproc_1_fw_reserved>,
+-					 <&rproc_1_dma_reserved>;
+-			meta-memory-regions = <&tcm_1_a>, <&tcm_1_b>;
+-			pnode-id = <0x8>;
+-			mboxes = <&ipi_mailbox_rpu1 0>,
+-				 <&ipi_mailbox_rpu1 1>;
+-			mbox-names = "tx", "rx";
+-		};
+-	};
+ };
+ 
++/*
++ * I2C0: ChromeOS Embedded Controller (CrOS EC) at 400 kHz
++ *
++ * The CrOS EC is a Lattice FPGA acting as a system management
++ * controller.  It exposes several virtual buses via its I2C tunnel
++ * protocol, giving Linux access to daughterboard and auxiliary
++ * board EEPROMs without direct I2C traces:
++ *
++ *   tunnel0 (remote bus 10) – Daughterboard 0 EEPROM
++ *   tunnel1 (remote bus 12) – Daughterboard 1 EEPROM
++ *   tunnel2 (remote bus 14) – (reserved)
++ *   tunnel3 (remote bus 16) – Motherboard EEPROM (mb_tlv, RTC)
++ *   tunnel4 (remote bus 17) – Power-aux board EEPROM
++ *
++ * The EC also provides a GPIO expander (ec_gpio) used for the
++ * rear-panel status LEDs, and a keyboard controller for the front
++ * panel power button.
++ */
+ &i2c0 {
+ 	status = "okay";
+ 	clock-frequency = <400000>;
+@@ -383,6 +364,18 @@ cros-temp {
+ 	};
+ };
+ 
++/*
++ * I2C1: PCA9548 8-channel I2C multiplexer at 0x70
++ *
++ *   Channel 0 – QSFP cage 0
++ *   Channel 1 – QSFP cage 1
++ *   Channel 2 – DIO auxiliary board EEPROM
++ *   Channel 3 – Clock auxiliary board EEPROM
++ *   Channel 4 – Reference PLL (LMK)
++ *   Channel 5 – TUSB320 USB Type-C controller
++ *   Channel 6 – TCA6416 GPIO expander (clocking/RF control lines)
++ *   Channel 7 – (not connected)
++ */
+ &i2c1 {
+ 	status = "okay";
+ 
+@@ -476,6 +469,15 @@ gpio@20 {
+ 	};
+ };
+ 
++/*
++ * SPI1: board management and daughterboard flash
++ *
++ *   CS0 – Motherboard CPLD (mb_cpld): clock/reset control
++ *   CS1 – Sample clock synthesizer PLL (spll)
++ *   CS2 – TPM (disabled; no driver configured yet)
++ *   CS4 – Daughterboard 0 NOR flash (db0_flash, 2 MB SST25VF016B)
++ *   CS5 – Daughterboard 1 NOR flash (db1_flash, 2 MB SST25VF016B)
++ */
+ &spi1 {
+ 	status = "okay";
+ 	num-cs = <7>;
+@@ -551,6 +553,11 @@ &uart1 {
+ 	status = "okay";
+ };
+ 
++/*
++ * GEM3: Gigabit Ethernet (management port)
++ * PHY: RGMII at MDIO address 7, RGMII with internal delay
++ * MAC address sourced from the motherboard TLV EEPROM (eth0_addr).
++ */
+ &gem3 {
+ 	status = "okay";
+ 	phy-handle = <&phy0>;
+@@ -616,11 +623,105 @@ &watchdog0 {
+ 	reset-on-timeout;
+ };
+ 
+-/* Disable upstream remoteproc - x410 uses custom implementation */
++/*
++ * Disable lockstep mode.  In lockstep the two R5 cores execute
++ * identically for fault-tolerant redundancy, sharing a single
++ * address space.  The x410 uses split mode instead so each core
++ * runs independent firmware (e.g., one for real-time baseband
++ * control, one as a coprocessor offload).
++ */
+ &rproc_lockstep {
+ 	status = "disabled";
+ };
+ 
++/*
++ * Enable split-mode remoteproc: two independent R5F cores.
++ *
++ * Each r5f sub-node references:
++ *   memory-region[0] – firmware carveout (loaded by remoteproc)
++ *   memory-region[1] – shared DMA pool (virtio vrings + buffers)
++ *   mboxes "tx"      – APU→RPU kick channel (IPI request buffer)
++ *   mboxes "rx"      – RPU→APU notify channel (IPI response buffer)
++ *
++ * At boot the R5 cores are off.  User-space writes the ELF
++ * firmware path to /sys/class/remoteproc/remoprocN/firmware
++ * then writes "start" to /sys/class/remoteproc/remoprocN/state
++ * to load and start the core.
++ */
+ &rproc_split {
+-	status = "disabled";
++	status = "okay";
++
++	r5f@0 {
++		memory-region = <&rproc_0_fw_reserved>,
++				<&rproc_0_dma_reserved>;
++		mboxes = <&ipi_mailbox_rpu0 0>,
++			 <&ipi_mailbox_rpu0 1>;
++		mbox-names = "tx", "rx";
++	};
++
++	r5f@1 {
++		memory-region = <&rproc_1_fw_reserved>,
++				<&rproc_1_dma_reserved>;
++		mboxes = <&ipi_mailbox_rpu1 0>,
++			 <&ipi_mailbox_rpu1 1>;
++		mbox-names = "tx", "rx";
++	};
++};
++
++/*
++ * Extend the upstream ZynqMP IPI mailbox controller (zynqmp_ipi,
++ * zynqmp.dtsi) with the x410 RPU destination channels.
++ *
++ * zynqmp.dtsi already defines the parent node as IPI agent 0 (APU)
++ * and registers ipi_mailbox_pmu1 for the PMU/firmware channel.
++ * We add two more children here — one per R5F core — so the
++ * remoteproc driver can request "tx"/"rx" mailbox channels.
++ *
++ * Agent assignments:
++ *   IPI agent 0 (xlnx,ipi-id = <0>) – APU (Linux, parent node)
++ *   IPI agent 1 (xlnx,ipi-id = <1>) – RPU core 0 (R5F-0)
++ *   IPI agent 2 (xlnx,ipi-id = <2>) – RPU core 1 (R5F-1)
++ *
++ * Buffer layout (4 × 32-byte OCM regions per channel):
++ *   local_request_region:   APU writes outgoing message to RPU
++ *   local_response_region:  APU reads RPU's reply
++ *   remote_request_region:  RPU reads its incoming message
++ *   remote_response_region: RPU writes its reply
++ */
++&zynqmp_ipi {
++	/*
++	 * APU <-> RPU0: buffer base 0xFF99_0400 (APU side)
++	 *               buffer base 0xFF99_0080 (RPU0 side)
++	 */
++	ipi_mailbox_rpu0: mailbox@ff990400 {
++		compatible = "xlnx,zynqmp-ipi-dest-mailbox";
++		reg = <0x0 0xff990400 0x0 0x20>,
++		      <0x0 0xff990420 0x0 0x20>,
++		      <0x0 0xff990080 0x0 0x20>,
++		      <0x0 0xff9900a0 0x0 0x20>;
++		reg-names = "local_request_region",
++			    "local_response_region",
++			    "remote_request_region",
++			    "remote_response_region";
++		#mbox-cells = <1>;
++		xlnx,ipi-id = <1>;
++	};
++
++	/*
++	 * APU <-> RPU1: buffer base 0xFF99_0440 (APU side)
++	 *               buffer base 0xFF99_0280 (RPU1 side)
++	 */
++	ipi_mailbox_rpu1: mailbox@ff990440 {
++		compatible = "xlnx,zynqmp-ipi-dest-mailbox";
++		reg = <0x0 0xff990440 0x0 0x20>,
++		      <0x0 0xff990460 0x0 0x20>,
++		      <0x0 0xff990280 0x0 0x20>,
++		      <0x0 0xff9902a0 0x0 0x20>;
++		reg-names = "local_request_region",
++			    "local_response_region",
++			    "remote_request_region",
++			    "remote_response_region";
++		#mbox-cells = <1>;
++		xlnx,ipi-id = <2>;
++	};
+ };
+diff --git a/arch/arm64/configs/usrp_defconfig b/arch/arm64/configs/usrp_defconfig
+index 998471b7b056d..da4ce904be17e 100644
+--- a/arch/arm64/configs/usrp_defconfig
++++ b/arch/arm64/configs/usrp_defconfig
+@@ -300,6 +300,7 @@ CONFIG_CROS_EC_I2C=y
+ # CONFIG_CROS_EC_LIGHTBAR is not set
+ CONFIG_HWSPINLOCK=y
+ CONFIG_REMOTEPROC=y
++CONFIG_XLNX_R5_REMOTEPROC=y
+ CONFIG_PM_DEVFREQ=y
+ CONFIG_EXTCON=y
+ CONFIG_IIO=y
+diff --git a/drivers/mailbox/zynqmp-ipi-mailbox.c b/drivers/mailbox/zynqmp-ipi-mailbox.c
+index 5bf81b60e9e67..15c6148e2441a 100644
+--- a/drivers/mailbox/zynqmp-ipi-mailbox.c
++++ b/drivers/mailbox/zynqmp-ipi-mailbox.c
+@@ -940,9 +940,8 @@ static int zynqmp_ipi_probe(struct platform_device *pdev)
+ 	pdata->num_mboxes = num_mboxes;
+ 
+ 	mbox = pdata->ipi_mboxes;
+-	mbox->setup_ipi_fn = ipi_fn;
+-
+ 	for_each_available_child_of_node(np, nc) {
++		mbox->setup_ipi_fn = ipi_fn;
+ 		mbox->pdata = pdata;
+ 		ret = zynqmp_ipi_mbox_probe(mbox, nc);
+ 		if (ret) {
+-- 
+2.43.0
+

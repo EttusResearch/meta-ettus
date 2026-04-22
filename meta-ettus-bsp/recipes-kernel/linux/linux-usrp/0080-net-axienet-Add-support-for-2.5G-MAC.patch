@@ -1,0 +1,99 @@
+From b022e4fd168e5f3a30c62a27bdc5406c30ec9d1f Mon Sep 17 00:00:00 2001
+From: Appana Durga Kedareswara Rao <appana.durga.rao@xilinx.com>
+Date: Mon, 6 Jan 2025 22:44:45 -1200
+Subject: [PATCH 080/110] net: axienet: Add support for 2.5G MAC
+
+Add support for 2.5G MAC in the driver.
+
+Signed-off-by: Appana Durga Kedareswara Rao <appana.durga.rao@xilinx.com>
+Acked-by: Harini Katakam <harini.katakam@amd.com>
+Signed-off-by: Suraj Gupta <suraj.gupta2@amd.com>
+Reviewed-by: Radhey Shyam Pandey <radhey.shyam.pandey@amd.com>
+Link: https://lore.kernel.org/all/20241118081822.19383-3-suraj.gupta2@amd.com"
+State: waiting
+Message-ID: <20250107104507.359136-8-suraj.gupta2@amd.com>
+---
+ drivers/net/ethernet/xilinx/xilinx_axienet.h      |  4 ++++
+ drivers/net/ethernet/xilinx/xilinx_axienet_main.c | 14 ++++++++++++--
+ 2 files changed, 16 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet.h b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+index 14b01dec59e48..d239fa4a0ca2a 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet.h
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+@@ -275,6 +275,7 @@
+ #define XAE_EMMC_LINKSPD_10	0x00000000 /* Link Speed mask for 10 Mbit */
+ #define XAE_EMMC_LINKSPD_100	0x40000000 /* Link Speed mask for 100 Mbit */
+ #define XAE_EMMC_LINKSPD_1000	0x80000000 /* Link Speed mask for 1000 Mbit */
++#define XAE_EMMC_LINKSPD_2500	0x80000000 /* Link Speed mask for 2500 Mbit */
+ 
+ /* Bit masks for Axi Ethernet PHYC register */
+ #define XAE_PHYC_SGMIILINKSPEED_MASK	0xC0000000 /* SGMII link speed mask*/
+@@ -336,6 +337,7 @@
+ #define XAE_PHY_TYPE_RGMII_2_0		3
+ #define XAE_PHY_TYPE_SGMII		4
+ #define XAE_PHY_TYPE_1000BASE_X		5
++#define XAE_PHY_TYPE_2500		6
+ 
+  /* Total number of entries in the hardware multicast table. */
+ #define XAE_MULTICAST_CAM_TABLE_NUM	4
+@@ -632,10 +634,12 @@ struct axienet_local {
+  * enum axienet_ip_type - AXIENET IP/MAC type.
+  *
+  * @XAXIENET_1G:	 IP is 1G MAC
++ * @XAXIENET_2_5G:	 IP type is 2.5G MAC.
+  *
+  */
+ enum axienet_ip_type {
+ 	XAXIENET_1G = 0,
++	XAXIENET_2_5G,
+ };
+ 
+ struct axienet_config {
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+index 29b3d564cc022..eee64d9f74217 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+@@ -1715,8 +1715,8 @@ static int axienet_stop(struct net_device *ndev)
+ 		dma_release_channel(lp->rx_chan);
+ 		dma_release_channel(lp->tx_chan);
+ 	}
+-
+-	axienet_iow(lp, XAE_IE_OFFSET, 0);
++	if (lp->axienet_config->mactype == XAXIENET_1G)
++		axienet_iow(lp, XAE_IE_OFFSET, 0);
+ 
+ 	if (lp->eth_irq > 0)
+ 		free_irq(lp->eth_irq, ndev);
+@@ -2455,6 +2455,9 @@ static void axienet_mac_link_up(struct phylink_config *config,
+ 	emmc_reg &= ~XAE_EMMC_LINKSPEED_MASK;
+ 
+ 	switch (speed) {
++	case SPEED_2500:
++		emmc_reg |= XAE_EMMC_LINKSPD_2500;
++		break;
+ 	case SPEED_1000:
+ 		emmc_reg |= XAE_EMMC_LINKSPD_1000;
+ 		break;
+@@ -2589,11 +2592,18 @@ static const struct axienet_config axienet_1g_config = {
+ 	.setoptions = axienet_setoptions,
+ };
+ 
++static const struct axienet_config axienet_2_5g_config = {
++	.mactype = XAXIENET_2_5G,
++	.setoptions = axienet_setoptions,
++};
++
+ /* Match table for of_platform binding */
+ static const struct of_device_id axienet_of_match[] = {
+ 	{ .compatible = "xlnx,axi-ethernet-1.00.a", .data = &axienet_1g_config},
+ 	{ .compatible = "xlnx,axi-ethernet-1.01.a", .data = &axienet_1g_config},
+ 	{ .compatible = "xlnx,axi-ethernet-2.01.a", .data = &axienet_1g_config},
++	{ .compatible = "xlnx,axi-2_5-gig-ethernet-1.0",
++						.data = &axienet_2_5g_config},
+ 	{},
+ };
+ 
+-- 
+2.43.0
+

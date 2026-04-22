@@ -1,0 +1,36 @@
+From 1d073e970705fcca931ddcb5593d9785b785275f Mon Sep 17 00:00:00 2001
+From: Abin Joseph <abin.joseph@amd.com>
+Date: Thu, 27 Feb 2025 22:32:06 -1200
+Subject: [PATCH 102/110] net: ethernet: xilinx: Fix implicit declaration
+ warning
+
+Add an additional check condition and replace writeq with iowrite64 to
+align with the mainline repo.
+
+Reported-by: kernel test robot <lkp@intel.com>
+Closes: https://lore.kernel.org/oe-kbuild-all/202501120449.n5ZjK816-lkp@intel.com/
+Signed-off-by: Abin Joseph <abin.joseph@amd.com>
+Reviewed-by: Suraj Gupta <suraj.gupta2@amd.com>
+Message-ID: <20250228103206.1165891-3-abin.joseph@amd.com>
+---
+ drivers/net/ethernet/xilinx/xilinx_axienet.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet.h b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+index 5f40fb5a3d258..17215aea9c11a 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet.h
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+@@ -1478,8 +1478,8 @@ static inline void axienet_dma_out32(struct axienet_dma_q *q,
+ static inline void axienet_dma_bdout(struct axienet_dma_q *q,
+ 				     off_t reg, dma_addr_t value)
+ {
+-#if defined(CONFIG_PHYS_ADDR_T_64BIT)
+-	writeq(value, (q->dma_regs + reg));
++#if defined(CONFIG_PHYS_ADDR_T_64BIT) && defined(iowrite64)
++	iowrite64(value, (q->dma_regs + reg));
+ #else
+ 	writel(value, (q->dma_regs + reg));
+ #endif
+-- 
+2.43.0
+

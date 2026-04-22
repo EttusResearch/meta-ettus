@@ -1,0 +1,170 @@
+From 5364e37d6f2438fd75394ba3dc8b062b9ee74953 Mon Sep 17 00:00:00 2001
+From: Appana Durga Kedareswara Rao <appana.durga.rao@xilinx.com>
+Date: Mon, 6 Jan 2025 22:44:50 -1200
+Subject: [PATCH 085/110] net: axienet: Fix issues when DRE is not enabled in
+ the h/w and allow unaligned transfers.
+
+If DRE (Data realignment engine) is not enabled in the DMA h/w,
+SW has to take care of the alignment of the buffers. Allocate a pool of
+tx buffers in the driver when DRE is not enabled in the h/w. When
+unaligned skb comes it will use those allocated tx buffers when DRE
+is not enabled in the h/w.
+To allow unaligned transfers, replace netdev_alloc_skb_ip_align with
+netdev_alloc_skb.
+
+Note: When DRE is not enabled in the h/w the tx
+Side performance will be very less as there is
+a manual copy in the hard_xmit for this case.
+Tx Perf Numbers on ZynqMP:
+Without DRE: 248 Mbits/sec.
+With DRE:   932 Mbits/sec.
+
+Signed-off-by: Appana Durga Kedareswara Rao <appana.durga.rao@xilinx.com>
+Acked-by: Harini Katakam <harini.katakam@amd.com>
+Signed-off-by: Suraj Gupta <suraj.gupta2@amd.com>
+Reviewed-by: Radhey Shyam Pandey <radhey.shyam.pandey@amd.com>
+State: pending
+Message-ID: <20250107104507.359136-13-suraj.gupta2@amd.com>
+---
+ drivers/net/ethernet/xilinx/xilinx_axienet.h  | 16 ++++++++
+ .../net/ethernet/xilinx/xilinx_axienet_main.c | 41 ++++++++++++++++---
+ 2 files changed, 51 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet.h b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+index 0c1ffa5f6d7a9..d7e1d88fd0211 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet.h
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+@@ -485,6 +485,12 @@ enum temac_stat {
+ #define XAE_TX_PTP_LEN		16
+ #define XXV_TX_PTP_LEN		12
+ 
++/* Default number of Tx descriptors */
++#define TX_BD_NUM_DEFAULT               128
++
++/* Macros used when AXI DMA h/w is configured without DRE */
++#define XAE_MAX_PKT_LEN		8192
++
+ /**
+  * struct axidma_bd - Axi Dma buffer descriptor layout
+  * @next:         MM2S/S2MM Next Descriptor Pointer
+@@ -607,6 +613,12 @@ struct skbuf_dma_descriptor {
+  * @phy_mode:	Phy type to identify between MII/GMII/RGMII/SGMII/1000 Base-X
+  * @options:	AxiEthernet option word
+  * @features:	Stores the extended features supported by the axienet hw
++ * @tx_buf:	Virtual address of the Tx buffer pool used by the driver when
++ *		DMA h/w is configured without DRE.
++ * @tx_bufs:	Virutal address of the Tx buffer address.
++ * @tx_bufs_dma: Physical address of the Tx buffer address used by the driver
++ *		 when DMA h/w is configured without DRE.
++ * @eth_hasdre: Tells whether DMA h/w is configured with dre or not.
+  * @max_frm_size: Stores the maximum size of the frame that can be that
+  *		  Txed/Rxed in the existing hardware. If jumbo option is
+  *		  supported, the maximum frame size would be 9k. Else it is
+@@ -697,6 +709,10 @@ struct axienet_local {
+ 	u32 options;
+ 	u32 features;
+ 
++	unsigned char *tx_buf[TX_BD_NUM_DEFAULT];
++	unsigned char *tx_bufs;
++	dma_addr_t tx_bufs_dma;
++	bool eth_hasdre;
+ 	u32 max_frm_size;
+ 	u32 rxmem;
+ 
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+index 4c7d0fecb6160..91cee6900265f 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+@@ -54,7 +54,6 @@
+ #include "xilinx_axienet.h"
+ 
+ /* Descriptors defines for Tx and Rx DMA */
+-#define TX_BD_NUM_DEFAULT		128
+ #define RX_BD_NUM_DEFAULT		1024
+ #define TX_BD_NUM_MIN			(MAX_SKB_FRAGS + 1)
+ #define TX_BD_NUM_MAX			4096
+@@ -258,10 +257,12 @@ static void axienet_dma_bd_release(struct net_device *ndev)
+ 		}
+ 	}
+ 
+-	dma_free_coherent(lp->dev,
+-			  sizeof(*lp->rx_bd_v) * lp->rx_bd_num,
+-			  lp->rx_bd_v,
+-			  lp->rx_bd_p);
++	if (lp->tx_bufs) {
++		dma_free_coherent(ndev->dev.parent,
++				  XAE_MAX_PKT_LEN * lp->tx_bd_num,
++				  lp->tx_bufs,
++				  lp->tx_bufs_dma);
++	}
+ }
+ 
+ /**
+@@ -378,6 +379,18 @@ static int axienet_dma_bd_init(struct net_device *ndev)
+ 			lp->tx_bd_v[i].next_msb = upper_32_bits(addr);
+ 	}
+ 
++	if (!lp->eth_hasdre) {
++		lp->tx_bufs = dma_alloc_coherent(ndev->dev.parent,
++						 XAE_MAX_PKT_LEN * lp->tx_bd_num,
++						 &lp->tx_bufs_dma,
++						 GFP_KERNEL);
++		if (!lp->tx_bufs)
++			goto out;
++
++		for (i = 0; i < lp->tx_bd_num; i++)
++			lp->tx_buf[i] = &lp->tx_bufs[i * XAE_MAX_PKT_LEN];
++	}
++
+ 	for (i = 0; i < lp->rx_bd_num; i++) {
+ 		dma_addr_t addr;
+ 
+@@ -387,7 +400,7 @@ static int axienet_dma_bd_init(struct net_device *ndev)
+ 		if (lp->features & XAE_FEATURE_DMA_64BIT)
+ 			lp->rx_bd_v[i].next_msb = upper_32_bits(addr);
+ 
+-		skb = netdev_alloc_skb_ip_align(ndev, lp->max_frm_size);
++		skb = netdev_alloc_skb(ndev, lp->max_frm_size);
+ 		if (!skb)
+ 			goto out;
+ 
+@@ -1457,6 +1470,20 @@ axienet_start_xmit(struct sk_buff *skb, struct net_device *ndev)
+ 	}
+ 	desc_set_phys_addr(lp, phys, cur_p);
+ 	cur_p->cntrl = (skb_headlen(skb) | XAXIDMA_BD_CTRL_TXSOF_MASK) + pad;
++	if (!lp->eth_hasdre &&
++	    (((phys_addr_t)skb->data & 0x3) || num_frag > 0)) {
++		skb_copy_and_csum_dev(skb, lp->tx_buf[lp->tx_bd_tail]);
++
++		phys = lp->tx_bufs_dma + (lp->tx_buf[lp->tx_bd_tail] - lp->tx_bufs);
++		desc_set_phys_addr(lp, phys, cur_p);
++
++		if (num_frag > 0) {
++			pad = skb_pagelen(skb) - skb_headlen(skb);
++			cur_p->cntrl = (skb_headlen(skb) |
++					XAXIDMA_BD_CTRL_TXSOF_MASK) + pad;
++		}
++		goto out;
++	}
+ 	cur_p->tx_desc_mapping = DESC_DMA_MAP_SINGLE;
+ 
+ 	for (ii = 0; ii < num_frag; ii++) {
+@@ -1476,6 +1503,7 @@ axienet_start_xmit(struct sk_buff *skb, struct net_device *ndev)
+ 		cur_p->tx_desc_mapping = DESC_DMA_MAP_PAGE;
+ 	}
+ 
++out:
+ 	cur_p->cntrl |= XAXIDMA_BD_CTRL_TXEOF_MASK;
+ 	cur_p->tx_skb = (phys_addr_t)skb;
+ 
+@@ -3608,6 +3636,7 @@ static int axienet_probe(struct platform_device *pdev)
+ 		of_node_put(np);
+ #endif
+ 
++		lp->eth_hasdre = of_property_read_bool(np, "xlnx,include-dre");
+ 		ret = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(addr_width));
+ 		if (ret) {
+ 			dev_err(&pdev->dev, "No suitable DMA available\n");
+-- 
+2.43.0
+

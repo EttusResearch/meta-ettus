@@ -1,0 +1,125 @@
+From b6bf70ba282f7ee7221d2361a9e9beab960b503d Mon Sep 17 00:00:00 2001
+From: Suraj Gupta <suraj.gupta2@amd.com>
+Date: Mon, 27 Jan 2025 20:58:29 -1200
+Subject: [PATCH 098/110] net: axienet: Add phylink support for DCMAC
+
+Implement phylink hooks to read and configure parameters like speed,
+pause, duplex, auto-negotiation and link status via ethtool.
+Fixed-link phylink mode is configured for DCMAC.
+
+Signed-off-by: Suraj Gupta <suraj.gupta2@amd.com>
+Message-ID: <20250128085829.4037596-1-suraj.gupta2@amd.com>
+---
+ drivers/net/ethernet/xilinx/xilinx_axienet.h  |  1 +
+ .../net/ethernet/xilinx/xilinx_axienet_main.c | 48 +++++++++++++++++--
+ 2 files changed, 44 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet.h b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+index 2355291d28d84..e956ca882cd78 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet.h
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet.h
+@@ -762,6 +762,7 @@ enum temac_stat {
+ #define DCMAC_RXPHY_RX_ALIGN_MASK	BIT(2)
+ #define DCMAC_RELEASE_RESET		0x0
+ #define DCMAC_GT_RESET_DONE_MASK	GENMASK(3, 0)
++#define DCMAC_STS_ALL_MASK		GENMASK(31, 0)
+ 
+ /* DCMAC GT wrapper bitmasks */
+ #define DCMAC_GT_RESET_ALL	BIT(0)
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+index d6dfcc57cedd5..99a1fcd40a28e 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+@@ -4172,6 +4172,26 @@ static struct axienet_local *pcs_to_axienet_local(struct phylink_pcs *pcs)
+ 	return container_of(pcs, struct axienet_local, pcs);
+ }
+ 
++static void axienet_dcmac_get_fixed_state(struct phylink_config *config,
++					  struct phylink_link_state *state)
++{
++	struct net_device *ndev = to_net_dev(config->dev);
++	struct axienet_local *lp = netdev_priv(ndev);
++	u32 rx_phy_stat;
++
++	state->duplex = DUPLEX_FULL;
++	state->speed = lp->max_speed;
++	state->an_complete = PHYLINK_PCS_NEG_NONE;
++
++	/* Clear previous status */
++	axienet_iow(lp, DCMAC_STS_RX_PHY_OFFSET, DCMAC_STS_ALL_MASK);
++	rx_phy_stat = axienet_ior(lp, DCMAC_STS_RX_PHY_OFFSET);
++
++	state->link = (rx_phy_stat & DCMAC_RXPHY_RX_STS_MASK &&
++			rx_phy_stat & DCMAC_RXPHY_RX_ALIGN_MASK);
++	phylink_clear(state->advertising, Autoneg);
++}
++
+ static void axienet_pcs_get_state(struct phylink_pcs *pcs,
+ 				  struct phylink_link_state *state)
+ {
+@@ -4261,6 +4281,9 @@ static int axienet_pcs_config(struct phylink_pcs *pcs, unsigned int neg_mode,
+ 		/* If auto-negotiation is not completed, restart auto-neg */
+ 		return (neg_mode == (unsigned int)PHYLINK_PCS_NEG_INBAND_ENABLED &&
+ 			autoneg_complete == 0);
++	} else if (lp->axienet_config->mactype == XAXIENET_DCMAC) {
++		/* Nothing to change for fixed link */
++		return 0;
+ 	}
+ 
+ 	ret = phylink_mii_c22_pcs_config(pcs_phy, interface, advertising,
+@@ -4309,7 +4332,8 @@ static void axienet_mac_link_up(struct phylink_config *config,
+ 	struct axienet_local *lp = netdev_priv(ndev);
+ 	u32 emmc_reg, fcc_reg;
+ 
+-	if (lp->axienet_config->mactype == XAXIENET_10G_25G) {
++	if (lp->axienet_config->mactype == XAXIENET_10G_25G ||
++	    lp->axienet_config->mactype == XAXIENET_DCMAC) {
+ 		/* nothing meaningful to do */
+ 		return;
+ 	}
+@@ -5335,8 +5359,7 @@ static int axienet_probe(struct platform_device *pdev)
+ 	}
+ 
+ 	if (lp->axienet_config->mactype != XAXIENET_MRMAC &&
+-	    lp->axienet_config->mactype != XAXIENET_1G_10G_25G &&
+-	    lp->axienet_config->mactype != XAXIENET_DCMAC) {
++	    lp->axienet_config->mactype != XAXIENET_1G_10G_25G) {
+ 		lp->pcs.ops = &axienet_pcs_ops;
+ 		lp->pcs.neg_mode = true;
+ 		lp->pcs.poll = true;
+@@ -5363,6 +5386,22 @@ static int axienet_probe(struct platform_device *pdev)
+ 					lp->phylink_config.mac_capabilities |= MAC_25000FD;
+ 				}
+ 			}
++		} else if (lp->axienet_config->mactype == XAXIENET_DCMAC) {
++			if (lp->max_speed == SPEED_100000) {
++				lp->phylink_config.mac_capabilities |= MAC_100000FD;
++				__set_bit(PHY_INTERFACE_MODE_100GBASER,
++					  lp->phylink_config.supported_interfaces);
++			} else if (lp->max_speed == SPEED_200000) {
++				lp->phylink_config.mac_capabilities |= MAC_200000FD;
++				__set_bit(PHY_INTERFACE_MODE_200GBASER,
++					  lp->phylink_config.supported_interfaces);
++			} else if (lp->max_speed == SPEED_400000) {
++				lp->phylink_config.mac_capabilities |= MAC_400000FD;
++				__set_bit(PHY_INTERFACE_MODE_400GBASER,
++					  lp->phylink_config.supported_interfaces);
++			}
++
++			lp->phylink_config.get_fixed_state = axienet_dcmac_get_fixed_state;
+ 		} else {
+ 			/* AXI 1G/2.5G */
+ 			if (lp->max_speed == SPEED_1000) {
+@@ -5387,8 +5426,7 @@ static int axienet_probe(struct platform_device *pdev)
+ 	__set_bit(lp->phy_mode, lp->phylink_config.supported_interfaces);
+ 
+ 	if (lp->axienet_config->mactype != XAXIENET_1G_10G_25G &&
+-	    lp->axienet_config->mactype != XAXIENET_MRMAC &&
+-	    lp->axienet_config->mactype != XAXIENET_DCMAC)
++	    lp->axienet_config->mactype != XAXIENET_MRMAC)
+ 		lp->phylink = phylink_create(&lp->phylink_config, pdev->dev.fwnode,
+ 					     lp->phy_mode,
+ 					     &axienet_phylink_ops);
+-- 
+2.43.0
+
