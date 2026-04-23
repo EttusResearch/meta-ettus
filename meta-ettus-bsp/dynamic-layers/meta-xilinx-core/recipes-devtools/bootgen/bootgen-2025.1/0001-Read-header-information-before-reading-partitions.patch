@@ -1,0 +1,24 @@
+From 227cb66f71bd525a5e70ab53d4b430d3cce81ee4 Mon Sep 17 00:00:00 2001
+From: Neil Locketz <neil@nlocketz.com>
+Date: Mon, 18 Mar 2024 14:02:45 -0400
+Subject: [PATCH] Read header information before reading partitions
+
+---
+ zynqmp/src/readimage-zynqmp.cpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/zynqmp/src/readimage-zynqmp.cpp b/zynqmp/src/readimage-zynqmp.cpp
+index 0d75b60..8a4757c 100755
+--- a/zynqmp/src/readimage-zynqmp.cpp
++++ b/zynqmp/src/readimage-zynqmp.cpp
+@@ -100,6 +100,7 @@ void ZynqMpReadImage::ReadBinaryFile(DumpOption::Type dump, std::string path)
+     {
+         LOG_ERROR("The option '-read/-dump' is not supported on mcs format file : %s", binFilename.c_str());
+     }
++    ReadHeaderTableDetails();
+     ReadPartitions();
+ }
+ /*******************************************************************************/
+-- 
+2.43.0
+
