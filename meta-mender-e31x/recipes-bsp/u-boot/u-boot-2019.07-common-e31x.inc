@@ -7,11 +7,14 @@ MENDER_UBOOT_AUTO_CONFIGURE = "0"
 SRC_URI:append:ni-e31x-mender = " \
     file://0001-ni-zynq-Mender.io-support-for-NI-Ettus-Research-E31x.patch \
     file://0003-Remove-CONFIG_SYS_REDUNDAND_ENVIRONMENT-check.patch \
+    file://0002-Integration-of-Mender-boot-code-into-U-Boot-E31x.patch \
     "
 
 # Don't overwrite variable bootcommand with CONFIG_MENDER_BOOTCOMMAND
 # instead, variable sdboot is patched by our own patch
-SRC_URI:remove:ni-e31x-mender = "file://0004-Disable-CONFIG_BOOTCOMMAND-and-enable-CONFIG_MENDER_.patch"
+# Also replace the mender-core 0002 patch with a local version that has
+# correct context lines for this u-boot tree (avoids QA fuzz error).
+SRC_URI:remove:ni-e31x-mender = "file://0004-Disable-CONFIG_BOOTCOMMAND-and-enable-CONFIG_MENDER_.patch file://0002-Integration-of-Mender-boot-code-into-U-Boot.patch"
 
 do_provide_mender_defines:append:ni-e31x-mender() {
   # fix boot command when using fitImage:
@@ -19,11 +22,3 @@ do_provide_mender_defines:append:ni-e31x-mender() {
   # which is wrong, set it to bootm instead
   sed -i "s|^\(#define MENDER_BOOT_KERNEL_TYPE\).*$|\1 \"bootm\"|" ${S}/include/config_mender_defines.h
 }
-
-#
-# FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
-#
-# # Make sure this is an append, otherwise this might get applied before the BSP patches
-# SRC_URI:append:ni-e31x-mender = " \
-#            file://0002-ni-zynq-Mender.io-support-for-NI-Ettus-Research-E31x.patch \
-#            "
