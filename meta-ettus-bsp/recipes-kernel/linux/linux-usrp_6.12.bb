@@ -8,16 +8,22 @@ KERNEL_VERSION_SANITY_SKIP="1"
 KBRANCH = "nilrt/master/6.12"
 LINUX_VERSION = "6.12.57-rt14"
 
-KBUILD_DEFCONFIG ?= "usrp_defconfig"
+# KBUILD_DEFCONFIG ?= "usrp_arm64_defconfig"
 
 SRCREV_machine = "556be4f45e0014252323bd2bb4036129898fc893"
 SRCREV_meta = "2987fc4250f2ad7f6e2df663bba0742638fbae51"
 
+DEFCONFIG_FILE:zynq = "usrp_arm_defconfig"
+DEFCONFIG_FILE:zynqmp = "usrp_arm64_defconfig"
+DEFCONFIG_SUBDIR:zynq="git/arch/arm/configs"
+DEFCONFIG_SUBDIR:zynqmp="git/arch/arm64/configs"
+
 LINUX_VERSION_EXTENSION = "-usrp"
 KMETA = "kernel-meta"
 SRC_URI = " \
-    git://github.com/ni/linux;name=machine;protocol=ssh;branch=${KBRANCH} \
+    git://github.com/ni/linux;name=machine;protocol=https;branch=${KBRANCH} \
     git://git.yoctoproject.org/yocto-kernel-cache;type=kmeta;name=meta;branch=yocto-6.12;destsuffix=${KMETA};protocol=https \
+    file://${DEFCONFIG_FILE};subdir=${DEFCONFIG_SUBDIR} \
     file://usrp.scc \
     file://fix-addressing.cfg \
     file://enable-early-debug.cfg \
