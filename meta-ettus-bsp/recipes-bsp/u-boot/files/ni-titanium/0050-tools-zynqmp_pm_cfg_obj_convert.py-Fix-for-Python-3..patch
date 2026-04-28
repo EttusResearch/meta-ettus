@@ -1,0 +1,25 @@
+From dfa0680d51de243fe40f488185d951f0c6fe32cd Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Wed, 1 Apr 2026 08:31:12 +0200
+Subject: [PATCH 50/52] tools/zynqmp_pm_cfg_obj_convert.py: Fix for Python 3.12
+
+---
+ tools/zynqmp_pm_cfg_obj_convert.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tools/zynqmp_pm_cfg_obj_convert.py b/tools/zynqmp_pm_cfg_obj_convert.py
+index 239991a5263..d75eac3a34f 100755
+--- a/tools/zynqmp_pm_cfg_obj_convert.py
++++ b/tools/zynqmp_pm_cfg_obj_convert.py
+@@ -288,7 +288,7 @@ def process_item(item):
+ code = in_file.read()
+ 
+ # remove comments
+-code = re.sub('//.*?\n|/\*.*?\*/', '', code, flags=re.DOTALL)
++code = re.sub(r'//.*?\n|/\*.*?\*/', '', code, flags=re.DOTALL)
+ 
+ # remove everything outside the XPm_ConfigObject array definition
+ code = re.search('const u32 XPm_ConfigObject.*=.*{\n(.*)};',
+-- 
+2.34.1
+

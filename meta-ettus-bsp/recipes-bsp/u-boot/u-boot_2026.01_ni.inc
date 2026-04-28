@@ -53,6 +53,9 @@ SRC_URI:prepend:ni-titanium = " \
     file://0008-board-ni-add-support-for-X440.patch \
     file://0009-board-ni-fix-PS-dram-configuration.patch \
     file://0010-board-ni-add-support-for-X420.patch \
+    file://0050-tools-zynqmp_pm_cfg_obj_convert.py-Fix-for-Python-3..patch \
+    file://0051-board-ni-zynqmp-Generate-generic-variant-string.patch \
+    file://0052-remove-pmu-firmware-handling-from-u-boot.patch \
     "
 
 DEPENDS += "${@bb.utils.contains('UBOOT_ENV_SUFFIX', 'scr', 'u-boot-mkimage-native', '', d)}"

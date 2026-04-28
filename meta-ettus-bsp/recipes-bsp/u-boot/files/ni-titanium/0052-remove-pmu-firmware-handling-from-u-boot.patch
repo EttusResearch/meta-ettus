@@ -1,0 +1,26 @@
+From a6e51aa6aacd335966af19f14cc0957ad7f87c3b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Wed, 1 Apr 2026 15:22:42 +0200
+Subject: [PATCH 52/52] remove pmu firmware handling from u-boot
+
+---
+ configs/ni_x410_rev5_defconfig | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/configs/ni_x410_rev5_defconfig b/configs/ni_x410_rev5_defconfig
+index 6eac60b7597..493b8d9df27 100644
+--- a/configs/ni_x410_rev5_defconfig
++++ b/configs/ni_x410_rev5_defconfig
+@@ -20,9 +20,6 @@ CONFIG_SYS_LOAD_ADDR=0x8000000
+ CONFIG_SPL_SIZE_LIMIT=0x2a000
+ CONFIG_SPL=y
+ CONFIG_BOOT_INIT_FILE="board/ni/zynqmp/x410_boot_init.txt"
+-CONFIG_PMUFW_INIT_FILE="board/ni/zynqmp/x410-rev5/pmu_fw.bin"
+-CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_SRC_FILE="board/ni/zynqmp/x410-rev5/pm_cfg_obj.c"
+-CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_FILE="board/ni/zynqmp/x410-rev5/pm_cfg_obj.o"
+ CONFIG_DEBUG_UART=y
+ CONFIG_SYS_MEMTEST_START=0x00000000
+ CONFIG_SYS_MEMTEST_END=0x00001000
+-- 
+2.34.1
+

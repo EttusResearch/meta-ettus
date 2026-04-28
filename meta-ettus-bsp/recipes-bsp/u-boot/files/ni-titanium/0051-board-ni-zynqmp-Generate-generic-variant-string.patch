@@ -1,0 +1,55 @@
+From 8673c274ac2f305225b5cc46d8fe396341f3c19b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Tue, 31 Mar 2026 12:58:36 +0200
+Subject: [PATCH 51/52] board: ni: zynqmp: Generate generic variant string
+
+... based on PID and compat rev.
+---
+ board/ni/zynqmp/board.c | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/board/ni/zynqmp/board.c b/board/ni/zynqmp/board.c
+index 84c56f0cc04..a22d19f3d3c 100644
+--- a/board/ni/zynqmp/board.c
++++ b/board/ni/zynqmp/board.c
+@@ -253,15 +253,15 @@ static const struct xboard_match mb_match[] = {
+ 	{},
+ };
+ 
+-static const char *get_mboard_dtb(u16 pid)
++static void get_mboard_dtb(char *mboard_dtb, u16 pid)
+ {
+ 	int i;
+ 
++	sprintf(mboard_dtb, "x4xx-mb-0x%04x", pid);
++
+ 	for (i = 0; i < ARRAY_SIZE(mb_match); i++)
+ 		if (pid == mb_match[i].pid)
+-			return mb_match[i].dtb;
+-
+-	return "unsupported";
++			sprintf(mboard_dtb, mb_match[i].dtb);
+ }
+ 
+ static void append_overlay(char *overlays, struct eeprom_ctx *ctx, const char *slot)
+@@ -287,6 +287,7 @@ static void probe_mboard(struct eeprom_ctx *ctx)
+ {
+ 	const struct usrp_eeprom_board_info *info;
+ 
++	char mboard_dtb[128];
+ 	char variant_buf[128];
+ 	char compat_rev_buf[8];
+ 
+@@ -302,7 +303,8 @@ static void probe_mboard(struct eeprom_ctx *ctx)
+ 		return;
+ 	}
+ 
+-	snprintf(variant_buf, sizeof(variant_buf), "%s-rev%d", get_mboard_dtb(info->pid), info->compat_rev);
++	get_mboard_dtb(mboard_dtb, info->pid);
++	snprintf(variant_buf, sizeof(variant_buf), "%s-rev%d", mboard_dtb, info->compat_rev);
+ 	snprintf(compat_rev_buf, sizeof(compat_rev_buf), "%d", info->compat_rev);
+ 
+ 	env_set("variant", variant_buf);
+-- 
+2.34.1
+
