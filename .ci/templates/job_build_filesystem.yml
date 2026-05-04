@@ -274,6 +274,17 @@ jobs:
           rm -rf ./images
           mkdir images
 
+          # boot binary
+          cp -v $KAS_DEPLOY_DIR_IMAGE/boot.bin images/
+
+          # boot binary input files
+          SRCDIR="$KAS_DEPLOY_DIR_IMAGE/boot.bin-extracted"
+          DESTDIR="images/boot.bin-extracted"
+          mkdir -p $DESTDIR
+          for FILE in $SRCDIR/*.elf $SRCDIR/*.dtb $SRCDIR/*.bit $SRCDIR/*.bif; do
+            cp -v $FILE $DESTDIR/
+          done
+
           # main image
           find $KAS_DEPLOY_DIR -type l -name '*.wic.*' -exec cp {} images \;
           find $KAS_DEPLOY_DIR -type l -name '*.sdimg.*' -exec cp {} images \;

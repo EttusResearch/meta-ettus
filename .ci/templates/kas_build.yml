@@ -2,6 +2,7 @@
 # outputs:
 #   KAS_CONFIG: set to the : separated list of kas_configs
 #   KAS_DEPLOY_DIR: the actual deploy dir from the build
+#   KAS_DEPLOY_DIR_IMAGE: the actual deploy dir for images from the build
 
 parameters:
   # The list of config files to pass to kas
@@ -59,10 +60,12 @@ steps:
     workingDirectory: $(Agent.BuildDirectory)
     condition: and(succeeded(), ${{ parameters.build_sdk }})
   - script: |
-      kas shell $KAS_CONFIG -c "bitbake -e" > bitbake.env
-      export KAS_DEPLOY_DIR=$(grep '^DEPLOY_DIR=' bitbake.env | sed 's/[^"]*"\([^"]*\)"/\1/')
+      KAS_DEPLOY_DIR=$(kas shell $KAS_CONFIG -c "bitbake-getvar --value DEPLOY_DIR")
       echo "###vso[task.setVariable variable=KAS_DEPLOY_DIR]"$KAS_DEPLOY_DIR
       echo $KAS_DEPLOY_DIR
+      KAS_DEPLOY_DIR_IMAGE=$(kas shell $KAS_CONFIG -c "bitbake-getvar --value DEPLOY_DIR_IMAGE")
+      echo "###vso[task.setVariable variable=KAS_DEPLOY_DIR_IMAGE]"$KAS_DEPLOY_DIR_IMAGE
+      echo $KAS_DEPLOY_DIR_IMAGE
     displayName: Dump environment
     workingDirectory: $(Agent.BuildDirectory)
   - script: |
