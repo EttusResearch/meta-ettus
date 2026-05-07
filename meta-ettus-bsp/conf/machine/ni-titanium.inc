@@ -32,6 +32,9 @@ KERNEL_DEVICETREE:ni-titanium ?= "\
 	ni/x410-rev5.dtb \
 	ni/x410-rev6.dtb \
 	ni/x410-rev7.dtb \
+	ni/x4xx-mb-0x7410-rev7.dtb \
+	ni/x4xx-mb-0x7420-rev7.dtb \
+	ni/x4xx-mb-0x7440-rev7.dtb \
 	ni/x4xx-db0-0x4001-rev1.dtbo \
 	ni/x4xx-db1-0x4001-rev1.dtbo \
 	ni/x4xx-dioaux-0x4003-rev1.dtbo \
