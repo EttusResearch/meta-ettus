@@ -27,7 +27,7 @@ class Uboot:
 
     def boot(self):
         self.uart.sendline("boot")
-        self.uart.expect("Starting kernel ...")
+        self.uart.expect("Starting kernel ...", timeout=120)
 
     def run_dhcp(self):
         self.uart.sendline("dhcp")
@@ -57,7 +57,7 @@ class Uboot:
     def bootm(self, addr, conf):
         addr_hex = hex(addr)
         self.uart.sendline(f"bootm {addr_hex}{conf}")
-        self.uart.expect("Starting kernel ...")
+        self.uart.expect("Starting kernel ...", timeout=120)
 
 
 class X4xxUboot(Uboot):
