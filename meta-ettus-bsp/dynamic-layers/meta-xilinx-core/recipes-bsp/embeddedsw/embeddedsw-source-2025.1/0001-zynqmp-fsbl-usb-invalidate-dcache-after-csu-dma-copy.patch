@@ -1,0 +1,26 @@
+From 6f8c18f8f6e76d1e6f0b0d9a4120d5d78d61be12 Mon Sep 17 00:00:00 2001
+From: Lars Amsel <lars.amsel@emerson.com>
+Date: Mon, 1 Jun 2026 12:00:00 +0000
+Subject: [PATCH] zynqmp fsbl: invalidate dcache after USB CSU DMA copy
+
+Invalidate destination cache after CSU DMA copy in FSBL USB path so
+subsequent CPU reads observe the transferred data.
+---
+ lib/sw_apps/zynqmp_fsbl/src/xfsbl_usb.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/lib/sw_apps/zynqmp_fsbl/src/xfsbl_usb.c b/lib/sw_apps/zynqmp_fsbl/src/xfsbl_usb.c
+index 14458ec26f..3fdc47d35e 100644
+--- a/lib/sw_apps/zynqmp_fsbl/src/xfsbl_usb.c
++++ b/lib/sw_apps/zynqmp_fsbl/src/xfsbl_usb.c
+@@ -200,6 +200,8 @@ u32 XFsbl_UsbCopy(u32 SrcAddress, PTRSIZE DestAddress, u32 Length)
+ 	XCsuDma_IntrClear(&CsuDma, XCSUDMA_SRC_CHANNEL, XCSUDMA_IXR_DONE_MASK);
+ 	XCsuDma_IntrClear(&CsuDma, XCSUDMA_DST_CHANNEL, XCSUDMA_IXR_DONE_MASK);
+ 
++	Xil_DCacheInvalidateRange((INTPTR)DestAddress, Length);
++
+ 	Status = XFSBL_SUCCESS;
+ END:
+ 	return Status;
+-- 
+2.34.1
