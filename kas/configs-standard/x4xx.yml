@@ -8,7 +8,9 @@ target:
   # - mc:zynqmp-pmufw:pmu-firmware
   - mc:ni-titanium-ec:chromium-ec
   - mc:ni-titanium:gnuradio-image
-# local_conf_header:
+local_conf_header:
+  "no FEATURE_C12 in ext4 images": |
+    EXTRA_IMAGECMD:ext4 = "-i 4096 -O ^orphan_file"
 #   remove_uninative:
 #     INHERIT:remove = "uninative"
 #   remove_x11:
