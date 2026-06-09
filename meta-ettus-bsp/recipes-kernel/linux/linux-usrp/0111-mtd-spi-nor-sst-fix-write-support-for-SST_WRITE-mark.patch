@@ -1,0 +1,61 @@
+From d7a29b56de90ce6ffc2106b8ab2ca7a24ee9b0d7 Mon Sep 17 00:00:00 2001
+From: Marco Felsch <m.felsch@pengutronix.de>
+Date: Fri, 11 Sep 2020 16:47:01 +0200
+Subject: [PATCH 112/114] mtd: spi-nor: sst: fix write support for SST_WRITE
+ marked devices
+
+The sst write support for devices using the special SST_WRITE routine
+is broken since commit commit df5c21002cf4 ("mtd: spi-nor: use spi-mem
+dirmap API") because the spi_nor_create_write_dirmap() function checks
+SPINOR_OP_AAI_WP and sst_write_second. These checks are not valid during
+probe. The check seems also to be broken since the "op->addr.nbytes = 0"
+causes the devm_spi_mem_dirmap_create() function to return
+PTR_ERR(-EINVAL) and the probe() function will fail.
+
+It seems that the commit only copy'n'pasted the existing logic. Use the
+correct SST_WRITE flag and return 0 to fix both issues.
+
+Fixes: df5c21002cf4 ("mtd: spi-nor: use spi-mem dirmap API")
+Signed-off-by: Marco Felsch <m.felsch@pengutronix.de>
+
+Modified to apply to kernel version 6.12:
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@emerson.com>
+---
+ drivers/mtd/spi-nor/core.c | 13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/mtd/spi-nor/core.c b/drivers/mtd/spi-nor/core.c
+index 9d6e85bf227b9..4ae890a73b974 100644
+--- a/drivers/mtd/spi-nor/core.c
++++ b/drivers/mtd/spi-nor/core.c
+@@ -24,6 +24,9 @@
+ 
+ #include "core.h"
+ 
++/* SST flash_info mfr_flag. Used to specify SST byte programming. */
++#define SST_WRITE		BIT(0)
++
+ /* Define max times to check status register before we give up. */
+ 
+ /*
+@@ -3553,8 +3556,14 @@ static int spi_nor_create_write_dirmap(struct spi_nor *nor)
+ 	};
+ 	struct spi_mem_op *op = &info.op_tmpl;
+ 
+-	if (nor->program_opcode == SPINOR_OP_AAI_WP && nor->sst_write_second)
+-		op->addr.nbytes = 0;
++	/*
++	 * Most SST SPI-NOR's have a special write routine.which should so
++	 * dirmap.wdesc is not supported for these.
++	 */
++	if ((nor->manufacturer == &spi_nor_sst) && (nor->info->mfr_flags & SST_WRITE)) {
++		nor->dirmap.wdesc = NULL;
++		return 0;
++	}
+ 
+ 	spi_nor_spimem_setup_op(nor, op, nor->write_proto);
+ 
+-- 
+2.43.0
+

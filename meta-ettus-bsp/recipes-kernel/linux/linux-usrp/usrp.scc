@@ -108,3 +108,6 @@ patch 0107-net-axienet-Add-100G-MRMAC-support.patch
 patch 0108-net-axienet-Replace-MRMAC-GT-memory-mapped-registers.patch
 patch 0109-net-axienet-Fix-USXGMII-reset-and-configuration-issu.patch
 patch 0110-net-axienet-Fix-mainline-6.12-build-after-linux-xlnx.patch
+patch 0111-mtd-spi-nor-sst-fix-write-support-for-SST_WRITE-mark.patch
+patch 0112-mtd-spi-nor-sst-Fix-write-enable-before-AAI-sequence.patch
+patch 0113-mtd-spi-nor-sst-move-sst_write_second-to-local-drive.patch
