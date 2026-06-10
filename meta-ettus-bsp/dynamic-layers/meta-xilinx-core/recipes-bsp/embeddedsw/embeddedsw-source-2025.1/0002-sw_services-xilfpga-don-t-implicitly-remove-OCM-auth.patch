@@ -1,0 +1,50 @@
+From 7a9639b4631fcb1f10e4f30b1c6cd9561f4c388b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Wed, 10 Jun 2026 10:52:59 +0200
+Subject: [PATCH 2/3] sw_services:xilfpga: don't implicitly remove OCM
+ authentication flag
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+In case a FPGA bitstream should be loaded with OCM authentication
+enabled (Flags = XFPGA_AUTHENTICATION_OCM_EN) on a unsecured device
+(RSA_EN eFUSES not burned), the function XSecure_AuthenticationHeaders
+returns status XSECURE_ONLY_BHDR_AUTH_ALLOWED.
+
+The xilfpga default behavior is to remove the XFPGA_AUTHENTICATION_OCM_EN
+flag and continue without OCM authentication. However, this implicit
+fallback without any informational print or warning is irritating. The
+behavior corresponds to the FSBL_UNPROVISIONED_AUTH_SIGN_EXCLUDE_VAL=0
+parameter in FSBL firmware.
+
+To avoid confusion, this commit removes the implicit clearing of the
+OCM authentication flag and instead explicitly returns the error
+XFPGA_ERROR_HDR_AUTH.
+
+Signed-off-by: Jörg Hofrichter <joerg.hofrichter@emerson.com>
+---
+ .../xilfpga/src/interface/zynqmp/xilfpga_pcap.c            | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/lib/sw_services/xilfpga/src/interface/zynqmp/xilfpga_pcap.c b/lib/sw_services/xilfpga/src/interface/zynqmp/xilfpga_pcap.c
+index 9f05e95e71..9e79a82bdb 100644
+--- a/lib/sw_services/xilfpga/src/interface/zynqmp/xilfpga_pcap.c
++++ b/lib/sw_services/xilfpga/src/interface/zynqmp/xilfpga_pcap.c
+@@ -416,9 +416,10 @@ static u32 XFpga_ValidateBitstreamImage(XFpga *InstancePtr)
+ 			 ImageHdrDataPtr);
+ 	if (Status != XFPGA_SUCCESS) {
+ 		if (Status == XSECURE_ONLY_BHDR_AUTH_ALLOWED) {
+-			InstancePtr->WriteInfo.Flags &=
+-				~(XFPGA_AUTHENTICATION_DDR_EN |
+-				  XFPGA_AUTHENTICATION_OCM_EN);
++			// Don't implicitly clear the OCM_EN/DDR_EN Flags
++			// InstancePtr->WriteInfo.Flags &=
++			// 	~(XFPGA_AUTHENTICATION_DDR_EN |
++			// 	  XFPGA_AUTHENTICATION_OCM_EN);
+ #ifdef XFPGA_SKIP_EFUSE_CHECK
+ 		} else if ((Status != XSECURE_AUTH_NOT_ENABLED) &&
+ 			   (Status != XSECURE_AUTH_ISCOMPULSORY)) {
+-- 
+2.43.0
+

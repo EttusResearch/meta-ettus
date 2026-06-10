@@ -1,0 +1,29 @@
+From cabbfb2514fcb392fbdf58f2d73963db312a301b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Wed, 1 Jul 2026 12:25:07 +0200
+Subject: [PATCH] xilfpga: don't allow bitstream authentication in DDR
+
+Using OCM memory is considered "more secure" as stated in
+https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/18842505/Zynq+Ultrascale+MPSoC+Secure+bitstream+programming+from+Linux
+---
+ lib/sw_services/xilfpga/src/interface/zynqmp/xilfpga_pcap.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/lib/sw_services/xilfpga/src/interface/zynqmp/xilfpga_pcap.c b/lib/sw_services/xilfpga/src/interface/zynqmp/xilfpga_pcap.c
+index 9f05e95e71..a3841a9335 100644
+--- a/lib/sw_services/xilfpga/src/interface/zynqmp/xilfpga_pcap.c
++++ b/lib/sw_services/xilfpga/src/interface/zynqmp/xilfpga_pcap.c
+@@ -1043,6 +1043,10 @@ static u32 XFpga_AuthPlChunksDdrOcm(XFpga *InstancePtr, u32 Size)
+ 	Status = XFPGA_FAILURE;
+ 	if ((InstancePtr->WriteInfo.Flags & XFPGA_AUTHENTICATION_DDR_EN) ==
+ 	    XFPGA_AUTHENTICATION_DDR_EN) {
++		// Don't allow authentication in DDR memory
++		// Using OCM memory is considered "more secure" as stated in
++		// https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/18842505/Zynq+Ultrascale+MPSoC+Secure+bitstream+programming+from+Linux
++		goto END;
+ 		Status = XSecure_PartitionAuthentication(CsuDmaPtr,
+ 				(u8 *)InstancePtr->PLInfo.BitAddr, Size,
+ 				(u8 *)(UINTPTR)AcBuf);
+-- 
+2.43.0
+
