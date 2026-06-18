@@ -31,8 +31,6 @@ jobs:
     - group: meta-ettus-vars
     - name: labgrid-venv
       value: '$(Pipeline.Workspace)/labgrid-venv'
-    - name: labgridClientConfigDir
-      value: '$(Build.SourcesDirectory)/ettus-rts/labgrid/client-configs'
     - name: image
       value: ${{ parameters.image }}
     - name: image-ext
@@ -51,6 +49,7 @@ jobs:
     - embedded-test -equals 1
 
   steps:
+  - checkout: self
   - checkout: ettus-rts
   - checkout: labgrid
   - download: current
@@ -86,40 +85,17 @@ jobs:
       python3 -m venv $(labgrid-venv)
       source $(labgrid-venv)/bin/activate
       pip install --upgrade pip
-      pip install $(Build.SourcesDirectory)/labgrid
-      pip install $(Build.SourcesDirectory)/contrib/usrp_emb2
+      pip install $(Build.SourcesDirectory)/meta-ettus-dev/contrib/test/usrp_emb2
     displayName: 'Setup labgrid-venv'
 
   - script: |
       source $(labgrid-venv)/bin/activate
-      eval `labgrid-client reserve --shell type=$(deviceType) embedded-test=true`
-      echo "###vso[task.setVariable variable=LG_TOKEN]$LG_TOKEN"
-      labgrid-client wait
-      labgrid-client -p + acquire
-    displayName: 'make reservation; acquire place'
+      usrp-emb-update -s "$(uartSerial)" -t $(deviceType) write_config -o "$(lgConfigPath)"
+    displayName: 'generate labgrid config'
 
   - script: |
       source $(labgrid-venv)/bin/activate
-      LG_PLACE=$(labgrid-client -p + show | head -n 1 | sed "s|^Place '\(\S*\)':$|\1|")
-      echo "LG_PLACE=$LG_PLACE"
-      echo "###vso[task.setVariable variable=LG_PLACE]$LG_PLACE"
-    displayName: 'set LG_PLACE variable'
-
-  - script: |
-      source $(labgrid-venv)/bin/activate
-      typeArgs=$(labgrid-client -p + get-tags --argument-style type product)
-      echo "typeArgs=$typeArgs"
-      echo "###vso[task.setVariable variable=typeArgs]$typeArgs"
-    displayName: 'set typeArgs variable'
-
-  - script: |
-      source $(labgrid-venv)/bin/activate
-      labgrid-client -p + show
-    displayName: 'print place resources'
-
-  - script: |
-      source $(labgrid-venv)/bin/activate
-      labgrid-client -c $(labgridClientConfigDir)/$(LG_PLACE)-netboot.yaml -s shell -vv write-image --driver ShellStorageDriver --mode bmaptool $(ImagePath)
+      usrp-emb-update -s "$(uartSerial)" -t $(deviceType) update $(ImagePath)
       rc=$?
       if [ $rc != 0 ]; then
         echo "###vso[task.setVariable variable=runTests]false"
@@ -127,13 +103,6 @@ jobs:
       exit $rc
     displayName: flash image
     condition: and(succeeded(), ${{ parameters.flash_image }})
-
-  - script: |
-      source $(labgrid-venv)/bin/activate
-      uartSerial=$(labgrid-client -p + get-tags | tr ' ' '\n' | grep '^uartSerial=' | cut -d= -f2)
-      echo "uartSerial=$uartSerial"
-      python -m usrp_emb -s "$uartSerial" -t $(deviceType) write_config -o "$(lgConfigPath)"
-    displayName: 'generate labgrid config'
 
   - ${{ each test in parameters.tests }}:
     - script: |
@@ -145,16 +114,9 @@ jobs:
         else
           additional_args=""
         fi
-        pytest --junitxml=$(Common.TestResultsDirectory)/${{ test }}.xml --lg-env $(lgConfigPath) $(Build.SourcesDirectory)/ettus-rts/labgrid/tests/${{ test }}.py -vv $(typeArgs) ${additional_args}
+        pytest --junitxml=$(Common.TestResultsDirectory)/${{ test }}.xml --lg-env $(lgConfigPath) $(Build.SourcesDirectory)/ettus-rts/labgrid/tests/${{ test }}.py -vv ${additional_args}
       displayName: run ${{ test }}
       condition: and(eq(variables.runTests, 'true'), not(canceled()))
-
-  - script: |
-      source $(labgrid-venv)/bin/activate
-      labgrid-client -p + release
-      labgrid-client cancel-reservation
-    displayName: 'release place; cancel reservation'
-    condition: always()
 
   - task: PublishTestResults@2
     inputs:

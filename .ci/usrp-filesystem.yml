@@ -245,6 +245,7 @@ stages:
           ${{ if parameters.build_e310_sg3 }}:
             e310_sg3:
               deviceType: e310_sg3
+              uartSerial: $(e310_sg3_uartSerial)
               ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
                 machine: ni-e31x-sg3-mender
               ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
@@ -252,6 +253,7 @@ stages:
           ${{ if parameters.build_e320 }}:
             e320:
               deviceType: e320
+              uartSerial: $(e320_uartSerial)
               ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
                 machine: ni-neon-rev2-mender
               ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
@@ -259,6 +261,7 @@ stages:
           ${{ if parameters.build_n3xx }}:
             n3xx:
               deviceType: n3xx
+              uartSerial: $(n3xx_uartSerial)
               ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
                 machine: ni-sulfur-rev11-mender
               ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
@@ -266,6 +269,7 @@ stages:
           ${{ if parameters.build_x4xx }}:
             x4xx:
               deviceType: x4xx
+              uartSerial: $(x4xx_uartSerial)
               ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
                 machine: ni-titanium-rev5-mender
               ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
