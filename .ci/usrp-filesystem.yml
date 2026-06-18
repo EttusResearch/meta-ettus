@@ -105,7 +105,7 @@ parameters:
   - name: create_sbom
     displayName: Create SBOM artifact
     type: boolean
-    default: true
+    default: false
 
 resources:
   pipelines:
