@@ -11,7 +11,7 @@ parameters:
 - name: local_repo_path
   type: string
   default: 's/meta-ettus-ni'
-# parameters to help debugging 
+# parameters to help debugging
 - name: reference_pipeline_name
   type: string
   default: current
@@ -35,6 +35,10 @@ steps:
   persistCredentials: true
   path: ${{ parameters.local_repo_path }}
   sparseCheckoutDirectories: .ci
+
+# Checkout moved to template steps-setup.yml and defines the pipeline
+# variable local_rts_path.
+- template: .ci/templates/steps-setup.yml@ettus-rts
 
 # If only a single repo is checked out, the default variable $(Build.SourcesDirectory)
 # also points to $(Pipeline.Workspace)/${{ parameters.local_repo_path }}
@@ -76,7 +80,7 @@ steps:
       ARTIFACT_BASE=$(Agent.BuildDirectory)/${{ parameters.artifact_name }}
     fi
     ls ${ARTIFACT_BASE}/*.manifest
-    
+
     source $(USRP_VENV)/bin/activate
     # Extract version from manifest file using Python script with named parameters
     version=$(python3 $(LOCAL_META_ETTUS_PATH)/.ci/scripts/extract_component_version_from_manifest.py \
@@ -84,7 +88,7 @@ steps:
       --manifest-pattern 'gnuradio-image-*.manifest' \
       --component 'uhd' \
       --verbose)
-    
+
     echo "Normalized version: $version"
     echo "##vso[task.setvariable variable=uhdVersionStr;isOutput=true;]$version"
     echo "##vso[task.setvariable variable=ARTIFACT_BASE]${ARTIFACT_BASE}"
@@ -102,26 +106,26 @@ steps:
 
     processed_files=''
     failed_files=''
-    
+
     for f in $(ARTIFACT_BASE)/*.spdx.tar.zst; do
       ff=$(basename -- "$f" .spdx.tar.zst)
       echo "$f, $ff"
-      mkdir -p ${CDX_TARGET_DIR}/$ff
-      
+      mkdir -p ${CDX_TARGET_DIR}/${{ parameters.sbom_project_base_name }}-$ff
+
       # Run the conversion and capture exit code
       if python3 -m ni_sbom -v convert-and-process-spdx-sbom \
         --project-name ${{ parameters.sbom_project_base_name }}-$ff \
         --project-version $(PROJECT_VERSION) \
         --project-type operating-system \
         --input $f \
-        --output-dir ${CDX_TARGET_DIR}/$ff; then
-        
+        --output-dir ${CDX_TARGET_DIR}/${{ parameters.sbom_project_base_name }}-$ff; then
+
         echo "Success: SBOM conversion completed for $ff"
-        ls ${CDX_TARGET_DIR}/$ff
-        processed_files="${processed_files:+$processed_files,}$ff"
+        ls ${CDX_TARGET_DIR}/${{ parameters.sbom_project_base_name }}-$ff
+        processed_files="${processed_files:+$processed_files,}${{ parameters.sbom_project_base_name }}-$ff"
       else
         echo "Error: ni_sbom conversion failed for $f"
-        failed_files="${failed_files:+$failed_files,}$ff"
+        failed_files="${failed_files:+$failed_files,}${{ parameters.sbom_project_base_name }}-$ff"
       fi
     done
 
@@ -161,34 +165,14 @@ steps:
   artifact: $(CDX_SBOM_ARTIFACT_NAME)
   displayName: Upload filesystem SBOM artifact
   condition: succeededOrFailed()
-
-- bash: |
-    source $(USRP_VENV)/bin/activate
-    force_production_server=${{ parameters.release_build }}
-    if ([ "$(Build.Reason)" = "Manual" ] || [ "$(Build.Reason)" = "PullRequest" ]) \
-       && [ "${force_production_server,,}" != "true" ]; then
-      echo "Using Dependency-Track TEST server for SBOM upload"
-      DEPENDENCY_TRACK_SERVER=test
-    else
-      DEPENDENCY_TRACK_SERVER=production
-    fi
-
-    # Split the comma-separated list of processed files
-    IFS=',' read -ra FILES <<< "$(convert_sbom.PROCESSED_FILES)"
-    
-    # Iterate over each processed file
-    for ff in "${FILES[@]}"; do
-      echo "Triggering SBOM upload for: $ff"
-      azdo-cli -v --access-token "$(System.AccessToken)" pipeline \
-        --pipeline-id $(ni_sbom_dependency_track_pipeline_id) --branch main run \
-        --parameter dependency_track_server ${DEPENDENCY_TRACK_SERVER} \
-        --parameter dependency_track_project_name ${{ parameters.sbom_project_base_name }}-$ff \
-        --parameter dependency_track_project_version $(PROJECT_VERSION) \
-        --parameter sbom_uri $(CDX_SBOM_ARTIFACT_NAME)/$ff/cdx.sbom.json \
-        --parameter title "Upload $ff SBOM for version $(PROJECT_VERSION)" \
-        --parameter triggering_build_id $(Build.BuildId) \
-        --parameter triggering_build_project $(System.TeamProjectId) \
-        --parameter triggering_build_pipeline $(System.DefinitionId) \
-        --parameter triggering_build_branch $(Build.SourceBranch)
-    done
-  displayName: 'Trigger SBOM validation and upload'
+- template: .ci/templates/steps-nisbom-upload3.yml@ettus-rts
+  parameters:
+    CDX_SBOM_ARTIFACT_NAME: $(CDX_SBOM_ARTIFACT_NAME)
+    PROCESSED_PACKAGES: $(convert_sbom.PROCESSED_FILES)
+    PROJECT_VERSION: $(PROJECT_VERSION)
+    local_rts_path: $(local_rts_path)
+    USRP_VENV: $(USRP_VENV)
+    sbomCheckPassed: 'true'
+    forceTestInstance: true
+    releaseBinaries: false
+    source_branch: $(Build.SourceBranch)
