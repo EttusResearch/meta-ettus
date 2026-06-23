@@ -396,8 +396,10 @@ class MenderTests(unittest.TestCase):
             rootdev = ti.linux.get_root_dev()
             print("rootdev: ", rootdev)
             assert rootdev in POSSIBLE_ROOTDEVS
-
             assert orig_rootdev == rootdev
+
+            if ti.linux.mender_version() >= "4.0.0":
+                ti.linux.mender_rollback()
 
 
     def test_mender_update_fail(self):
@@ -438,7 +440,9 @@ class MenderTests(unittest.TestCase):
             new_rootdev = ti.linux.get_root_dev()
             print("new rootdev: ", new_rootdev)
             assert orig_rootdev == new_rootdev
-            ti.linux.mender_rollback()
+
+            if ti.linux.mender_version() >= "4.0.0":
+                ti.linux.mender_rollback()
 
 def suite(test_class):
     def is_test(x):

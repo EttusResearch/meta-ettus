@@ -112,6 +112,13 @@ class Linux:
         self.uart.expect(["Rolled back."])
         self.uart.expect("#")
 
+    def mender_version(self):
+        self.uart.sendline("mender --version")
+        self.uart.readline()
+        version = self.uart.readline().decode().strip()
+        self.uart.expect("#")
+        return version
+
     def mount(self, dev, mountpoint):
         self.uart.sendline(f"mkdir -p {mountpoint} && echo OK")
         self.uart.expect("OK")
