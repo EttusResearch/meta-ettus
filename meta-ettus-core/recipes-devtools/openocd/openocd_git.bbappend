@@ -4,9 +4,7 @@ SRC_URI += " \
            file://sysfsgpio-ettus-magnesium-dba.cfg \
            file://sysfsgpio-ettus-magnesium-dbb.cfg \
            file://0001-Add-driver-for-axi_bitq-FPGA-core.patch \
-           file://0002-openocd-add-an-offset-to-axi_bitq.patch \
-           file://0003-tcl-fpga-add-config-file-for-Lattice-XO3LF-fpga.patch \
-           file://0004-axi_bitq-adopt-to-openocd-v0.11.0.patch \
+           file://0002-tcl-fpga-add-config-file-for-Lattice-XO3LF-fpga.patch \
 	"
 do_install:append() {
     install -D -m 0644 ${WORKDIR}/sysfsgpio-ettus-magnesium-dba.cfg ${D}${datadir}/openocd/scripts/interface

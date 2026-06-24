@@ -1,20 +1,32 @@
-From 6fb55938b2b89853a50ed62fefa0f4bd8bd44d27 Mon Sep 17 00:00:00 2001
-From: Alex Williams <alex.williams@ni.com>
-Date: Mon, 22 Jan 2018 08:49:10 -0800
-Subject: [PATCH 1/4] Add driver for axi_bitq FPGA core
+From f2389f64aa5a67e6a7937cf077ffe65b25e4cb1c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Wed, 24 Jun 2026 14:14:32 +0200
+Subject: [PATCH 1/2] Add driver for axi_bitq FPGA core
 
+Signed-off-by: Alex Williams <alex.williams@ni.com>
+
+The axi_bitq's openocd driver will now support jtag memory locations that
+do not start at the beginning of the uio map. This means that the jtag
+memory does not need to be page aligned.
+
+Signed-off-by: Bill Davis <billy.davis@ni.com>
+
+Adopt to openocd version 0.12
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@emerson.com>
 ---
  configure.ac                 |  15 +
  src/jtag/drivers/Makefile.am |   3 +
- src/jtag/drivers/axi_bitq.c  | 649 +++++++++++++++++++++++++++++++++++
- 3 files changed, 667 insertions(+)
+ src/jtag/drivers/axi_bitq.c  | 683 +++++++++++++++++++++++++++++++++++
+ src/jtag/interfaces.c        |   6 +
+ 4 files changed, 707 insertions(+)
  create mode 100644 src/jtag/drivers/axi_bitq.c
 
 diff --git a/configure.ac b/configure.ac
-index a5c9c9276..2e7f4ec74 100644
+index ac2808e1f..daca4bb9a 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -345,6 +345,10 @@ AC_ARG_ENABLE([xlnx_pcie_xvc],
+@@ -336,6 +336,10 @@ AC_ARG_ENABLE([xlnx_pcie_xvc],
    AS_HELP_STRING([--enable-xlnx-pcie-xvc], [Enable building support for Xilinx XVC/PCIe.]),
    [build_xlnx_pcie_xvc=$enableval], [build_xlnx_pcie_xvc=no])
  
@@ -25,7 +37,7 @@ index a5c9c9276..2e7f4ec74 100644
  AS_CASE([$host_os],
    [linux*], [],
    [
-@@ -366,6 +370,10 @@ AS_CASE([$host_os],
+@@ -357,6 +361,10 @@ AS_CASE([$host_os],
          AC_MSG_ERROR([build_rshim is only available on linux or freebsd])
        ])
      ])
@@ -35,8 +47,8 @@ index a5c9c9276..2e7f4ec74 100644
 +    ])
  ])
  
- AC_ARG_ENABLE([minidriver_dummy],
-@@ -641,6 +649,12 @@ AS_IF([test "x$build_xlnx_pcie_xvc" = "xyes"], [
+ AC_ARG_ENABLE([internal-jimtcl],
+@@ -602,6 +610,12 @@ AS_IF([test "x$build_xlnx_pcie_xvc" = "xyes"], [
    AC_DEFINE([BUILD_XLNX_PCIE_XVC], [0], [0 if you don't want Xilinx XVC/PCIe driver.])
  ])
  
@@ -49,34 +61,34 @@ index a5c9c9276..2e7f4ec74 100644
  PKG_CHECK_MODULES([LIBUSB1], [libusb-1.0], [
  	use_libusb1=yes
  	AC_DEFINE([HAVE_LIBUSB1], [1], [Define if you have libusb-1.x])
-@@ -783,6 +797,7 @@ AM_CONDITIONAL([REMOTE_BITBANG], [test "x$build_remote_bitbang" = "xyes"])
- AM_CONDITIONAL([BUSPIRATE], [test "x$build_buspirate" = "xyes"])
+@@ -742,6 +756,7 @@ AM_CONDITIONAL([REMOTE_BITBANG], [test "x$build_remote_bitbang" = "xyes"])
+ AM_CONDITIONAL([BUSPIRATE], [test "x$enable_buspirate" != "xno"])
  AM_CONDITIONAL([SYSFSGPIO], [test "x$build_sysfsgpio" = "xyes"])
  AM_CONDITIONAL([XLNX_PCIE_XVC], [test "x$build_xlnx_pcie_xvc" = "xyes"])
 +AM_CONDITIONAL([AXIBITQ], [test "x$build_axi_bitq" = "xyes"])
- AM_CONDITIONAL([USE_LIBUSB0], [test "x$use_libusb0" = "xyes"])
  AM_CONDITIONAL([USE_LIBUSB1], [test "x$use_libusb1" = "xyes"])
  AM_CONDITIONAL([IS_CYGWIN], [test "x$is_cygwin" = "xyes"])
+ AM_CONDITIONAL([IS_MINGW], [test "x$is_mingw" = "xyes"])
 diff --git a/src/jtag/drivers/Makefile.am b/src/jtag/drivers/Makefile.am
-index f7a54b003..c1930357e 100644
+index 6410f3754..0d8bc4fe1 100644
 --- a/src/jtag/drivers/Makefile.am
 +++ b/src/jtag/drivers/Makefile.am
-@@ -110,6 +110,9 @@ endif
+@@ -108,6 +108,9 @@ endif
  if PRESTO
  DRIVERFILES += %D%/presto.c
  endif
 +if AXIBITQ
 +DRIVERFILES += %D%/axi_bitq.c
 +endif
- if USBPROG
- DRIVERFILES += %D%/usbprog.c
+ if ESP_USB_JTAG
+ DRIVERFILES += %D%/esp_usb_jtag.c
  endif
 diff --git a/src/jtag/drivers/axi_bitq.c b/src/jtag/drivers/axi_bitq.c
 new file mode 100644
-index 000000000..21a383301
+index 000000000..aa3d2b82c
 --- /dev/null
 +++ b/src/jtag/drivers/axi_bitq.c
-@@ -0,0 +1,649 @@
+@@ -0,0 +1,683 @@
 +/***************************************************************************
 + *   Copyright (C) 2018 by Ettus Research                                  *
 + *   Copyright (C) 2007 by Pavel Chromy                                    *
@@ -130,6 +142,7 @@ index 000000000..21a383301
 +
 +struct axi_bitq {
 +	int uio_fd;
++	int uio_size;
 +	int clk_hz;
 +	volatile void *uio_regs;
 +	int retval;
@@ -150,15 +163,16 @@ index 000000000..21a383301
 +
 +static int axi_bitq_uio_id = -1;
 +static int axi_bitq_clk_hz = -1;
++static int axi_bitq_jtag_offset = -1;
 +
 +static void axi_bitq_write(uint8_t offset, uint32_t data)
 +{
-+	*((volatile uint32_t *) (axi_bitq->uio_regs + offset)) = data;
++	*((volatile uint32_t *) ((uint8_t*)(axi_bitq->uio_regs) + offset + axi_bitq_jtag_offset)) = data;
 +}
 +
 +static void axi_bitq_read(uint8_t offset, uint32_t *data)
 +{
-+	*data = *((volatile uint32_t *) (axi_bitq->uio_regs + offset));
++	*data = *((volatile uint32_t *) ((uint8_t*)(axi_bitq->uio_regs) + offset + axi_bitq_jtag_offset));
 +}
 +
 +static int axi_bitq_dev_reset(void)
@@ -276,6 +290,8 @@ index 000000000..21a383301
 +static int axi_bitq_open_uio(int uio_id)
 +{
 +	char fname[64];
++	char uio_size_file_name[64], uio_size_buf[64];
++	int uio_size_fd;
 +
 +	LOG_DEBUG("searching for axi_bitq using uio number");
 +
@@ -286,7 +302,25 @@ index 000000000..21a383301
 +		LOG_ERROR("Error opening %s", fname);
 +		return ERROR_JTAG_DEVICE_ERROR;
 +	}
-+	axi_bitq->uio_regs = mmap(NULL, 0x1000, PROT_READ|PROT_WRITE,
++
++	/* Find out the size */
++	snprintf(uio_size_file_name, sizeof(uio_size_file_name), "/sys/class/uio/uio%d/maps/map0/size", uio_id);
++	uio_size_fd = open(uio_size_file_name, O_RDONLY);
++	if (axi_bitq->uio_fd < 0) {
++		LOG_ERROR("Error opening %s", uio_size_file_name);
++		return ERROR_JTAG_DEVICE_ERROR;
++	}
++	read(uio_size_fd, uio_size_buf, sizeof(uio_size_buf));
++	close(uio_size_fd);
++	axi_bitq->uio_size = (int)strtol(uio_size_buf, NULL, 0);
++
++	if (axi_bitq->uio_size < (axi_bitq_jtag_offset + AXI_BITQ_TDO_REG))
++	{
++		LOG_ERROR("The offset (%i) will try to write outside of the size (%i) of the UIO",axi_bitq_jtag_offset, axi_bitq->uio_size);
++		return ERROR_COMMAND_SYNTAX_ERROR;
++	}
++
++	axi_bitq->uio_regs = mmap(NULL, axi_bitq->uio_size, PROT_READ|PROT_WRITE,
 +	                          MAP_SHARED, axi_bitq->uio_fd, 0);
 +	if (axi_bitq->uio_regs == MAP_FAILED) {
 +		LOG_ERROR("Error mapping registers for %s", fname);
@@ -367,7 +401,9 @@ index 000000000..21a383301
 +	unsigned num_bits = cmd->cmd.tms->num_bits;
 +	const uint8_t *bits = cmd->cmd.tms->bits;
 +
-+	DEBUG_JTAG_IO("TMS: %d bits", num_bits);
++#ifdef _DEBUG_JTAG_IO_
++	LOG_DEBUG("TMS: %d bits", num_bits);
++#endif
 +
 +	int tms = 0;
 +	for (unsigned i = 0; i < num_bits; i++) {
@@ -512,7 +548,8 @@ index 000000000..21a383301
 +
 +int axi_bitq_execute_queue(void)
 +{
-+	struct jtag_command *cmd = jtag_command_queue;	/* currently processed command */
++	struct jtag_command *cmd = jtag_command_queue; /* currently processed command */
++
 +	int scan_size;
 +	enum scan_type type;
 +	uint8_t *buffer;
@@ -661,9 +698,15 @@ index 000000000..21a383301
 +
 +COMMAND_HANDLER(axi_bitq_handle_config_command)
 +{
++	axi_bitq_jtag_offset = 0; // Default to no offset
 +	axi_bitq_clk_hz = 40000000; // Default to 40 MHz
 +
 +	switch (CMD_ARGC) {
++	case 3:
++		axi_bitq_jtag_offset = strtol(CMD_ARGV[2], NULL, 0);
++		axi_bitq_clk_hz = strtol(CMD_ARGV[1], NULL, 0);
++		axi_bitq_uio_id = strtol(CMD_ARGV[0], NULL, 0);
++		break;
 +	case 2:
 +		axi_bitq_clk_hz = strtol(CMD_ARGV[1], NULL, 0);
 +		axi_bitq_uio_id = strtol(CMD_ARGV[0], NULL, 0);
@@ -712,20 +755,47 @@ index 000000000..21a383301
 +	return ERROR_OK;
 +}
 +
-+static const char * const axi_bitq_transports[] = { "jtag", NULL };
++static struct jtag_interface axi_bitq_interface = {
++	.execute_queue = axi_bitq_execute_queue,
++};
 +
-+struct jtag_interface axi_bitq_interface = {
++struct adapter_driver axi_bitq_adapter_driver = {
 +	.name = "axi_bitq",
 +	.commands = axi_bitq_command_handlers,
-+	.transports = axi_bitq_transports,
++	.transports = jtag_only,
 +
-+	.execute_queue = axi_bitq_execute_queue,
 +	.speed = axi_bitq_jtag_speed,
 +	.khz = axi_bitq_adapter_khz,
 +	.speed_div = axi_bitq_jtag_speed_div,
 +	.init = axi_bitq_jtag_init,
 +	.quit = axi_bitq_jtag_quit,
++
++        .jtag_ops = &axi_bitq_interface,
 +};
+diff --git a/src/jtag/interfaces.c b/src/jtag/interfaces.c
+index 12848be03..76d2b1d0d 100644
+--- a/src/jtag/interfaces.c
++++ b/src/jtag/interfaces.c
+@@ -142,6 +142,9 @@ extern struct adapter_driver rshim_dap_adapter_driver;
+ #if BUILD_AM335XGPIO == 1
+ extern struct adapter_driver am335xgpio_adapter_driver;
+ #endif
++#if BUILD_AXIBITQ == 1
++extern struct adapter_driver axi_bitq_adapter_driver;
++#endif
+ 
+ /**
+  * The list of built-in JTAG interfaces, containing entries for those
+@@ -258,6 +261,9 @@ struct adapter_driver *adapter_drivers[] = {
+ #endif
+ #if BUILD_AM335XGPIO == 1
+ 		&am335xgpio_adapter_driver,
++#endif
++#if BUILD_AXIBITQ == 1
++		&axi_bitq_adapter_driver,
+ #endif
+ 		NULL,
+ 	};
 -- 
-2.39.2
+2.43.0
 
