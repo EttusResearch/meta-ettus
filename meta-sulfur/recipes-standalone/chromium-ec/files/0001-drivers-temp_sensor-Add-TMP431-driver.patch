@@ -1,0 +1,557 @@
+From f3d0535b4f6b7b12158afbeb6e4ea2ed09d932c5 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Fri, 10 Nov 2017 22:47:59 -0800
+Subject: [PATCH 01/18] drivers: temp_sensor: Add TMP431 driver
+
+Add TMP431 driver, this should be integrated into TMP432 driver.
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ driver/build.mk             |   3 +-
+ driver/temp_sensor/tmp431.c | 369 ++++++++++++++++++++++++++++++++++++
+ driver/temp_sensor/tmp431.h | 141 ++++++++++++++
+ 3 files changed, 512 insertions(+), 1 deletion(-)
+ create mode 100644 driver/temp_sensor/tmp431.c
+ create mode 100644 driver/temp_sensor/tmp431.h
+
+diff --git a/driver/build.mk b/driver/build.mk
+index 06e6def552..4d72faefca 100644
+--- a/driver/build.mk
++++ b/driver/build.mk
+@@ -149,9 +149,10 @@ driver-$(CONFIG_TEMP_SENSOR_OTI502)+=temp_sensor/oti502.o
+ driver-$(CONFIG_TEMP_SENSOR_PCT2075)+=temp_sensor/pct2075.o
+ driver-$(CONFIG_TEMP_SENSOR_SB_TSI)+=temp_sensor/sb_tsi.o
+ driver-$(CONFIG_TEMP_SENSOR_TMP006)+=temp_sensor/tmp006.o
++driver-$(CONFIG_TEMP_SENSOR_TMP432)+=temp_sensor/tmp432.o
++driver-$(CONFIG_TEMP_SENSOR_TMP431)+=temp_sensor/tmp431.o
+ driver-$(CONFIG_TEMP_SENSOR_TMP112)+=temp_sensor/tmp112.o
+ driver-$(CONFIG_TEMP_SENSOR_TMP411)+=temp_sensor/tmp411.o
+-driver-$(CONFIG_TEMP_SENSOR_TMP432)+=temp_sensor/tmp432.o
+ driver-$(CONFIG_TEMP_SENSOR_TMP468)+=temp_sensor/tmp468.o
+ driver-$(CONFIG_TEMP_SENSOR_AMD_R19ME4070)+=temp_sensor/amd_r19me4070.o
+ 
+diff --git a/driver/temp_sensor/tmp431.c b/driver/temp_sensor/tmp431.c
+new file mode 100644
+index 0000000000..bca8ce7980
+--- /dev/null
++++ b/driver/temp_sensor/tmp431.c
+@@ -0,0 +1,369 @@
++/* Copyright (c) 2017 The Chromium OS Authors. All rights reserved.
++ * Use of this source code is governed by a BSD-style license that can be
++ * found in the LICENSE file.
++ */
++
++/* TMP431 temperature sensor module for Chrome EC */
++
++#include "common.h"
++#include "console.h"
++#include "tmp431.h"
++#include "gpio.h"
++#include "i2c.h"
++#include "hooks.h"
++#include "util.h"
++
++static int temp_val_local;
++static int temp_val_remote1;
++static uint8_t is_sensor_shutdown;
++static int fake_temp[TMP431_IDX_COUNT] = {-1, -1};
++
++/**
++ * Determine whether the sensor is powered.
++ *
++ * @return non-zero the tmp431 sensor is powered.
++ */
++static int has_power(void)
++{
++#ifdef CONFIG_TEMP_SENSOR_POWER_GPIO
++	return gpio_get_level(CONFIG_TEMP_SENSOR_POWER_GPIO);
++#else
++	return !is_sensor_shutdown;
++#endif
++}
++
++static int raw_read8(const int offset, int *data_ptr)
++{
++	return i2c_read8(I2C_PORT_THERMAL, TMP431_I2C_ADDR, offset, data_ptr);
++}
++
++static int raw_write8(const int offset, int data)
++{
++	return i2c_write8(I2C_PORT_THERMAL, TMP431_I2C_ADDR, offset, data);
++}
++
++static int get_temp(const int offset, int *temp_ptr)
++{
++	int rv;
++	int temp_raw = 0;
++
++	rv = raw_read8(offset, &temp_raw);
++	if (rv < 0)
++		return rv;
++
++	*temp_ptr = (int)(int8_t)temp_raw;
++	return EC_SUCCESS;
++}
++
++#ifdef CONFIG_CMD_TEMP_SENSOR
++static int tmp431_set_temp(const int offset, int temp)
++{
++	if (temp < -127 || temp > 127)
++		return EC_ERROR_INVAL;
++
++	return raw_write8(offset, (uint8_t)temp);
++}
++#endif
++
++int tmp431_get_val(int idx, int *temp_ptr)
++{
++	if (!has_power())
++		return EC_ERROR_NOT_POWERED;
++
++	switch (idx) {
++	case TMP431_IDX_LOCAL:
++		*temp_ptr = temp_val_local;
++		break;
++	case TMP431_IDX_REMOTE1:
++		*temp_ptr = temp_val_remote1;
++		break;
++	default:
++		return EC_ERROR_UNKNOWN;
++	}
++
++	return EC_SUCCESS;
++}
++
++static int tmp431_shutdown(uint8_t want_shutdown)
++{
++	int ret, value;
++
++	if (want_shutdown == is_sensor_shutdown)
++		return EC_SUCCESS;
++
++	ret = raw_read8(TMP431_CONFIGURATION1_R, &value);
++	if (ret < 0) {
++		ccprintf("ERROR: Temp sensor I2C read8 error.\n");
++		return ret;
++	}
++
++	if (want_shutdown && !(value & TMP431_CONFIG1_RUN_L)) {
++		/* tmp431 is running, and want it to shutdown */
++		/* CONFIG REG1 BIT6: 0=Run, 1=Shutdown */
++		/* shut it down */
++		value |= TMP431_CONFIG1_RUN_L;
++		ret = raw_write8(TMP431_CONFIGURATION1_R, value);
++	} else if (!want_shutdown && (value & TMP431_CONFIG1_RUN_L)) {
++		/* tmp431 is shutdown, and want turn it on */
++		value &= ~TMP431_CONFIG1_RUN_L;
++		ret = raw_write8(TMP431_CONFIGURATION1_R, value);
++	}
++	/* else, the current setting is exactly what you want */
++
++	is_sensor_shutdown = want_shutdown;
++	return ret;
++}
++
++static int tmp431_set_therm_mode(void)
++{
++	int ret = 0;
++	int data = 0;
++
++	ret = raw_read8(TMP431_CONFIGURATION1_R, &data);
++	if (ret)
++		return EC_ERROR_UNKNOWN;
++
++	data |= TMP431_CONFIG1_MODE;
++	ret = raw_write8(TMP431_CONFIGURATION1_W, data);
++	if (ret)
++		return EC_ERROR_UNKNOWN;
++
++	return EC_SUCCESS;
++}
++
++int tmp431_set_therm_limit(int channel, int limit_c, int hysteresis)
++{
++	int ret = 0;
++	int reg = 0;
++
++	if (channel >= TMP431_CHANNEL_COUNT)
++		return EC_ERROR_INVAL;
++
++	if (hysteresis > TMP431_HYSTERESIS_HIGH_LIMIT ||
++		hysteresis < TMP431_HYSTERESIS_LOW_LIMIT)
++		return EC_ERROR_INVAL;
++
++	/* hysteresis must be less than high limit */
++	if (hysteresis > limit_c)
++		return EC_ERROR_INVAL;
++
++	if (tmp431_set_therm_mode() != EC_SUCCESS)
++		return EC_ERROR_UNKNOWN;
++
++	switch (channel) {
++	case TMP431_CHANNEL_LOCAL:
++		reg = TMP431_LOCAL_HIGH_LIMIT_W;
++		break;
++	case TMP431_CHANNEL_REMOTE1:
++		reg = TMP431_REMOTE1_HIGH_LIMIT_W;
++		break;
++	}
++
++	ret = raw_write8(reg, limit_c);
++	if (ret)
++		return EC_ERROR_UNKNOWN;
++
++	ret = raw_write8(TMP431_THERM_HYSTERESIS, hysteresis);
++	if (ret)
++		return EC_ERROR_UNKNOWN;
++
++	return EC_SUCCESS;
++}
++
++static void temp_sensor_poll(void)
++{
++	int temp_c;
++
++	if (!has_power())
++		return;
++
++	if (fake_temp[TMP431_IDX_LOCAL] != -1) {
++		temp_val_local = C_TO_K(fake_temp[TMP431_IDX_LOCAL]);
++	} else {
++		if (get_temp(TMP431_LOCAL, &temp_c) == EC_SUCCESS)
++			temp_val_local = C_TO_K(temp_c);
++		/* else: Keep previous value when it fails */
++	}
++
++	if (fake_temp[TMP431_IDX_REMOTE1] != -1) {
++		temp_val_remote1 = C_TO_K(fake_temp[TMP431_IDX_REMOTE1]);
++	} else {
++		if (get_temp(TMP431_REMOTE1, &temp_c) == EC_SUCCESS)
++			temp_val_remote1 = C_TO_K(temp_c);
++		/* else: Keep previous value when it fails */
++	}
++}
++DECLARE_HOOK(HOOK_SECOND, temp_sensor_poll, HOOK_PRIO_TEMP_SENSOR);
++
++#ifdef CONFIG_CMD_TEMP_SENSOR
++static int tmp431_set_fake_temp(int index, int degree_c)
++{
++	if ((index < 0) || (index >= TMP431_IDX_COUNT))
++		return EC_ERROR_INVAL;
++
++	fake_temp[index] = degree_c;
++	ccprintf("New degree will be updated 1 sec later\n\n");
++
++	return EC_SUCCESS;
++}
++
++static void print_temps(
++		const char *name,
++		const int tmp431_temp_reg,
++		const int tmp431_therm_limit_reg,
++		const int tmp431_high_limit_reg,
++		const int tmp431_low_limit_reg)
++{
++	int value;
++
++	if (!has_power()) {
++		ccprintf("  TMP431 is shutdown\n");
++		return;
++	}
++
++	ccprintf("%s:\n", name);
++
++	if (get_temp(tmp431_temp_reg, &value) == EC_SUCCESS)
++		ccprintf("  Temp       %3dC\n", value);
++
++	if (get_temp(tmp431_therm_limit_reg, &value) == EC_SUCCESS)
++		ccprintf("  Therm Trip %3dC\n", value);
++
++	if (get_temp(tmp431_high_limit_reg, &value) == EC_SUCCESS)
++		ccprintf("  High Alarm %3dC\n", value);
++
++	if (get_temp(tmp431_low_limit_reg, &value) == EC_SUCCESS)
++		ccprintf("  Low Alarm  %3dC\n", value);
++}
++
++static int print_status(void)
++{
++	int value, i;
++
++	print_temps("Local", TMP431_LOCAL,
++		    TMP431_LOCAL_THERM_LIMIT,
++		    TMP431_LOCAL_HIGH_LIMIT_R,
++		    TMP431_LOCAL_LOW_LIMIT_R);
++
++	print_temps("Remote1", TMP431_REMOTE1,
++		    TMP431_REMOTE1_THERM_LIMIT,
++		    TMP431_REMOTE1_HIGH_LIMIT_R,
++		    TMP431_REMOTE1_LOW_LIMIT_R);
++
++	ccprintf("\n");
++
++	for (i = 0; i < TMP431_IDX_COUNT; ++i) {
++		ccprintf("fake temperature[%d]= ", i);
++		if (fake_temp[i] == -1) {
++			ccprintf("Not overridden\n");
++			continue;
++		}
++
++		if (tmp431_get_val(i, &value) == EC_SUCCESS)
++			ccprintf("%d C or %d K\n", (value - 273), value);
++		else
++			ccprintf("Access error\n");
++	}
++
++	ccprintf("\n");
++
++	if (raw_read8(TMP431_STATUS, &value) == EC_SUCCESS)
++		ccprintf("STATUS:  %08b\n", value);
++
++	if (raw_read8(TMP431_CONFIGURATION1_R, &value) == EC_SUCCESS)
++		ccprintf("CONFIG1: %08b\n", value);
++
++	return EC_SUCCESS;
++}
++
++static int command_tmp431(int argc, char **argv)
++{
++	char *command;
++	char *e;
++	char *power;
++	int data;
++	int offset;
++	int rv;
++
++	/* handle "power" command before checking the power status. */
++	if ((argc == 3) && !strcasecmp(argv[1], "power")) {
++		power = argv[2];
++		if (!strncasecmp(power, "on", sizeof("on"))) {
++			rv = tmp431_set_power(TMP431_POWER_ON);
++			if (!rv)
++				print_status();
++		}
++		else if (!strncasecmp(power, "off", sizeof("off")))
++			rv = tmp431_set_power(TMP431_POWER_OFF);
++		else
++			return EC_ERROR_PARAM2;
++		ccprintf("Set TMP431 %s\n", power);
++		return rv;
++	}
++
++	if (!has_power()) {
++		ccprintf("ERROR: Temp sensor not powered.\n");
++		return EC_ERROR_NOT_POWERED;
++	}
++
++	/* If no args just print status */
++	if (argc == 1)
++		return print_status();
++
++	if (argc < 3)
++		return EC_ERROR_PARAM_COUNT;
++
++	command = argv[1];
++	offset = strtoi(argv[2], &e, 0);
++	if (*e || offset < 0 || offset > 255)
++		return EC_ERROR_PARAM2;
++
++	if (!strcasecmp(command, "getbyte")) {
++		rv = raw_read8(offset, &data);
++		if (rv < 0)
++			return rv;
++		ccprintf("Byte at offset 0x%02x is %08b\n", offset, data);
++		return rv;
++	}
++
++	/* Remaining commands are "tmp431 set-command offset data" */
++	if (argc != 4)
++		return EC_ERROR_PARAM_COUNT;
++
++	data = strtoi(argv[3], &e, 0);
++	if (*e)
++		return EC_ERROR_PARAM3;
++
++	if (!strcasecmp(command, "settemp")) {
++		ccprintf("Setting 0x%02x to %dC\n", offset, data);
++		rv = tmp431_set_temp(offset, data);
++	} else if (!strcasecmp(command, "setbyte")) {
++		ccprintf("Setting 0x%02x to 0x%02x\n", offset, data);
++		rv = raw_write8(offset, data);
++	} else if (!strcasecmp(command, "fake")) {
++		ccprintf("Hook temperature\n");
++		rv = tmp431_set_fake_temp(offset, data);
++		print_status();
++	} else
++		return EC_ERROR_PARAM1;
++
++	return rv;
++}
++DECLARE_CONSOLE_COMMAND(tmp431, command_tmp431,
++	"[settemp|setbyte <offset> <value>] or [getbyte <offset>] or"
++	"[fake <index> <value>] or [power <on|off>]. "
++	"Temps in Celsius.",
++	"Print tmp431 temp sensor status or set parameters.");
++#endif
++
++int tmp431_set_power(enum tmp431_power_state power_on)
++{
++#ifndef CONFIG_TEMP_SENSOR_POWER_GPIO
++	uint8_t shutdown = (power_on == TMP431_POWER_OFF) ? 1 : 0;
++	return tmp431_shutdown(shutdown);
++#else
++	gpio_set_level(CONFIG_TEMP_SENSOR_POWER_GPIO, power_on);
++	return EC_SUCCESS;
++#endif
++}
++
+diff --git a/driver/temp_sensor/tmp431.h b/driver/temp_sensor/tmp431.h
+new file mode 100644
+index 0000000000..6ed10fba97
+--- /dev/null
++++ b/driver/temp_sensor/tmp431.h
+@@ -0,0 +1,141 @@
++/* Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
++ * Use of this source code is governed by a BSD-style license that can be
++ * found in the LICENSE file.
++ */
++
++/* TMP431 temperature sensor module for Chrome EC */
++
++#ifndef __CROS_EC_TMP431_H
++#define __CROS_EC_TMP431_H
++
++#define TMP431_I2C_ADDR		0x98 /* 7-bit address is 0x4C */
++
++#define TMP431_IDX_LOCAL	0
++#define TMP431_IDX_REMOTE1	1
++#define TMP431_IDX_COUNT	2
++
++/* Chip-specific registers */
++#define TMP431_LOCAL			0x00
++#define TMP431_REMOTE1			0x01
++#define TMP431_STATUS			0x02
++#define TMP431_CONFIGURATION1_R		0x03
++#define TMP431_CONVERSION_RATE_R	0x04
++#define TMP431_LOCAL_HIGH_LIMIT_R	0x05
++#define TMP431_LOCAL_LOW_LIMIT_R	0x06
++#define TMP431_REMOTE1_HIGH_LIMIT_R	0x07
++#define TMP431_REMOTE1_LOW_LIMIT_R	0x08
++#define TMP431_CONFIGURATION1_W		0x09
++#define TMP431_CONVERSION_RATE_W	0x0a
++#define TMP431_LOCAL_HIGH_LIMIT_W	0x0b
++#define TMP431_LOCAL_LOW_LIMIT_W	0x0c
++#define TMP431_REMOTE1_HIGH_LIMIT_W	0x0d
++#define TMP431_REMOTE1_LOW_LIMIT_W	0x0e
++#define TMP431_ONESHOT			0x0f
++#define TMP431_REMOTE1_EXTD		0x10
++#define TMP431_REMOTE1_HIGH_LIMIT_EXTD	0x13
++#define TMP431_REMOTE1_LOW_LIMIT_EXTD	0x14
++#define TMP431_REMOTE2_HIGH_LIMIT_R	0x15
++#define TMP431_REMOTE2_HIGH_LIMIT_W	0x15
++#define TMP431_REMOTE2_LOW_LIMIT_R	0x16
++#define TMP431_REMOTE2_LOW_LIMIT_W	0x16
++#define TMP431_REMOTE2_HIGH_LIMIT_EXTD	0x17
++#define TMP431_REMOTE2_LOW_LIMIT_EXTD	0x18
++#define TMP431_REMOTE1_THERM_LIMIT	0x19
++#define TMP431_REMOTE2_THERM_LIMIT	0x1a
++#define TMP431_STATUS_FAULT		0x1b
++#define TMP431_CHANNEL_MASK		0x1f
++#define TMP431_LOCAL_THERM_LIMIT	0x20
++#define TMP431_THERM_HYSTERESIS		0x21
++#define TMP431_CONSECUTIVE_ALERT	0x22
++#define TMP431_REMOTE2			0x23
++#define TMP431_REMOTE2_EXTD		0x24
++#define TMP431_BETA_RANGE_CH1		0x25
++#define TMP431_BETA_RANGE_CH2		0x26
++#define TMP431_NFACTOR_REMOTE1		0x27
++#define TMP431_NFACTOR_REMOTE2		0x28
++#define TMP431_LOCAL_EXTD		0x29
++#define TMP431_STATUS_LIMIT_HIGH	0x35
++#define TMP431_STATUS_LIMIT_LOW		0x36
++#define TMP431_STATUS_THERM		0x37
++#define TMP431_LOCAL_HIGH_LIMIT_EXTD	0x3d
++#define TMP431_LOCAL_LOW_LIMIT_EXTD	0x3e
++#define TMP431_CONFIGURATION2_R		0x3f
++#define TMP431_CONFIGURATION2_W		0x3f
++#define TMP431_RESET_W			0xfc
++#define TMP431_DEVICE_ID		0xfd
++#define TMP431_MANUFACTURER_ID		0xfe
++
++/* Config register bits */
++#define TMP431_CONFIG1_TEMP_RANGE	(1 << 2)
++/* TMP431_CONFIG1_MODE bit is use to enable THERM mode */
++#define TMP431_CONFIG1_MODE		(1 << 5)
++#define TMP431_CONFIG1_RUN_L		(1 << 6)
++#define TMP431_CONFIG1_ALERT_MASK_L	(1 << 7)
++#define TMP431_CONFIG2_RESISTANCE_CORRECTION	(1 << 2)
++#define TMP431_CONFIG2_LOCAL_ENABLE	(1 << 3)
++#define TMP431_CONFIG2_REMOTE1_ENABLE	(1 << 4)
++#define TMP431_CONFIG2_REMOTE2_ENABLE	(1 << 5)
++
++/* Status register bits */
++#define TMP431_STATUS_TEMP_THERM_ALARM	(1 << 1)
++#define TMP431_STATUS_OPEN		(1 << 2)
++#define TMP431_STATUS_TEMP_LOW_ALARM	(1 << 3)
++#define TMP431_STATUS_TEMP_HIGH_ALARM	(1 << 4)
++#define TMP431_STATUS_BUSY		(1 << 7)
++
++/* Limintaions */
++#define TMP431_HYSTERESIS_HIGH_LIMIT	255
++#define TMP431_HYSTERESIS_LOW_LIMIT	0
++
++enum tmp431_power_state {
++	TMP431_POWER_OFF = 0,
++	TMP431_POWER_ON,
++	TMP431_POWER_COUNT
++};
++
++enum tmp431_channel_id {
++	TMP431_CHANNEL_LOCAL,
++	TMP431_CHANNEL_REMOTE1,
++
++	TMP431_CHANNEL_COUNT
++};
++
++/**
++ * Get the last polled value of a sensor.
++ *
++ * @param idx		Index to read. Idx indicates whether to read die
++ *			temperature or external temperature.
++ * @param temp_ptr	Destination for temperature in K.
++ *
++ * @return EC_SUCCESS if successful, non-zero if error.
++ */
++int tmp431_get_val(int idx, int *temp_ptr);
++
++/**
++ * Power control function of tmp431 temperature sensor.
++ *
++ * @param power_on	TMP431_POWER_ON: turn tmp431 sensor on.
++ *			TMP431_POWER_OFF: shut tmp431 sensor down.
++ *
++ * @return EC_SUCCESS if successful, non-zero if error.
++ */
++int tmp431_set_power(enum tmp431_power_state power_on);
++
++/*
++ * Set TMP431 ALERT#/THERM2# pin to THERM mode, and give a limit
++ * for a specific channel.
++ *
++ * @param channel	specific a channel
++ *
++ * @param limit_c	High limit temperature, default: 85C
++ *
++ * @param hysteresis	Hysteresis temperature, default: 10C
++ *			All channels share the same hysteresis
++ *
++ * In THERM mode, ALERT# pin will trigger(Low) by itself when any
++ * channel's temperature is greater( >= )than channel's limit_c,
++ * and release(High) by itself when channel's temperature is lower
++ * than (limit_c - hysteresis)
++ */
++int tmp431_set_therm_limit(int channel, int limit_c, int hysteresis);
++#endif /* __CROS_EC_TMP431_H */
+-- 
+2.43.0
+

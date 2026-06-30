@@ -1,0 +1,46 @@
+From b251d10a0b3d98e16a31f52d8af0685cefc718d2 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Tue, 14 May 2019 10:18:20 +0200
+Subject: [PATCH 14/18] sulfur: add support for EEPROM version 3
+
+EEPROM version 3 introduces rev-compat field after Eth2 Addr.
+"eeinfo" prints this field when EEPROM version is >=3.
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ board/sulfur/eeprom.c | 5 +++++
+ board/sulfur/eeprom.h | 2 +-
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/board/sulfur/eeprom.c b/board/sulfur/eeprom.c
+index 03663077f1..357dd7bb22 100644
+--- a/board/sulfur/eeprom.c
++++ b/board/sulfur/eeprom.c
+@@ -102,6 +102,11 @@ static int command_eeprom_info(int argc, char **argv)
+ 		ccprintf("DT/MCU-Compat:\t%04x %04x\n",
+ 			ntohs(eeprom.dt_compat), ntohs(eeprom.mcu_compat));
+ 	}
++	if (ntohl(eeprom.version) >= 3)
++	{
++		ccprintf("Rev-Compat:\t%04x\n",
++			ntohs(eeprom.rev_compat));
++	}
+ 	ccprintf("CRC:\t\t%08x (%s)\n",
+ 		ntohl(eeprom.crc), eeprom_check_crc() ? "matches": "doesn't match!");
+ 	ccprintf("\nInterpretation of MCU flags:\n");
+diff --git a/board/sulfur/eeprom.h b/board/sulfur/eeprom.h
+index d3377ca283..a14e267d95 100644
+--- a/board/sulfur/eeprom.h
++++ b/board/sulfur/eeprom.h
+@@ -20,7 +20,7 @@ struct usrp_sulfur_eeprom {
+ 	uint8_t eth_addr1[ETH_ALEN];
+ 	uint16_t mcu_compat;
+ 	uint8_t eth_addr2[ETH_ALEN];
+-	uint8_t __pad_2[2];
++	uint16_t rev_compat;
+ 	uint32_t crc;
+ } __packed;
+ 
+-- 
+2.43.0
+

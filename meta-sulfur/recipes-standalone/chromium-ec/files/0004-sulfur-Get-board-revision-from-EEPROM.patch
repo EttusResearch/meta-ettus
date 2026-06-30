@@ -1,0 +1,42 @@
+From 50c03adc2af555916715428d9781dbf19fd57053 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Wed, 15 Nov 2017 12:06:21 -0800
+Subject: [PATCH 04/18] sulfur: Get board revision from EEPROM
+
+Change-Id: Id0a8ecaa4d6df212d39fe633cbf62b5e8d03416d
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ board/sulfur/board.c  | 3 ++-
+ board/sulfur/eeprom.h | 2 ++
+ 2 files changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/board/sulfur/board.c b/board/sulfur/board.c
+index f988719f57..4e60ee1294 100644
+--- a/board/sulfur/board.c
++++ b/board/sulfur/board.c
+@@ -96,7 +96,8 @@ void board_config_pre_init(void)
+ 
+ int board_get_version(void)
+ {
+-	return 0;
++	/* counting starts at 0 ... */
++	return eeprom_get_board_rev() + 1;
+ }
+ 
+ /* I2C ports */
+diff --git a/board/sulfur/eeprom.h b/board/sulfur/eeprom.h
+index 158805f1a3..09e80c91b4 100644
+--- a/board/sulfur/eeprom.h
++++ b/board/sulfur/eeprom.h
+@@ -28,6 +28,8 @@ int eeprom_get_mcu_flags(uint32_t **mcu_flags);
+ 
+ int eeprom_get_autoboot(void);
+ 
++int eeprom_get_board_rev(void);
++
+ int eeprom_get_fan_min(int fan);
+ 
+ int eeprom_get_fan_max(int fan);
+-- 
+2.43.0
+

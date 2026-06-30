@@ -24,8 +24,6 @@ SRC_URI:append:ni-neon = " \
 SRC_URI:append:ni-sulfur = " \
                    file://ec-sulfur-rev3.bin \
                    file://ec-sulfur-rev3.RW.bin \
-                   file://ec-sulfur-rev5.bin \
-                   file://ec-sulfur-rev5.RW.bin \
                    file://LICENSE.ec-sulfur \
                    file://mykonos-m3.bin \
                  "
@@ -123,13 +121,26 @@ do_install:append:ni-sulfur() {
     # Rev5+ firmware now differs from rev3 firmware, since it adds more margin in bootdelay
     # Rev 10+ firmware uses GPIOs which can en-/disable the 12V of the daughter cards and the fans
     # Rev 4+ all use the same firmware
-    install -D -m 0644 ${WORKDIR}/ec-sulfur-rev5.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-sulfur-rev5.bin
-    install -m 0644 ${WORKDIR}/ec-sulfur-rev5.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-sulfur-rev5.RW.bin
+    # Use compiled firmware from multiconfig EC build if available, else fall back to blob
+    if [ -z "${CROS_EC_DEPLOY_DIR_IMAGE}" ]; then
+        bberror "Multiconfig is required for building firmware for sulfur"
+    fi
 
-    for REV in 4 6 7 8 9 10 11
+    install -D -m 0644 ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-sulfur-rev5.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-sulfur-rev5.bin
+    install -m 0644 ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-sulfur-rev5.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-sulfur-rev5.RW.bin
+    install -D -m 0644 ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-sulfur-rev10.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-sulfur-rev10.bin
+    install -m 0644 ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-sulfur-rev10.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-sulfur-rev10.RW.bin
+
+    for REV in 4 6 7 8 9
     do
       ln -sf ec-sulfur-rev5.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-sulfur-rev${REV}.bin
       ln -sf ec-sulfur-rev5.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-sulfur-rev${REV}.RW.bin
+    done
+
+    for REV in 11
+    do
+      ln -sf ec-sulfur-rev10.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-sulfur-rev${REV}.bin
+      ln -sf ec-sulfur-rev10.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-sulfur-rev${REV}.RW.bin
     done
 
     for REV in 4 5 6 7 8 9 10 11
@@ -167,6 +178,9 @@ python __anonymous() {
     if "ni-titanium-ec" in (d.getVar('BBMULTICONFIG') or "").split(' '):
         d.appendVarFlag('do_install', 'mcdepends', ' mc:ni-titanium:ni-titanium-ec:chromium-ec:do_deploy')
         d.appendVarFlag('do_install', 'mcdepends', ' mc::ni-titanium-ec:chromium-ec:do_deploy')
+    if "ni-sulfur-ec" in (d.getVar('BBMULTICONFIG') or "").split(' '):
+        d.appendVarFlag('do_install', 'mcdepends', ' mc:ni-sulfur:ni-sulfur-ec:chromium-ec:do_deploy')
+        d.setVar('CROS_EC_DEPLOY_DIR_IMAGE', '${TOPDIR}/tmp-stm32-baremetal/deploy/images/ni-sulfur-ec-rev5')
 }
 
 do_install:append:ni-titanium() {

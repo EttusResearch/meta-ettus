@@ -1,0 +1,27 @@
+From 76c99959837c5cdcfdae36b9887cf9b4105c47e7 Mon Sep 17 00:00:00 2001
+From: Martin Anderseck <martin.anderseck@ni.com>
+Date: Thu, 6 Aug 2026 16:33:40 +0200
+Subject: [PATCH] sulfur: Ensure fans are set to auto
+
+During startup, the fans should be set to auto so they can be controlled
+via the temperature. This was missing after the chromium-ec update.
+---
+ common/fan.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/common/fan.c b/common/fan.c
+index 6b9d5320cf..124eae6e4e 100644
+--- a/common/fan.c
++++ b/common/fan.c
+@@ -580,6 +580,8 @@ test_export_static void pwm_fan_init(void)
+ 	} else {
+ 		memset(&state, 0, sizeof(state));
+ 	}
++	/* default to thermal control on fresh boot */
++	state.flag |= FAN_STATE_FLAG_THERMAL;
+ 
+ 	for (fan = 0; fan < fan_count; fan++) {
+ 		fan_set_enabled(FAN_CH(fan),
+-- 
+2.43.0
+

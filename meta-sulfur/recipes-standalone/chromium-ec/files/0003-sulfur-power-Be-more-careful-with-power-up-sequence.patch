@@ -1,0 +1,73 @@
+From 460819ff32ddab109efbbaffcaadeeb4cd662fe1 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Wed, 15 Nov 2017 12:05:39 -0800
+Subject: [PATCH 03/18] sulfur: power: Be more careful with power up sequence
+
+Try to be more defensive about staying turned off.
+
+Change-Id: Ib971482fd9968149004222a63a058df817b99326
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ board/sulfur/power.c | 18 ++++++++++++++++--
+ 1 file changed, 16 insertions(+), 2 deletions(-)
+
+diff --git a/board/sulfur/power.c b/board/sulfur/power.c
+index b3063fc820..40e31869d3 100644
+--- a/board/sulfur/power.c
++++ b/board/sulfur/power.c
+@@ -49,6 +49,7 @@
+ #define PGOOD_AP_DEBOUNCE_TIMEOUT (1000 * MSEC)
+ 
+ static int forcing_shutdown;
++static int wdt_reset;
+ 
+ static void power_dump_signals(void)
+ {
+@@ -122,6 +123,15 @@ enum power_state power_chipset_init(void)
+ 		/* Auto-power on ? */
+ 		if (eeprom_get_autoboot())
+ 			chipset_exit_hard_off();
++
++		/* make sure we come up if EC crashes */
++		if (system_get_reset_flags() & RESET_FLAG_SOFT)
++			chipset_exit_hard_off();
++
++		/* make sure we come up if EC crashes */
++		if (system_get_reset_flags() & RESET_FLAG_WATCHDOG)
++			chipset_exit_hard_off();
++
+ 	}
+ 
+ 	return POWER_G3;
+@@ -312,7 +322,10 @@ DECLARE_HOOK(HOOK_POWER_BUTTON_CHANGE, powerbtn_sulfur_changed,
+ static void force_reset(void)
+ {
+ 	chipset_reset(1);
+-	chipset_exit_hard_off();
++	if (wdt_reset) {
++		wdt_reset = 0;
++		chipset_exit_hard_off();
++	}
+ }
+ DECLARE_DEFERRED(force_reset);
+ 
+@@ -324,7 +337,7 @@ static int reset_button_is_pressed(void)
+ static void reset_button_poll(void)
+ {
+ 	if (reset_button_is_pressed())
+-		hook_call_deferred(&force_reset_data, 10 * MSEC);
++		hook_call_deferred(&force_reset_data, 50 * MSEC);
+ 	else
+ 		hook_call_deferred(&force_reset_data, -1);
+ }
+@@ -333,6 +346,7 @@ DECLARE_HOOK(HOOK_TICK, reset_button_poll, HOOK_PRIO_DEFAULT);
+ void wdt_reset_event(enum gpio_signal signal)
+ {
+ 	CPRINTS("Watchdog timeout, warm reset the AP\n");
++	wdt_reset = 1;
+ 	host_set_single_event(EC_HOST_EVENT_HANG_REBOOT);
+ 	hook_call_deferred(&force_reset_data, 10 * MSEC);
+ }
+-- 
+2.43.0
+

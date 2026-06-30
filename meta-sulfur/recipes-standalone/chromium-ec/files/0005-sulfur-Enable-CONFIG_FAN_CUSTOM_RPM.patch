@@ -1,0 +1,56 @@
+From 438675454126b665786fd5182715a6a8dc8ed27f Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Wed, 15 Nov 2017 12:06:40 -0800
+Subject: [PATCH 05/18] sulfur: Enable CONFIG_FAN_CUSTOM_RPM
+
+This also requires having our own pct_to_rpm implementation.
+
+Change-Id: I938bdfcb0a38a0941d42a99842fc5034833aed30
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ board/sulfur/board.h |  2 ++
+ board/sulfur/fan.c   | 15 +++++++++++++++
+ 2 files changed, 17 insertions(+)
+
+diff --git a/board/sulfur/board.h b/board/sulfur/board.h
+index 5b38c36e50..51ae4103d9 100644
+--- a/board/sulfur/board.h
++++ b/board/sulfur/board.h
+@@ -24,6 +24,8 @@
+ 
+ #define CONFIG_SULFUR_5V_WORKAROUND
+ 
++#define CONFIG_FAN_RPM_CUSTOM
++
+ #define CONFIG_POWER_BUTTON
+ #define CONFIG_POWER_COMMON
+ #define CONFIG_POWER_BUTTON_ACTIVE_STATE 0
+diff --git a/board/sulfur/fan.c b/board/sulfur/fan.c
+index d7901b67d6..cf457953d6 100644
+--- a/board/sulfur/fan.c
++++ b/board/sulfur/fan.c
+@@ -29,6 +29,21 @@ struct fan_speed_t {
+ 
+ static struct fan_speed_t fan_speed_state[2];
+ 
++int fan_percent_to_rpm(int fan, int pct)
++{
++	int rpm, max, min;
++
++	if (!pct) {
++		rpm = 0;
++	} else {
++		min = fans[fan].rpm_min;
++		max = fans[fan].rpm_max;
++		rpm = ((pct - 1) * max + (100 - pct) * min) / 99;
++	}
++
++	return rpm;
++}
++
+ void fan_set_enabled(int ch, int enabled)
+ {
+ 	const struct fan_t *fan = fans + ch;
+-- 
+2.43.0
+

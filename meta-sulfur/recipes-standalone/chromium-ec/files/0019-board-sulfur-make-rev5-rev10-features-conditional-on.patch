@@ -1,0 +1,70 @@
+From 6f707c4dbd664bc5259bd202d5ec64376c2124fb Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Wed, 8 Jul 2026 13:36:25 +0200
+Subject: [PATCH] board/sulfur: make rev5/rev10 features conditional on build
+ target
+
+Remove hardcoded CONFIG_SULFUR_5V_WORKAROUND and CONFIG_SULFUR_REV10
+from board.h and set them via CFLAGS_DEFINE in build.mk based on the
+BOARD variable. Add board/sulfur-rev5 and board/sulfur-rev10 symlinks
+pointing to board/sulfur so each variant can be built independently.
+---
+ board/sulfur-rev10    | 1 +
+ board/sulfur-rev5     | 1 +
+ board/sulfur/board.h  | 3 ---
+ board/sulfur/build.mk | 9 +++++++++
+ 4 files changed, 11 insertions(+), 3 deletions(-)
+ create mode 120000 board/sulfur-rev10
+ create mode 120000 board/sulfur-rev5
+
+diff --git a/board/sulfur-rev10 b/board/sulfur-rev10
+new file mode 120000
+index 0000000000..3a61a02027
+--- /dev/null
++++ b/board/sulfur-rev10
+@@ -0,0 +1 @@
++sulfur/
+\ No newline at end of file
+diff --git a/board/sulfur-rev5 b/board/sulfur-rev5
+new file mode 120000
+index 0000000000..3a61a02027
+--- /dev/null
++++ b/board/sulfur-rev5
+@@ -0,0 +1 @@
++sulfur/
+\ No newline at end of file
+diff --git a/board/sulfur/board.h b/board/sulfur/board.h
+index 508d9f1750..9623ef394a 100644
+--- a/board/sulfur/board.h
++++ b/board/sulfur/board.h
+@@ -23,9 +23,6 @@
+ #undef CONFIG_HOST_COMMAND_STATUS
+ #define CONFIG_I2C
+ 
+-#define CONFIG_SULFUR_5V_WORKAROUND
+-#define CONFIG_SULFUR_REV10
+-
+ #define CONFIG_FAN_RPM_CUSTOM
+ #undef CONFIG_VBOOT_HASH
+ 
+diff --git a/board/sulfur/build.mk b/board/sulfur/build.mk
+index d3b3c1da0d..67320cb4e2 100644
+--- a/board/sulfur/build.mk
++++ b/board/sulfur/build.mk
+@@ -10,4 +10,13 @@ CHIP:=stm32
+ CHIP_FAMILY:=stm32f0
+ CHIP_VARIANT:=stm32f07x
+ 
++ifeq ($(BOARD),sulfur-rev5)
++    # sulfur-rev5 builds for rev5
++    CFLAGS_DEFINE += -DCONFIG_SULFUR_5V_WORKAROUND
++else
++    # sulfur and sulfur-rev10 build for rev10
++    CFLAGS_DEFINE += -DCONFIG_SULFUR_REV10 -DCONFIG_SULFUR_5V_WORKAROUND
++endif
++
++
+ board-y=board.o fan.o power.o eeprom.o led.o
+-- 
+2.43.0
+

@@ -2,7 +2,11 @@ header:
   version: 10
   includes:
     - kas/include/base-mender.yml
+    - kas/include/meta-stm32.yml
 machine: ni-sulfur-rev11-mender
+target:
+  - mc:ni-sulfur-ec:chromium-ec
+  - mc:ni-sulfur:gnuradio-image
 env:
   MENDER_ARTIFACT_NAME: git_n3xx
 local_conf_header:

@@ -1,0 +1,216 @@
+From b592a166734e904b348db2e15575fa9aac16905b Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Fri, 2 Aug 2019 15:26:22 +0200
+Subject: [PATCH 16/18] sulfur: prepared support for revJ (rev10)
+
+introduced the following switches:
+- CONFIG_SULFUR_REV10: drives the outputs ENA_DB12V and ENA_FAN which
+  were introduced with Rev. 10
+  - ENA_DB12V: used to en-/disable the 12V power rail of the daughter
+    cards
+  - ENA_FAN: used to en-/disable the FANs
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ board/sulfur/board.h  |  1 +
+ board/sulfur/fan.c    | 37 +++++++++++++++++++++++++++++++++++++
+ board/sulfur/gpio.inc | 12 ++++++++++++
+ board/sulfur/power.c  | 30 ++++++++++++++++++++++++++++--
+ 4 files changed, 78 insertions(+), 2 deletions(-)
+
+diff --git a/board/sulfur/board.h b/board/sulfur/board.h
+index 5b5544b88c..16048ffc8e 100644
+--- a/board/sulfur/board.h
++++ b/board/sulfur/board.h
+@@ -23,6 +23,7 @@
+ #define CONFIG_I2C
+ 
+ #define CONFIG_SULFUR_5V_WORKAROUND
++#define CONFIG_SULFUR_REV10
+ 
+ #define CONFIG_FAN_RPM_CUSTOM
+ #define CONFIG_VBOOT_HASH
+diff --git a/board/sulfur/fan.c b/board/sulfur/fan.c
+index 282bbe8758..ab1fbed197 100644
+--- a/board/sulfur/fan.c
++++ b/board/sulfur/fan.c
+@@ -23,6 +23,10 @@
+ 
+ #define IRQ_TIM(n) CONCAT2(STM32_IRQ_TIM, n)
+ 
++/* Console output macros */
++#define CPUTS(outstr) cputs(CC_CHIPSET, outstr)
++#define CPRINTS(format, args...) cprints(CC_CHIPSET, format, ## args)
++
+ struct fan_speed_t {
+ 	int fan_mode;
+ 
+@@ -36,6 +40,8 @@ struct fan_speed_t {
+ 	uint32_t ccr_irq;
+ };
+ 
++static int is_rev10;
++
+ /* The prescaler is calculated as follows:
+  * F_CNT = F_CLK / PSC is the counter freq
+  *
+@@ -108,6 +114,9 @@ int fan_percent_to_rpm(int fan, int pct)
+ void fan_set_enabled(int ch, int enabled)
+ {
+ 	const struct fan_t *fan = fans + ch;
++	#ifdef CONFIG_SULFUR_REV10
++	static int fans_enabled = -1;
++	#endif
+ 
+ 	if (enabled) {
+ 		fan_speed_state[ch].sts = FAN_STATUS_CHANGING;
+@@ -117,6 +126,18 @@ void fan_set_enabled(int ch, int enabled)
+ 	}
+ 
+ 	fan_speed_state[ch].enabled = enabled;
++
++	#ifdef CONFIG_SULFUR_REV10
++	if (is_rev10)
++	{
++		if (fans_enabled != (fan_speed_state[0].enabled | fan_speed_state[1].enabled))
++		{
++			fans_enabled = (fan_speed_state[0].enabled | fan_speed_state[1].enabled);
++			CPRINTS("%s ENA_FANS (rev10+)", fans_enabled ? "Enabling" : "Disabling");
++			gpio_set_level(GPIO_ENA_FAN, fans_enabled);
++		}
++	}
++	#endif
+ }
+ 
+ int fan_get_enabled(int ch)
+@@ -228,6 +249,22 @@ void fan_init(void)
+ {
+ 	int i;
+ 
++	is_rev10 = 0;
++	#ifdef CONFIG_SULFUR_REV10
++	{
++		int rev;
++		rev = eeprom_get_board_rev();
++		/* enable "is_rev10" for rev10+ */
++		/* if error, i.e. not initialized, or 10 or newer, behave like 10 */
++		if (rev < 0 || (rev + 1) >= 10) {
++			CPRINTS("Enabling controlling of ENA_FANS (rev10+)");
++			is_rev10 = 1;
++			/* configure GPIO "ENA_FAN" as output */
++			gpio_set_flags(GPIO_ENA_FAN, GPIO_OUT_LOW);
++		}
++	}
++	#endif
++
+ 	for (i = 0; i < FAN_CH_COUNT; i++)
+ 		fan_channel_setup(i, 0);
+ 
+diff --git a/board/sulfur/gpio.inc b/board/sulfur/gpio.inc
+index 9a4ef7558e..671789f87c 100644
+--- a/board/sulfur/gpio.inc
++++ b/board/sulfur/gpio.inc
+@@ -27,7 +27,9 @@ GPIO(MISC_LED,			PIN(B, 2), GPIO_OUT_LOW)
+ GPIO(SYS_FAN0_PWM,		PIN(A, 2),  GPIO_OUT_HIGH)
+ GPIO(SYS_FAN1_PWM,		PIN(C, 6),  GPIO_OUT_HIGH)
+ 
++#ifndef CONFIG_SULFUR_REV10
+ GPIO(POE_SHDN,			PIN(C, 13), GPIO_OUT_LOW)
++#endif
+ GPIO(PS_POR_RESET_L,		PIN(B, 15), GPIO_OUT_LOW)
+ GPIO(PWR_CLK_EN,		PIN(A, 0), GPIO_OUT_LOW)
+ 
+@@ -52,9 +54,19 @@ GPIO(POWER_EN_IO,		PIN(C, 1), GPIO_OUT_LOW | GPIO_PULL_DOWN)
+ GPIO(POWER_EN_5V,		PIN(A, 5), GPIO_OUT_LOW | GPIO_PULL_DOWN)
+ GPIO(POWER_EN_MGT,		PIN(B, 1), GPIO_OUT_LOW | GPIO_PULL_DOWN)
+ 
++/* Further enables */
++#ifdef CONFIG_SULFUR_REV10
++GPIO(ENA_DB12V,			PIN(C, 13), GPIO_OUT_LOW)
++/* POE_T2P_L (usaged before rev. 10) was an input, so keep it and
++switch to output on first usage */
++GPIO(ENA_FAN, 			PIN(C, 14), GPIO_INPUT)
++#endif
++
+ /* Inputs */
+ GPIO(WP_L,			PIN(D, 2),  GPIO_INPUT)
++#ifndef CONFIG_SULFUR_REV10
+ GPIO(POE_T2P_L,			PIN(C, 14), GPIO_INPUT)
++#endif
+ GPIO(AUXPWR_STAT,		PIN(C, 15), GPIO_INPUT)
+ GPIO(PWRSW_STAT,		PIN(F, 0),  GPIO_INPUT)
+ GPIO(PWRSW_CTRL,		PIN(F, 1),  GPIO_INPUT)
+diff --git a/board/sulfur/power.c b/board/sulfur/power.c
+index 5800e307a6..d0cb64612b 100644
+--- a/board/sulfur/power.c
++++ b/board/sulfur/power.c
+@@ -54,6 +54,7 @@
+ static int forcing_shutdown;
+ static int wdt_reset;
+ static int is_rev5;
++static int is_rev10;
+ 
+ static void power_dump_signals(void)
+ {
+@@ -119,12 +120,24 @@ enum power_state power_chipset_init(void)
+ {
+ 	int rev;
+ 
+-	/* if error, i.e. not initialized, or 5, behave like 5 */
+ 	rev = eeprom_get_board_rev();
++
++	is_rev5 = 0;
++	#ifdef CONFIG_SULFUR_5V_WORKAROUND
++	/* if error, i.e. not initialized, or 5 or newer, behave like 5 */
+ 	if (rev < 0 || (rev + 1) >= 5) {
+ 		CPRINTS("Enabling rev5+ workaround");
+ 		is_rev5 = 1;
+ 	}
++	#endif
++	is_rev10 = 0;
++	#ifdef CONFIG_SULFUR_REV10
++	/* if error, i.e. not initialized, or 10 or newer, behave like 10 */
++	if (rev < 0 || (rev + 1) >= 10) {
++		CPRINTS("Enabling controlling of ENA_DB12V (rev10+)");
++		is_rev10 = 1;
++	}
++  #endif
+ 
+ 	if (system_jumped_to_this_image()) {
+ 		if ((power_get_signals() & IN_PGOOD_S0) == IN_PGOOD_S0) {
+@@ -245,6 +258,13 @@ enum power_state power_handle_state(enum power_state state)
+ 		gpio_set_level(GPIO_POWER_EN_1V_L, 0);
+ 		usleep(5);
+ 		gpio_set_level(GPIO_POWER_EN_5V, 1);
++		usleep(5);
++		#ifdef CONFIG_SULFUR_REV10
++		if (is_rev10) {
++			CPRINTS("Enabling ENA_DB12V (rev10+)");
++			gpio_set_level(GPIO_ENA_DB12V, 1);
++    }
++		#endif
+ 
+ 		if (power_wait_signals_timeout(IN_PGOOD_S5,
+ 					       5 * MSEC) == EC_ERROR_TIMEOUT)
+@@ -257,6 +277,13 @@ enum power_state power_handle_state(enum power_state state)
+ 		/* Call hooks before we remove power rails */
+ 		hook_notify(HOOK_CHIPSET_SHUTDOWN);
+ 
++		#ifdef CONFIG_SULFUR_REV10
++		if (is_rev10) {
++			CPRINTS("Disabling ENA_DB12V (rev10+)");
++			gpio_set_level(GPIO_ENA_DB12V, 0);
++    }
++		#endif
++		usleep(5);
+ 		gpio_set_level(GPIO_POWER_EN_5V, 0);
+ 		usleep(5);
+ 		gpio_set_level(GPIO_POWER_EN_1V_L, 1);
+@@ -367,4 +394,3 @@ void wdt_reset_event(enum gpio_signal signal)
+ 	host_set_single_event(EC_HOST_EVENT_HANG_REBOOT);
+ 	hook_call_deferred(&force_reset_data, 10 * MSEC);
+ }
+-
+-- 
+2.43.0
+

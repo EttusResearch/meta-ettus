@@ -1,0 +1,31 @@
+From 882444d0604f35477cecb6a53e0e8150b06ffbfd Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Wed, 15 Nov 2017 12:56:09 -0800
+Subject: [PATCH 07/18] sulfur: Add missing PWR_CLK_EN output GPIO
+
+Add the missing PWR_CLK_EN GPIO to enable the spread spectrum
+modulation of the clock.
+
+Default it to off, since that's what was requested.
+
+Change-Id: I9c47a8a4a5a40996ffb791c3d635eeca732f30ce
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ board/sulfur/gpio.inc | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/board/sulfur/gpio.inc b/board/sulfur/gpio.inc
+index b3c5827fa6..e48866f4b3 100644
+--- a/board/sulfur/gpio.inc
++++ b/board/sulfur/gpio.inc
+@@ -32,6 +32,7 @@ GPIO(SYS_FAN1_PWM,		PIN(C, 6),  GPIO_OUT_HIGH)
+ 
+ GPIO(POE_SHDN,			PIN(C, 13), GPIO_OUT_LOW)
+ GPIO(PS_POR_RESET_L,		PIN(B, 15), GPIO_OUT_LOW)
++GPIO(PWR_CLK_EN,		PIN(A, 0), GPIO_OUT_LOW)
+ 
+ /* MIO5 -> Default to SDBOOT (HIGH) */
+ GPIO(PS_BOOTSEL,                PIN(B, 13), GPIO_INPUT)
+-- 
+2.43.0
+

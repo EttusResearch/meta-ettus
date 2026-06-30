@@ -1,0 +1,661 @@
+From c2e6227580053becc5d50384a887c743c4d8d59b Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Thu, 18 Dec 2025 11:56:02 +0100
+Subject: [PATCH 18/18] sulfur implementation adaptions after chromium-ec main
+ rebase.
+
+- Fix the permanent active POWER_LED despite powered-off ARM AP.
+  Fix wrong merge of task.c.
+- I2C communication with ARM AP didn't work. TMP431 used wrong addr,
+  got 0K as readback val.
+- I2C Ports use the correct define CONFIG_HOSTCMD_I2C_ADDR_FLAGS.
+- Fix eeinfo bug because of the wrong i2c addr. Use correct timer sleep
+  function. Added missing code to power. Move defines to the correct place
+  in fan.
+
+Signed-off-by: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+---
+ board/sulfur/board.c        | 76 +++++++++++++++++++++++++------------
+ board/sulfur/board.h        | 15 ++++++--
+ board/sulfur/build.mk       |  2 +-
+ board/sulfur/eeprom.c       |  5 ++-
+ board/sulfur/fan.c          | 37 +++++++++---------
+ board/sulfur/gpio.inc       |  4 +-
+ board/sulfur/led.c          | 28 ++++++++++++++
+ board/sulfur/power.c        | 46 +++++++++++-----------
+ chip/stm32/registers.h      | 24 +++---------
+ driver/temp_sensor/tmp431.c |  6 +--
+ driver/temp_sensor/tmp431.h |  4 +-
+ include/module_id.h         |  1 -
+ 12 files changed, 151 insertions(+), 97 deletions(-)
+ create mode 100644 board/sulfur/led.c
+
+diff --git a/board/sulfur/board.c b/board/sulfur/board.c
+index 4e60ee1294..2f80f54829 100644
+--- a/board/sulfur/board.c
++++ b/board/sulfur/board.c
+@@ -65,13 +65,13 @@ DECLARE_HOOK(HOOK_INIT, board_init, HOOK_PRIO_DEFAULT);
+ static int led_state;
+ static void heartbeat_led(void)
+ {
+-	if (!(led_state ^= led_state)) {
++	if (!(led_state ^= 1)) {
+ 		gpio_set_level(GPIO_MISC_LED, 1);
+-		msleep(70);
++		crec_msleep(70);
+ 		gpio_set_level(GPIO_MISC_LED, 0);
+-		msleep(50);
++		crec_msleep(50);
+ 		gpio_set_level(GPIO_MISC_LED, 1);
+-		msleep(100);
++		crec_msleep(100);
+ 		gpio_set_level(GPIO_MISC_LED, 0);
+ 	}
+ }
+@@ -102,9 +102,9 @@ int board_get_version(void)
+ 
+ /* I2C ports */
+ const struct i2c_port_t i2c_ports[] = {
+-	{"master", I2C_PORT_MASTER, 100, GPIO_MASTER_I2C_SCL, GPIO_MASTER_I2C_SDA},
+-#ifdef CONFIG_HOSTCMD_I2C_SLAVE_ADDR
+-	{"slave", I2C_PORT_SLAVE, 1000, GPIO_SLAVE_I2C_SCL, GPIO_SLAVE_I2C_SDA},
++	{.port = I2C_PORT_MASTER, .name = "master", .kbps = 100, .scl = GPIO_MASTER_I2C_SCL, .sda = GPIO_MASTER_I2C_SDA},
++#ifdef CONFIG_HOSTCMD_I2C_ADDR_FLAGS
++	{.port = I2C_PORT_SLAVE, .name = "slave", .kbps = 1000, .scl = GPIO_SLAVE_I2C_SCL, .sda = GPIO_SLAVE_I2C_SDA},
+ #endif
+ };
+ const unsigned int i2c_ports_used = ARRAY_SIZE(i2c_ports);
+@@ -145,28 +145,45 @@ enum charge_state charge_get_state(void) { return 0; }
+ 
+ uint32_t charge_get_flags(void)  { return 0; }
+ 
+-int charge_get_percent(void) { return 100; }
+-
+ #endif
+ 
+-struct fan_t fans[] = {
++/* Physical fans */
++const struct fan_conf fan_conf_0 = {
++	.flags = FAN_USE_RPM_MODE,
++	.ch = 0,
++	.pgood_gpio = -1,
++	.enable_gpio = -1,
++};
++
++/* Non-const because values are loaded from EEPROM at runtime */
++struct fan_rpm fan_rpm_0 = {
++	.rpm_min = 3800,
++	.rpm_start = 8000,
++	.rpm_max = 12400,
++};
++
++const struct fan_conf fan_conf_1 = {
++	.flags = FAN_USE_RPM_MODE,
++	.ch = 1,
++	.pgood_gpio = -1,
++	.enable_gpio = -1,
++};
++
++/* Non-const because values are loaded from EEPROM at runtime */
++struct fan_rpm fan_rpm_1 = {
++	.rpm_min = 3800,
++	.rpm_start = 8000,
++	.rpm_max = 12400,
++};
++
++const struct fan_t fans[] = {
+ 	[FAN_CH_0] = {
+-		.flags = FAN_USE_RPM_MODE,
+-		.rpm_min = 3800,
+-		.rpm_start = 8000,
+-		.rpm_max = 12400,
+-		.ch = 0,
+-		.pgood_gpio = -1,
+-		.enable_gpio = -1,
++		.conf = &fan_conf_0,
++		.rpm = &fan_rpm_0,
+ 	},
+ 	[FAN_CH_1] = {
+-		.flags = FAN_USE_RPM_MODE,
+-		.rpm_min = 3800,
+-		.rpm_start = 8000,
+-		.rpm_max = 12400,
+-		.ch = 1,
+-		.pgood_gpio = -1,
+-		.enable_gpio = -1,
++		.conf = &fan_conf_1,
++		.rpm = &fan_rpm_1,
+ 	},
+ };
+ BUILD_ASSERT(ARRAY_SIZE(fans) == FAN_CH_COUNT);
+@@ -178,3 +195,14 @@ struct ec_thermal_config thermal_params[] = {
+ };
+ 
+ BUILD_ASSERT(ARRAY_SIZE(thermal_params) == TEMP_SENSOR_COUNT);
++
++#ifdef CONFIG_MKBP_USE_CUSTOM
++/* MKBP event delivery via custom method stub.
++ * Sulfur uses I2C peripheral mode where the host polls for events,
++ * so no active signaling is needed. */
++int mkbp_set_host_active_via_custom(int active, uint32_t *timestamp)
++{
++	/* No active signaling needed for I2C peripheral mode */
++	return EC_SUCCESS;
++}
++#endif
+diff --git a/board/sulfur/board.h b/board/sulfur/board.h
+index 16048ffc8e..508d9f1750 100644
+--- a/board/sulfur/board.h
++++ b/board/sulfur/board.h
+@@ -18,6 +18,7 @@
+ 
+ #define CONFIG_BOARD_PRE_INIT
+ #define CONFIG_CMD_FLASH
++#undef CONFIG_CMD_CHARGEN
+ #define CONFIG_FORCE_CONSOLE_RESUME
+ #undef CONFIG_HOST_COMMAND_STATUS
+ #define CONFIG_I2C
+@@ -26,14 +27,17 @@
+ #define CONFIG_SULFUR_REV10
+ 
+ #define CONFIG_FAN_RPM_CUSTOM
+-#define CONFIG_VBOOT_HASH
++#undef CONFIG_VBOOT_HASH
+ 
+ #define CONFIG_POWER_BUTTON
+ #define CONFIG_POWER_COMMON
+ #define CONFIG_POWER_BUTTON_ACTIVE_STATE 0
+ #define CONFIG_POWERLED
++
++/*
+ #define CONFIG_LED_COMMON
+ #define CONFIG_LED_POLICY_STD
++*/
+ 
+ #define CONFIG_LED_POWER_ACTIVE_LOW
+ 
+@@ -45,6 +49,9 @@
+ 
+ #define CONFIG_HW_CRC
+ 
++/* Disable MKBP since this board doesn't have a keyboard */
++#define CONFIG_MKBP_USE_CUSTOM
++
+ #undef CONFIG_UART_CONSOLE
+ #define CONFIG_UART_CONSOLE 1
+ 
+@@ -66,11 +73,11 @@
+ 
+ /* Single I2C port, where the EC is the master. */
+ #define CONFIG_I2C
+-#define CONFIG_I2C_SLAVE
+-#define CONFIG_I2C_MASTER
++#define CONFIG_I2C_CONTROLLER
++#define CONFIG_I2C_PERIPHERAL
+ 
+ #ifdef HAS_TASK_HOSTCMD
+-#define CONFIG_HOSTCMD_I2C_SLAVE_ADDR 0x3c
++#define CONFIG_HOSTCMD_I2C_ADDR_FLAGS 0x3c
+ #endif
+ 
+ #define I2C_PORT_SLAVE  1
+diff --git a/board/sulfur/build.mk b/board/sulfur/build.mk
+index e03de12c9c..d3b3c1da0d 100644
+--- a/board/sulfur/build.mk
++++ b/board/sulfur/build.mk
+@@ -10,4 +10,4 @@ CHIP:=stm32
+ CHIP_FAMILY:=stm32f0
+ CHIP_VARIANT:=stm32f07x
+ 
+-board-y=board.o fan.o power.o eeprom.o
++board-y=board.o fan.o power.o eeprom.o led.o
+diff --git a/board/sulfur/eeprom.c b/board/sulfur/eeprom.c
+index 357dd7bb22..d3a573dd07 100644
+--- a/board/sulfur/eeprom.c
++++ b/board/sulfur/eeprom.c
+@@ -20,6 +20,7 @@
+ #define ntohl htonl
+ 
+ #define EEPROM_AUTOBOOT_FLAG (1 << 0)
++#define EEPROM_I2C_ADDR 0x50  /* 7-bit I2C address (was 0xa0, changed to 0x50)*/
+ 
+ #define N310_PID 0x4242
+ #define N300_PID 0x4240
+@@ -59,7 +60,7 @@ static int eeprom_check_crc(void)
+ 		return -1;
+ }
+ 
+-static int command_eeprom_info(int argc, char **argv)
++static int command_eeprom_info(int argc, const char **argv)
+ {
+ 	if (eeprom_check_initialized()) {
+ 		ccprintf("Error: EEPROM was not initialized\n");
+@@ -208,7 +209,7 @@ void eeprom_init(void)
+ 	uint8_t *eeprom_ptr = (uint8_t *)&eeprom;
+ 
+ 	for (i = 0; i < sizeof(eeprom); i++) {
+-		err = i2c_read8(I2C_PORT_MASTER, 0xa0, i, &tmp);
++		err = i2c_read8(I2C_PORT_MASTER, EEPROM_I2C_ADDR, i, &tmp);
+ 		if (err != EC_RES_SUCCESS)
+ 			return;
+ 		*eeprom_ptr++ = (uint8_t)tmp;
+diff --git a/board/sulfur/fan.c b/board/sulfur/fan.c
+index ab1fbed197..53802538b5 100644
+--- a/board/sulfur/fan.c
++++ b/board/sulfur/fan.c
+@@ -20,7 +20,6 @@
+ #include "system.h"
+ #include "util.h"
+ 
+-
+ #define IRQ_TIM(n) CONCAT2(STM32_IRQ_TIM, n)
+ 
+ /* Console output macros */
+@@ -103,8 +102,8 @@ int fan_percent_to_rpm(int fan, int pct)
+ 	if (!pct) {
+ 		rpm = 0;
+ 	} else {
+-		min = fans[fan].rpm_min;
+-		max = fans[fan].rpm_max;
++		min = fans[fan].rpm->rpm_min;
++		max = fans[fan].rpm->rpm_max;
+ 		rpm = ((pct - 1) * max + (100 - pct) * min) / 99;
+ 	}
+ 
+@@ -120,9 +119,9 @@ void fan_set_enabled(int ch, int enabled)
+ 
+ 	if (enabled) {
+ 		fan_speed_state[ch].sts = FAN_STATUS_CHANGING;
+-		pwm_enable(fan->ch, enabled);
++		pwm_enable(fan->conf->ch, enabled);
+ 	} else {
+-		pwm_set_duty(fan->ch, 0);
++		pwm_set_duty(fan->conf->ch, 0);
+ 	}
+ 
+ 	fan_speed_state[ch].enabled = enabled;
+@@ -144,7 +143,7 @@ int fan_get_enabled(int ch)
+ {
+ 	const struct fan_t *fan = fans + ch;
+ 
+-	return pwm_get_enabled(fan->ch)
++	return pwm_get_enabled(fan->conf->ch)
+ 		&& fan_speed_state[ch].enabled;
+ }
+ 
+@@ -155,7 +154,7 @@ void fan_set_duty(int ch, int percent)
+ 	if (!percent)
+ 		percent = 1;
+ 
+-	pwm_set_duty(fan->ch, percent);
++	pwm_set_duty(fan->conf->ch, percent);
+ }
+ 
+ int fan_get_duty(int ch)
+@@ -163,21 +162,21 @@ int fan_get_duty(int ch)
+ 
+ 	const struct fan_t *fan = fans + ch;
+ 
+-	return pwm_get_duty(fan->ch);
++	return pwm_get_duty(fan->conf->ch);
+ }
+ 
+ int fan_get_rpm_mode(int ch)
+ {
+ 	const struct fan_t *fan = fans + ch;
+ 
+-	return fan_speed_state[fan->ch].fan_mode;
++	return fan_speed_state[fan->conf->ch].fan_mode;
+ }
+ 
+ void fan_set_rpm_mode(int ch, int rpm_mode)
+ {
+ 	const struct fan_t *fan = fans + ch;
+ 
+-	fan_speed_state[fan->ch].fan_mode = rpm_mode;
++	fan_speed_state[fan->conf->ch].fan_mode = rpm_mode;
+ }
+ 
+ int fan_get_rpm_actual(int ch)
+@@ -212,8 +211,8 @@ test_mockable void fan_set_rpm_target(int ch, int rpm)
+ {
+ 	const struct fan_t *fan = fans + ch;
+ 
+-	if (rpm < fan->rpm_min)
+-		rpm = fan->rpm_min;
++	if (rpm < fan->rpm->rpm_min)
++		rpm = fan->rpm->rpm_min;
+ 	fan_speed_state[ch].rpm_target = rpm;
+ }
+ 
+@@ -233,10 +232,12 @@ int fan_is_stalled(int ch)
+ 
+ void fan_channel_setup(int ch, unsigned int flags)
+ {
+-	struct fan_t *fan = fans + ch;
++	const struct fan_t *fan = fans + ch;
++	/* Cast away const to modify EEPROM-loaded values */
++	struct fan_rpm *rpm = (struct fan_rpm *)fan->rpm;
+ 
+-	fan->rpm_min = eeprom_get_fan_min(ch);
+-	fan->rpm_max = eeprom_get_fan_max(ch);
++	rpm->rpm_min = eeprom_get_fan_min(ch);
++	rpm->rpm_max = eeprom_get_fan_max(ch);
+ 
+ 	pwm_enable(ch, 1);
+ 	pwm_set_duty(ch, 0);
+@@ -268,7 +269,7 @@ void fan_init(void)
+ 	for (i = 0; i < FAN_CH_COUNT; i++)
+ 		fan_channel_setup(i, 0);
+ 
+-	msleep(50);
++	crec_msleep(50);
+ 
+ 	fans_configure();
+ }
+@@ -338,7 +339,7 @@ void fan_ctrl(void)
+ DECLARE_HOOK(HOOK_SECOND, fan_ctrl, HOOK_PRIO_DEFAULT);
+ 
+ #if defined(TIM_CAPTURE_FAN0)
+-void __fan0_capture_irq(void)
++static void __fan0_capture_irq(void)
+ {
+ 	static uint32_t counter0, counter1;
+ 	static int saw_first_edge;
+@@ -377,7 +378,7 @@ DECLARE_IRQ(IRQ_TIM(TIM_CAPTURE_FAN0), __fan0_capture_irq, 2);
+ #endif /* TIM_CAPTURE_FAN0 */
+ 
+ #if defined(TIM_CAPTURE_FAN1)
+-void __fan1_capture_irq(void)
++static void __fan1_capture_irq(void)
+ {
+ 	static uint32_t counter0, counter1;
+ 	static int saw_first_edge;
+diff --git a/board/sulfur/gpio.inc b/board/sulfur/gpio.inc
+index 671789f87c..c381ed8887 100644
+--- a/board/sulfur/gpio.inc
++++ b/board/sulfur/gpio.inc
+@@ -21,9 +21,11 @@ GPIO_INT(SYS_RTC_INT,		PIN(A, 15), GPIO_INT_FALLING, wdt_reset_event)
+ GPIO_INT(SYS_PWRON_33,		PIN(C, 7),  GPIO_INT_BOTH, power_signal_interrupt)
+ 
+ /* Outputs */
+-GPIO(POWER_LED,			PIN(A, 8),  GPIO_OUT_HIGH)
++/* POWER_LED is active-low: 0=ON, 1=OFF */
++GPIO(POWER_LED,			PIN(A, 8), GPIO_OUT_LOW)
+ GPIO(MISC_LED,			PIN(B, 2), GPIO_OUT_LOW)
+ 
++
+ GPIO(SYS_FAN0_PWM,		PIN(A, 2),  GPIO_OUT_HIGH)
+ GPIO(SYS_FAN1_PWM,		PIN(C, 6),  GPIO_OUT_HIGH)
+ 
+diff --git a/board/sulfur/led.c b/board/sulfur/led.c
+new file mode 100644
+index 0000000000..90c5270fee
+--- /dev/null
++++ b/board/sulfur/led.c
+@@ -0,0 +1,28 @@
++#include "common.h"
++#include "gpio.h"
++#include "hooks.h"
++#include "chipset.h"
++
++/* POWER_LED is active-low: 0=ON, 1=OFF */
++
++static void led_shutdown(void)
++{
++    gpio_set_level(GPIO_POWER_LED, 1);  /* LED OFF */
++}
++DECLARE_HOOK(HOOK_CHIPSET_SHUTDOWN, led_shutdown, HOOK_PRIO_DEFAULT);
++
++static void led_resume(void)
++{
++    gpio_set_level(GPIO_POWER_LED, 0);  /* LED ON */
++}
++DECLARE_HOOK(HOOK_CHIPSET_RESUME, led_resume, HOOK_PRIO_DEFAULT);
++
++static void led_init(void)
++{
++    /* Set LED based on current chipset state */
++    if (chipset_in_state(CHIPSET_STATE_ON))
++        gpio_set_level(GPIO_POWER_LED, 0);  /* LED ON */
++    else
++        gpio_set_level(GPIO_POWER_LED, 1);  /* LED OFF */
++}
++DECLARE_HOOK(HOOK_INIT, led_init, HOOK_PRIO_DEFAULT);
+\ No newline at end of file
+diff --git a/board/sulfur/power.c b/board/sulfur/power.c
+index 2c4e6078d1..168161344a 100644
+--- a/board/sulfur/power.c
++++ b/board/sulfur/power.c
+@@ -82,7 +82,7 @@ static void ap_set_reset(int asserted)
+ 	gpio_set_level(GPIO_PS_POR_RESET_L, !asserted);
+ }
+ 
+-void chipset_force_shutdown(void)
++void chipset_force_shutdown(enum chipset_shutdown_reason reason)
+ {
+ 	/*
+ 	 * Force power off. This condition will reset once the state machine
+@@ -93,14 +93,14 @@ void chipset_force_shutdown(void)
+ }
+ 
+ #define AP_RST_HOLD_US (1 * MSEC)
+-void chipset_reset(int cold_reset)
++void chipset_reset(enum chipset_shutdown_reason reason)
+ {
+ #ifdef CONFIG_CMD_RTC
+ 	/* Print out the RTC to help correlate resets in logs. */
+ 	print_system_rtc(CC_CHIPSET);
+ #endif
+ 
+-	CPRINTS("%s(%d)", __func__, cold_reset);
++	CPRINTS("%s(%d)", __func__, reason);
+ 
+ 	ap_set_reset(1);
+ 	gpio_set_flags(GPIO_PS_BOOTSEL, GPIO_OUTPUT);
+@@ -111,7 +111,7 @@ void chipset_reset(int cold_reset)
+ 	if (in_interrupt_context())
+ 		udelay(AP_RST_HOLD_US);
+ 	else
+-		usleep(AP_RST_HOLD_US);
++		crec_usleep(AP_RST_HOLD_US);
+ 	ap_set_reset(0);
+ 	gpio_set_flags(GPIO_PS_BOOTSEL, GPIO_INPUT);
+ 	gpio_set_flags(GPIO_JTAG_SEL, GPIO_INPUT);
+@@ -146,17 +146,17 @@ enum power_state power_chipset_init(void)
+ 			CPRINTS("already in S0");
+ 			return POWER_S0;
+ 		}
+-	} else if (!(system_get_reset_flags() & RESET_FLAG_AP_OFF)) {
++	} else if (!(system_get_reset_flags() & EC_RESET_FLAG_AP_OFF)) {
+ 		/* Auto-power on ? */
+ 		if (eeprom_get_autoboot())
+ 			chipset_exit_hard_off();
+ 
+ 		/* make sure we come up if EC crashes */
+-		if (system_get_reset_flags() & RESET_FLAG_SOFT)
++		if (system_get_reset_flags() & EC_RESET_FLAG_SOFT)
+ 			chipset_exit_hard_off();
+ 
+ 		/* make sure we come up if EC crashes */
+-		if (system_get_reset_flags() & RESET_FLAG_WATCHDOG)
++		if (system_get_reset_flags() & EC_RESET_FLAG_WATCHDOG)
+ 			chipset_exit_hard_off();
+ 
+ 	}
+@@ -190,20 +190,20 @@ enum power_state power_handle_state(enum power_state state)
+ 			return POWER_S3S5;
+ 
+ 		gpio_set_level(GPIO_POWER_EN_MGT, 1);
+-		usleep(5);
++		crec_usleep(5);
+ 		gpio_set_level(GPIO_POWER_EN_1V5, 1);
+-		usleep(5);
++		crec_usleep(5);
+ 		gpio_set_level(GPIO_POWER_EN_IO, 1);
+-		usleep(5);
++		crec_usleep(5);
+ 		gpio_set_level(GPIO_POWER_EN_3V7, 1);
+ 		wdt_enabled = 1;
+-		usleep(5);
++		crec_usleep(5);
+ 
+ 		if (power_wait_signals_timeout(IN_PGOOD_S3, 100 * MSEC)
+ 		    == EC_ERROR_TIMEOUT) {
+ 			if (!power_has_signals(IN_PGOOD_S3)) {
+ 				power_dump_signals();
+-				chipset_force_shutdown();
++				chipset_force_shutdown(CHIPSET_SHUTDOWN_POWERFAIL);
+ 				return POWER_S3S5;
+ 			}
+ 		}
+@@ -212,9 +212,9 @@ enum power_state power_handle_state(enum power_state state)
+ 		gpio_set_level(GPIO_PS_BOOTSEL, 1);
+ 		gpio_set_flags(GPIO_JTAG_SEL, GPIO_OUTPUT);
+ 		gpio_set_level(GPIO_JTAG_SEL, 0);
+-		usleep(5);
++		crec_usleep(5);
+ 		ap_set_reset(0);
+-		usleep(15);
++		crec_usleep(15);
+ 		gpio_set_flags(GPIO_PS_BOOTSEL, GPIO_INPUT);
+ 		gpio_set_flags(GPIO_JTAG_SEL, GPIO_INPUT);
+ 
+@@ -259,9 +259,9 @@ enum power_state power_handle_state(enum power_state state)
+ 		ap_set_reset(1);
+ 
+ 		gpio_set_level(GPIO_POWER_EN_1V_L, 0);
+-		usleep(5);
++		crec_usleep(5);
+ 		gpio_set_level(GPIO_POWER_EN_5V, 1);
+-		usleep(5);
++		crec_usleep(5);
+ 		#ifdef CONFIG_SULFUR_REV10
+ 		if (is_rev10) {
+ 			CPRINTS("Enabling ENA_DB12V (rev10+)");
+@@ -286,11 +286,10 @@ enum power_state power_handle_state(enum power_state state)
+ 			gpio_set_level(GPIO_ENA_DB12V, 0);
+     }
+ 		#endif
+-		usleep(5);
++		crec_usleep(5);
+ 		gpio_set_level(GPIO_POWER_EN_5V, 0);
+-		usleep(5);
++		crec_usleep(5);
+ 		gpio_set_level(GPIO_POWER_EN_1V_L, 1);
+-
+ 		/* Change EC_INT_L pin to high-Z to reduce power draw. */
+ 		gpio_set_flags(GPIO_EC_INT_L, GPIO_INPUT);
+ 
+@@ -329,10 +328,9 @@ enum power_state power_handle_state(enum power_state state)
+ 					       is_rev5 ? PGOOD_AP_FIRST_TIMEOUT_REV5
+ 					       : PGOOD_AP_FIRST_TIMEOUT)
+ 		    == EC_ERROR_TIMEOUT) {
+-			chipset_force_shutdown();
+-			return POWER_S0S3;
+-		}
+-
++			chipset_force_shutdown(CHIPSET_SHUTDOWN_POWERFAIL);
++		return POWER_S0S3;
++	}
+ 		/* Call hooks now that rails are up */
+ 		hook_notify(HOOK_CHIPSET_RESUME);
+ 
+@@ -369,7 +367,7 @@ DECLARE_HOOK(HOOK_POWER_BUTTON_CHANGE, powerbtn_sulfur_changed,
+ 
+ static void force_reset(void)
+ {
+-	chipset_reset(1);
++	chipset_reset(CHIPSET_RESET_AP_WATCHDOG);
+ 	if (wdt_reset) {
+ 		wdt_reset = 0;
+ 		chipset_exit_hard_off();
+diff --git a/chip/stm32/registers.h b/chip/stm32/registers.h
+index ee3bbc0f2d..22f3121629 100644
+--- a/chip/stm32/registers.h
++++ b/chip/stm32/registers.h
+@@ -190,29 +190,17 @@ typedef volatile struct timer_ctlr timer_ctlr_t;
+ #define STM32_LPTIM_ARR(n) STM32_LPTIM_REG(n, 0x18)
+ #define STM32_LPTIM_CNT(n) STM32_LPTIM_REG(n, 0x1C)
+ #define STM32_LPTIM_CFGR2(n) STM32_LPTIM_REG(n, 0x24)
+-#define STM32_TIM_CCER_CC2P		(1 << 5)
+-#define STM32_TIM_CCER_CC2E		(1 << 4)
+-#define STM32_TIM_CCER_CC1NP		(1 << 3)
+-#define STM32_TIM_CCER_CC1NE		(1 << 2)
+-#define STM32_TIM_CCER_CC1P		(1 << 1)
+-#define STM32_TIM_CCER_CC1E		(1 << 0)
+-
+-#define STM32_TIM_SR_CC1IF		(1 << 0)
+-#define STM32_TIM_SR_CC1OF		(1 << 9)
+ 
+-#define STM32_TIM_CCMR_ICF1F_3		(1 << 7)
+-#define STM32_TIM_CCMR_ICF1F_2		(1 << 6)
+-#define STM32_TIM_CCMR_ICF1F_1		(1 << 5)
++/* STM32 Timer register bit definitions for input capture mode */
++#define STM32_TIM_CCMR_CC1S_0		(1 << 0)
+ #define STM32_TIM_CCMR_ICF1F_0		(1 << 4)
+-#define STM32_TIM_CCMR_IC1_PSC_1	(1 << 3)
++#define STM32_TIM_CCMR_ICF1F_1		(1 << 5)
+ #define STM32_TIM_CCMR_IC1_PSC_0	(1 << 2)
+-#define STM32_TIM_CCMR_CC1S_1		(1 << 1)
+-#define STM32_TIM_CCMR_CC1S_0		(1 << 0)
+-
++#define STM32_TIM_CCMR_IC1_PSC_1	(1 << 3)
+ #define STM32_TIM_DIER_CC1IE		(1 << 1)
+ #define STM32_TIM_DIER_CC1OF		(1 << 9)
+-
+-#define STM32_TIM_CR1_CEN		(1 << 0)
++#define STM32_TIM_SR_CC1IF		(1 << 1)
++#define STM32_TIM_SR_CC1OF		(1 << 9)
+ 
+ 
+ /* --- GPIO --- */
+diff --git a/driver/temp_sensor/tmp431.c b/driver/temp_sensor/tmp431.c
+index bca8ce7980..bb368bf319 100644
+--- a/driver/temp_sensor/tmp431.c
++++ b/driver/temp_sensor/tmp431.c
+@@ -276,11 +276,11 @@ static int print_status(void)
+ 	return EC_SUCCESS;
+ }
+ 
+-static int command_tmp431(int argc, char **argv)
++static int command_tmp431(int argc, const char **argv)
+ {
+-	char *command;
++	const char *command;
+ 	char *e;
+-	char *power;
++	const char *power;
+ 	int data;
+ 	int offset;
+ 	int rv;
+diff --git a/driver/temp_sensor/tmp431.h b/driver/temp_sensor/tmp431.h
+index 6ed10fba97..83376fe266 100644
+--- a/driver/temp_sensor/tmp431.h
++++ b/driver/temp_sensor/tmp431.h
+@@ -8,7 +8,9 @@
+ #ifndef __CROS_EC_TMP431_H
+ #define __CROS_EC_TMP431_H
+ 
+-#define TMP431_I2C_ADDR		0x98 /* 7-bit address is 0x4C */
++#ifndef TMP431_I2C_ADDR
++#define TMP431_I2C_ADDR		0x4c /* 7-bit address */
++#endif
+ 
+ #define TMP431_IDX_LOCAL	0
+ #define TMP431_IDX_REMOTE1	1
+diff --git a/include/module_id.h b/include/module_id.h
+index 57e314854b..039a72b84b 100644
+--- a/include/module_id.h
++++ b/include/module_id.h
+@@ -61,7 +61,6 @@ enum module_id {
+ 	MODULE_USB_SWITCH,
+ 	MODULE_VBOOT,
+ 	MODULE_WOV,
+-	MODULE_MCO,
+ 	MODULE_FAN,
+ 
+ 	/* Module count; not an actual module */
+-- 
+2.43.0
+

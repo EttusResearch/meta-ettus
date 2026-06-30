@@ -1,0 +1,1406 @@
+From eb46397a80c66ada8b68baea893a978ee4fdfb09 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Fri, 10 Nov 2017 22:46:53 -0800
+Subject: [PATCH 02/18] sulfur: Initial support for NI Project Sulfur SDR board
+
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ board/sulfur/board.c           | 179 +++++++++++++++++
+ board/sulfur/board.h           | 134 +++++++++++++
+ board/sulfur/build.mk          |  13 ++
+ board/sulfur/debug.cfg         |  17 ++
+ board/sulfur/ec.tasklist       |  24 +++
+ board/sulfur/eeprom.c          | 171 +++++++++++++++++
+ board/sulfur/eeprom.h          |  35 ++++
+ board/sulfur/fan.c             | 240 +++++++++++++++++++++++
+ board/sulfur/fan_board.h       |   9 +
+ board/sulfur/gpio.inc          | 101 ++++++++++
+ board/sulfur/openocd-flash.cfg |  36 ++++
+ board/sulfur/power.c           | 339 +++++++++++++++++++++++++++++++++
+ 12 files changed, 1298 insertions(+)
+ create mode 100644 board/sulfur/board.c
+ create mode 100644 board/sulfur/board.h
+ create mode 100644 board/sulfur/build.mk
+ create mode 100644 board/sulfur/debug.cfg
+ create mode 100644 board/sulfur/ec.tasklist
+ create mode 100644 board/sulfur/eeprom.c
+ create mode 100644 board/sulfur/eeprom.h
+ create mode 100644 board/sulfur/fan.c
+ create mode 100644 board/sulfur/fan_board.h
+ create mode 100644 board/sulfur/gpio.inc
+ create mode 100644 board/sulfur/openocd-flash.cfg
+ create mode 100644 board/sulfur/power.c
+
+diff --git a/board/sulfur/board.c b/board/sulfur/board.c
+new file mode 100644
+index 0000000000..f988719f57
+--- /dev/null
++++ b/board/sulfur/board.c
+@@ -0,0 +1,179 @@
++/* Copyright (c) 2016,2017 The Chromium OS Authors. All rights reserved.
++ * Use of this source code is governed by a BSD-style license that can be
++ * found in the LICENSE file.  */
++/* National Instruments Sulfur board configuration */
++
++#include "common.h"
++#include "ec_version.h"
++#include "gpio.h"
++#include "hooks.h"
++#include "fan_board.h"
++#include "registers.h"
++#include "spi.h"
++#include "i2c.h"
++#include "task.h"
++#include "timer.h"
++#include "usart-stm32f0.h"
++#include "pwm.h"
++#include "pwm_chip.h"
++#include "util.h"
++#include "console.h"
++#include "queue.h"
++#include "power_button.h"
++#include "power.h"
++#include "power_led.h"
++
++#include "fan.h"
++#include "eeprom.h"
++
++#include "usart_tx_dma.h"
++#include "usart_rx_dma.h"
++#include "util.h"
++
++#include "usb-stream.h"
++
++#include "temp_sensor.h"
++#include "driver/temp_sensor/tmp431.h"
++
++void wdt_reset_event(enum gpio_signal signal);
++
++#include "gpio_list.h"
++
++#define CPUTS(outstr) cputs(CC_CHIPSET, outstr)
++
++/* power signal list.  Must match order of enum power_signal. */
++const struct power_signal_info power_signal_list[] = {
++	{GPIO_SYS_PWRON_33, 1, "AP   PGOOD ASSERTED"},
++	{GPIO_POWER_PG_1V,  1, "1V   PGOOD ASSERTED"},
++	{GPIO_POWER_PG_1V5, 1, "1.5V PGOOD ASSERTED"},
++	{GPIO_POWER_PG_IO,  1, "IO   PGOOD ASSERTED"},
++	{GPIO_POWER_PG_3V7, 1, "3.7V PGOOD ASSERTED"},
++#ifndef CONFIG_SULFUR_5V_WORKAROUND
++	{GPIO_POWER_PG_5V,  1, "5V   PGOOD ASSERTED"},
++#endif
++	{GPIO_POWER_PG_MGT, 1, "MGT  PGOOD ASSERTED"},
++	{GPIO_RESET_BUTTON_L,  0, "RESET_BUTTON_L ASSERTED"},
++};
++BUILD_ASSERT(ARRAY_SIZE(power_signal_list) == POWER_SIGNAL_COUNT);
++
++static void board_init(void)
++{
++	gpio_enable_interrupt(GPIO_SYS_RTC_INT);
++}
++DECLARE_HOOK(HOOK_INIT, board_init, HOOK_PRIO_DEFAULT);
++
++static int led_state;
++static void heartbeat_led(void)
++{
++	if (!(led_state ^= led_state)) {
++		gpio_set_level(GPIO_MISC_LED, 1);
++		msleep(70);
++		gpio_set_level(GPIO_MISC_LED, 0);
++		msleep(50);
++		gpio_set_level(GPIO_MISC_LED, 1);
++		msleep(100);
++		gpio_set_level(GPIO_MISC_LED, 0);
++	}
++}
++DECLARE_HOOK(HOOK_SECOND, heartbeat_led, HOOK_PRIO_DEFAULT);
++
++int extpower_is_present(void)
++{
++	return 0;
++}
++
++int lid_is_open(void)
++{
++	return 1;
++}
++
++void board_config_pre_init(void)
++{
++	/* enable SYSCFG clock */
++	STM32_RCC_APB2ENR |= STM32_RCC_SYSCFGEN;
++	STM32_SYSCFG_CFGR1 |= (1 << 9) | (1 << 10);
++}
++
++int board_get_version(void)
++{
++	return 0;
++}
++
++/* I2C ports */
++const struct i2c_port_t i2c_ports[] = {
++	{"master", I2C_PORT_MASTER, 100, GPIO_MASTER_I2C_SCL, GPIO_MASTER_I2C_SDA},
++#ifdef CONFIG_HOSTCMD_I2C_SLAVE_ADDR
++	{"slave", I2C_PORT_SLAVE, 1000, GPIO_SLAVE_I2C_SCL, GPIO_SLAVE_I2C_SDA},
++#endif
++};
++const unsigned int i2c_ports_used = ARRAY_SIZE(i2c_ports);
++
++#ifdef CONFIG_PWM
++const struct pwm_t pwm_channels[] = {
++	{STM32_TIM(15), STM32_TIM_CH(1), 0, 25000},              // 15
++	{STM32_TIM(3),  STM32_TIM_CH(1), 0, 25000},              // 14
++};
++BUILD_ASSERT(ARRAY_SIZE(pwm_channels) == PWM_CH_COUNT);
++#endif
++
++#ifdef CONFIG_TEMP_SENSOR
++const struct temp_sensor_t temp_sensors[] = {
++	{"TMP431_Internal", TEMP_SENSOR_TYPE_BOARD, tmp431_get_val,
++		TMP431_IDX_LOCAL},
++	{"TMP431_Remote", TEMP_SENSOR_TYPE_CPU, tmp431_get_val,
++		TMP431_IDX_REMOTE1},
++};
++BUILD_ASSERT(ARRAY_SIZE(temp_sensors) == TEMP_SENSOR_COUNT);
++#endif /* CONFIG_TEMP_SENSOR */
++
++#ifdef CONFIG_USB_CONSOLE
++const void *const usb_strings[] = {
++	[USB_STR_DESC]         = usb_string_desc,
++	[USB_STR_VENDOR]       = USB_STRING_DESC("National Instruments Inc."),
++	[USB_STR_PRODUCT]      = USB_STRING_DESC("Project Sulfur"),
++	[USB_STR_VERSION]      = USB_STRING_DESC(CROS_EC_VERSION32),
++	[USB_STR_CONSOLE_NAME] = USB_STRING_DESC("Shell"),
++};
++BUILD_ASSERT(ARRAY_SIZE(usb_strings) == USB_STR_COUNT);
++#endif /* CONFIG_USB_CONSOLE */
++
++#ifdef CONFIG_LED_POLICY_STD
++#include "charge_state.h"
++
++enum charge_state charge_get_state(void) { return 0; }
++
++uint32_t charge_get_flags(void)  { return 0; }
++
++int charge_get_percent(void) { return 100; }
++
++#endif
++
++struct fan_t fans[] = {
++	[FAN_CH_0] = {
++		.flags = FAN_USE_RPM_MODE,
++		.rpm_min = 3800,
++		.rpm_start = 8000,
++		.rpm_max = 12400,
++		.ch = 0,
++		.pgood_gpio = -1,
++		.enable_gpio = -1,
++	},
++	[FAN_CH_1] = {
++		.flags = FAN_USE_RPM_MODE,
++		.rpm_min = 3800,
++		.rpm_start = 8000,
++		.rpm_max = 12400,
++		.ch = 1,
++		.pgood_gpio = -1,
++		.enable_gpio = -1,
++	},
++};
++BUILD_ASSERT(ARRAY_SIZE(fans) == FAN_CH_COUNT);
++
++struct ec_thermal_config thermal_params[] = {
++	/* {Twarn, Thigh, Thalt}, fan_off, fan_max */
++	{{C_TO_K(50), C_TO_K(65), C_TO_K(75)}, {0,0,0}, C_TO_K(30), C_TO_K(60)},	/* Ambient */
++	{{C_TO_K(80), C_TO_K(85), C_TO_K(95)}, {0,0,0}, C_TO_K(50), C_TO_K(80)},	/* AP Diode */
++};
++
++BUILD_ASSERT(ARRAY_SIZE(thermal_params) == TEMP_SENSOR_COUNT);
+diff --git a/board/sulfur/board.h b/board/sulfur/board.h
+new file mode 100644
+index 0000000000..5b38c36e50
+--- /dev/null
++++ b/board/sulfur/board.h
+@@ -0,0 +1,134 @@
++/* Copyright (c) 2016 The Chromium OS Authors. All rights reserved.
++ * Use of this source code is governed by a BSD-style license that can be
++ * found in the LICENSE file.
++ */
++
++/* Sulfur board configuration */
++
++#ifndef __CROS_EC_BOARD_H
++#define __CROS_EC_BOARD_H
++
++/* 48 MHz SYSCLK clock frequency */
++#define CPU_CLOCK 48000000
++
++#define CONFIG_AP_HANG_DETECT
++
++#define CONFIG_BOARD_VERSION
++#define CONFIG_BOARD_SPECIFIC_VERSION
++
++#define CONFIG_BOARD_PRE_INIT
++#define CONFIG_CMD_FLASH
++#define CONFIG_FORCE_CONSOLE_RESUME
++#undef CONFIG_HOST_COMMAND_STATUS
++#define CONFIG_I2C
++
++#define CONFIG_SULFUR_5V_WORKAROUND
++
++#define CONFIG_POWER_BUTTON
++#define CONFIG_POWER_COMMON
++#define CONFIG_POWER_BUTTON_ACTIVE_STATE 0
++#define CONFIG_POWERLED
++#define CONFIG_LED_COMMON
++#define CONFIG_LED_POLICY_STD
++
++#define CONFIG_LED_POWER_ACTIVE_LOW
++
++#define CONFIG_STM_HWTIMER32
++#define CONFIG_SWITCH
++#define CONFIG_PWM
++
++#define CONFIG_THROTTLE_AP
++
++#define CONFIG_HW_CRC
++
++#undef CONFIG_UART_CONSOLE
++#define CONFIG_UART_CONSOLE 1
++
++#undef CONFIG_HIBERNATE
++
++#define CONFIG_MKBP_EVENT
++#define CONFIG_HOSTCMD_EVENTS
++
++#define CONFIG_INPUT_CAPTURE
++
++#undef CONFIG_LID_SWITCH
++
++#undef CONFIG_WATCHDOG_HELP
++
++#define CONFIG_TEMP_SENSOR_TMP431
++
++#define CONFIG_TEMP_SENSOR
++#define CONFIG_CMD_TEMP_SENSOR
++
++/* Single I2C port, where the EC is the master. */
++#define CONFIG_I2C
++#define CONFIG_I2C_SLAVE
++#define CONFIG_I2C_MASTER
++
++#ifdef HAS_TASK_HOSTCMD
++#define CONFIG_HOSTCMD_I2C_SLAVE_ADDR 0x3c
++#endif
++
++#define I2C_PORT_SLAVE  1
++#define I2C_PORT_MASTER  0
++#define I2C_PORT_EC I2C_PORT_SLAVE
++#define I2C_PORT_THERMAL I2C_PORT_MASTER
++#define CONFIG_HOSTCMD_ALIGNED
++
++/* Timer selection */
++#define TIM_CLOCK32 2
++#define TIM_WATCHDOG 4
++
++#define CONFIG_FANS 2
++
++#ifndef __ASSEMBLER__
++
++#define EEPROM_BLOCK_START_PSTORE 0
++#define EEPROM_BLOCK_COUNT_PSTORE 1024
++
++#include "gpio_signal.h"
++
++enum pwm_channel {
++	PWM_CH_FAN0 = 0,
++	PWM_CH_FAN1,
++
++	/* Number of PWM channels */
++	PWM_CH_COUNT
++};
++
++enum power_signal {
++	SYS_PWRON_33 = 0,
++	POWER_PG_1V,
++	POWER_PG_1V5,
++	POWER_PG_IO,
++	POWER_PG_3V7,
++#ifndef CONFIG_SULFUR_5V_WORKAROUND
++	POWER_PG_5V,
++#endif
++	POWER_PG_MGT,
++	RESET_BUTTON_L,
++
++	/* Number of power signals */
++	POWER_SIGNAL_COUNT
++};
++
++enum temp_sensor_id {
++	TEMP_SENSOR_LOCAL = 0,
++	TEMP_SENSOR_REMOTE,
++
++	TEMP_SENSOR_COUNT
++};
++
++enum fan_channel {
++	FAN_CH_0,
++	FAN_CH_1,
++
++	/* Number of FAN channels */
++	FAN_CH_COUNT
++};
++
++/* Board specific handlers */
++int board_get_version(void);
++
++#endif /* !__ASSEMBLER__ */
++#endif /* __CROS_EC_BOARD_H */
+diff --git a/board/sulfur/build.mk b/board/sulfur/build.mk
+new file mode 100644
+index 0000000000..e03de12c9c
+--- /dev/null
++++ b/board/sulfur/build.mk
+@@ -0,0 +1,13 @@
++# -*- makefile -*-
++# Copyright (c) 2016 The Chromium OS Authors. All rights reserved.
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++#
++# Board specific files build
++
++# the IC is STmicro STM32F072RBT6
++CHIP:=stm32
++CHIP_FAMILY:=stm32f0
++CHIP_VARIANT:=stm32f07x
++
++board-y=board.o fan.o power.o eeprom.o
+diff --git a/board/sulfur/debug.cfg b/board/sulfur/debug.cfg
+new file mode 100644
+index 0000000000..2799eacf63
+--- /dev/null
++++ b/board/sulfur/debug.cfg
+@@ -0,0 +1,17 @@
++
++source [find interface/jlink.cfg]
++
++transport select swd
++
++source [find target/stm32f0x.cfg]
++
++reset_config connect_assert_srst
++
++telnet_port 4444
++gdb_port 3333
++gdb_memory_map enable
++gdb_flash_program enable
++
++init
++reset init
++reset halt
+diff --git a/board/sulfur/ec.tasklist b/board/sulfur/ec.tasklist
+new file mode 100644
+index 0000000000..2f75bdc377
+--- /dev/null
++++ b/board/sulfur/ec.tasklist
+@@ -0,0 +1,24 @@
++/* Copyright (c) 2016 The Chromium OS Authors. All rights reserved.
++ * Use of this source code is governed by a BSD-style license that can be
++ * found in the LICENSE file.
++ */
++
++/**
++ * List of enabled tasks in the priority order
++ *
++ * The first one has the lowest priority.
++ *
++ * For each task, use the macro TASK_ALWAYS(n, r, d, s) for base tasks and
++ * TASK_NOTEST(n, r, d, s) for tasks that can be excluded in test binaries,
++ * where :
++ * 'n' in the name of the task
++ * 'r' in the main routine of the task
++ * 'd' in an opaque parameter passed to the routine at startup
++ * 's' is the stack size in bytes; must be a multiple of 8
++ */
++
++#define CONFIG_TASK_LIST \
++	TASK_ALWAYS(HOOKS,   hook_task,    NULL, LARGER_TASK_STACK_SIZE) \
++	TASK_ALWAYS(HOSTCMD, host_command_task, NULL, LARGER_TASK_STACK_SIZE) \
++	TASK_NOTEST(CHIPSET, chipset_task, NULL, LARGER_TASK_STACK_SIZE) \
++	TASK_ALWAYS(CONSOLE, console_task, NULL, LARGER_TASK_STACK_SIZE)
+diff --git a/board/sulfur/eeprom.c b/board/sulfur/eeprom.c
+new file mode 100644
+index 0000000000..564a170a07
+--- /dev/null
++++ b/board/sulfur/eeprom.c
+@@ -0,0 +1,171 @@
++/* Copyright (c) 2017 The Chromium OS Authors. All rights reserved.
++ * Use of this source code is governed by a BSD-style license that can be
++ * found in the LICENSE file.
++ */
++
++#include "common.h"
++#include "console.h"
++#include "eeprom.h"
++#include "endian.h"
++#include "board.h"
++#include "hooks.h"
++#include "util.h"
++#include "i2c.h"
++
++#define htons htobe16
++#define htonl htobe32
++
++#define ntohs htons
++#define ntohl htonl
++
++#define EEPROM_AUTOBOOT_FLAG (1 << 0)
++
++#define DEFAULT_FAN_MIN 3800
++#define DEFAULT_FAN_MAX 13000
++
++#define FAN_GET_MIN(x) ((x) & 0xff) * 100
++#define FAN_GET_MAX(x) (((x) >> 8) & 0xff) * 100
++
++static const uint32_t USRP_EEPROM_MAGIC = 0xF008AD10;
++
++static struct usrp_sulfur_eeprom eeprom;
++
++static int eeprom_check_initialized(void)
++{
++	/* this has to be good enough for now ... */
++	if (htonl(eeprom.magic) == USRP_EEPROM_MAGIC)
++		return 0;
++
++	return -1;
++}
++
++static int command_eeprom_info(int argc, char **argv)
++{
++	if (eeprom_check_initialized()) {
++		ccprintf("EEPROM not initialized\n");
++		return EC_ERROR_UNKNOWN;
++	}
++
++	ccprintf("Serial:\t\t%s\n", eeprom.serial);
++	ccprintf("Pid/Rev:\t%04x,Rev%u\n", ntohs(eeprom.pid),
++		 ntohs(eeprom.rev)+1);
++	ccprintf("MCU flags:\t%08x\n\t\t%08x\n\t\t%08x\n\t\t%08x\n",
++		 eeprom.mcu_flags[0], eeprom.mcu_flags[1],
++		 eeprom.mcu_flags[2], eeprom.mcu_flags[3]);
++	ccprintf("Eth0 Addr:\t%02x:%02x:%02x:%02x:%02x:%02x\n",
++		 eeprom.eth_addr0[0], eeprom.eth_addr0[1],
++		 eeprom.eth_addr0[2], eeprom.eth_addr0[3],
++		 eeprom.eth_addr0[4], eeprom.eth_addr0[5]);
++	ccprintf("Eth1 Addr:\t%02x:%02x:%02x:%02x:%02x:%02x\n",
++		 eeprom.eth_addr1[0], eeprom.eth_addr1[1],
++		 eeprom.eth_addr1[2], eeprom.eth_addr1[3],
++		 eeprom.eth_addr1[4], eeprom.eth_addr1[5]);
++	ccprintf("Eth2 Addr:\t%02x:%02x:%02x:%02x:%02x:%02x\n",
++		 eeprom.eth_addr2[0], eeprom.eth_addr2[1],
++		 eeprom.eth_addr2[2], eeprom.eth_addr2[3],
++		 eeprom.eth_addr2[4], eeprom.eth_addr2[5]);
++	ccprintf("Fan0\t\tmin:%u RPM\tmax:%u RPM\n",
++		 FAN_GET_MIN(htonl(eeprom.mcu_flags[1]) & 0xffff),
++		 FAN_GET_MAX(htonl(eeprom.mcu_flags[1]) & 0xffff));
++	ccprintf("Fan1\t\tmin:%u RPM\tmax:%u RPM\n",
++		 FAN_GET_MIN((htonl(eeprom.mcu_flags[1]) >> 16) & 0xffff),
++		 FAN_GET_MAX((htonl(eeprom.mcu_flags[1]) >> 16) & 0xffff));
++
++	return EC_SUCCESS;
++}
++DECLARE_CONSOLE_COMMAND(eeinfo, command_eeprom_info,
++			NULL, "Print EEPROM info");
++
++int eeprom_get_mcu_flags(uint32_t **mcu_flags)
++{
++	int ret;
++
++	ret = eeprom_check_initialized();
++	if (ret)
++		return ret;
++
++	*mcu_flags = eeprom.mcu_flags;
++
++	return 0;
++}
++
++int eeprom_get_autoboot(void)
++{
++	int ret;
++
++	/* if not initialized, don't autoboot */
++	ret = eeprom_check_initialized();
++	if (ret)
++		return 0;
++
++	return ntohl(eeprom.mcu_flags[0]) & EEPROM_AUTOBOOT_FLAG;
++}
++
++int eeprom_get_fan_min(int fan)
++{
++	int ret;
++	uint32_t flags;
++
++	/* if not initialized, return sane default */
++	ret = eeprom_check_initialized();
++	if (ret)
++		return DEFAULT_FAN_MIN;
++
++	flags = ntohl(eeprom.mcu_flags[1]);
++
++	if (fan && fan < FAN_CH_COUNT)
++		flags >>= 16;
++
++	if (!flags)
++		return DEFAULT_FAN_MIN;
++
++	return FAN_GET_MIN(flags);
++}
++
++int eeprom_get_fan_max(int fan)
++{
++	int ret;
++	uint32_t flags;
++
++	/* if not initialized, return sane default */
++	ret = eeprom_check_initialized();
++	if (ret)
++		return DEFAULT_FAN_MAX;
++
++	flags = ntohl(eeprom.mcu_flags[1]);
++
++	if (fan && fan < FAN_CH_COUNT)
++		flags >>= 16;
++
++	if (!flags)
++		return DEFAULT_FAN_MAX;
++
++	return FAN_GET_MAX(flags);
++}
++
++int eeprom_get_board_rev(void)
++{
++	int ret;
++
++	ret = eeprom_check_initialized();
++	if (ret)
++		return -1;
++
++	return ntohs(eeprom.rev);
++}
++
++void eeprom_init(void)
++{
++	int i, tmp, err;
++	uint8_t *eeprom_ptr = (uint8_t *)&eeprom;
++
++	for (i = 0; i < sizeof(eeprom); i++) {
++		err = i2c_read8(I2C_PORT_MASTER, 0xa0, i, &tmp);
++		if (err != EC_RES_SUCCESS)
++			return;
++		*eeprom_ptr++ = (uint8_t)tmp;
++	}
++
++	return;
++}
++DECLARE_HOOK(HOOK_INIT, eeprom_init, HOOK_PRIO_INIT_I2C + 1);
+diff --git a/board/sulfur/eeprom.h b/board/sulfur/eeprom.h
+new file mode 100644
+index 0000000000..158805f1a3
+--- /dev/null
++++ b/board/sulfur/eeprom.h
+@@ -0,0 +1,35 @@
++/* Copyright (c) 2017 The Chromium OS Authors. All rights reserved.
++ * Use of this source code is governed by a BSD-style license that can be
++ * found in the LICENSE file.
++ */
++
++#ifndef EEPROM_H
++#define EEPROM_H
++
++#define ETH_ALEN 6
++
++struct usrp_sulfur_eeprom {
++	uint32_t magic;
++	uint32_t version;
++	uint32_t mcu_flags[4];
++	uint16_t pid;
++	uint16_t rev;
++	uint8_t serial[8];
++	uint8_t eth_addr0[ETH_ALEN];
++	uint8_t __pad_0[2];
++	uint8_t eth_addr1[ETH_ALEN];
++	uint8_t __pad_1[2];
++	uint8_t eth_addr2[ETH_ALEN];
++	uint8_t __pad_2[2];
++	uint32_t crc;
++} __packed;
++
++int eeprom_get_mcu_flags(uint32_t **mcu_flags);
++
++int eeprom_get_autoboot(void);
++
++int eeprom_get_fan_min(int fan);
++
++int eeprom_get_fan_max(int fan);
++
++#endif /* EEPROM_H */
+diff --git a/board/sulfur/fan.c b/board/sulfur/fan.c
+new file mode 100644
+index 0000000000..d7901b67d6
+--- /dev/null
++++ b/board/sulfur/fan.c
+@@ -0,0 +1,240 @@
++/* Copyright (c) 2016 The Chromium OS Authors. All rights reserved.
++ * Use of this source code is governed by a BSD-style license that can be
++ * found in the LICENSE file.
++ */
++
++#include "fan.h"
++#include "hooks.h"
++#include "pwm.h"
++#include "common.h"
++#include "gpio.h"
++#include "timer.h"
++#include "console.h"
++#include "eeprom.h"
++
++struct fan_speed_t {
++	unsigned int flags;
++
++	uint64_t last_irq;
++	int fan_mode;
++
++	int rpm_actual;
++	int rpm_target;
++
++	enum fan_status sts;
++	int enabled;
++
++	int last_diff;
++};
++
++static struct fan_speed_t fan_speed_state[2];
++
++void fan_set_enabled(int ch, int enabled)
++{
++	const struct fan_t *fan = fans + ch;
++
++	if (enabled) {
++		fan_speed_state[ch].sts = FAN_STATUS_CHANGING;
++		pwm_enable(fan->ch, enabled);
++	} else {
++		pwm_set_duty(fan->ch, 0);
++	}
++
++	fan_speed_state[ch].enabled = enabled;
++}
++
++int fan_get_enabled(int ch)
++{
++	const struct fan_t *fan = fans + ch;
++
++	return pwm_get_enabled(fan->ch)
++		&& fan_speed_state[ch].enabled;
++}
++
++void fan_set_duty(int ch, int percent)
++{
++	const struct fan_t *fan = fans + ch;
++
++	pwm_set_duty(fan->ch, percent);
++}
++
++int fan_get_duty(int ch)
++{
++
++	const struct fan_t *fan = fans + ch;
++
++	return pwm_get_duty(fan->ch);
++}
++
++int fan_get_rpm_mode(int ch)
++{
++	const struct fan_t *fan = fans + ch;
++
++	return fan_speed_state[fan->ch].fan_mode;
++}
++
++void fan_set_rpm_mode(int ch, int rpm_mode)
++{
++	const struct fan_t *fan = fans + ch;
++
++	fan_speed_state[fan->ch].fan_mode = rpm_mode;
++}
++
++int fan_get_rpm_actual(int ch)
++{
++	const struct fan_t *fan = fans + ch;
++
++	return fan_speed_state[fan->ch].rpm_actual;
++}
++
++void fan_check_stall(void)
++{
++	int i;
++	uint64_t time_now = get_time().val;
++	uint64_t diff;
++
++	for (i = 0; i < FAN_CH_COUNT; i++) {
++		diff = time_now - fan_speed_state[i].last_irq;
++
++		if (diff > 500 * MSEC)
++			fan_speed_state[i].rpm_actual = 0;
++	}
++}
++DECLARE_HOOK(HOOK_SECOND, fan_check_stall, HOOK_PRIO_DEFAULT);
++
++int fan_get_rpm_target(int ch)
++{
++	const struct fan_t *fan = fans + ch;
++
++	if (fan_get_enabled(ch))
++		return fan_speed_state[fan->ch].rpm_target;
++
++	return 0;
++}
++
++test_mockable void fan_set_rpm_target(int ch, int rpm)
++{
++	const struct fan_t *fan = fans + ch;
++
++	if (rpm < fan->rpm_min)
++		rpm = fan->rpm_min;
++	fan_speed_state[fan->ch].rpm_target = rpm;
++}
++
++enum fan_status fan_get_status(int ch)
++{
++	return fan_speed_state[ch].sts;
++}
++
++int fan_is_stalled(int ch)
++{
++	if (!fan_get_enabled(ch) || fan_get_rpm_target(ch) == 0 ||
++	    !fan_get_duty(ch))
++		return 0;
++
++	return fan_speed_state[ch].sts == FAN_STATUS_STOPPED;
++}
++
++void fan_channel_setup(int ch, unsigned int flags)
++{
++	struct fan_t *fan = fans + ch;
++
++	fan->rpm_min = eeprom_get_fan_min(ch);
++	fan->rpm_max = eeprom_get_fan_max(ch);
++
++	pwm_enable(ch, 1);
++	pwm_set_duty(ch, 0);
++
++	fan_speed_state[ch].sts = FAN_STATUS_STOPPED;
++	fan_speed_state[ch].last_diff = 0;
++}
++
++void fan_init(void)
++{
++	int i;
++
++	for (i = 0; i < FAN_CH_COUNT; i++)
++		fan_channel_setup(i, 0);
++
++	msleep(50);
++
++	gpio_enable_interrupt(GPIO_SYS_FAN0_TACH);
++	gpio_enable_interrupt(GPIO_SYS_FAN1_TACH);
++}
++/* need to initialize the PWM before turning on IRQs */
++DECLARE_HOOK(HOOK_INIT, fan_init, HOOK_PRIO_INIT_PWM+1);
++
++#define FAN_READJUST 100
++
++void fan_ctrl(void)
++{
++	int ch, duty, diff, actual, target, last_diff;
++	for (ch = 0; ch < FAN_CH_COUNT; ch++)
++	{
++		if (!fan_get_enabled(ch))
++			continue;
++
++		duty = fan_get_duty(ch);
++		target = fan_get_rpm_target(ch);
++		actual = fan_get_rpm_actual(ch);
++		diff = target - actual;
++
++		last_diff = fan_speed_state[ch].last_diff;
++
++		/* once we're locked, don't wiggle around too much */
++		if (fan_speed_state[ch].sts == FAN_STATUS_LOCKED)
++			diff = (99 * last_diff + diff * 1) / 100;
++
++		fan_speed_state[ch].last_diff = diff;
++
++		/* too slow, speed up ... */
++		if (diff > FAN_READJUST) {
++			if (duty == 100) {
++				fan_speed_state[ch].sts = FAN_STATUS_FRUSTRATED;
++				continue;
++			} else if(diff > 1000) {
++				duty += 10;
++			} else if (diff > 500) {
++				duty += 5;
++			} else if (diff > 100)
++				duty += 1;
++
++			duty = duty > 100 ? 100 : duty;
++
++			fan_speed_state[ch].sts = FAN_STATUS_CHANGING;
++			fan_set_duty(ch, duty);
++		/* too fast, slow down ... */
++		} else if (diff < -FAN_READJUST) {
++			if (!duty) {
++				fan_speed_state[ch].sts = FAN_STATUS_FRUSTRATED;
++				continue;
++			} else if (diff < -1000) {
++				duty-=10;
++			} else if (diff < -500) {
++				duty-=5;
++			} else if (diff < -100) {
++				duty-=5;
++			}
++			duty = duty < 0 ? 0 : duty;
++
++			fan_speed_state[ch].sts = FAN_STATUS_CHANGING;
++			fan_set_duty(ch, duty);
++		} else {
++			fan_speed_state[ch].sts = FAN_STATUS_LOCKED;
++		}
++       }
++}
++DECLARE_HOOK(HOOK_SECOND, fan_ctrl, HOOK_PRIO_DEFAULT);
++
++void fan_tach_interrupt(enum gpio_signal sig)
++{
++	uint64_t diff;
++	uint64_t time_now = get_time().val;
++	int fan = sig - GPIO_SYS_FAN0_TACH;
++
++	diff = time_now - fan_speed_state[fan].last_irq;
++	fan_speed_state[fan].last_irq = time_now;
++
++	/* be careful here, to make sure diff is legit */
++	fan_speed_state[fan].rpm_actual = diff ? (300000 / (diff / 100)) : 0;
++}
+diff --git a/board/sulfur/fan_board.h b/board/sulfur/fan_board.h
+new file mode 100644
+index 0000000000..32e5f91445
+--- /dev/null
++++ b/board/sulfur/fan_board.h
+@@ -0,0 +1,9 @@
++#ifndef CAPTURE_H
++#define CAPTURE_H
++
++#include "common.h"
++#include "gpio.h"
++
++void fan_tach_interrupt(enum gpio_signal sig);
++
++#endif /* CAPTURE_H */
+diff --git a/board/sulfur/gpio.inc b/board/sulfur/gpio.inc
+new file mode 100644
+index 0000000000..b3c5827fa6
+--- /dev/null
++++ b/board/sulfur/gpio.inc
+@@ -0,0 +1,101 @@
++/* -*- mode:c -*-
++ *
++ * Copyright (c) 2017 The Chromium OS Authors. All rights reserved.
++ * Use of this source code is governed by a BSD-style license that can be
++ * found in the LICENSE file.
++ */
++
++/* Declare symbolic names for all the GPIOs that we care about.
++ * Note: Those with interrupt handlers must be declared first. */
++
++GPIO_INT(POWER_BUTTON_L,	PIN(B, 12), GPIO_INT_BOTH, power_button_interrupt)
++
++/* power signals, these will get handled in power task */
++GPIO_INT(POWER_PG_1V,		PIN(C, 3),  GPIO_INT_BOTH, power_signal_interrupt)
++GPIO_INT(POWER_PG_1V5,		PIN(A, 1),  GPIO_INT_BOTH, power_signal_interrupt)
++GPIO_INT(POWER_PG_3V7,		PIN(C, 4),  GPIO_INT_BOTH, power_signal_interrupt)
++GPIO_INT(POWER_PG_IO,		PIN(A, 6),  GPIO_INT_BOTH, power_signal_interrupt)
++GPIO_INT(POWER_PG_MGT,		PIN(B, 0),  GPIO_INT_BOTH, power_signal_interrupt)
++GPIO_INT(SYS_RTC_INT,		PIN(A, 15), GPIO_INT_FALLING, wdt_reset_event)
++
++GPIO_INT(SYS_PWRON_33,		PIN(C, 7),  GPIO_INT_BOTH, power_signal_interrupt)
++
++GPIO_INT(SYS_FAN0_TACH,		PIN(B, 8), GPIO_INT_RISING, fan_tach_interrupt)
++GPIO_INT(SYS_FAN1_TACH,		PIN(B, 9), GPIO_INT_RISING, fan_tach_interrupt)
++
++/* Outputs */
++GPIO(POWER_LED,			PIN(A, 8),  GPIO_OUT_HIGH)
++GPIO(MISC_LED,			PIN(B, 2), GPIO_OUT_LOW)
++
++GPIO(SYS_FAN0_PWM,		PIN(A, 2),  GPIO_OUT_HIGH)
++GPIO(SYS_FAN1_PWM,		PIN(C, 6),  GPIO_OUT_HIGH)
++
++GPIO(POE_SHDN,			PIN(C, 13), GPIO_OUT_LOW)
++GPIO(PS_POR_RESET_L,		PIN(B, 15), GPIO_OUT_LOW)
++
++/* MIO5 -> Default to SDBOOT (HIGH) */
++GPIO(PS_BOOTSEL,                PIN(B, 13), GPIO_INPUT)
++/* MIO2 -> Default to CASCADE (LOW) */
++GPIO(JTAG_SEL,			PIN(B, 14), GPIO_INPUT)
++
++/* EC_INT_L is called SYSCTRL_INTRQ in schematic */
++GPIO(EC_INT_L,			PIN(C, 8),  GPIO_OUT_HIGH)
++
++GPIO(SYS_GPIO0,			PIN(C, 10), GPIO_INPUT)
++GPIO(SYS_GPIO1,			PIN(C, 11), GPIO_INPUT)
++GPIO(SYS_GPIO2,			PIN(C, 12), GPIO_INPUT)
++GPIO(SYS_GPIO3,			PIN(B, 3),  GPIO_INPUT)
++
++/* Power enables */
++GPIO(POWER_EN_1V_L,		PIN(C, 2), GPIO_OUT_HIGH | GPIO_PULL_UP)
++GPIO(POWER_EN_1V5,		PIN(A, 3), GPIO_OUT_LOW | GPIO_PULL_DOWN)
++GPIO(POWER_EN_3V7,		PIN(C, 5), GPIO_OUT_LOW | GPIO_PULL_DOWN)
++GPIO(POWER_EN_IO,		PIN(C, 1), GPIO_OUT_LOW | GPIO_PULL_DOWN)
++GPIO(POWER_EN_5V,		PIN(A, 5), GPIO_OUT_LOW | GPIO_PULL_DOWN)
++GPIO(POWER_EN_MGT,		PIN(B, 1), GPIO_OUT_LOW | GPIO_PULL_DOWN)
++
++/* Inputs */
++GPIO(WP_L,			PIN(D, 2),  GPIO_INPUT)
++GPIO(POE_T2P_L,			PIN(C, 14), GPIO_INPUT)
++GPIO(AUXPWR_STAT,		PIN(C, 15), GPIO_INPUT)
++GPIO(PWRSW_STAT,		PIN(F, 0),  GPIO_INPUT)
++GPIO(PWRSW_CTRL,		PIN(F, 1),  GPIO_INPUT)
++GPIO(POWER_PG_5V,		PIN(A, 4),  GPIO_INPUT)
++
++GPIO(RESET_BUTTON_L,		PIN(C, 0),  GPIO_INPUT)
++
++/* Unimplemented signals which we need to emulate for now */
++UNIMPLEMENTED(ENTERING_RW)
++UNIMPLEMENTED(LID_OPEN)
++UNIMPLEMENTED(SUSPEND_L)
++
++/* These can be used for strapping resistors to allow indicating
++ * different options */
++UNIMPLEMENTED(BOARD_VERSION1)
++UNIMPLEMENTED(BOARD_VERSION2)
++UNIMPLEMENTED(BOARD_VERSION3)
++
++UNIMPLEMENTED(BAT_LED_RED)
++UNIMPLEMENTED(BAT_LED_GREEN)
++
++/*
++ * I2C pins should be configured as inputs until I2C module is
++ * initialized. This will avoid driving the lines unintentionally.
++ */
++GPIO(SLAVE_I2C_SCL,		PIN(B, 10), GPIO_INPUT)
++GPIO(SLAVE_I2C_SDA,		PIN(B, 11), GPIO_INPUT)
++GPIO(MASTER_I2C_SCL,		PIN(B, 6), GPIO_INPUT)
++GPIO(MASTER_I2C_SDA,		PIN(B, 7), GPIO_INPUT)
++
++/* Setup alternate functions as follows:
++ * I2C1:	(PB6/PB7)	AF1
++ * I2C2:	(PB10/PB11)	AF1
++ * USART1:	(PA9/PA10)	AF1
++ * TIM3:	(PC6)		AF0
++ * TIM15:	(PA2)		AF0
++ */
++ALTERNATE(PIN_MASK(B, 0x00c0), 1, MODULE_I2C, 0)
++ALTERNATE(PIN_MASK(B, 0x0c00), 1, MODULE_I2C, 0)
++ALTERNATE(PIN_MASK(A, 0x0600), 1, MODULE_UART,0)
++ALTERNATE(PIN_MASK(C, 0x0040), 0, MODULE_PWM, 0)
++ALTERNATE(PIN_MASK(A, 0x0004), 0, MODULE_PWM, 0)
+diff --git a/board/sulfur/openocd-flash.cfg b/board/sulfur/openocd-flash.cfg
+new file mode 100644
+index 0000000000..fe48a6b3af
+--- /dev/null
++++ b/board/sulfur/openocd-flash.cfg
+@@ -0,0 +1,36 @@
++# Copyright (c) 2016 The Chromium OS Authors. All rights reserved.
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++source [find interface/jlink.cfg]
++
++transport select swd
++
++set WORKAREASIZE 0x2000
++source [find target/stm32f0x.cfg]
++
++#reset_config srst_only
++
++# For flashing, force the board into reset on connect, this ensures that
++# code running on the core can't interfere with programming.
++reset_config connect_assert_srst
++
++# Flashing
++gdb_port 0
++tcl_port 0
++telnet_port 0
++init
++reset init
++flash write_image erase $BUILD_DIR/ec.bin 0x08000000
++reset halt
++resume
++shutdown
++
++#telnet_port 4444
++#gdb_port 3333
++#gdb_memory_map enable
++#gdb_flash_program enable
++
++#init
++#reset init
++#reset halt
+diff --git a/board/sulfur/power.c b/board/sulfur/power.c
+new file mode 100644
+index 0000000000..b3063fc820
+--- /dev/null
++++ b/board/sulfur/power.c
+@@ -0,0 +1,339 @@
++/* Copyright (c) 2016 The Chromium OS Authors. All rights reserved.
++ * Use of this source code is governed by a BSD-style license that can be
++ * found in the LICENSE file.
++ */
++
++#include "chipset.h"  /* This module implements chipset functions too */
++#include "clock.h"
++#include "common.h"
++#include "console.h"
++#include "eeprom.h"
++#include "gpio.h"
++#include "hooks.h"
++#include "host_command.h"
++#include "lid_switch.h"
++#include "power.h"
++#include "power_button.h"
++#include "power_led.h"
++#include "system.h"
++#include "task.h"
++#include "timer.h"
++#include "util.h"
++
++/* Console output macros */
++#define CPUTS(outstr) cputs(CC_CHIPSET, outstr)
++#define CPRINTS(format, args...) cprints(CC_CHIPSET, format, ## args)
++
++#define IN_PGOOD_AP  POWER_SIGNAL_MASK(SYS_PWRON_33)
++#define IN_PGOOD_1V  POWER_SIGNAL_MASK(POWER_PG_1V)
++#define IN_PGOOD_5V  POWER_SIGNAL_MASK(POWER_PG_5V)
++#define IN_PGOOD_MGT POWER_SIGNAL_MASK(POWER_PG_MGT)
++#define IN_PGOOD_1V5 POWER_SIGNAL_MASK(POWER_PG_1V5)
++#define IN_PGOOD_IO  POWER_SIGNAL_MASK(POWER_PG_IO)
++#define IN_PGOOD_3V7 POWER_SIGNAL_MASK(POWER_PG_3V7)
++
++
++#ifdef CONFIG_SULFUR_5V_WORKAROUND
++ #define IN_PGOOD_S5 IN_PGOOD_1V
++#else
++ #define IN_PGOOD_S5 (IN_PGOOD_5V | IN_PGOOD_1V)
++#endif /* CONFIG_SULFUR_5V_WORKAROUND */
++
++#define IN_PGOOD_S3 (IN_PGOOD_S5 | IN_PGOOD_1V5 | IN_PGOOD_MGT | IN_PGOOD_IO | IN_PGOOD_3V7)
++
++#define IN_PGOOD_S0 (IN_PGOOD_S3 | IN_PGOOD_AP)
++
++#define FORCED_SHUTDOWN_DELAY  (3 * SECOND)
++#define FORCED_RESET_DELAY  (50 * MSEC)
++
++#define PGOOD_AP_DEBOUNCE_TIMEOUT (1000 * MSEC)
++
++static int forcing_shutdown;
++
++static void power_dump_signals(void)
++{
++	int i;
++	uint32_t signals;
++	const struct power_signal_info *s = power_signal_list;
++
++	signals = power_get_signals();
++
++	CPRINTS("power in:   0x%04x\n", signals);
++
++	/* Print the decode */
++	CPRINTS("bit meanings:\n");
++	for (i = 0; i < POWER_SIGNAL_COUNT; i++, s++) {
++		int mask = 1 << i;
++		ccprintf("  0x%04x %d %s\n",
++			 mask, signals & mask ? 1 : 0, s->name);
++	}
++}
++
++static void ap_set_reset(int asserted)
++{
++	/* reset is low active */
++	gpio_set_level(GPIO_PS_POR_RESET_L, !asserted);
++}
++
++void chipset_force_shutdown(void)
++{
++	/*
++	 * Force power off. This condition will reset once the state machine
++	 * transitions to G3.
++	 */
++	forcing_shutdown = 1;
++	task_wake(TASK_ID_CHIPSET);
++}
++
++#define AP_RST_HOLD_US (1 * MSEC)
++void chipset_reset(int cold_reset)
++{
++#ifdef CONFIG_CMD_RTC
++	/* Print out the RTC to help correlate resets in logs. */
++	print_system_rtc(CC_CHIPSET);
++#endif
++
++	CPRINTS("%s(%d)", __func__, cold_reset);
++
++	ap_set_reset(1);
++	gpio_set_flags(GPIO_PS_BOOTSEL, GPIO_OUTPUT);
++	gpio_set_level(GPIO_PS_BOOTSEL, 1);
++	gpio_set_flags(GPIO_JTAG_SEL, GPIO_OUTPUT);
++	gpio_set_level(GPIO_JTAG_SEL, 0);
++
++	if (in_interrupt_context())
++		udelay(AP_RST_HOLD_US);
++	else
++		usleep(AP_RST_HOLD_US);
++	ap_set_reset(0);
++	gpio_set_flags(GPIO_PS_BOOTSEL, GPIO_INPUT);
++	gpio_set_flags(GPIO_JTAG_SEL, GPIO_INPUT);
++}
++
++enum power_state power_chipset_init(void)
++{
++	if (system_jumped_to_this_image()) {
++		if ((power_get_signals() & IN_PGOOD_S0) == IN_PGOOD_S0) {
++			disable_sleep(SLEEP_MASK_AP_RUN);
++			CPRINTS("already in S0");
++			return POWER_S0;
++		}
++	} else if (!(system_get_reset_flags() & RESET_FLAG_AP_OFF)) {
++		/* Auto-power on ? */
++		if (eeprom_get_autoboot())
++			chipset_exit_hard_off();
++	}
++
++	return POWER_G3;
++}
++
++static void force_shutdown(void)
++{
++	forcing_shutdown = 1;
++	CPRINTS("Forcing shutdown ...\n");
++	task_wake(TASK_ID_CHIPSET);
++}
++DECLARE_DEFERRED(force_shutdown);
++
++enum power_state power_handle_state(enum power_state state)
++{
++	switch (state) {
++	case POWER_G3:
++		break;
++	case POWER_S5:
++		if (forcing_shutdown)
++			return POWER_S5G3;
++		else
++			return POWER_S5S3;
++		break;
++
++	case POWER_S3:
++		if(!power_has_signals(IN_PGOOD_S5) || forcing_shutdown)
++			return POWER_S3S5;
++
++		gpio_set_level(GPIO_POWER_EN_MGT, 1);
++		usleep(5);
++		gpio_set_level(GPIO_POWER_EN_1V5, 1);
++		usleep(5);
++		gpio_set_level(GPIO_POWER_EN_IO, 1);
++		usleep(5);
++		gpio_set_level(GPIO_POWER_EN_3V7, 1);
++		usleep(5);
++
++		if (power_wait_signals_timeout(IN_PGOOD_S3, 100 * MSEC)
++		    == EC_ERROR_TIMEOUT) {
++			if (!power_has_signals(IN_PGOOD_S3)) {
++				power_dump_signals();
++				chipset_force_shutdown();
++				return POWER_S3S5;
++			}
++		}
++
++		gpio_set_flags(GPIO_PS_BOOTSEL, GPIO_OUTPUT);
++		gpio_set_level(GPIO_PS_BOOTSEL, 1);
++		gpio_set_flags(GPIO_JTAG_SEL, GPIO_OUTPUT);
++		gpio_set_level(GPIO_JTAG_SEL, 0);
++		usleep(5);
++		ap_set_reset(0);
++		usleep(15);
++		gpio_set_flags(GPIO_PS_BOOTSEL, GPIO_INPUT);
++		gpio_set_flags(GPIO_JTAG_SEL, GPIO_INPUT);
++
++		return POWER_S3S0;
++
++	case POWER_S0:
++		if (!power_has_signals(IN_PGOOD_S3) || forcing_shutdown)
++			return POWER_S0S3;
++
++		/*
++		 * Wait up to PGOOD_AP_DEBOUNCE_TIMEOUT for IN_PGOOD_AP to
++		 * come back before transitioning back to S3. PGOOD_SYS can
++		 * also glitch, with a glitch duration < 1ms, so debounce
++		 * it here as well.
++		 */
++		if (power_wait_signals_timeout(IN_PGOOD_AP,
++					       PGOOD_AP_DEBOUNCE_TIMEOUT)
++					       == EC_ERROR_TIMEOUT) {
++			forcing_shutdown = 1;
++			return POWER_S0S3;
++		}
++
++		/*
++		 * power_wait_signals_timeout() can block and consume task
++		 * wake events, so re-verify the state of the world.
++		 */
++		if (!power_has_signals(IN_PGOOD_S3) || forcing_shutdown)
++			return POWER_S0S3;
++
++		break;
++
++	case POWER_G3S5:
++		forcing_shutdown = 0;
++
++		return POWER_S5;
++
++	case POWER_S5G3:
++		return POWER_G3;
++
++	case POWER_S5S3:
++		ap_set_reset(1);
++
++		gpio_set_level(GPIO_POWER_EN_1V_L, 0);
++		usleep(5);
++		gpio_set_level(GPIO_POWER_EN_5V, 1);
++
++		if (power_wait_signals_timeout(IN_PGOOD_S5,
++					       5 * MSEC) == EC_ERROR_TIMEOUT)
++			return POWER_S0S3;
++
++		hook_notify(HOOK_CHIPSET_PRE_INIT);
++		return POWER_S3;
++
++	case POWER_S3S5:
++		/* Call hooks before we remove power rails */
++		hook_notify(HOOK_CHIPSET_SHUTDOWN);
++
++		gpio_set_level(GPIO_POWER_EN_5V, 0);
++		usleep(5);
++		gpio_set_level(GPIO_POWER_EN_1V_L, 1);
++
++		/* Change EC_INT_L pin to high-Z to reduce power draw. */
++		gpio_set_flags(GPIO_EC_INT_L, GPIO_INPUT);
++
++		/* Start shutting down */
++		return POWER_S5;
++
++	case POWER_S0S3:
++		/* Call hooks before we remove power rails */
++		hook_notify(HOOK_CHIPSET_SUSPEND);
++
++		gpio_set_level(GPIO_POWER_EN_MGT, 0);
++		gpio_set_level(GPIO_POWER_EN_1V5, 0);
++		gpio_set_level(GPIO_POWER_EN_IO, 0);
++		gpio_set_level(GPIO_POWER_EN_3V7, 0);
++
++		/*
++		 * Enable idle task deep sleep. Allow the low power idle task
++		 * to go into deep sleep in S3 or lower.
++		 */
++		enable_sleep(SLEEP_MASK_AP_RUN);
++
++		/*
++		 * In case the power button is held awaiting power-off timeout,
++		 * power off immediately now that we're entering S3.
++		 */
++		if (power_button_is_pressed()) {
++			forcing_shutdown = 1;
++			hook_call_deferred(&force_shutdown_data, -1);
++		}
++
++		return POWER_S3;
++
++	case POWER_S3S0:
++		if (power_wait_signals(IN_PGOOD_S0)) {
++			chipset_force_shutdown();
++			return POWER_S0S3;
++		}
++
++		/* Call hooks now that rails are up */
++		hook_notify(HOOK_CHIPSET_RESUME);
++
++		/*
++		 * Disable idle task deep sleep. This means that the low
++		 * power idle task will not go into deep sleep while in S0.
++		 */
++		disable_sleep(SLEEP_MASK_AP_RUN);
++		return POWER_S0;
++	default:
++		break;
++	}
++
++	return state;
++}
++
++static void powerbtn_sulfur_changed(void)
++{
++	if (power_button_is_pressed()) {
++		if (chipset_in_state(CHIPSET_STATE_ANY_OFF))
++			/* Power up from off */
++			chipset_exit_hard_off();
++
++		/* Delayed power down from S0/S3, cancel on PB release */
++		hook_call_deferred(&force_shutdown_data,
++				   FORCED_SHUTDOWN_DELAY);
++	} else {
++		/* Power button released, cancel deferred shutdown */
++		hook_call_deferred(&force_shutdown_data, -1);
++	}
++}
++DECLARE_HOOK(HOOK_POWER_BUTTON_CHANGE, powerbtn_sulfur_changed,
++	     HOOK_PRIO_DEFAULT);
++
++static void force_reset(void)
++{
++	chipset_reset(1);
++	chipset_exit_hard_off();
++}
++DECLARE_DEFERRED(force_reset);
++
++static int reset_button_is_pressed(void)
++{
++	return !gpio_get_level(GPIO_RESET_BUTTON_L);
++}
++
++static void reset_button_poll(void)
++{
++	if (reset_button_is_pressed())
++		hook_call_deferred(&force_reset_data, 10 * MSEC);
++	else
++		hook_call_deferred(&force_reset_data, -1);
++}
++DECLARE_HOOK(HOOK_TICK, reset_button_poll, HOOK_PRIO_DEFAULT);
++
++void wdt_reset_event(enum gpio_signal signal)
++{
++	CPRINTS("Watchdog timeout, warm reset the AP\n");
++	host_set_single_event(EC_HOST_EVENT_HANG_REBOOT);
++	hook_call_deferred(&force_reset_data, 10 * MSEC);
++}
++
+-- 
+2.43.0
+

@@ -1,0 +1,35 @@
+From 4fd784067f60ded04615ca9647ff2e1b1c5b17cf Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Mon, 5 Aug 2019 11:00:06 +0200
+Subject: [PATCH 15/18] sulfur: apply Rev5 workaround for Rev5+ and not just
+ Rev5
+
+The rev5 workaround (increase boot timeouts) is also needed for Rev5+.
+
+The SCU binary which was shipped with upgrade_mcu_v1.1.7348-d04291fc1.tar.gz
+already contained the string "Enabling rev5+ workaround", so it seems
+that the commit 0b98e618aaf was incomplete.
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ board/sulfur/power.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/board/sulfur/power.c b/board/sulfur/power.c
+index 30e236ddf4..5800e307a6 100644
+--- a/board/sulfur/power.c
++++ b/board/sulfur/power.c
+@@ -121,8 +121,8 @@ enum power_state power_chipset_init(void)
+ 
+ 	/* if error, i.e. not initialized, or 5, behave like 5 */
+ 	rev = eeprom_get_board_rev();
+-	if (rev < 0 || (rev + 1) == 5) {
+-		CPRINTS("Enabling rev5 workaround");
++	if (rev < 0 || (rev + 1) >= 5) {
++		CPRINTS("Enabling rev5+ workaround");
+ 		is_rev5 = 1;
+ 	}
+ 
+-- 
+2.43.0
+

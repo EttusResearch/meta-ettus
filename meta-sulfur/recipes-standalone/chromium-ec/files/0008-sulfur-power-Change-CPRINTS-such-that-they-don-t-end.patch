@@ -1,0 +1,49 @@
+From cce4e326f1169d9f88fd0c9e3256c61c36b6e92d Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Mon, 20 Nov 2017 15:42:35 -0800
+Subject: [PATCH 08/18] sulfur: power: Change CPRINTS such that they don't end
+ in "\n"
+
+Make sure that stuff using CPRINTS() does not add "\n",
+since this looks awkward otherwise.
+
+Change-Id: I044dbc5975f87b4f626cbed0c6108561a4976c0f
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ board/sulfur/power.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/board/sulfur/power.c b/board/sulfur/power.c
+index 40e31869d3..13369a88e8 100644
+--- a/board/sulfur/power.c
++++ b/board/sulfur/power.c
+@@ -62,7 +62,7 @@ static void power_dump_signals(void)
+ 	CPRINTS("power in:   0x%04x\n", signals);
+ 
+ 	/* Print the decode */
+-	CPRINTS("bit meanings:\n");
++	CPRINTS("bit meanings:");
+ 	for (i = 0; i < POWER_SIGNAL_COUNT; i++, s++) {
+ 		int mask = 1 << i;
+ 		ccprintf("  0x%04x %d %s\n",
+@@ -140,7 +140,7 @@ enum power_state power_chipset_init(void)
+ static void force_shutdown(void)
+ {
+ 	forcing_shutdown = 1;
+-	CPRINTS("Forcing shutdown ...\n");
++	CPRINTS("Forcing shutdown ...");
+ 	task_wake(TASK_ID_CHIPSET);
+ }
+ DECLARE_DEFERRED(force_shutdown);
+@@ -345,7 +345,7 @@ DECLARE_HOOK(HOOK_TICK, reset_button_poll, HOOK_PRIO_DEFAULT);
+ 
+ void wdt_reset_event(enum gpio_signal signal)
+ {
+-	CPRINTS("Watchdog timeout, warm reset the AP\n");
++	CPRINTS("Watchdog timeout, warm reset the AP");
+ 	wdt_reset = 1;
+ 	host_set_single_event(EC_HOST_EVENT_HANG_REBOOT);
+ 	hook_call_deferred(&force_reset_data, 10 * MSEC);
+-- 
+2.43.0
+

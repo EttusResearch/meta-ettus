@@ -1,0 +1,26 @@
+From bab29b6389bcc0ca57bfb77d6bad46c8dd4597e7 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Wed, 15 Nov 2017 11:52:35 -0800
+Subject: [PATCH 06/18] suflur: Re-enable the CONFIG_VBOOT_HASH
+
+Change-Id: Idb076abf8fc0c0f672a90f550929e2b13170a252
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ board/sulfur/board.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/board/sulfur/board.h b/board/sulfur/board.h
+index 51ae4103d9..dae18d4aca 100644
+--- a/board/sulfur/board.h
++++ b/board/sulfur/board.h
+@@ -25,6 +25,7 @@
+ #define CONFIG_SULFUR_5V_WORKAROUND
+ 
+ #define CONFIG_FAN_RPM_CUSTOM
++#define CONFIG_VBOOT_HASH
+ 
+ #define CONFIG_POWER_BUTTON
+ #define CONFIG_POWER_COMMON
+-- 
+2.43.0
+

@@ -1,0 +1,45 @@
+From 31658015a63ac1cd0181ab2abe55d99bb625a7db Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@ni.com>
+Date: Tue, 14 May 2019 10:14:21 +0200
+Subject: [PATCH 13/18] sulfur: always reload EEPROM info when running ec
+ command "eeinfo"
+
+This is useful for debugging in case the EEPROM content was changed
+from the AP, e.g. when running the EEPROM tools provided by MPM.
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@ni.com>
+---
+ board/sulfur/eeprom.c | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/board/sulfur/eeprom.c b/board/sulfur/eeprom.c
+index 4d9a65012f..03663077f1 100644
+--- a/board/sulfur/eeprom.c
++++ b/board/sulfur/eeprom.c
+@@ -34,6 +34,8 @@ static const uint32_t USRP_EEPROM_MAGIC = 0xF008AD10;
+ 
+ static struct usrp_sulfur_eeprom eeprom;
+ 
++void eeprom_init(void);
++
+ static int eeprom_check_initialized(void)
+ {
+ 	/* this has to be good enough for now ... */
+@@ -60,7 +62,13 @@ static int eeprom_check_crc(void)
+ static int command_eeprom_info(int argc, char **argv)
+ {
+ 	if (eeprom_check_initialized()) {
+-		ccprintf("EEPROM not initialized\n");
++		ccprintf("Error: EEPROM was not initialized\n");
++	}
++	/* always reload the eeprom information, this is useful for
++	debugging in case the EEPROM content was changed from the AP */
++	eeprom_init();
++	if (eeprom_check_initialized()) {
++		ccprintf("Error: EEPROM reinitialization failed\n");
+ 		return EC_ERROR_UNKNOWN;
+ 	}
+ 
+-- 
+2.43.0
+

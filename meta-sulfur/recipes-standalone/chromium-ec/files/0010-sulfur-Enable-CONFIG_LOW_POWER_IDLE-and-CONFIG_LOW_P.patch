@@ -1,0 +1,32 @@
+From 044645060203cb384da5a939b4782025c1e0c090 Mon Sep 17 00:00:00 2001
+From: Moritz Fischer <moritz.fischer@ettus.com>
+Date: Tue, 21 Nov 2017 17:39:55 -0800
+Subject: [PATCH 10/18] sulfur: Enable CONFIG_LOW_POWER_IDLE and
+ CONFIG_LOW_POWER_S0
+
+This enables deeper sleep states, this used to be trouble,
+but now works.
+
+Change-Id: I716ca33985e2c318ccf4d999a0574a61f562e3f4
+Signed-off-by: Moritz Fischer <moritz.fischer@ettus.com>
+---
+ board/sulfur/board.h | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/board/sulfur/board.h b/board/sulfur/board.h
+index 71dd87965d..5b5544b88c 100644
+--- a/board/sulfur/board.h
++++ b/board/sulfur/board.h
+@@ -78,6 +78,9 @@
+ #define I2C_PORT_THERMAL I2C_PORT_MASTER
+ #define CONFIG_HOSTCMD_ALIGNED
+ 
++#define CONFIG_LOW_POWER_IDLE
++#define CONFIG_LOW_POWER_S0
++
+ /* Timer selection */
+ #define TIM_CLOCK32 2
+ #define TIM_WATCHDOG 4
+-- 
+2.43.0
+
