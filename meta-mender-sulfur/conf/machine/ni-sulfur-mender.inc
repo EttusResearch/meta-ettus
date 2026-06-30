@@ -20,3 +20,5 @@ MENDER_PERSISTENT_CONFIGURATION_VARS = "RootfsPartA RootfsPartB"
 # MENDER_ARTIFACT_EXTRA_ARGS:append = " -v 2"
 
 # IMAGE_BOOT_FILES:append = " u-boot.env"
+
+PREFERRED_VERSION_mender ?= "4.0.7"

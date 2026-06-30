@@ -11,3 +11,5 @@ MENDER_PERSISTENT_CONFIGURATION_VARS = "RootfsPartA RootfsPartB"
 
 MENDER_DATA_PART_FSTAB_OPTS ?= "defaults,noatime"
 MENDER_BOOT_PART_FSTAB_OPTS ?= "defaults,noatime"
+
+PREFERRED_VERSION_mender ?= "4.0.7"

@@ -18,3 +18,5 @@ IMAGE_INSTALL:append = " mender-migrate-configuration mender-is-mender-update"
 PACKAGECONFIG:remove = "split-mender-config"
 MENDER_PERSISTENT_CONFIGURATION_VARS = "RootfsPartA RootfsPartB"
 # MENDER_ARTIFACT_EXTRA_ARGS:append = " -v 2"
+
+PREFERRED_VERSION_mender ?= "4.0.7"
