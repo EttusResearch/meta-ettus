@@ -66,3 +66,14 @@ EXTRA_OECMAKE = "-DENABLE_LIBUHD=TRUE \
                  -DQEMU_PYTHON_EXECUTABLE=${WORKDIR}/recipe-sysroot/usr/bin/python3/python3 \
                  -DQEMU_SYSROOT=${WORKDIR}/recipe-sysroot \
                 "
+
+do_configure:append() {
+    if [ -n "${SOURCE_DATE_EPOCH}" ]; then
+        echo "Replacing local build and sysroot directories in build_info.cpp"
+        sed -i "s|${B}|BUILD_DIR|g" ${B}/lib/build_info.cpp
+        sed -i "s|${S}|SOURCE_DIR|g" ${B}/lib/build_info.cpp
+        sed -i "s|${RECIPE_SYSROOT_NATIVE}|RECIPE_SYSROOT_NATIVE|g" ${B}/lib/build_info.cpp
+        sed -i "s|${RECIPE_SYSROOT}|RECIPE_SYSROOT|g" ${B}/lib/build_info.cpp
+        sed -i "s|${WORKDIR}|WORKDIR|g" ${B}/lib/build_info.cpp
+    fi
+}
