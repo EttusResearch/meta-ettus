@@ -1,0 +1,1021 @@
+From dd2c5624587cf5c1a433af38cb022836a7b30a09 Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@ni.com>
+Date: Tue, 28 Apr 2026 13:48:25 +0200
+Subject: [PATCH 10/13] mpm: refactor thermal/fan sensor handling with unified
+ hwmon/sysfs abstraction
+
+Introduce HwmonTempSensors (sysfs_hwmon.py) and refactor
+SysfsThermalSensors (sysfs_thermal.py) to enumerate available sensors
+once at construction time and cache device references in a sensor_map
+dict, avoiding repeated udev context creation and device-tree walks on
+every readout.
+
+HwmonTempSensors supports the cros-ec hwmon subsystem and accepts a
+sensor_list parameter to discover both temp and fan sensors. A new
+read_fan_sensor_value() method is added alongside the existing
+read_thermal_sensor_value(). Multiple subsystems (hwmon, iio) and
+sensor formats are supported via a read_sysfs_sensors_value() utility.
+
+SysfsThermalSensors is extended to support multiple subsystems (IIO
+and thermal) and a data_probe parameter for flexible attribute reading.
+A read_fan_sensor_value() method is added to match the hwmon interface.
+
+Both classes expose the same read_thermal_sensor_value(sensor_names,
+reduce_fn) interface, making them interchangeable at the call site.
+
+All affected peripheral managers are updated:
+- E320: updated to use the new sensor abstraction pattern
+- N3xx: refactored temp and fan sensor methods for hwmon/thermal backends
+- X4xx: unified _temp_fan_sensors handle with hwmon/thermal dispatch,
+  add missing HwmonTempSensors import
+- E310: add dynamic MB temperature sensor type detection instead of
+  hardcoding "jc-42.4-temp", fixing usrp_list_sensors compatibility
+
+A _hwmon_based_sensors flag at init time selects the correct backend
+for fan and temperature reads on all platforms.
+---
+ mpm/python/usrp_mpm/dboard_manager/fbx.py     |   5 +-
+ mpm/python/usrp_mpm/dboard_manager/hbx.py     |   9 +-
+ mpm/python/usrp_mpm/dboard_manager/zbx.py     |   9 +-
+ mpm/python/usrp_mpm/periph_manager/e31x.py    |  29 ++-
+ mpm/python/usrp_mpm/periph_manager/e320.py    |  75 ++++---
+ mpm/python/usrp_mpm/periph_manager/n3xx.py    |  53 +++--
+ mpm/python/usrp_mpm/periph_manager/x4xx.py    |  42 ++--
+ .../usrp_mpm/periph_manager/x4xx_periphs.py   |  37 ++-
+ mpm/python/usrp_mpm/sys_utils/sysfs_hwmon.py  | 211 ++++++++++++++++++
+ .../usrp_mpm/sys_utils/sysfs_thermal.py       | 181 ++++++++++++---
+ 10 files changed, 520 insertions(+), 131 deletions(-)
+ create mode 100644 mpm/python/usrp_mpm/sys_utils/sysfs_hwmon.py
+
+diff --git a/mpm/python/usrp_mpm/dboard_manager/fbx.py b/mpm/python/usrp_mpm/dboard_manager/fbx.py
+index 78ab2ce11d..d2aba07df1 100644
+--- a/mpm/python/usrp_mpm/dboard_manager/fbx.py
++++ b/mpm/python/usrp_mpm/dboard_manager/fbx.py
+@@ -8,7 +8,7 @@ FBX dboard implementation module
+ 
+ from usrp_mpm.dboard_manager import DboardManagerBase
+ from usrp_mpm.dboard_manager.x4xx_db import X4xxDbMixin
+-from usrp_mpm.periph_manager.x4xx_periphs import get_temp_sensor
++from usrp_mpm.periph_manager.x4xx_periphs import get_temp_sensors
+ 
+ # pylint: disable=too-few-public-methods
+ 
+@@ -69,6 +69,7 @@ class FBX(X4xxDbMixin, DboardManagerBase):
+     #########################################################################
+     def __init__(self, slot_idx, **kwargs):
+         super().__init__("FBX", slot_idx, **kwargs)
++        self._temp_sensors = get_temp_sensors(log=self.log)
+ 
+     #########################################################################
+     # UHD (De-)Initialization
+@@ -113,4 +114,4 @@ class FBX(X4xxDbMixin, DboardManagerBase):
+             f"TMP112 DB{self.slot_idx} Top",
+             f"TMP112 DB{self.slot_idx} Bottom",
+         ]
+-        return get_temp_sensor(sensor_names, log=self.log)
++        return self._temp_sensors.read_thermal_sensor_value(sensor_names)
+diff --git a/mpm/python/usrp_mpm/dboard_manager/hbx.py b/mpm/python/usrp_mpm/dboard_manager/hbx.py
+index 66f6c0dcde..5ed0edbdbb 100644
+--- a/mpm/python/usrp_mpm/dboard_manager/hbx.py
++++ b/mpm/python/usrp_mpm/dboard_manager/hbx.py
+@@ -9,7 +9,7 @@ from usrp_mpm.chips.ic_reg_maps import hbx_cpld_regs_t
+ from usrp_mpm.dboard_manager import DboardManagerBase
+ from usrp_mpm.dboard_manager.x4xx_db import X4xxDbMixin
+ from usrp_mpm.mpmutils import parse_encoded_git_hash, poll_with_timeout
+-from usrp_mpm.periph_manager.x4xx_periphs import get_temp_sensor
++from usrp_mpm.periph_manager.x4xx_periphs import get_temp_sensors
+ 
+ 
+ ###############################################################################
+@@ -89,6 +89,7 @@ class HBX(X4xxDbMixin, DboardManagerBase):
+         self.hbx_power_up()
+         self._cpld_set_safe_defaults()
+         self.commit()
++        self._temp_sensors = get_temp_sensors(log=self.log)
+ 
+     #########################################################################
+     # DB-CPLD Interfacing
+@@ -393,7 +394,7 @@ class HBX(X4xxDbMixin, DboardManagerBase):
+             f"TMP112 DB{self.slot_idx} Top",
+             f"TMP112 DB{self.slot_idx} Bottom",
+         ]
+-        return get_temp_sensor(sensor_names, log=self.log)
++        return self._temp_sensors.read_thermal_sensor_value(sensor_names)
+ 
+     def get_rf_temp_sensor_top(self, _):
+         """Return the RF temperature value of the sensor on the top of the PCB."""
+@@ -401,7 +402,7 @@ class HBX(X4xxDbMixin, DboardManagerBase):
+         sensor_names = [
+             f"TMP112 DB{self.slot_idx} Top",
+         ]
+-        return get_temp_sensor(sensor_names, log=self.log)
++        return self._temp_sensors.read_thermal_sensor_value(sensor_names)
+ 
+     def get_rf_temp_sensor_bottom(self, _):
+         """Return the RF temperature value of the sensor on the bottom of the PCB."""
+@@ -409,4 +410,4 @@ class HBX(X4xxDbMixin, DboardManagerBase):
+         sensor_names = [
+             f"TMP112 DB{self.slot_idx} Bottom",
+         ]
+-        return get_temp_sensor(sensor_names, log=self.log)
++        return self._temp_sensors.read_thermal_sensor_value(sensor_names)
+diff --git a/mpm/python/usrp_mpm/dboard_manager/zbx.py b/mpm/python/usrp_mpm/dboard_manager/zbx.py
+index 9454267c7b..fc6baeb9c6 100644
+--- a/mpm/python/usrp_mpm/dboard_manager/zbx.py
++++ b/mpm/python/usrp_mpm/dboard_manager/zbx.py
+@@ -14,7 +14,7 @@ from usrp_mpm.chips.ic_reg_maps import zbx_cpld_regs_t
+ from usrp_mpm.dboard_manager import DboardManagerBase
+ from usrp_mpm.dboard_manager.x4xx_db import X4xxDbMixin
+ from usrp_mpm.mpmutils import parse_encoded_git_hash
+-from usrp_mpm.periph_manager.x4xx_periphs import get_temp_sensor
++from usrp_mpm.periph_manager.x4xx_periphs import get_temp_sensors
+ from usrp_mpm.sys_utils.udev import get_eeprom_paths_by_symbol
+ 
+ 
+@@ -100,6 +100,7 @@ class ZBX(X4xxDbMixin, DboardManagerBase):
+         self.poke_cpld = self.db_iface.poke_db_cpld
+         self.peek_cpld = self.db_iface.peek_db_cpld
+         self.regs = zbx_cpld_regs_t()
++        self._temp_sensors = get_temp_sensors(log=self.log)
+         self._spi_addr = self.regs.SPI_READY_addr
+         # Check register map compatibility
+         self._check_compat_version()
+@@ -431,7 +432,7 @@ class ZBX(X4xxDbMixin, DboardManagerBase):
+         sensor_names = [
+             f"TMP112 DB{self.slot_idx} Top",
+         ]
+-        return get_temp_sensor(sensor_names, log=self.log)
++        return self._temp_sensors.read_thermal_sensor_value(sensor_names)
+ 
+     def get_rf_temp_sensor_bottom(self, _):
+         """
+@@ -441,7 +442,7 @@ class ZBX(X4xxDbMixin, DboardManagerBase):
+         sensor_names = [
+             f"TMP112 DB{self.slot_idx} Bottom",
+         ]
+-        return get_temp_sensor(sensor_names, log=self.log)
++        return self._temp_sensors.read_thermal_sensor_value(sensor_names)
+ 
+     def get_rf_temp_sensor_average(self, _):
+         """
+@@ -452,4 +453,4 @@ class ZBX(X4xxDbMixin, DboardManagerBase):
+             f"TMP112 DB{self.slot_idx} Top",
+             f"TMP112 DB{self.slot_idx} Bottom",
+         ]
+-        return get_temp_sensor(sensor_names, log=self.log)
++        return self._temp_sensors.read_thermal_sensor_value(sensor_names)
+diff --git a/mpm/python/usrp_mpm/periph_manager/e31x.py b/mpm/python/usrp_mpm/periph_manager/e31x.py
+index f1a31b6bf2..3c13e149a1 100644
+--- a/mpm/python/usrp_mpm/periph_manager/e31x.py
++++ b/mpm/python/usrp_mpm/periph_manager/e31x.py
+@@ -207,6 +207,7 @@ class e31x(ZynqComponents, PeriphManagerBase):
+             self.apply_idle_overlay()
+             self._device_initialized = False
+         self._init_gps_sensors()
++        self.mb_temp_sensor_type = None
+ 
+     def _init_gps_sensors(self):
+         """
+@@ -649,14 +650,33 @@ class e31x(ZynqComponents, PeriphManagerBase):
+         """
+         Get temperature sensor reading of the E310.
+         """
++        data_probes = ["temp1_input"]
++        if self.mb_temp_sensor_type == None:
++            sensor_types = ["jc-42.4-temp","jc42"]
++            for sensor_type in sensor_types:
++                try:
++                    read_sysfs_sensors_value(
++                            sensor_type, 
++                            data_probes[0], 
++                            "hwmon", 
++                            "name"
++                        )[0]
++                    self.mb_temp_sensor_type = sensor_type
++                    self.log.debug(f"MB temperature sensor type detected: {sensor_type}")
++                    break
++                except IndexError:
++                    continue
++
+         self.log.trace("Reading temperature.")
+         temp = "-1"
+         raw_val = {}
+-        data_probes = ["temp1_input"]
+         try:
+             for data_probe in data_probes:
+                 raw_val[data_probe] = read_sysfs_sensors_value(
+-                    "jc-42.4-temp", data_probe, "hwmon", "name"
++                    self.mb_temp_sensor_type, 
++                    data_probe, 
++                    "hwmon", 
++                    "name"
+                 )[0]
+             temp = str(raw_val["temp1_input"] / 1000)
+         except ValueError:
+@@ -675,7 +695,10 @@ class e31x(ZynqComponents, PeriphManagerBase):
+         data_probes = ["in_temp0_raw", "in_temp0_scale", "in_temp0_offset"]
+         try:
+             for data_probe in data_probes:
+-                raw_val[data_probe] = read_sysfs_sensors_value("xadc", data_probe, "iio", "name")[0]
++                raw_val[data_probe] = read_sysfs_sensors_value("xadc",
++                                                               data_probe,
++                                                               "iio",
++                                                               "name")[0]
+             temp = str(
+                 (raw_val["in_temp0_raw"] + raw_val["in_temp0_offset"])
+                 * raw_val["in_temp0_scale"]
+diff --git a/mpm/python/usrp_mpm/periph_manager/e320.py b/mpm/python/usrp_mpm/periph_manager/e320.py
+index ae02b25562..ac65afbb3d 100644
+--- a/mpm/python/usrp_mpm/periph_manager/e320.py
++++ b/mpm/python/usrp_mpm/periph_manager/e320.py
+@@ -22,10 +22,8 @@ from usrp_mpm.periph_manager import PeriphManagerBase
+ from usrp_mpm.periph_manager.e320_periphs import MboardRegsControl
+ from usrp_mpm.rpc_utils import get_map_for_rpc, no_rpc
+ from usrp_mpm.sys_utils import dtoverlay
+-from usrp_mpm.sys_utils.sysfs_thermal import (
+-    read_thermal_sensor_value,
+-    read_thermal_sensors_value,
+-)
++from usrp_mpm.sys_utils.sysfs_hwmon import HwmonTempSensors
++from usrp_mpm.sys_utils.sysfs_thermal import SysfsThermalSensors
+ from usrp_mpm.sys_utils.udev import get_spidev_nodes
+ from usrp_mpm.xports import XportMgrUDP
+ 
+@@ -167,6 +165,22 @@ class e320(ZynqComponents, PeriphManagerBase):
+         for sensor_name, sensor_cb_name in self.mboard_sensor_callback_map.items():
+             if sensor_name[:5] == "temp_":
+                 setattr(self, sensor_cb_name, partial(self.get_temp_sensor, sensor_name))
++
++        def get_temp_sensors(log=None):
++            try:
++                temp_sensors = HwmonTempSensors(
++                    log, dev_filter={"OF_NAME": "embedded-controller"}, sensor_list=["temp", "fan"]
++                )
++
++            except RuntimeError:
++                temp_sensors = SysfsThermalSensors(
++                    log, subsystem="thermal", attribute="type", data_probe=["temp", "cur_state"]
++                )
++            return temp_sensors
++
++        self._temp_fan_sensors = get_temp_sensors(log=self.log)
++        self._hwmon_based_sensors = isinstance(self._temp_fan_sensors, HwmonTempSensors)
++
+         try:
+             self._init_peripherals(args)
+         except BaseException as ex:
+@@ -587,23 +601,29 @@ class e320(ZynqComponents, PeriphManagerBase):
+         """
+         Get temperature sensor reading of the E320.
+         """
+-        temp_sensor_map = {
+-            "temp_internal": 0,
+-            "temp_rf_channelA": 1,
+-            "temp_fpga": 2,
+-            "temp_rf_channelB": 3,
+-            "temp_main_power": 4,
+-        }
+         self.log.trace("Reading temperature.")
+-        return_val = "-1"
+-        sensor = temp_sensor_map[sensor_name]
+-        try:
+-            raw_val = read_thermal_sensors_value("cros-ec-thermal", "temp")[sensor]
+-            return_val = str(raw_val / 1000)
+-        except ValueError:
+-            self.log.warning("Error when converting temperature value")
+-        except KeyError:
+-            self.log.warning("Can't read temp on thermal_zone {}".format(sensor))
++        if not self._hwmon_based_sensors:
++            temp_sensor_map = {
++                "temp_internal": 0,
++                "temp_rf_channelA": 1,
++                "temp_fpga": 2,
++                "temp_rf_channelB": 3,
++                "temp_main_power": 4,
++            }
++            sensor = lambda x: f"cros-ec-thermal{x}" if x > 0 else "cros-ec-thermal"
++            return_val = self._temp_fan_sensors.read_thermal_sensor_value(
++                [sensor(temp_sensor_map[sensor_name])], "temp"
++            )["value"]
++        else:
++            temp_sensor_map = {
++                "temp_internal": "TMP464_Internal",
++                "temp_rf_channelA": "TMP464_Remote_1",
++                "temp_fpga": "TMP464_Remote_2",
++                "temp_rf_channelB": "TMP464_Remote_3",
++                "temp_main_power": "TMP464_Remote_4",
++            }
++            sensor = temp_sensor_map[sensor_name]
++            return_val = self._temp_fan_sensors.read_thermal_sensor_value([sensor])["value"]
+         return {"name": sensor_name, "type": "REALNUM", "unit": "C", "value": return_val}
+ 
+     def get_gps_locked_sensor(self):
+@@ -623,15 +643,12 @@ class e320(ZynqComponents, PeriphManagerBase):
+         Return a sensor dictionary containing the RPM of the cooling device/fan0
+         """
+         self.log.trace("Reading cooling device.")
+-        return_val = "-1"
+-        try:
+-            raw_val = read_thermal_sensor_value("Fan", "cur_state")
+-            return_val = str(raw_val)
+-        except ValueError:
+-            self.log.warning("Error when converting fan speed value")
+-        except KeyError:
+-            self.log.warning("Can't read cur_state on Fan")
+-        return {"name": "cooling fan", "unit": "rpm", "type": "INTEGER", "value": return_val}
++        if not self._hwmon_based_sensors:
++            return_val = self._temp_fan_sensors.read_fan_sensor_value("Fan", "cur_state")
++        else:
++            return_val = self._temp_fan_sensors.read_fan_sensor_value("fan1")
++
++        return return_val
+ 
+     ###########################################################################
+     # EEPROMs
+diff --git a/mpm/python/usrp_mpm/periph_manager/n3xx.py b/mpm/python/usrp_mpm/periph_manager/n3xx.py
+index c9b11af289..1898ca9d94 100644
+--- a/mpm/python/usrp_mpm/periph_manager/n3xx.py
++++ b/mpm/python/usrp_mpm/periph_manager/n3xx.py
+@@ -30,7 +30,8 @@ from usrp_mpm.periph_manager.n3xx_periphs import (
+ from usrp_mpm.rpc_utils import get_map_for_rpc, no_rpc
+ from usrp_mpm.sys_utils import dtoverlay
+ from usrp_mpm.sys_utils.i2c_dev import dt_symbol_get_i2c_device_node
+-from usrp_mpm.sys_utils.sysfs_thermal import read_thermal_sensor_value
++from usrp_mpm.sys_utils.sysfs_hwmon import HwmonTempSensors
++from usrp_mpm.sys_utils.sysfs_thermal import SysfsThermalSensors
+ from usrp_mpm.xports import XportMgrUDP
+ 
+ N3XX_DEFAULT_EXT_CLOCK_FREQ = 10e6
+@@ -259,6 +260,24 @@ class n3xx(ZynqComponents, PeriphManagerBase):
+                 # Don't try and figure out what's going on. Just give up.
+                 return
+             self._init_peripherals(args)
++
++            def get_temp_sensors(log=None):
++                try:
++                    temp_sensors = HwmonTempSensors(
++                        log,
++                        dev_filter={"OF_NAME": "embedded-controller"},
++                        sensor_list=["temp", "fan"],
++                    )
++
++                except RuntimeError:
++                    temp_sensors = SysfsThermalSensors(
++                        log, subsystem="thermal", attribute="type", data_probe=["temp", "cur_state"]
++                    )
++                return temp_sensors
++
++            self._temp_fan_sensors = get_temp_sensors(log=self.log)
++            self._hwmon_based_sensors = isinstance(self._temp_fan_sensors, HwmonTempSensors)
++
+         except BaseException as ex:
+             self.log.error("Failed to initialize motherboard: %s", str(ex))
+             self._initialization_status = str(ex)
+@@ -909,30 +928,26 @@ class n3xx(ZynqComponents, PeriphManagerBase):
+         Get temperature sensor reading of the N3xx.
+         """
+         self.log.trace("Reading FPGA temperature.")
+-        return_val = "-1"
+-        try:
+-            raw_val = read_thermal_sensor_value("fpga-thermal-zone", "temp")
+-            return_val = str(raw_val / 1000)
+-        except ValueError:
+-            self.log.warning("Error when converting temperature value")
+-        except KeyError:
+-            self.log.warning("Can't read temp on fpga-thermal-zone")
+-        return {"name": "temperature", "type": "REALNUM", "unit": "C", "value": return_val}
++        if not self._hwmon_based_sensors:
++            return_val = self._temp_fan_sensors.read_thermal_sensor_value(
++                ["fpga-thermal-zone"], "temp"
++            )
++        else:
++            return_val = self._temp_fan_sensors.read_thermal_sensor_value(["TMP431_Internal"])
++
++        return return_val
+ 
+     def get_fan_sensor(self):
+         """
+         Get cooling device reading of N3xx. In this case the speed of fan 0.
+         """
+         self.log.trace("Reading FPGA cooling device.")
+-        return_val = "-1"
+-        try:
+-            raw_val = read_thermal_sensor_value("ec-fan0", "cur_state")
+-            return_val = str(raw_val)
+-        except ValueError:
+-            self.log.warning("Error when converting fan speed value")
+-        except KeyError:
+-            self.log.warning("Can't read cur_state on ec-fan0")
+-        return {"name": "cooling fan", "type": "INTEGER", "unit": "rpm", "value": return_val}
++        if not self._hwmon_based_sensors:
++            return_val = self._temp_fan_sensors.read_fan_sensor_value("ec-fan0", "cur_state")
++        else:
++            return_val = self._temp_fan_sensors.read_fan_sensor_value("fan1")
++
++        return return_val
+ 
+     def get_gps_locked_sensor(self):
+         """
+diff --git a/mpm/python/usrp_mpm/periph_manager/x4xx.py b/mpm/python/usrp_mpm/periph_manager/x4xx.py
+index fa243e0626..e19eb679ad 100644
+--- a/mpm/python/usrp_mpm/periph_manager/x4xx.py
++++ b/mpm/python/usrp_mpm/periph_manager/x4xx.py
+@@ -29,7 +29,7 @@ from usrp_mpm.periph_manager.x4xx_periphs import (
+     CtrlportRegs,
+     MboardRegsControl,
+     QSFPModule,
+-    get_temp_sensor,
++    get_temp_sensors,
+ )
+ from usrp_mpm.periph_manager.x4xx_rfdc_ctrl import MixerMode, X4xxRfdcCtrl
+ from usrp_mpm.rpc_utils import no_rpc
+@@ -37,6 +37,7 @@ from usrp_mpm.sys_utils import dtoverlay, ectool
+ from usrp_mpm.sys_utils.gpio import Gpio
+ from usrp_mpm.sys_utils.udev import dt_symbol_get_spidev
+ from usrp_mpm.xports import XportMgrUDP
++from usrp_mpm.sys_utils.sysfs_hwmon import HwmonTempSensors
+ 
+ X400_FPGA_COMPAT = (11, 0)
+ # The compat number at which remote streaming was added:
+@@ -317,6 +318,9 @@ class x4xx(ZynqComponents, PeriphManagerBase):
+         self.rfdc.set_cal_frozen(1, 1, "all", MixerMode.ALL)
+         self.rfdc.set_cal_frozen(1, 0, "all", MixerMode.ALL)
+ 
++        self._temp_fan_sensors = get_temp_sensors(log=self.log)
++        self._hwmon_based_sensors = isinstance(self._temp_fan_sensors, HwmonTempSensors)
++
+     # The parent class versions of these functions require access to self, but
+     # these versions don't.
+     # pylint: disable=no-self-use
+@@ -1036,7 +1040,7 @@ class x4xx(ZynqComponents, PeriphManagerBase):
+     def get_fpga_temp_sensor(self):
+         """Get temperature sensor reading of the X4xx FPGA."""
+         self.log.trace("Reading FPGA temperature.")
+-        return get_temp_sensor(["RFSoC"], log=self.log)
++        return self._temp_fan_sensors.read_thermal_sensor_value(["RFSoC"])
+ 
+     def get_main_power_temp_sensor0(self):
+         """
+@@ -1044,7 +1048,7 @@ class x4xx(ZynqComponents, PeriphManagerBase):
+         0.85V power supply to RFSoC.
+         """
+         self.log.trace("Reading PMBus 0 Power Supply Chip(s) temperature.")
+-        return get_temp_sensor(["PMBUS-0"], log=self.log)
++        return self._temp_fan_sensors.read_thermal_sensor_value(["PMBUS-0"])
+ 
+     def get_main_power_temp_sensor1(self):
+         """
+@@ -1052,43 +1056,51 @@ class x4xx(ZynqComponents, PeriphManagerBase):
+         0.85V power supply to RFSoC.
+         """
+         self.log.trace("Reading PMBus 1 Power Supply Chip(s) temperature.")
+-        return get_temp_sensor(["PMBUS-1"], log=self.log)
++        return self._temp_fan_sensors.read_thermal_sensor_value(["PMBUS-1"])
+ 
+     def get_scu_internal_temp_sensor(self):
+         """Get temperature sensor reading of STM32 SCU's internal sensor."""
+         self.log.trace("Reading SCU internal temperature.")
+-        return get_temp_sensor(["EC Internal"], log=self.log)
++        return self._temp_fan_sensors.read_thermal_sensor_value(["EC Internal"])
+ 
+     def get_sample_clock_pcb_temp_sensor(self):
+         """Get temperature sensor reading of the SPLL."""
+         self.log.trace("Reading Sample Clock PCB temperature.")
+-        return get_temp_sensor(["Sample Clock PCB"], log=self.log)
++        return self._temp_fan_sensors.read_thermal_sensor_value(["Sample Clock PCB"])
+ 
+     def get_dram_pcb_temp_sensor(self):
+         """Get temperature sensor reading of the DRAM."""
+         self.log.trace("Reading DRAM PCB temperature.")
+-        return get_temp_sensor(["DRAM PCB"], log=self.log)
++        return self._temp_fan_sensors.read_thermal_sensor_value(["DRAM PCB"])
+ 
+     def get_tmp464_internal_temp_sensor(self):
+         """Get temperature sensor reading of the internal TMP464 sensor."""
+         self.log.trace("Reading TMP464 Internal temperature.")
+-        return get_temp_sensor(["TMP464 Internal"], log=self.log)
++        return self._temp_fan_sensors.read_thermal_sensor_value(["TMP464 Internal"])
+ 
+     def get_power_supply_pcb_temp_sensor(self):
+         """Get temperature sensor reading of the Power Supply PCB sensor."""
+         self.log.trace("Reading Power Supply PCB temperature.")
+-        return get_temp_sensor(["Power Supply PCB"], log=self.log)
++        return self._temp_fan_sensors.read_thermal_sensor_value(["Power Supply PCB"])
++
+ 
+     def _get_fan_sensor(self, fan="fan0"):
+         """Get fan speed."""
+-        self.log.trace("Reading {} speed sensor.".format(fan))
+-        fan_rpm = -1
++        self.log.trace(f"Reading {fan} speed sensor.")
++        fan_rpm = str(-1)
+         try:
+-            fan_rpm_all = ectool.get_fan_rpm()
+-            fan_rpm = fan_rpm_all[fan]
++            if not self._hwmon_based_sensors:
++                fan_rpm_all = ectool.get_fan_rpm()
++                fan_rpm = str(fan_rpm_all[fan])
++            else:
++                fan_mapping = {
++                    "fan0": "fan1",
++                    "fan1": "fan2",
++                }
++                fan_rpm = self._temp_fan_sensors.read_fan_sensor_value(fan_mapping[fan])["value"]
+         except Exception as ex:
+-            self.log.warning("Error occurred when getting {} speed value: {} ".format(fan, str(ex)))
+-        return {"name": fan, "type": "INTEGER", "unit": "rpm", "value": str(fan_rpm)}
++            self.log.warning(f"Error occurred when getting {fan} speed value: {ex}")
++        return {"name": fan, "type": "INTEGER", "unit": "rpm", "value": fan_rpm}
+ 
+     def get_fan0_sensor(self):
+         """Get fan0 speed."""
+diff --git a/mpm/python/usrp_mpm/periph_manager/x4xx_periphs.py b/mpm/python/usrp_mpm/periph_manager/x4xx_periphs.py
+index 614648d32b..74527e4a68 100644
+--- a/mpm/python/usrp_mpm/periph_manager/x4xx_periphs.py
++++ b/mpm/python/usrp_mpm/periph_manager/x4xx_periphs.py
+@@ -17,7 +17,8 @@ from usrp_mpm.periph_manager.common import MboardRegsCommon
+ from usrp_mpm.sys_utils.gpio import Gpio
+ from usrp_mpm.sys_utils.i2c_dev import dt_symbol_get_i2c_device_node
+ from usrp_mpm.sys_utils.sysfs_gpio import GPIOBank
+-from usrp_mpm.sys_utils.sysfs_thermal import read_thermal_sensor_value
++from usrp_mpm.sys_utils.sysfs_hwmon import HwmonTempSensors
++from usrp_mpm.sys_utils.sysfs_thermal import SysfsThermalSensors
+ from usrp_mpm.sys_utils.uio import UIO
+ 
+ 
+@@ -412,6 +413,7 @@ class CtrlportRegs:
+     """
+     Control the FPGA Ctrlport registers
+     """
++
+     # pylint: disable=bad-whitespace
+     # fmt: off
+     IPASS_OFFSET        = 0x000010
+@@ -803,29 +805,6 @@ class QSFPModule:
+         return "No module detected"
+ 
+ 
+-def get_temp_sensor(sensor_names, reduce_fn=mean, log=None):
+-    """Get temperature sensor reading from X4xx."""
+-    temps = []
+-    try:
+-        for sensor_name in sensor_names:
+-            temp_raw = read_thermal_sensor_value(sensor_name, "in_temp_raw", "iio", "name")
+-            temp_offset = read_thermal_sensor_value(sensor_name, "in_temp_offset", "iio", "name")
+-            temp_scale = read_thermal_sensor_value(sensor_name, "in_temp_scale", "iio", "name")
+-            # sysfs-bus-iio linux kernel API reports temp in milli deg C
+-            # https://www.kernel.org/doc/Documentation/ABI/testing/sysfs-bus-iio
+-            temp_in_deg_c = (temp_raw + temp_offset) * temp_scale / 1000
+-            temps.append(temp_in_deg_c)
+-    except ValueError:
+-        if log:
+-            log.warning("Error when converting temperature value.")
+-        temps = [-1]
+-    except KeyError:
+-        if log:
+-            log.warning("Can't read %s temp sensor fron iio sub-system.", str(sensor_name))
+-        temps = [-1]
+-    return {"name": "temperature", "type": "REALNUM", "unit": "C", "value": str(reduce_fn(temps))}
+-
+-
+ class FrontpanelGPIO(GPIOBank):
+     """
+     Abstraction layer for the front panel GPIO
+@@ -844,3 +823,13 @@ class FrontpanelGPIO(GPIOBank):
+             raise ValueError(f"Invalid GPIO bank: {bank}")
+ 
+         GPIOBank.__init__(self, {"label": "zynqmp_gpio"}, self.EMIO_BASE + pin_offset, 0xFFF, ddr)
++
++
++def get_temp_sensors(log=None):
++    try:
++        temp_sensors = HwmonTempSensors(
++            log, dev_filter={"OF_NAME": "cros-ec"}, sensor_list=["temp", "fan"]
++        )
++    except RuntimeError:
++        temp_sensors = SysfsThermalSensors(log)
++    return temp_sensors
+diff --git a/mpm/python/usrp_mpm/sys_utils/sysfs_hwmon.py b/mpm/python/usrp_mpm/sys_utils/sysfs_hwmon.py
+new file mode 100644
+index 0000000000..1a820b7018
+--- /dev/null
++++ b/mpm/python/usrp_mpm/sys_utils/sysfs_hwmon.py
+@@ -0,0 +1,211 @@
++#
++# Copyright 2017-2019 Ettus Research, A National Instruments Company
++#
++# SPDX-License-Identifier: GPL-3.0-or-later
++"""
++sysfs thermal sensors API
++"""
++import statistics
++
++import pyudev
++
++class HwmonTempSensors:
++    """
++    This class provides access to the temperature and fan sensors under the subsystem.
++    It queries udev for devices under the subsystem, finds
++    the one corresponding to the ChromeEC microcontroller,
++    and reads the temperature and fan sensor values from it.
++    """
++    def __init__(self, log=None, subsystem="hwmon", dev_filter={}, sensor_list=["temp", "fan"]):
++        self.context = pyudev.Context()
++        self.sensor_map = dict()
++        self.log = log
++        self.subsystem = subsystem
++
++        self.device = [x for x in self.context.list_devices(subsystem=subsystem, **dev_filter)]
++        if len(self.device) == 0:
++            raise RuntimeError(f"Could not find {subsystem} device with filter {dev_filter}")
++        
++        self.device=self.device[0]
++        
++        # create map of sensors -> tempX_label, tempY_input, fanZ_input
++        for attr in self.device.attributes.available_attributes:
++            if "temp" in sensor_list and "temp" in attr:
++                if attr.startswith("temp") and attr.endswith("_label"):
++                    label = self.device.attributes.get(attr).decode(errors="ignore")
++                    input_attr = attr.replace("_label", "_input")
++                elif attr.startswith("temp") and attr.endswith("_input"):
++                    label = attr
++                    input_attr = attr                
++                elif attr.startswith("in_temp"):
++                    label = attr
++                    input_attr = attr
++            elif "fan" in sensor_list and attr.startswith("fan") and attr.endswith("_input"):
++                label = attr
++                input_attr = attr
++            else:
++                continue
++            try:
++                # dummy read - this will fail with KeyError if either
++                # - the input attribute is not available or
++                # - input attribute is available but no data can be read from it
++                #self.device.attributes.asint(input_attr)
++                float(self.device.attributes.asstring(input_attr))
++                self.sensor_map[label] = input_attr
++            except KeyError:
++                if self.log:
++                    self.log.warning(f"Sensor {label} cannot be read")
++            if self.log:
++                self.log.trace(f"Sensor map: {self.sensor_map}")
++
++    def print_sensors(self):
++        """Print the sensor values"""
++        for sensor_name, input_attr in self.sensor_map.items():
++            if input_attr.startswith("temp"):
++                temp_C = self.device.attributes.asint(input_attr) / 1000
++                if self.log:
++                    self.log.debug(f"{sensor_name} {input_attr}: {temp_C} C")
++            elif input_attr.startswith("fan"):
++                rpm = self.device.attributes.asint(input_attr)
++                if self.log:
++                    self.log.debug(f"{sensor_name} {input_attr}: {rpm} RPM")
++
++    def read_thermal_sensor_value(self, sensor_names, reduce_fn=statistics.mean):
++        """
++        This function will return the float value of the thermal sensor.
++
++        Arguments:
++        sensor_name -- Is "attribute" of udev.  This can be fpga-thermal-zone,
++                   magnesium-db0-zone, croc-ec-thermal etc.
++        reduce_fn    -- callable applied to the list of temperatures
++        """
++        temps = []
++        for sensor_name in sensor_names:
++            if sensor_name not in self.sensor_map:
++                raise KeyError(f"{self.subsystem} subsystem sensor {sensor_name} not found!")
++            try:
++                temp_C = self.device.attributes.asint(self.sensor_map[sensor_name]) / 1000.0
++                temps.append(temp_C)
++            except ValueError:
++                if self.log:
++                    self.log.warning("Error when converting temperature value.")
++        return {
++            "name": "temperature",
++            "type": "REALNUM",
++            "unit": "C",
++            "value": str(reduce_fn(temps)),
++        }
++
++    def read_fan_sensor_value(self, fan_name):
++        """
++        This function will return the rpm value of the fan sensor.
++
++        Arguments:
++        fan_name -- Is "attribute" of udev.  This can be fpga-thermal-zone,
++                   magnesium-db0-zone, croc-ec-thermal etc.
++        """
++        for sensor_name in self.sensor_map.keys():
++            if sensor_name.startswith(fan_name):
++                try:
++                    rpm = self.device.attributes.asint(self.sensor_map[sensor_name])
++                    if self.log:
++                        self.log.debug(f"{sensor_name}: {rpm} RPM")
++                except ValueError as ex:
++                    if self.log:
++                        self.log.warning(f"Error occurred when getting {fan_name} speed value: {ex}")
++                return {
++                    "name": "cooling fan",
++                    "type": "INTEGER",
++                    "unit": "rpm",
++                    "value": str(rpm),
++                }
++        if self.log:
++            self.log.warning(f"HWMON subsystem sensor '{fan_name}' not found.")
++
++    def read_raw_sensor_value(self, sensor_name):
++        """
++        This function will return the raw integer value of the sensor.
++
++        Arguments:
++        sensor_name -- Is "attribute" of udev.  This can be fpga-thermal-zone,
++                   magnesium-db0-zone, croc-ec-thermal etc.
++        """
++        raw_val = -1
++        if sensor_name not in self.sensor_map:
++            raise KeyError(f"{self.subsystem} subsystem sensor {sensor_name} not found!")
++        try:
++            raw_val = float(self.device.attributes.asstring(self.sensor_map[sensor_name]))
++        except ValueError:
++            if self.log:
++                self.log.warning("Error when converting temperature value.")
++        return raw_val
++
++def main():
++    import argparse
++    from usrp_mpm.mpmlog import DEBUG, get_main_logger
++
++    """ Main function for testing this system utility stand-alone."""
++    parser = argparse.ArgumentParser(description="Test HwmonTempSensors")
++    parser.add_argument(
++        "--device",
++        choices=["x4xx", "n3xx", "e32x", "e31x"],
++        required=True,
++        help="Target device type",
++    )
++    args = parser.parse_args()
++
++    DEVICE_FILTER = {
++        "n3xx"      : {"OF_NAME": "embedded-controller"},
++        "x4xx"      : {"OF_NAME": "cros-ec"},
++        "e32x"      : {"OF_NAME": "embedded-controller"},
++        "e31x_hwmon": {"OF_NAME": "temp"},
++        "e31x_iio"  : {"OF_NAME": "adc"},
++    }
++
++    log = get_main_logger()
++    log.setLevel(DEBUG)
++
++    if "e31x" not in args.device:
++        dev_filter = DEVICE_FILTER[args.device]
++        #log.debug(f"Using dev_filter: {dev_filter} for device: {args.device}")
++        sensors = HwmonTempSensors(log=log, dev_filter=dev_filter, sensor_list=["temp", "fan"])
++        sensors.print_sensors()
++    if args.device == "x4xx":
++        log.debug(f"RFSoC: {sensors.read_thermal_sensor_value(['RFSoC'])}")
++        log.debug(f"fan1: {sensors.read_fan_sensor_value('fan1')}")
++        log.debug(f"fan2: {sensors.read_fan_sensor_value('fan2')}")
++    elif args.device == "n3xx":
++        log.debug(f"fan1: {sensors.read_fan_sensor_value('fan1')}")
++        log.debug(f"fan2: {sensors.read_fan_sensor_value('fan2')}")
++        log.debug(f"TMP431_Internal: {sensors.read_thermal_sensor_value(['TMP431_Internal'])}")
++        log.debug(f"TMP431_Remote: {sensors.read_thermal_sensor_value(['TMP431_Remote'])}")
++    elif args.device == "e32x":
++        temp_sensor_list =['TMP464_Internal',\
++         'TMP464_Remote_1',\
++         'TMP464_Remote_2',\
++         'TMP464_Remote_3',\
++         'TMP464_Remote_4',\
++        ]
++        for sensor in temp_sensor_list:
++            log.debug(f"{sensor}: {sensors.read_thermal_sensor_value([sensor])}")
++        log.debug(f"fan1: {sensors.read_fan_sensor_value('fan1')}")
++    elif args.device == "e31x":
++        dev_filter = DEVICE_FILTER["e31x_hwmon"]
++        sensors_hwmon = HwmonTempSensors(log=None, subsystem="hwmon", dev_filter=dev_filter, sensor_list=["temp", "fan"])
++        sensors_hwmon.print_sensors()
++        temp_sensor_list =['temp1_input']
++        for sensor in temp_sensor_list:
++            log.debug(f"{sensor}: {sensors_hwmon.read_thermal_sensor_value([sensor])}")
++        dev_filter = DEVICE_FILTER["e31x_iio"]
++        sensors_iio = HwmonTempSensors(log=None, subsystem="iio", dev_filter=dev_filter, sensor_list=["temp"])
++        temp_sensor_list =['in_temp0_raw', 'in_temp0_offset', 'in_temp0_scale']
++        raw_val = [sensors_iio.read_raw_sensor_value(sensor) for sensor in temp_sensor_list]
++        temp = (raw_val[0] + raw_val[1])*raw_val[2] / 1000
++        log.debug(f'get_fpga_temp_sensor: {temp} C')
++    else:
++        log.debug(f"Unsupported device type: {args.device}")
++
++    #log.debug(f"type {type(sensors)}")
++
++if __name__ == "__main__":
++    main()
+diff --git a/mpm/python/usrp_mpm/sys_utils/sysfs_thermal.py b/mpm/python/usrp_mpm/sys_utils/sysfs_thermal.py
+index a6b2a14ec5..e4321a92e8 100644
+--- a/mpm/python/usrp_mpm/sys_utils/sysfs_thermal.py
++++ b/mpm/python/usrp_mpm/sys_utils/sysfs_thermal.py
+@@ -6,8 +6,124 @@
+ sysfs thermal sensors API
+ """
+ 
++import statistics
++import traceback
+ import pyudev
+ 
++class SysfsThermalSensors():
++    """
++    Provides access to IIO/thermal temperature sensors in the sysfs tree.
++
++    During __init__ all IIO/thermal devices that expose in_temp_raw are enumerated
++    once and their static attribute name are cached in sensor_map.
++    Subsequent reads only fetch in_temp_raw from
++    the already-known device object, mirroring the HwmonTempSensors pattern.
++    """
++
++    def __init__(self, log=None, subsystem="iio", attribute="name", data_probe=["in_temp_raw"]):
++        self.log = log
++        self.context = pyudev.Context()
++        # sensor name -> {'device': pyudev.Device}
++        self.sensor_map = {}
++        cnt=1
++        for device in self.context.list_devices(subsystem=subsystem):
++            if not any([attr in device.attributes.available_attributes for attr in data_probe]):
++                continue
++            try:
++                name = device.attributes.asstring(attribute)
++                if name not in self.sensor_map:   
++                    self.sensor_map[name] = {"device": device}
++                else:
++                    self.sensor_map[name+str(cnt)] = {"device": device}
++                    cnt += 1
++                    
++                if self.log:
++                    self.log.debug(f"Found {subsystem} temp sensor: {name}")
++            except Exception as ex:
++                if self.log:
++                    self.log.warning(f"Could not parse {subsystem} sensor at {device.sys_path}: {str(ex)}")
++        
++        self.log.debug(f"Found {self.sensor_map}")
++
++        if not self.sensor_map and self.log:
++            self.log.warning(f"No {subsystem} temperature sensors found.")
++
++    # ------------------------------------------------------------------
++    # Instance method – uses cached sensor_map for fast repeated reads
++    # ------------------------------------------------------------------
++
++    def read_thermal_sensor_value(self, sensor_names, data_probe=None, reduce_fn=statistics.mean):
++        """
++        Read current temperature for each name in sensor_names.
++
++        Uses sensor_map built during __init__: only in_temp_raw is fetched
++        at call time; offset and scale are reused from the cache.
++        Matches the HwmonTempSensors.read_thermal_sensor_value interface.
++
++        Arguments:
++        sensor_names -- iterable of IIO device name strings, e.g. ['RFSoC']
++        reduce_fn    -- callable applied to the list of temperatures
++        """
++        temps = []
++        try:
++            for sensor_name in sensor_names:
++                if sensor_name not in self.sensor_map:
++                    raise KeyError(sensor_name)
++                entry = self.sensor_map[sensor_name]
++                # sysfs-bus-iio: temp_in_mC = (raw + offset) * scale
++                # https://www.kernel.org/doc/Documentation/ABI/testing/sysfs-bus-iio
++                if data_probe is None:
++                    data_probe = ["in_temp_raw"]
++                    temp_raw    = float(entry["device"].attributes.asstring("in_temp_raw"))
++                    temp_offset = float(entry["device"].attributes.asstring("in_temp_offset"))
++                    temp_scale  = float(entry["device"].attributes.asstring("in_temp_scale"))
++                    temp_in_deg_c = (temp_raw + temp_offset) * temp_scale / 1000
++                else:
++                    temp_in_deg_c = float(entry["device"].attributes.asstring(data_probe)) / 1000
++                temps.append(temp_in_deg_c)
++        except ValueError:
++            if self.log:
++                self.log.warning("Error when converting temperature value.")
++            temps = [-1]
++        except KeyError as ex:
++            if self.log:
++                self.log.warning(f"Can't read temp on thermal_zone {sensor_names}.")
++            temps = [-1]
++        return {
++            "name": "temperature",
++            "type": "REALNUM",
++            "unit": "C",
++            "value": str(reduce_fn(temps))}
++    
++    def read_fan_sensor_value(self, fan_name, data_probe):
++        """
++        This function will return the rpm value of the fan sensor.
++
++        Arguments:
++        fan_name -- Is "attribute" of udev.  This can be fpga-thermal-zone,
++                   magnesium-db0-zone, croc-ec-thermal etc.
++        """
++        try:
++            if fan_name not in self.sensor_map:
++                raise KeyError(fan_name)
++            entry = self.sensor_map[fan_name]
++            rpm = entry["device"].attributes.asstring(data_probe)
++            if self.log:
++                self.log.debug(f"{fan_name}: {rpm} RPM")
++        except ValueError as ex:
++            if self.log:
++                self.log.warning(f"Error occurred when getting {fan_name} speed value: {ex}")
++            rpm = "-1"
++        except KeyError as ex:
++            if self.log:
++                self.log.warning(f"Can't read {data_probe} on {fan_name}.")
++            rpm = "-1"
++        return {
++            "name": "cooling fan",
++            "type": "INTEGER",
++            "unit": "rpm",
++            "value": str(rpm),
++        }
+ 
+ def read_sysfs_sensors_value(sensor_type, data_probe, subsystem, attribute):
+     """
+@@ -27,39 +143,42 @@ def read_sysfs_sensors_value(sensor_type, data_probe, subsystem, attribute):
+         float(x.attributes.asstring(data_probe))
+         for x in pyudev.Context()
+         .list_devices(subsystem=subsystem)
+-        .match_attribute(attribute, sensor_type)
++        .match_attribute(attribute,sensor_type)
+     ]
+     return reading_sensors
+ 
++def main():
++    temp = "-1"
++    raw_val = {}
++    data_probes = ["temp1_input"]
++    for data_probe in data_probes:
++        # read_sysfs_sensors_value(sensor_type, data_probe, subsystem, attribute)
++        sensor_types = ["jc-42.4-temp","jc42"]
++        for sensor_type in sensor_types:
++            try:
++                raw_val["temp1_input"] = read_sysfs_sensors_value(
++                        sensor_type, data_probe, "hwmon", "name"
++                    )[0]
++                temp = str(raw_val["temp1_input"] / 1000)
++                print(f'get_mb_temp_sensor: {temp} C')
++            except IndexError:
++                print(f"{sensor_type} sensor not found.")
++            except Exception as e:
++                print(f"{sensor_type} sensor not found or error occurred: {e}") 
++                print(traceback.format_exc())
+ 
+-def read_thermal_sensors_value(sensor_type, data_probe, subsystem="thermal", attribute="type"):
+-    """
+-    This function will return a list of all the float value of
+-    the thermal sensor subsystem = 'thermal' and type = sensor_type
+-
+-    Arguments:
+-    sensor_type -- Is attribute "type" of udev.  This can be fpga-thermal-zone,
+-                   magnesium-db0-zone, croc-ec-thermal etc.
+-    data_probe -- is one of the attribute of that sensor. This can be 'temp' in
+-                  the case of thermal-zone or 'cur_state' in the case of a
+-                  cooling device.
+-    """
+-    return read_sysfs_sensors_value(sensor_type, data_probe, subsystem, attribute)
+-
+-
+-def read_thermal_sensor_value(sensor_type, data_probe, subsystem="thermal", attribute="type"):
+-    """
+-    This function will return the float value of the thermal sensor
+-    which is under thermal subsystem.
++    data_probes = ["in_temp0_raw", "in_temp0_scale", "in_temp0_offset"]
++    for data_probe in data_probes:
++        raw_val[data_probe] = read_sysfs_sensors_value("xadc",
++                                                       data_probe,
++                                                       "iio",
++                                                       "name")[0]
++    temp = str(
++        (raw_val["in_temp0_raw"] + raw_val["in_temp0_offset"])
++        * raw_val["in_temp0_scale"]
++        / 1000
++    )
++    print(f'get_fpga_temp_sensor: {temp} C')
+ 
+-    Arguments:
+-    sensor_type -- Is attribute "type" of udev.  This can be fpga-thermal-zone,
+-                   magnesium-db0-zone, etc.
+-    data_probe -- is one of the attribute of that sensor. This can be 'temp' in
+-                  the case of thermal-zone or 'cur_state' in the case of a
+-                  cooling device.
+-    """
+-    sensor_val = read_thermal_sensors_value(sensor_type, data_probe, subsystem, attribute)
+-    if not sensor_val:
+-        raise IndexError("No {} attribute found for {} sensor.".format(data_probe, sensor_type))
+-    return sensor_val[0]
++if __name__ == "__main__":
++    main()
+\ No newline at end of file
+-- 
+2.43.0
+

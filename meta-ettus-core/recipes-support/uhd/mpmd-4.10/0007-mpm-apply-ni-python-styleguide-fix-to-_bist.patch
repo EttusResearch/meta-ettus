@@ -1,0 +1,72 @@
+From 2e77212dcb90cb04eaf6be609fb5497dc6565d50 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Mon, 15 Jun 2026 08:56:30 +0200
+Subject: [PATCH 07/13] mpm: apply ni-python-styleguide fix to *_bist
+
+---
+ mpm/python/e320_bist | 6 +++---
+ mpm/python/n3xx_bist | 6 +++---
+ mpm/python/x4xx_bist | 6 +++---
+ 3 files changed, 9 insertions(+), 9 deletions(-)
+
+diff --git a/mpm/python/e320_bist b/mpm/python/e320_bist
+index 3e19df42ea..4716779311 100755
+--- a/mpm/python/e320_bist
++++ b/mpm/python/e320_bist
+@@ -18,9 +18,9 @@ from usrp_mpm import bist
+ # Timeout values are in seconds:
+ GPS_WARMUP_TIMEOUT = 70  # Data sheet says "about a minute"
+ GPS_LOCKOK_TIMEOUT = 2  # Data sheet says about 15 minutes. Because our test
+-# does not necessarily require GPS lock to pass, we
+-# reduce this value in order for the BIST to pass faster
+-# by default.
++# does not necessarily require GPS lock to pass, we reduce this value in
++# order for the BIST to pass faster by default.
++
+ # Temperature Sensor Mapping based on location
+ TEMP_SENSOR_MAP = {
+     "thermal_zone0": "internal",
+diff --git a/mpm/python/n3xx_bist b/mpm/python/n3xx_bist
+index 8783e742e4..706a78c378 100755
+--- a/mpm/python/n3xx_bist
++++ b/mpm/python/n3xx_bist
+@@ -20,9 +20,8 @@ from usrp_mpm import bist
+ # Timeout values are in seconds:
+ GPS_WARMUP_TIMEOUT = 70  # Data sheet says "about a minute"
+ GPS_LOCKOK_TIMEOUT = 2  # Data sheet says about 15 minutes. Because our test
+-# does not necessarily require GPS lock to pass, we
+-# reduce this value in order for the BIST to pass faster
+-# by default.
++# does not necessarily require GPS lock to pass, we reduce this value in
++# order for the BIST to pass faster by default.
+ 
+ 
+ ##############################################################################
+@@ -401,6 +400,7 @@ class N3XXBIST(bist.UsrpBIST):
+             return True, bist.get_sfp_bist_defaults()
+         from usrp_mpm.periph_manager import n3xx
+         from usrp_mpm.sys_utils.i2c_dev import dt_symbol_get_i2c_bus
++
+         qsfp_i2c = dt_symbol_get_i2c_bus(n3xx.N32X_QSFP_I2C_SYMBOL)
+         if qsfp_i2c is None:
+             raise RuntimeError("Could not find QSFP board!")
+diff --git a/mpm/python/x4xx_bist b/mpm/python/x4xx_bist
+index d919d73b31..2849cf8cd0 100755
+--- a/mpm/python/x4xx_bist
++++ b/mpm/python/x4xx_bist
+@@ -22,9 +22,9 @@ from usrp_mpm.periph_manager.x4xx_periphs import FrontpanelGPIO
+ # Timeout values are in seconds:
+ GPS_WARMUP_TIMEOUT = 70  # Data sheet says "about a minute"
+ GPS_LOCKOK_TIMEOUT = 2  # Data sheet says about 15 minutes. Because our test
+-# does not necessarily require GPS lock to pass, we
+-# reduce this value in order for the BIST to pass faster
+-# by default.
++# does not necessarily require GPS lock to pass, we reduce this value in
++# order for the BIST to pass faster by default.
++
+ DEFAULT_DB_ID = 0
+ 
+ # We will import stuff as late as possible, intentionally, so let's calm down
+-- 
+2.43.0
+

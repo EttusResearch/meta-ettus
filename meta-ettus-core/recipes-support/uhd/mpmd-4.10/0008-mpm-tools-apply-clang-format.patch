@@ -1,0 +1,3388 @@
+From 569b423b8888c72ddaa5eabc51f0f153663e91fc Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Mon, 8 Jun 2026 17:06:12 +0200
+Subject: [PATCH 08/13] mpm: tools: apply clang-format
+
+---
+ mpm/tools/db-dump.c                  |  30 +-
+ mpm/tools/db-id.c                    |  75 ++--
+ mpm/tools/db-init.c                  |  67 ++-
+ mpm/tools/eeprom-blank.c             |  45 +-
+ mpm/tools/eeprom-dump.c              |  16 +-
+ mpm/tools/eeprom-id.c                |  40 +-
+ mpm/tools/eeprom-init.c              | 257 ++++++-----
+ mpm/tools/eeprom-pids.h              |   2 +-
+ mpm/tools/eeprom-set-flags.c         |  85 ++--
+ mpm/tools/eeprom.c                   | 650 ++++++++++++++-------------
+ mpm/tools/eeprom.h                   | 103 +++--
+ mpm/tools/fan-limits.c               |  50 +--
+ mpm/tools/tlv_eeprom/crc.c           |  20 +-
+ mpm/tools/tlv_eeprom/eeprom-dump.c   |  30 +-
+ mpm/tools/tlv_eeprom/eeprom-id.c     |  87 ++--
+ mpm/tools/tlv_eeprom/eeprom-init.c   | 561 +++++++++++------------
+ mpm/tools/tlv_eeprom/eeprom-pids.h   |  11 +-
+ mpm/tools/tlv_eeprom/tlv_eeprom.c    | 107 ++---
+ mpm/tools/tlv_eeprom/tlv_eeprom.h    |  28 +-
+ mpm/tools/tlv_eeprom/tlv_eeprom_io.c | 132 +++---
+ mpm/tools/tlv_eeprom/tlv_eeprom_io.h |   5 +-
+ mpm/tools/tlv_eeprom/usrp_eeprom.h   | 235 +++++-----
+ 22 files changed, 1330 insertions(+), 1306 deletions(-)
+
+diff --git a/mpm/tools/db-dump.c b/mpm/tools/db-dump.c
+index f86eec8455..4ba8eaef61 100644
+--- a/mpm/tools/db-dump.c
++++ b/mpm/tools/db-dump.c
+@@ -7,25 +7,25 @@
+ #include "eeprom.h"
+ #include <stdlib.h>
+ 
+-int main(int argc, char *argv[])
++int main(int argc, char* argv[])
+ {
+-	struct usrp_sulfur_db_eeprom *ep;
+-	int which_slot = 0;
++    struct usrp_sulfur_db_eeprom* ep;
++    int which_slot = 0;
+ 
+-	if (argc != 2)
+-		return EXIT_FAILURE;
++    if (argc != 2)
++        return EXIT_FAILURE;
+ 
+-	which_slot = atoi(argv[1]);
++    which_slot = atoi(argv[1]);
+ 
+-	if (!which_slot)
+-		ep = usrp_sulfur_db_eeprom_from_file(NVMEM_PATH_SLOT_A);
+-	else
+-		ep = usrp_sulfur_db_eeprom_from_file(NVMEM_PATH_SLOT_B);
++    if (!which_slot)
++        ep = usrp_sulfur_db_eeprom_from_file(NVMEM_PATH_SLOT_A);
++    else
++        ep = usrp_sulfur_db_eeprom_from_file(NVMEM_PATH_SLOT_B);
+ 
+-	if (!ep)
+-		return EXIT_FAILURE;
+-	usrp_sulfur_db_eeprom_print(ep);
+-	free(ep);
++    if (!ep)
++        return EXIT_FAILURE;
++    usrp_sulfur_db_eeprom_print(ep);
++    free(ep);
+ 
+-	return 0;
++    return 0;
+ }
+diff --git a/mpm/tools/db-id.c b/mpm/tools/db-id.c
+index 7739c35324..a36613fd8f 100644
+--- a/mpm/tools/db-id.c
++++ b/mpm/tools/db-id.c
+@@ -4,49 +4,48 @@
+ // SPDX-License-Identifier: GPL-3.0-or-later
+ //
+ 
++#include "eeprom.h"
+ #include <stdio.h>
+ #include <stdlib.h>
+-#include "eeprom.h"
+ 
+-static void usrp_sulfur_db_eeprom_print_id(struct usrp_sulfur_db_eeprom *ep)
++static void usrp_sulfur_db_eeprom_print_id(struct usrp_sulfur_db_eeprom* ep)
+ {
+-	int rev;
+-
+-	if (ntohl(ep->version) == 1)
+-		rev = ntohs(ep->rev.v1_rev);
+-	else
+-		rev = ep->rev.v2_rev.rev;
+-
+-	if (ntohs(ep->pid) == 0x150)
+-		printf("product=ni,magnesium-rev%x\n", rev + 1);
+-	else if (ntohs(ep->pid) == 0x180)
+-		printf("product=ni,eiscat-rev%x\n", rev + 1);
+-	else if (ntohs(ep->pid) == 0x152)
+-		printf("product=ni,rhodium-rev%x\n", rev + 1);
+-	else
+-		printf("product=unknown-(%04x)\n", ep->pid);
+-
+-	printf("serial=%s\n", ep->serial);
++    int rev;
++
++    if (ntohl(ep->version) == 1)
++        rev = ntohs(ep->rev.v1_rev);
++    else
++        rev = ep->rev.v2_rev.rev;
++
++    if (ntohs(ep->pid) == 0x150)
++        printf("product=ni,magnesium-rev%x\n", rev + 1);
++    else if (ntohs(ep->pid) == 0x180)
++        printf("product=ni,eiscat-rev%x\n", rev + 1);
++    else if (ntohs(ep->pid) == 0x152)
++        printf("product=ni,rhodium-rev%x\n", rev + 1);
++    else
++        printf("product=unknown-(%04x)\n", ep->pid);
++
++    printf("serial=%s\n", ep->serial);
+ }
+ 
+-int main(int argc, char *argv[])
++int main(int argc, char* argv[])
+ {
+-	struct usrp_sulfur_db_eeprom *ep;
+-
+-	ep = usrp_sulfur_db_eeprom_from_file(NVMEM_PATH_SLOT_A);
+-	if (ep) {
+-		printf("Slot-0\n");
+-		usrp_sulfur_db_eeprom_print_id(ep);
+-		free(ep);
+-	}
+-
+-	ep = usrp_sulfur_db_eeprom_from_file(NVMEM_PATH_SLOT_B);
+-	if (ep) {
+-		printf("Slot-1\n");
+-		usrp_sulfur_db_eeprom_print_id(ep);
+-		free(ep);
+-	}
+-
+-	return EXIT_SUCCESS;
++    struct usrp_sulfur_db_eeprom* ep;
++
++    ep = usrp_sulfur_db_eeprom_from_file(NVMEM_PATH_SLOT_A);
++    if (ep) {
++        printf("Slot-0\n");
++        usrp_sulfur_db_eeprom_print_id(ep);
++        free(ep);
++    }
++
++    ep = usrp_sulfur_db_eeprom_from_file(NVMEM_PATH_SLOT_B);
++    if (ep) {
++        printf("Slot-1\n");
++        usrp_sulfur_db_eeprom_print_id(ep);
++        free(ep);
++    }
++
++    return EXIT_SUCCESS;
+ }
+-
+diff --git a/mpm/tools/db-init.c b/mpm/tools/db-init.c
+index 30b559c8a8..2ff9a32456 100644
+--- a/mpm/tools/db-init.c
++++ b/mpm/tools/db-init.c
+@@ -5,57 +5,54 @@
+ //
+ 
+ #include "eeprom.h"
+-#include <stdlib.h>
+ #include <stdio.h>
++#include <stdlib.h>
+ 
+ int get_dt_compat(int rev)
+ {
+-	if (rev > 3)
+-		return 3;
++    if (rev > 3)
++        return 3;
+ 
+-	return rev;
++    return rev;
+ }
+ 
+-void usage(char *argv[])
++void usage(char* argv[])
+ {
+-	printf("-- Usage -- \n");
+-	printf("%s slot pid rev serial [dt-compat]#\n\n", argv[0]);
+-	printf("Example:\n");
+-	printf("$ %s 0 0x0150 0 310A850\n",
+-		argv[0]);
+-	printf("or specifying a dt-compat explicitly:\n");
+-	printf("$ %s 0 0x0150 0 310A850 3\n",
+-		argv[0]);
++    printf("-- Usage -- \n");
++    printf("%s slot pid rev serial [dt-compat]#\n\n", argv[0]);
++    printf("Example:\n");
++    printf("$ %s 0 0x0150 0 310A850\n", argv[0]);
++    printf("or specifying a dt-compat explicitly:\n");
++    printf("$ %s 0 0x0150 0 310A850 3\n", argv[0]);
+ }
+ 
+ 
+-int main(int argc, char *argv[])
++int main(int argc, char* argv[])
+ {
+-	struct usrp_sulfur_db_eeprom *ep;
+-	int which_slot = 0;
+-	u8 dt_compat = 0;
++    struct usrp_sulfur_db_eeprom* ep;
++    int which_slot = 0;
++    u8 dt_compat   = 0;
+ 
+-	if (argc < 5) {
+-		usage(argv);
+-		return EXIT_FAILURE;
+-	}
++    if (argc < 5) {
++        usage(argv);
++        return EXIT_FAILURE;
++    }
+ 
+-	if (argc >= 6)
+-		dt_compat = atoi(argv[5]);
+-	else
+-		dt_compat = get_dt_compat(atoi(argv[3]));
++    if (argc >= 6)
++        dt_compat = atoi(argv[5]);
++    else
++        dt_compat = get_dt_compat(atoi(argv[3]));
+ 
+-	which_slot = atoi(argv[1]);
++    which_slot = atoi(argv[1]);
+ 
+-	ep = usrp_sulfur_db_eeprom_new(strtol(argv[2], NULL, 16), atoi(argv[3]), argv[4],
+-			dt_compat);
+-	usrp_sulfur_db_eeprom_print(ep);
++    ep = usrp_sulfur_db_eeprom_new(
++        strtol(argv[2], NULL, 16), atoi(argv[3]), argv[4], dt_compat);
++    usrp_sulfur_db_eeprom_print(ep);
+ 
+-	if (!which_slot)
+-		usrp_sulfur_db_eeprom_to_file(ep, NVMEM_PATH_SLOT_A);
+-	else
+-		usrp_sulfur_db_eeprom_to_file(ep, NVMEM_PATH_SLOT_B);
++    if (!which_slot)
++        usrp_sulfur_db_eeprom_to_file(ep, NVMEM_PATH_SLOT_A);
++    else
++        usrp_sulfur_db_eeprom_to_file(ep, NVMEM_PATH_SLOT_B);
+ 
+-	return 0;
++    return 0;
+ }
+-
+diff --git a/mpm/tools/eeprom-blank.c b/mpm/tools/eeprom-blank.c
+index 13e671a225..4afb684256 100644
+--- a/mpm/tools/eeprom-blank.c
++++ b/mpm/tools/eeprom-blank.c
+@@ -9,37 +9,36 @@
+ #include <stdlib.h>
+ #include <string.h>
+ 
+-void usage(char *argv[])
++void usage(char* argv[])
+ {
+-	printf("-- Usage -- \n");
+-	printf("Example:\n");
+-	printf("%s -c -f\n", argv[0]);
++    printf("-- Usage -- \n");
++    printf("Example:\n");
++    printf("%s -c -f\n", argv[0]);
+ }
+ 
+ 
+-int main(int argc, char *argv[])
++int main(int argc, char* argv[])
+ {
+-	struct usrp_sulfur_eeprom *ep;
+-	int erase = 0;
++    struct usrp_sulfur_eeprom* ep;
++    int erase = 0;
+ 
+-	if (argc == 3) {
+-		erase = !strcmp("-c", argv[1]) &&
+-			!strcmp("-f", argv[2]);
+-	} else {
+-		usage(argv);
+-		return EXIT_FAILURE;
+-	}
++    if (argc == 3) {
++        erase = !strcmp("-c", argv[1]) && !strcmp("-f", argv[2]);
++    } else {
++        usage(argv);
++        return EXIT_FAILURE;
++    }
+ 
+-	if (!erase)
+-		return EXIT_FAILURE;
++    if (!erase)
++        return EXIT_FAILURE;
+ 
+-	printf("Erasing ...");
+-	ep = malloc(sizeof(*ep));
+-	memset(ep, 0xff, sizeof(*ep));
++    printf("Erasing ...");
++    ep = malloc(sizeof(*ep));
++    memset(ep, 0xff, sizeof(*ep));
+ 
+-	usrp_sulfur_eeprom_to_i2c(ep, "/dev/i2c-2");
+-	printf(" Done\n");
+-	free(ep);
++    usrp_sulfur_eeprom_to_i2c(ep, "/dev/i2c-2");
++    printf(" Done\n");
++    free(ep);
+ 
+-	return EXIT_SUCCESS;
++    return EXIT_SUCCESS;
+ }
+diff --git a/mpm/tools/eeprom-dump.c b/mpm/tools/eeprom-dump.c
+index 875523c20d..b838b73d9e 100644
+--- a/mpm/tools/eeprom-dump.c
++++ b/mpm/tools/eeprom-dump.c
+@@ -7,15 +7,15 @@
+ #include "eeprom.h"
+ #include <stdlib.h>
+ 
+-int main(int argc, char *argv[])
++int main(int argc, char* argv[])
+ {
+-	struct usrp_sulfur_eeprom *ep;
++    struct usrp_sulfur_eeprom* ep;
+ 
+-	ep = usrp_sulfur_eeprom_from_file(NVMEM_PATH_MB);
+-	if (!ep)
+-		return EXIT_FAILURE;
+-	usrp_sulfur_eeprom_print(ep);
+-	free(ep);
++    ep = usrp_sulfur_eeprom_from_file(NVMEM_PATH_MB);
++    if (!ep)
++        return EXIT_FAILURE;
++    usrp_sulfur_eeprom_print(ep);
++    free(ep);
+ 
+-	return 0;
++    return 0;
+ }
+diff --git a/mpm/tools/eeprom-id.c b/mpm/tools/eeprom-id.c
+index aac5f12a5a..034a86df83 100644
+--- a/mpm/tools/eeprom-id.c
++++ b/mpm/tools/eeprom-id.c
+@@ -4,35 +4,35 @@
+ // SPDX-License-Identifier: GPL-3.0-or-later
+ //
+ 
++#include "eeprom-pids.h"
++#include "eeprom.h"
++#include <arpa/inet.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+-#include <arpa/inet.h>
+-#include "eeprom.h"
+-#include "eeprom-pids.h"
+ 
+-static void usrp_sulfur_eeprom_print_id(struct usrp_sulfur_eeprom *ep)
++static void usrp_sulfur_eeprom_print_id(struct usrp_sulfur_eeprom* ep)
+ {
+-	if (ntohs(ep->pid) == N310_PID)
+-		printf("product=ni,n310-rev%x\n", ntohs(ep->rev)+1);
+-	else if (ntohs(ep->pid) == N300_PID)
+-		printf("product=ni,n300-rev%x\n", ntohs(ep->rev)+1);
+-	else if (ntohs(ep->pid) == E320_PID)
+-		printf("product=ni,e320-rev%x\n", ntohs(ep->rev)+1);
+-	else
+-		printf("product=unknown-(%04x)\n", ntohs(ep->pid));
++    if (ntohs(ep->pid) == N310_PID)
++        printf("product=ni,n310-rev%x\n", ntohs(ep->rev) + 1);
++    else if (ntohs(ep->pid) == N300_PID)
++        printf("product=ni,n300-rev%x\n", ntohs(ep->rev) + 1);
++    else if (ntohs(ep->pid) == E320_PID)
++        printf("product=ni,e320-rev%x\n", ntohs(ep->rev) + 1);
++    else
++        printf("product=unknown-(%04x)\n", ntohs(ep->pid));
+ 
+-	printf("serial=%s\n", ep->serial);
++    printf("serial=%s\n", ep->serial);
+ }
+ 
+-int main(int argc, char *argv[])
++int main(int argc, char* argv[])
+ {
+-	struct usrp_sulfur_eeprom *ep;
++    struct usrp_sulfur_eeprom* ep;
+ 
+-	ep = usrp_sulfur_eeprom_from_file(NVMEM_PATH_MB);
+-	if (!ep)
+-		return EXIT_FAILURE;
++    ep = usrp_sulfur_eeprom_from_file(NVMEM_PATH_MB);
++    if (!ep)
++        return EXIT_FAILURE;
+ 
+-	usrp_sulfur_eeprom_print_id(ep);
++    usrp_sulfur_eeprom_print_id(ep);
+ 
+-	free(ep);
++    free(ep);
+ }
+diff --git a/mpm/tools/eeprom-init.c b/mpm/tools/eeprom-init.c
+index b5997f2229..02ad66a640 100644
+--- a/mpm/tools/eeprom-init.c
++++ b/mpm/tools/eeprom-init.c
+@@ -4,146 +4,159 @@
+ // SPDX-License-Identifier: GPL-3.0-or-later
+ //
+ 
+-#include "eeprom.h"
+ #include "eeprom-pids.h"
++#include "eeprom.h"
+ #include <stdio.h>
+ #include <stdlib.h>
+ 
+ int derive_rev_compat(int rev, long pid)
+ {
+-	if (pid == E320_PID) {
+-		if (rev >= 2)
+-			return 2;
+-	} else { /* N3x0 */
+-		if (rev > 5)
+-			return 5;
+-	}
+-	return rev;
++    if (pid == E320_PID) {
++        if (rev >= 2)
++            return 2;
++    } else { /* N3x0 */
++        if (rev > 5)
++            return 5;
++    }
++    return rev;
+ }
+ 
+ int derive_dt_compat(int rev, long pid)
+ {
+-	if (pid == E320_PID) {
+-		return 0;
+-	} else { /* N3x0 */
+-		/* up to rev5 they were individual dts */
+-		if (rev > 5)
+-			return 5;
+-	}
+-	return rev;
++    if (pid == E320_PID) {
++        return 0;
++    } else { /* N3x0 */
++        /* up to rev5 they were individual dts */
++        if (rev > 5)
++            return 5;
++    }
++    return rev;
+ }
+ 
+ int derive_mcu_compat(int rev, long pid)
+ {
+-	if (pid == E320_PID) {
+-		return 2;
+-	} else { /* N3x0 */
+-		/* up to rev5 they were individual firmware */
+-		if (rev > 5)
+-			return 5;
+-	}
+-
+-	return rev;
++    if (pid == E320_PID) {
++        return 2;
++    } else { /* N3x0 */
++        /* up to rev5 they were individual firmware */
++        if (rev > 5)
++            return 5;
++    }
++
++    return rev;
+ }
+ 
+-void usage(char *argv[])
++void usage(char* argv[])
+ {
+-	printf("-- Usage -- \n");
+-	printf("%s serial# revision eth0 eth1 eth2 [pid] [dt-compat] [mcu-compat] [rev-compat]\n\n", argv[0]);
+-	printf("Example:\n");
+-	printf("$ %s 310A850 2 0c:22:cc:1a:25:c1 0c:22:cc:1a:25:c2 0c:22:cc:1a:25:c3 0x4242\n",
+-		argv[0]);
+-	printf("or specifying dt-compat, mcu-compat, and rev-compat explicitly:\n");
+-	printf("$ %s 310A850 2 0c:22:cc:1a:25:c1 0c:22:cc:1a:25:c2 0c:22:cc:1a:25:c3 0x4242 5 5 5\n",
+-		argv[0]);
+-	printf("\n");
+-	printf("Note: 'pid' must be specified when initializing EEPROM for the first time.\n");
+-	printf("Valid values are: 0x4242 (N310, N320), 0x4240 (N300), 0xe320 (E320).\n");
++    printf("-- Usage -- \n");
++    printf("%s serial# revision eth0 eth1 eth2 [pid] [dt-compat] [mcu-compat] "
++           "[rev-compat]\n\n",
++        argv[0]);
++    printf("Example:\n");
++    printf(
++        "$ %s 310A850 2 0c:22:cc:1a:25:c1 0c:22:cc:1a:25:c2 0c:22:cc:1a:25:c3 0x4242\n",
++        argv[0]);
++    printf("or specifying dt-compat, mcu-compat, and rev-compat explicitly:\n");
++    printf("$ %s 310A850 2 0c:22:cc:1a:25:c1 0c:22:cc:1a:25:c2 0c:22:cc:1a:25:c3 0x4242 "
++           "5 5 5\n",
++        argv[0]);
++    printf("\n");
++    printf(
++        "Note: 'pid' must be specified when initializing EEPROM for the first time.\n");
++    printf("Valid values are: 0x4242 (N310, N320), 0x4240 (N300), 0xe320 (E320).\n");
+ }
+ 
+-int main(int argc, char *argv[])
++int main(int argc, char* argv[])
+ {
+-	struct usrp_sulfur_eeprom *ep, *ep_stored;
+-	u16 rev;
+-	u16 mcu_compat;
+-	u16 dt_compat;
+-	u16 rev_compat;
+-	long pid = 0;
+-
+-	if (argc < 6 || argc > 10) {
+-		usage(argv);
+-		return EXIT_FAILURE;
+-	}
+-	rev = atoi(argv[2]);
+-
+-	/* First, we try reading the existing EEPROM contents. This may fail,
+-	 * and that's fine. But if it works, we can use it to fill in missing
+-	 * defaults based on the existing data.
+-	 */
+-	ep_stored = usrp_sulfur_eeprom_from_file(NVMEM_PATH_MB);
+-	if (!ep_stored) {
+-		printf("-- EEPROM is either uninitialized or corrupt. Initializing all fields...\n");
+-	}
+-
+-	if (argc >= 7) {
+-		pid = strtol(argv[6], NULL, 0);
+-	} else if (ep_stored) {
+-		pid = ntohs(ep_stored->pid);
+-	} else {
+-		printf("-- ERROR: Cannot derive PID from existing EEPROM or command line!\n");
+-		return EXIT_FAILURE;
+-	}
+-	if (pid != N310_PID && pid != N300_PID && pid != E320_PID) {
+-		printf("Invalid PID: %lX\n", pid);
+-		return EXIT_FAILURE;
+-	}
+-
+-	/* If no MCU or DT compat specified, either use existing values, or
+-	 * derive based on rules defined at the top of this file.
+-	 */
+-	if (argc >= 8) {
+-		dt_compat = strtol(argv[7], NULL, 0);
+-		printf("dt_compat=%u\n", dt_compat);
+-	} else if (ep_stored) {
+-		dt_compat = ntohs(ep_stored->dt_compat);
+-		printf("dt_compat=%u\n", dt_compat);
+-	} else {
+-		dt_compat = derive_dt_compat(rev, pid);
+-	}
+-
+-	if (argc >= 9) {
+-		mcu_compat = strtol(argv[8], NULL, 0);
+-		printf("mcu_compat=%u\n", mcu_compat);
+-	} else if (ep_stored) {
+-		mcu_compat = ntohs(ep_stored->mcu_compat);
+-		printf("mcu_compat=%u\n", mcu_compat);
+-	} else {
+-		mcu_compat = derive_mcu_compat(rev, pid);
+-	}
+-
+-	if (argc >= 10) {
+-		rev_compat = strtol(argv[9], NULL, 0);
+-		printf("rev_compat=%u\n", rev_compat);
+-	} else if (ep_stored && rev == ep_stored->rev) {
+-		rev_compat = ntohs(ep_stored->rev_compat);
+-		printf("rev_compat=%u\n", rev_compat);
+-	} else {
+-		rev_compat = derive_rev_compat(rev, pid);
+-	}
+-
+-	if (ep_stored)
+-		free(ep_stored);
+-
+-	ep = usrp_sulfur_eeprom_new(NULL, (u16) pid, rev, argv[1],
+-			            argv[3], argv[4], argv[5], dt_compat,
+-				    mcu_compat, rev_compat);
+-
+-	usrp_sulfur_eeprom_print(ep);
+-	usrp_sulfur_eeprom_to_i2c(ep, "/dev/i2c-2");
+-	free(ep);
+-
+-	printf("-- Reading back \n");
+-	ep_stored = usrp_sulfur_eeprom_from_file(NVMEM_PATH_MB);
+-	usrp_sulfur_eeprom_print(ep_stored);
+-	free(ep_stored);
++    struct usrp_sulfur_eeprom *ep, *ep_stored;
++    u16 rev;
++    u16 mcu_compat;
++    u16 dt_compat;
++    u16 rev_compat;
++    long pid = 0;
++
++    if (argc < 6 || argc > 10) {
++        usage(argv);
++        return EXIT_FAILURE;
++    }
++    rev = atoi(argv[2]);
++
++    /* First, we try reading the existing EEPROM contents. This may fail,
++     * and that's fine. But if it works, we can use it to fill in missing
++     * defaults based on the existing data.
++     */
++    ep_stored = usrp_sulfur_eeprom_from_file(NVMEM_PATH_MB);
++    if (!ep_stored) {
++        printf(
++            "-- EEPROM is either uninitialized or corrupt. Initializing all fields...\n");
++    }
++
++    if (argc >= 7) {
++        pid = strtol(argv[6], NULL, 0);
++    } else if (ep_stored) {
++        pid = ntohs(ep_stored->pid);
++    } else {
++        printf("-- ERROR: Cannot derive PID from existing EEPROM or command line!\n");
++        return EXIT_FAILURE;
++    }
++    if (pid != N310_PID && pid != N300_PID && pid != E320_PID) {
++        printf("Invalid PID: %lX\n", pid);
++        return EXIT_FAILURE;
++    }
++
++    /* If no MCU or DT compat specified, either use existing values, or
++     * derive based on rules defined at the top of this file.
++     */
++    if (argc >= 8) {
++        dt_compat = strtol(argv[7], NULL, 0);
++        printf("dt_compat=%u\n", dt_compat);
++    } else if (ep_stored) {
++        dt_compat = ntohs(ep_stored->dt_compat);
++        printf("dt_compat=%u\n", dt_compat);
++    } else {
++        dt_compat = derive_dt_compat(rev, pid);
++    }
++
++    if (argc >= 9) {
++        mcu_compat = strtol(argv[8], NULL, 0);
++        printf("mcu_compat=%u\n", mcu_compat);
++    } else if (ep_stored) {
++        mcu_compat = ntohs(ep_stored->mcu_compat);
++        printf("mcu_compat=%u\n", mcu_compat);
++    } else {
++        mcu_compat = derive_mcu_compat(rev, pid);
++    }
++
++    if (argc >= 10) {
++        rev_compat = strtol(argv[9], NULL, 0);
++        printf("rev_compat=%u\n", rev_compat);
++    } else if (ep_stored && rev == ep_stored->rev) {
++        rev_compat = ntohs(ep_stored->rev_compat);
++        printf("rev_compat=%u\n", rev_compat);
++    } else {
++        rev_compat = derive_rev_compat(rev, pid);
++    }
++
++    if (ep_stored)
++        free(ep_stored);
++
++    ep = usrp_sulfur_eeprom_new(NULL,
++        (u16)pid,
++        rev,
++        argv[1],
++        argv[3],
++        argv[4],
++        argv[5],
++        dt_compat,
++        mcu_compat,
++        rev_compat);
++
++    usrp_sulfur_eeprom_print(ep);
++    usrp_sulfur_eeprom_to_i2c(ep, "/dev/i2c-2");
++    free(ep);
++
++    printf("-- Reading back \n");
++    ep_stored = usrp_sulfur_eeprom_from_file(NVMEM_PATH_MB);
++    usrp_sulfur_eeprom_print(ep_stored);
++    free(ep_stored);
+ }
+diff --git a/mpm/tools/eeprom-pids.h b/mpm/tools/eeprom-pids.h
+index c980c12ed8..b38037271d 100644
+--- a/mpm/tools/eeprom-pids.h
++++ b/mpm/tools/eeprom-pids.h
+@@ -11,4 +11,4 @@
+ #define N300_PID 0x4240
+ #define E320_PID 0xe320
+ 
+-#endif  /* EEPROM_PIDS_H */
++#endif /* EEPROM_PIDS_H */
+diff --git a/mpm/tools/eeprom-set-flags.c b/mpm/tools/eeprom-set-flags.c
+index 3380b3c3e6..4900b1103a 100644
+--- a/mpm/tools/eeprom-set-flags.c
++++ b/mpm/tools/eeprom-set-flags.c
+@@ -5,54 +5,53 @@
+ //
+ 
+ #include "eeprom.h"
++#include <errno.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+-#include <errno.h>
+ 
+-void usage(char *argv[])
++void usage(char* argv[])
+ {
+-	printf("-- Usage -- \n");
+-	printf("%s flags\n", argv[0]);
+-	printf("Example:\n");
+-	printf("$ %s 0x1\n", argv[0]);
+-
++    printf("-- Usage -- \n");
++    printf("%s flags\n", argv[0]);
++    printf("Example:\n");
++    printf("$ %s 0x1\n", argv[0]);
+ }
+ 
+-int main(int argc, char *argv[])
++int main(int argc, char* argv[])
+ {
+-	struct usrp_sulfur_eeprom *ep;
+-	u32 flags;
+-
+-	if (argc != 2) {
+-		usage(argv);
+-		return EXIT_FAILURE;
+-	}
+-
+-	errno = 0;
+-	flags = strtol(argv[1], NULL, 16);
+-	if (errno) {
+-		printf("Failed to convert flags, make sure you enter as hex\n");
+-		return EXIT_FAILURE;
+-	}
+-
+-	ep = usrp_sulfur_eeprom_from_file(NVMEM_PATH_MB);
+-	if (!ep) {
+-		printf("eeprom not found\n");
+-		return EXIT_FAILURE;
+-	}
+-
+-	usrp_sulfur_eeprom_print(ep);
+-
+-	/* Set flag */
+-	ep->mcu_flags[0] = htonl(flags);
+-	usrp_sulfur_eeprom_recrc(ep);
+-
+-	/* Write out to eeprom */
+-	usrp_sulfur_eeprom_to_i2c(ep, "/dev/i2c-2");
+-	free(ep);
+-
+-	printf("-- Reading back \n");
+-	ep = usrp_sulfur_eeprom_from_file(NVMEM_PATH_MB);
+-	usrp_sulfur_eeprom_print(ep);
+-	free(ep);
++    struct usrp_sulfur_eeprom* ep;
++    u32 flags;
++
++    if (argc != 2) {
++        usage(argv);
++        return EXIT_FAILURE;
++    }
++
++    errno = 0;
++    flags = strtol(argv[1], NULL, 16);
++    if (errno) {
++        printf("Failed to convert flags, make sure you enter as hex\n");
++        return EXIT_FAILURE;
++    }
++
++    ep = usrp_sulfur_eeprom_from_file(NVMEM_PATH_MB);
++    if (!ep) {
++        printf("eeprom not found\n");
++        return EXIT_FAILURE;
++    }
++
++    usrp_sulfur_eeprom_print(ep);
++
++    /* Set flag */
++    ep->mcu_flags[0] = htonl(flags);
++    usrp_sulfur_eeprom_recrc(ep);
++
++    /* Write out to eeprom */
++    usrp_sulfur_eeprom_to_i2c(ep, "/dev/i2c-2");
++    free(ep);
++
++    printf("-- Reading back \n");
++    ep = usrp_sulfur_eeprom_from_file(NVMEM_PATH_MB);
++    usrp_sulfur_eeprom_print(ep);
++    free(ep);
+ }
+diff --git a/mpm/tools/eeprom.c b/mpm/tools/eeprom.c
+index ae036ac431..85c536f5ec 100644
+--- a/mpm/tools/eeprom.c
++++ b/mpm/tools/eeprom.c
+@@ -7,38 +7,39 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ 
++#include <getopt.h>
+ #include <inttypes.h>
++#include <stdarg.h>
+ #include <stdint.h>
+ #include <string.h>
+-#include <stdarg.h>
+ #include <unistd.h>
+-#include <getopt.h>
+ 
++#include <fcntl.h>
+ #include <sys/ioctl.h>
+ #include <unistd.h>
+-#include <fcntl.h>
+ 
+ 
+-#include <linux/i2c.h>
+ #include <linux/i2c-dev.h>
++#include <linux/i2c.h>
+ 
++#include <fcntl.h>
+ #include <sys/ioctl.h>
+ #include <unistd.h>
+-#include <fcntl.h>
+ 
+ #include "eeprom.h"
+ 
+ 
+-static const u32 USRP_EEPROM_MAGIC = 0xF008AD10;
+-static const u32 USRP_EEPROM_DB_MAGIC = 0xF008AD11;
+-static const u32 USRP_EEPROM_VERSION = 3;
+-static const u32 USRP_EEPROM_DB_VERSION = 2;
++static const u32 USRP_EEPROM_MAGIC                = 0xF008AD10;
++static const u32 USRP_EEPROM_DB_MAGIC             = 0xF008AD11;
++static const u32 USRP_EEPROM_VERSION              = 3;
++static const u32 USRP_EEPROM_DB_VERSION           = 2;
+ static const u32 USRP_EEPROM_DEFAULT_MCU_FLAGS[4] = {0x0, 0x0, 0x0, 0x0};
+ 
+ 
+ /*static const size_t TOTAL_SIZE=256;*/
+ static const u8 EEPROM_I2C_ADDR = 0x50;
+ 
++// clang-format off
+ static const uint32_t crc32_tab[] = {
+ 	0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
+ 	0xe963a535, 0x9e6495a3,	0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,
+@@ -84,423 +85,434 @@ static const uint32_t crc32_tab[] = {
+ 	0x54de5729, 0x23d967bf, 0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94,
+ 	0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
+ };
++// clang-format on
+ 
+-static uint32_t crc32(uint32_t crc, const void *buf, size_t size)
++static uint32_t crc32(uint32_t crc, const void* buf, size_t size)
+ {
+-	const uint8_t *p;
++    const uint8_t* p;
+ 
+-	p = buf;
+-	crc = crc ^ ~0U;
++    p   = buf;
++    crc = crc ^ ~0U;
+ 
+-	while (size--)
+-		crc = crc32_tab[(crc ^ *p++) & 0xFF] ^ (crc >> 8);
++    while (size--)
++        crc = crc32_tab[(crc ^ *p++) & 0xFF] ^ (crc >> 8);
+ 
+-	return crc ^ ~0U;
++    return crc ^ ~0U;
+ }
+ 
+-static int __eth_addr_parse(uint8_t *out, const char *in)
++static int __eth_addr_parse(uint8_t* out, const char* in)
+ {
+-	/* 00:00:00:00:00:00 */
+-	char tmp[18];
+-	char *tok;
+-	unsigned int ul, i = 0;
++    /* 00:00:00:00:00:00 */
++    char tmp[18];
++    char* tok;
++    unsigned int ul, i = 0;
+ 
+-	if (strlen(in) < 17)
+-		return -1;
++    if (strlen(in) < 17)
++        return -1;
+ 
+-	strncpy(tmp, in, sizeof(tmp) - 1);
+-	tmp[sizeof(tmp) - 1] = '\0';
++    strncpy(tmp, in, sizeof(tmp) - 1);
++    tmp[sizeof(tmp) - 1] = '\0';
+ 
+-	for (tok = strtok(tmp, ":"); tok && (i < ETH_ALEN); tok = strtok(NULL, ":")) {
+-		ul = strtoul(tok, NULL, 16);
+-		out[i++] = ul & 0xff;
+-	}
++    for (tok = strtok(tmp, ":"); tok && (i < ETH_ALEN); tok = strtok(NULL, ":")) {
++        ul       = strtoul(tok, NULL, 16);
++        out[i++] = ul & 0xff;
++    }
+ 
+-	return 0;
++    return 0;
+ }
+ 
+-struct usrp_sulfur_eeprom *usrp_sulfur_eeprom_new(const u32 *mcu_flags,
+-						  const u16 pid,
+-						  const u16 rev,
+-						  const char *serial,
+-						  const char *eth_addr0,
+-						  const char *eth_addr1,
+-						  const char *eth_addr2,
+-						  const u16 dt_compat,
+-						  const u16 mcu_compat,
+-						  const u16 rev_compat)
++struct usrp_sulfur_eeprom* usrp_sulfur_eeprom_new(const u32* mcu_flags,
++    const u16 pid,
++    const u16 rev,
++    const char* serial,
++    const char* eth_addr0,
++    const char* eth_addr1,
++    const char* eth_addr2,
++    const u16 dt_compat,
++    const u16 mcu_compat,
++    const u16 rev_compat)
+ {
+-	struct usrp_sulfur_eeprom *ep;
+-	int i;
++    struct usrp_sulfur_eeprom* ep;
++    int i;
+ 
+-	ep = malloc(sizeof(*ep));
+-	if (!ep) {
+-		perror("Failed to allocate eeprom struct\n");
+-		return NULL;
+-	}
++    ep = malloc(sizeof(*ep));
++    if (!ep) {
++        perror("Failed to allocate eeprom struct\n");
++        return NULL;
++    }
+ 
+-	/* it's an eeprom, so just make it 0xff */
+-	memset(ep, 0, sizeof(*ep));
++    /* it's an eeprom, so just make it 0xff */
++    memset(ep, 0, sizeof(*ep));
+ 
+-	ep->magic = htonl(USRP_EEPROM_MAGIC);
+-	ep->version = htonl(USRP_EEPROM_VERSION);
++    ep->magic   = htonl(USRP_EEPROM_MAGIC);
++    ep->version = htonl(USRP_EEPROM_VERSION);
+ 
+-	if (!mcu_flags)
+-		mcu_flags = &USRP_EEPROM_DEFAULT_MCU_FLAGS[0];
++    if (!mcu_flags)
++        mcu_flags = &USRP_EEPROM_DEFAULT_MCU_FLAGS[0];
+ 
+-	for (i = 0; i < 4; ++i)
+-		ep->mcu_flags[i] = htonl(mcu_flags[i]);
++    for (i = 0; i < 4; ++i)
++        ep->mcu_flags[i] = htonl(mcu_flags[i]);
+ 
+-	ep->pid = htons(pid);
+-	ep->rev = htons(rev);
++    ep->pid = htons(pid);
++    ep->rev = htons(rev);
+ 
+-	if (strlen(serial) > 8) {
+-		fprintf(stderr, "Serial# too long\n");
+-		free(ep);
+-		return NULL;
+-	}
++    if (strlen(serial) > 8) {
++        fprintf(stderr, "Serial# too long\n");
++        free(ep);
++        return NULL;
++    }
+ 
+-	memset(ep->serial, '\0', 8);
+-	strncpy(ep->serial, serial, 8);
++    memset(ep->serial, '\0', 8);
++    strncpy(ep->serial, serial, 8);
+ 
+-	if (eth_addr0)
+-		__eth_addr_parse(ep->eth_addr0, eth_addr0);
++    if (eth_addr0)
++        __eth_addr_parse(ep->eth_addr0, eth_addr0);
+ 
+-	if (eth_addr1)
+-		__eth_addr_parse(ep->eth_addr1, eth_addr1);
++    if (eth_addr1)
++        __eth_addr_parse(ep->eth_addr1, eth_addr1);
+ 
+-	if (eth_addr2)
+-		__eth_addr_parse(ep->eth_addr2, eth_addr2);
++    if (eth_addr2)
++        __eth_addr_parse(ep->eth_addr2, eth_addr2);
+ 
+-	ep->dt_compat = htons(dt_compat);
+-	ep->mcu_compat = htons(mcu_compat);
+-	ep->rev_compat = htons(rev_compat);
++    ep->dt_compat  = htons(dt_compat);
++    ep->mcu_compat = htons(mcu_compat);
++    ep->rev_compat = htons(rev_compat);
+ 
+-	ep->crc = htonl(crc32(0, &ep->magic, sizeof(*ep)-4));
++    ep->crc = htonl(crc32(0, &ep->magic, sizeof(*ep) - 4));
+ 
+-	return ep;
++    return ep;
+ }
+ 
+-static int __usrp_sulfur_eeprom_check_crc(const struct usrp_sulfur_eeprom *ep)
++static int __usrp_sulfur_eeprom_check_crc(const struct usrp_sulfur_eeprom* ep)
+ {
+-	uint32_t crc;
++    uint32_t crc;
+ 
+-	crc = crc32(0, &ep->magic, sizeof(*ep) - 4);
++    crc = crc32(0, &ep->magic, sizeof(*ep) - 4);
+ 
+-	return (crc != ep->crc);
++    return (crc != ep->crc);
+ }
+ 
+-static int __usrp_sulfur_db_eeprom_check_crc(const struct usrp_sulfur_db_eeprom *ep)
++static int __usrp_sulfur_db_eeprom_check_crc(const struct usrp_sulfur_db_eeprom* ep)
+ {
+-	uint32_t crc;
++    uint32_t crc;
+ 
+-	crc = crc32(0, &ep->magic, sizeof(*ep) - 4);
++    crc = crc32(0, &ep->magic, sizeof(*ep) - 4);
+ 
+-	return (crc != ep->crc);
++    return (crc != ep->crc);
+ }
+ 
+-void usrp_sulfur_eeprom_print(const struct usrp_sulfur_eeprom *ep)
++void usrp_sulfur_eeprom_print(const struct usrp_sulfur_eeprom* ep)
+ {
+-	int i;
+-
+-	if (!ep) {
+-		fprintf(stderr, "ep not valid!\n");
+-		return;
+-	}
+-
+-	printf("-- PID/REV: %04x %04x\n", ntohs(ep->pid), ntohs(ep->rev));
+-	for (i = 0; i < 4; ++i)
+-		printf("-- MCU_FLAGS[%u]: %08x\n", i, ntohl(ep->mcu_flags[i]));
+-	printf("-- Serial: %s\n", ep->serial);
+-
+-	printf("-- eth_addr0: %02x:%02x:%02x:%02x:%02x:%02x\n",
+-	       ep->eth_addr0[0], ep->eth_addr0[1], ep->eth_addr0[2],
+-	       ep->eth_addr0[3], ep->eth_addr0[4], ep->eth_addr0[5]);
+-	printf("-- eth_addr1: %02x:%02x:%02x:%02x:%02x:%02x\n",
+-	       ep->eth_addr1[0], ep->eth_addr1[1], ep->eth_addr1[2],
+-	       ep->eth_addr1[3], ep->eth_addr1[4],
+-	       ep->eth_addr1[5]);
+-	printf("-- eth_addr2: %02x:%02x:%02x:%02x:%02x:%02x\n",
+-	       ep->eth_addr2[0], ep->eth_addr2[1], ep->eth_addr2[2],
+-	       ep->eth_addr2[3], ep->eth_addr2[4], ep->eth_addr2[5]);
+-
+-	if (ntohl(ep->version) >= 2)
+-		printf("-- DT-Compat/MCU-Compat: %04x %04x\n",
+-		       ntohs(ep->dt_compat), ntohs(ep->mcu_compat));
+-
+-	if (ntohl(ep->version) >= 3) {
+-		printf("-- Max-REV: %04x\n", ntohs(ep->rev_compat));
+-	}
+-
+-	printf("-- CRC: %08x (%s)\n", ntohl(ep->crc),
+-	       __usrp_sulfur_eeprom_check_crc(ep) ? "matches": "doesn't match!");
++    int i;
++
++    if (!ep) {
++        fprintf(stderr, "ep not valid!\n");
++        return;
++    }
++
++    printf("-- PID/REV: %04x %04x\n", ntohs(ep->pid), ntohs(ep->rev));
++    for (i = 0; i < 4; ++i)
++        printf("-- MCU_FLAGS[%u]: %08x\n", i, ntohl(ep->mcu_flags[i]));
++    printf("-- Serial: %s\n", ep->serial);
++
++    printf("-- eth_addr0: %02x:%02x:%02x:%02x:%02x:%02x\n",
++        ep->eth_addr0[0],
++        ep->eth_addr0[1],
++        ep->eth_addr0[2],
++        ep->eth_addr0[3],
++        ep->eth_addr0[4],
++        ep->eth_addr0[5]);
++    printf("-- eth_addr1: %02x:%02x:%02x:%02x:%02x:%02x\n",
++        ep->eth_addr1[0],
++        ep->eth_addr1[1],
++        ep->eth_addr1[2],
++        ep->eth_addr1[3],
++        ep->eth_addr1[4],
++        ep->eth_addr1[5]);
++    printf("-- eth_addr2: %02x:%02x:%02x:%02x:%02x:%02x\n",
++        ep->eth_addr2[0],
++        ep->eth_addr2[1],
++        ep->eth_addr2[2],
++        ep->eth_addr2[3],
++        ep->eth_addr2[4],
++        ep->eth_addr2[5]);
++
++    if (ntohl(ep->version) >= 2)
++        printf("-- DT-Compat/MCU-Compat: %04x %04x\n",
++            ntohs(ep->dt_compat),
++            ntohs(ep->mcu_compat));
++
++    if (ntohl(ep->version) >= 3) {
++        printf("-- Max-REV: %04x\n", ntohs(ep->rev_compat));
++    }
++
++    printf("-- CRC: %08x (%s)\n",
++        ntohl(ep->crc),
++        __usrp_sulfur_eeprom_check_crc(ep) ? "matches" : "doesn't match!");
+ }
+ 
+-struct usrp_sulfur_eeprom *usrp_sulfur_eeprom_from_file(const char *path)
++struct usrp_sulfur_eeprom* usrp_sulfur_eeprom_from_file(const char* path)
+ {
+-	int fd;
+-	struct usrp_sulfur_eeprom *ep;
+-	size_t len = sizeof(*ep);
+-	size_t got = 0;
+-
+-	fd = open(path, O_RDONLY);
+-	if (fd < 0) {
+-		perror("Could not open file:\n");
+-		return NULL;
+-	}
+-
+-	ep = malloc(sizeof(*ep));
+-	if (!ep) {
+-		perror("Could not allocate struct");
+-		return ep;
+-	}
+-
+-	u8 *rptr = (u8*)ep;
+-
+-	while(len) {
+-		got = read(fd, rptr, len);
+-		len -= got;
+-		rptr += got;
+-	}
+-
+-	close(fd);
+-	if (ep->magic != ntohl(USRP_EEPROM_MAGIC)) {
+-		free(ep);
+-		return NULL;
+-	}
+-
+-	return ep;
++    int fd;
++    struct usrp_sulfur_eeprom* ep;
++    size_t len = sizeof(*ep);
++    size_t got = 0;
++
++    fd = open(path, O_RDONLY);
++    if (fd < 0) {
++        perror("Could not open file:\n");
++        return NULL;
++    }
++
++    ep = malloc(sizeof(*ep));
++    if (!ep) {
++        perror("Could not allocate struct");
++        return ep;
++    }
++
++    u8* rptr = (u8*)ep;
++
++    while (len) {
++        got = read(fd, rptr, len);
++        len -= got;
++        rptr += got;
++    }
++
++    close(fd);
++    if (ep->magic != ntohl(USRP_EEPROM_MAGIC)) {
++        free(ep);
++        return NULL;
++    }
++
++    return ep;
+ }
+ 
+-void usrp_sulfur_eeprom_to_file(struct usrp_sulfur_eeprom *ep, const char *path)
++void usrp_sulfur_eeprom_to_file(struct usrp_sulfur_eeprom* ep, const char* path)
+ {
+-	int fd;
+-	size_t len = sizeof(*ep);
+-	size_t got = 0;
++    int fd;
++    size_t len = sizeof(*ep);
++    size_t got = 0;
+ 
+-	fd = open(path, O_WRONLY | O_CREAT);
+-	if (fd < 0) {
+-		perror("Could not open file:\n");
+-		return;
+-	}
++    fd = open(path, O_WRONLY | O_CREAT);
++    if (fd < 0) {
++        perror("Could not open file:\n");
++        return;
++    }
+ 
+-	u8 *rptr = (u8*)ep;
++    u8* rptr = (u8*)ep;
+ 
+-	while(len) {
+-		got = write(fd, rptr, len);
+-		len -= got;
+-		rptr += got;
+-	}
++    while (len) {
++        got = write(fd, rptr, len);
++        len -= got;
++        rptr += got;
++    }
+ 
+-	close(fd);
++    close(fd);
+ 
+-	return;
++    return;
+ }
+ 
+-void usrp_sulfur_db_eeprom_to_file(struct usrp_sulfur_db_eeprom *ep, const char *path)
++void usrp_sulfur_db_eeprom_to_file(struct usrp_sulfur_db_eeprom* ep, const char* path)
+ {
+-	int fd;
+-	size_t len = sizeof(*ep);
+-	size_t got = 0;
++    int fd;
++    size_t len = sizeof(*ep);
++    size_t got = 0;
+ 
+-	fd = open(path, O_WRONLY | O_CREAT);
+-	if (fd < 0) {
+-		perror("Could not open file:\n");
+-		return;
+-	}
++    fd = open(path, O_WRONLY | O_CREAT);
++    if (fd < 0) {
++        perror("Could not open file:\n");
++        return;
++    }
+ 
+-	u8 *rptr = (u8*)ep;
++    u8* rptr = (u8*)ep;
+ 
+-	while(len) {
+-		got = write(fd, rptr, len);
+-		len -= got;
+-		rptr += got;
+-	}
++    while (len) {
++        got = write(fd, rptr, len);
++        len -= got;
++        rptr += got;
++    }
+ 
+-	close(fd);
++    close(fd);
+ 
+-	return;
++    return;
+ }
+ 
+ 
+-static int set_i2c_reg(int fd, const u8 addr, const u8 reg,
+-		       const u8 val)
++static int set_i2c_reg(int fd, const u8 addr, const u8 reg, const u8 val)
+ {
+-	int ret;
+-	u8 outbuf[2];
+-	struct i2c_rdwr_ioctl_data packets;
+-	struct i2c_msg messages[1];
++    int ret;
++    u8 outbuf[2];
++    struct i2c_rdwr_ioctl_data packets;
++    struct i2c_msg messages[1];
+ 
+-	messages[0].addr = addr;
+-	messages[0].flags = 0;
+-	messages[0].len = sizeof(outbuf);
+-	messages[0].buf = outbuf;
++    messages[0].addr  = addr;
++    messages[0].flags = 0;
++    messages[0].len   = sizeof(outbuf);
++    messages[0].buf   = outbuf;
+ 
+-	outbuf[0] = reg;
+-	outbuf[1] = val;
++    outbuf[0] = reg;
++    outbuf[1] = val;
+ 
+-	packets.msgs = messages;
+-	packets.nmsgs = 1;
++    packets.msgs  = messages;
++    packets.nmsgs = 1;
+ 
+-	ret = ioctl(fd, I2C_RDWR, &packets);
+-	if (ret < 0) {
+-		fprintf(stderr, "Failed to set register %u\n", reg);
+-		return ret;
+-	}
++    ret = ioctl(fd, I2C_RDWR, &packets);
++    if (ret < 0) {
++        fprintf(stderr, "Failed to set register %u\n", reg);
++        return ret;
++    }
+ 
+-	usleep(5 * 1000);
++    usleep(5 * 1000);
+ 
+-	return 0;
++    return 0;
+ }
+ 
+-static int get_i2c_reg(int fd, const u8 addr, const u8 reg, u8 *val)
++static int get_i2c_reg(int fd, const u8 addr, const u8 reg, u8* val)
+ {
+-	int ret;
+-	u8 outbuf, inbuf;
+-	struct i2c_rdwr_ioctl_data packets;
+-	struct i2c_msg messages[2];
++    int ret;
++    u8 outbuf, inbuf;
++    struct i2c_rdwr_ioctl_data packets;
++    struct i2c_msg messages[2];
+ 
+-	messages[0].addr = addr;
+-	messages[0].flags = 0;
+-	messages[0].len = sizeof(outbuf);
+-	messages[0].buf = &outbuf;
++    messages[0].addr  = addr;
++    messages[0].flags = 0;
++    messages[0].len   = sizeof(outbuf);
++    messages[0].buf   = &outbuf;
+ 
+-	outbuf = reg;
++    outbuf = reg;
+ 
+-	messages[1].addr = addr;
+-	messages[1].flags = I2C_M_RD;
+-	messages[1].len = sizeof(inbuf);
+-	messages[1].buf = &inbuf;
++    messages[1].addr  = addr;
++    messages[1].flags = I2C_M_RD;
++    messages[1].len   = sizeof(inbuf);
++    messages[1].buf   = &inbuf;
+ 
+-	packets.msgs = messages;
+-	packets.nmsgs = 2;
++    packets.msgs  = messages;
++    packets.nmsgs = 2;
+ 
+-	ret = ioctl(fd, I2C_RDWR, &packets);
+-	if (ret < 0) {
+-		fprintf(stderr, "Failed to get register %u\n", reg);
+-		return ret;
+-	}
++    ret = ioctl(fd, I2C_RDWR, &packets);
++    if (ret < 0) {
++        fprintf(stderr, "Failed to get register %u\n", reg);
++        return ret;
++    }
+ 
+-	*val = inbuf;
++    *val = inbuf;
+ 
+-	return 0;
++    return 0;
+ }
+ 
+-void usrp_sulfur_eeprom_recrc(struct usrp_sulfur_eeprom *ep)
++void usrp_sulfur_eeprom_recrc(struct usrp_sulfur_eeprom* ep)
+ {
+-	ep->crc = htonl(crc32(0, &ep->magic, sizeof(*ep)-4));
++    ep->crc = htonl(crc32(0, &ep->magic, sizeof(*ep) - 4));
+ }
+ 
+-void usrp_sulfur_eeprom_to_i2c(struct usrp_sulfur_eeprom *ep, const char *path)
++void usrp_sulfur_eeprom_to_i2c(struct usrp_sulfur_eeprom* ep, const char* path)
+ {
+-	int fd;
+-	size_t len = sizeof(*ep);
+-	size_t i;
++    int fd;
++    size_t len = sizeof(*ep);
++    size_t i;
+ 
+-	fd = open(path, O_WRONLY | O_CREAT);
+-	if (fd < 0) {
+-		perror("Could not open file:\n");
+-		return;
+-	}
++    fd = open(path, O_WRONLY | O_CREAT);
++    if (fd < 0) {
++        perror("Could not open file:\n");
++        return;
++    }
+ 
+-	u8 *rptr = (u8*)ep;
++    u8* rptr = (u8*)ep;
+ 
+-	for (i = 0; i < len; i++)
+-		set_i2c_reg(fd, EEPROM_I2C_ADDR, i, *(rptr+i));
++    for (i = 0; i < len; i++)
++        set_i2c_reg(fd, EEPROM_I2C_ADDR, i, *(rptr + i));
+ 
+-	close(fd);
++    close(fd);
+ 
+-	return;
++    return;
+ }
+ 
+-struct usrp_sulfur_db_eeprom *usrp_sulfur_db_eeprom_new(const u16 pid,
+-						     const u16 rev,
+-						     const char *serial,
+-						     const u16 dt_compat)
++struct usrp_sulfur_db_eeprom* usrp_sulfur_db_eeprom_new(
++    const u16 pid, const u16 rev, const char* serial, const u16 dt_compat)
+ {
+-	struct usrp_sulfur_db_eeprom *ep;
+-	int i;
++    struct usrp_sulfur_db_eeprom* ep;
++    int i;
+ 
+-	ep = malloc(sizeof(*ep));
+-	if (!ep) {
+-		perror("Failed to allocate eeprom struct\n");
+-		return NULL;
+-	}
++    ep = malloc(sizeof(*ep));
++    if (!ep) {
++        perror("Failed to allocate eeprom struct\n");
++        return NULL;
++    }
+ 
+-	/* it's an eeprom, so just make it 0xff */
+-	memset(ep, 0, sizeof(*ep));
++    /* it's an eeprom, so just make it 0xff */
++    memset(ep, 0, sizeof(*ep));
+ 
+-	ep->magic = htonl(USRP_EEPROM_DB_MAGIC);
+-	ep->version = htonl(USRP_EEPROM_DB_VERSION);
++    ep->magic   = htonl(USRP_EEPROM_DB_MAGIC);
++    ep->version = htonl(USRP_EEPROM_DB_VERSION);
+ 
+-	ep->pid = htons(pid);
+-	ep->rev.v2_rev.rev = rev;
+-	ep->rev.v2_rev.dt_compat = dt_compat;
++    ep->pid                  = htons(pid);
++    ep->rev.v2_rev.rev       = rev;
++    ep->rev.v2_rev.dt_compat = dt_compat;
+ 
+-	if (strlen(serial) > 8) {
+-		fprintf(stderr, "Serial# too long\n");
+-		free(ep);
+-		return NULL;
+-	}
++    if (strlen(serial) > 8) {
++        fprintf(stderr, "Serial# too long\n");
++        free(ep);
++        return NULL;
++    }
+ 
+-	memset(ep->serial, '\0', 8);
+-	strncpy(ep->serial, serial, 8);
++    memset(ep->serial, '\0', 8);
++    strncpy(ep->serial, serial, 8);
+ 
+-	ep->crc = htonl(crc32(0, &ep->magic, sizeof(*ep)-4));
++    ep->crc = htonl(crc32(0, &ep->magic, sizeof(*ep) - 4));
+ 
+-	return ep;
++    return ep;
+ }
+ 
+-struct usrp_sulfur_db_eeprom *usrp_sulfur_db_eeprom_from_file(const char *path)
++struct usrp_sulfur_db_eeprom* usrp_sulfur_db_eeprom_from_file(const char* path)
+ {
+-	int fd;
+-	struct usrp_sulfur_db_eeprom *ep;
+-	size_t len = sizeof(*ep);
+-	size_t got = 0;
+-
+-	fd = open(path, O_RDONLY);
+-	if (fd < 0) {
+-		return NULL;
+-	}
+-
+-	ep = malloc(sizeof(*ep));
+-	if (!ep) {
+-		perror("Could not allocate struct");
+-		return ep;
+-	}
+-
+-	u8 *rptr = (u8*)ep;
+-
+-	while(len) {
+-		got = read(fd, rptr, len);
+-		len -= got;
+-		rptr += got;
+-	}
+-
+-	close(fd);
+-	if (ep->magic != ntohl(USRP_EEPROM_DB_MAGIC)) {
+-		free(ep);
+-		return NULL;
+-	}
+-
+-	return ep;
++    int fd;
++    struct usrp_sulfur_db_eeprom* ep;
++    size_t len = sizeof(*ep);
++    size_t got = 0;
++
++    fd = open(path, O_RDONLY);
++    if (fd < 0) {
++        return NULL;
++    }
++
++    ep = malloc(sizeof(*ep));
++    if (!ep) {
++        perror("Could not allocate struct");
++        return ep;
++    }
++
++    u8* rptr = (u8*)ep;
++
++    while (len) {
++        got = read(fd, rptr, len);
++        len -= got;
++        rptr += got;
++    }
++
++    close(fd);
++    if (ep->magic != ntohl(USRP_EEPROM_DB_MAGIC)) {
++        free(ep);
++        return NULL;
++    }
++
++    return ep;
+ }
+ 
+-void usrp_sulfur_db_eeprom_print(const struct usrp_sulfur_db_eeprom *ep)
++void usrp_sulfur_db_eeprom_print(const struct usrp_sulfur_db_eeprom* ep)
+ {
+-	if (!ep) {
+-		fprintf(stderr, "ep not valid!\n");
+-		return;
+-	}
+-
+-	if (ntohl(ep->version) == 1)
+-		printf("-- PID/REV: %04x %04x\n", ntohs(ep->pid), ntohs(ep->rev.v1_rev));
+-	else
+-		printf("-- PID/REV: %04x %02x\n", ntohs(ep->pid), ep->rev.v2_rev.rev);
+-	printf("-- Serial: %s\n", ep->serial);
+-	if (ntohl(ep->version) == 2)
+-		printf("-- DT-Compat: %02x\n", ep->rev.v2_rev.dt_compat);
+-	printf("-- CRC: %08x (%s)\n", ntohl(ep->crc),
+-	       __usrp_sulfur_db_eeprom_check_crc(ep) ? "matches": "doesn't match!");
++    if (!ep) {
++        fprintf(stderr, "ep not valid!\n");
++        return;
++    }
++
++    if (ntohl(ep->version) == 1)
++        printf("-- PID/REV: %04x %04x\n", ntohs(ep->pid), ntohs(ep->rev.v1_rev));
++    else
++        printf("-- PID/REV: %04x %02x\n", ntohs(ep->pid), ep->rev.v2_rev.rev);
++    printf("-- Serial: %s\n", ep->serial);
++    if (ntohl(ep->version) == 2)
++        printf("-- DT-Compat: %02x\n", ep->rev.v2_rev.dt_compat);
++    printf("-- CRC: %08x (%s)\n",
++        ntohl(ep->crc),
++        __usrp_sulfur_db_eeprom_check_crc(ep) ? "matches" : "doesn't match!");
+ }
+-
+diff --git a/mpm/tools/eeprom.h b/mpm/tools/eeprom.h
+index 3e629af14a..b7856a9c85 100644
+--- a/mpm/tools/eeprom.h
++++ b/mpm/tools/eeprom.h
+@@ -19,77 +19,76 @@ typedef uint8_t u8;
+  * another device */
+ #define NVMEM_PATH_SLOT_A "/sys/bus/nvmem/devices/9-00500/nvmem"
+ #define NVMEM_PATH_SLOT_B "/sys/bus/nvmem/devices/10-00501/nvmem"
+-#define NVMEM_PATH_MB "/sys/bus/nvmem/devices/2-00502/nvmem"
++#define NVMEM_PATH_MB     "/sys/bus/nvmem/devices/2-00502/nvmem"
+ 
+ /* Despite the "sulfur" name, this also applies for E320 ("neon")
+  */
+-struct usrp_sulfur_eeprom {
+-	u32 magic;
+-	u32 version;
+-	u32 mcu_flags[4];
+-	u16 pid;
+-	u16 rev;
+-	u8 serial[8];
+-	u8 eth_addr0[ETH_ALEN];
+-	u16 dt_compat;
+-	u8 eth_addr1[ETH_ALEN];
+-	u16 mcu_compat;
+-	u8 eth_addr2[ETH_ALEN];
+-	u16 rev_compat;
+-	u32 crc;
++struct usrp_sulfur_eeprom
++{
++    u32 magic;
++    u32 version;
++    u32 mcu_flags[4];
++    u16 pid;
++    u16 rev;
++    u8 serial[8];
++    u8 eth_addr0[ETH_ALEN];
++    u16 dt_compat;
++    u8 eth_addr1[ETH_ALEN];
++    u16 mcu_compat;
++    u8 eth_addr2[ETH_ALEN];
++    u16 rev_compat;
++    u32 crc;
+ } __attribute__((packed));
+ 
+-struct db_rev {
+-	u8 rev;
+-	u8 dt_compat;
++struct db_rev
++{
++    u8 rev;
++    u8 dt_compat;
+ } __attribute__((packed));
+ 
+-struct usrp_sulfur_db_eeprom {
+-	u32 magic;
+-	u32 version;
+-	u16 pid;
+-	union rev {
+-		u16 v1_rev;
+-		struct db_rev v2_rev;
+-	} rev;
+-	char serial[8];
+-	u32 crc;
++struct usrp_sulfur_db_eeprom
++{
++    u32 magic;
++    u32 version;
++    u16 pid;
++    union rev {
++        u16 v1_rev;
++        struct db_rev v2_rev;
++    } rev;
++    char serial[8];
++    u32 crc;
+ } __attribute__((packed));
+ 
+ /* Motherboard EEPROM stuff */
+-struct usrp_sulfur_eeprom *usrp_sulfur_eeprom_new(const u32 *mcu_flags,
+-						  const u16 pid,
+-						  const u16 rev,
+-						  const char *serial,
+-						  const char *eth_addr0,
+-						  const char *eth_addr1,
+-						  const char *eth_addr2,
+-						  const u16 dt_compat,
+-						  const u16 mcu_compat,
+-						  const u16 rev_compat);
++struct usrp_sulfur_eeprom* usrp_sulfur_eeprom_new(const u32* mcu_flags,
++    const u16 pid,
++    const u16 rev,
++    const char* serial,
++    const char* eth_addr0,
++    const char* eth_addr1,
++    const char* eth_addr2,
++    const u16 dt_compat,
++    const u16 mcu_compat,
++    const u16 rev_compat);
+ 
+-void usrp_sulfur_eeprom_to_i2c(struct usrp_sulfur_eeprom *ep, const char *path);
++void usrp_sulfur_eeprom_to_i2c(struct usrp_sulfur_eeprom* ep, const char* path);
+ 
+-void usrp_sulfur_eeprom_to_file(struct usrp_sulfur_eeprom *ep,
+-				const char *path);
++void usrp_sulfur_eeprom_to_file(struct usrp_sulfur_eeprom* ep, const char* path);
+ 
+-void usrp_sulfur_eeprom_recrc(struct usrp_sulfur_eeprom *ep);
++void usrp_sulfur_eeprom_recrc(struct usrp_sulfur_eeprom* ep);
+ 
+-struct usrp_sulfur_eeprom *usrp_sulfur_eeprom_from_file(const char *path);
++struct usrp_sulfur_eeprom* usrp_sulfur_eeprom_from_file(const char* path);
+ 
+-void usrp_sulfur_eeprom_print(const struct usrp_sulfur_eeprom *ep);
++void usrp_sulfur_eeprom_print(const struct usrp_sulfur_eeprom* ep);
+ 
+ /* Daughterboard EEPROM stuff */
+-struct usrp_sulfur_db_eeprom *usrp_sulfur_db_eeprom_new(const u16 pid,
+-							const u16 rev,
+-							const char *serial,
+-							const u16 dt_compat);
++struct usrp_sulfur_db_eeprom* usrp_sulfur_db_eeprom_new(
++    const u16 pid, const u16 rev, const char* serial, const u16 dt_compat);
+ 
+-void usrp_sulfur_db_eeprom_to_file(struct usrp_sulfur_db_eeprom *ep,
+-				   const char *path);
++void usrp_sulfur_db_eeprom_to_file(struct usrp_sulfur_db_eeprom* ep, const char* path);
+ 
+-struct usrp_sulfur_db_eeprom *usrp_sulfur_db_eeprom_from_file(const char *path);
++struct usrp_sulfur_db_eeprom* usrp_sulfur_db_eeprom_from_file(const char* path);
+ 
+-void usrp_sulfur_db_eeprom_print(const struct usrp_sulfur_db_eeprom *ep);
++void usrp_sulfur_db_eeprom_print(const struct usrp_sulfur_db_eeprom* ep);
+ 
+ #endif /* EEPROM_H */
+diff --git a/mpm/tools/fan-limits.c b/mpm/tools/fan-limits.c
+index 3328c2175d..7fdee156b1 100644
+--- a/mpm/tools/fan-limits.c
++++ b/mpm/tools/fan-limits.c
+@@ -8,40 +8,40 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ 
+-void usage(char *argv[])
++void usage(char* argv[])
+ {
+-	printf("-- Usage -- \n");
+-	printf("%s fan0_min fan0_max fan1_min fan1_max\n\n", argv[0]);
+-	printf("Example:\n");
+-	printf("$ %s 3800 13000 3800 1300\n", argv[0]);
++    printf("-- Usage -- \n");
++    printf("%s fan0_min fan0_max fan1_min fan1_max\n\n", argv[0]);
++    printf("Example:\n");
++    printf("$ %s 3800 13000 3800 1300\n", argv[0]);
+ }
+ 
+-int main(int argc, char *argv[])
++int main(int argc, char* argv[])
+ {
+-	struct usrp_sulfur_eeprom *ep;
+-	uint8_t fan0_max, fan0_min, fan1_max, fan1_min;
+-	uint32_t new_flags = 0;
++    struct usrp_sulfur_eeprom* ep;
++    uint8_t fan0_max, fan0_min, fan1_max, fan1_min;
++    uint32_t new_flags = 0;
+ 
+-	if (argc != 5) {
+-		usage(argv);
+-		return EXIT_FAILURE;
+-	}
++    if (argc != 5) {
++        usage(argv);
++        return EXIT_FAILURE;
++    }
+ 
+-	fan0_min = atoi(argv[1]) / 100;
+-	fan0_max = atoi(argv[2]) / 100;
+-	fan1_min = atoi(argv[3]) / 100;
+-	fan1_max = atoi(argv[4]) / 100;
++    fan0_min = atoi(argv[1]) / 100;
++    fan0_max = atoi(argv[2]) / 100;
++    fan1_min = atoi(argv[3]) / 100;
++    fan1_max = atoi(argv[4]) / 100;
+ 
+-	printf("Writing: %d/%d/%d/%d\n", fan0_min, fan0_max, fan1_min, fan1_max);
++    printf("Writing: %d/%d/%d/%d\n", fan0_min, fan0_max, fan1_min, fan1_max);
+ 
+-	ep = usrp_sulfur_eeprom_from_file(NVMEM_PATH_MB);
+-	ep->mcu_flags[0] = 0;
+-	ep->mcu_flags[1] = htonl(fan1_max << 24 | fan1_min << 16 | fan0_max << 8 | fan0_min);
+-	usrp_sulfur_eeprom_recrc(ep);
+-	usrp_sulfur_eeprom_to_i2c(ep, "/dev/i2c-2");
++    ep               = usrp_sulfur_eeprom_from_file(NVMEM_PATH_MB);
++    ep->mcu_flags[0] = 0;
++    ep->mcu_flags[1] = htonl(fan1_max << 24 | fan1_min << 16 | fan0_max << 8 | fan0_min);
++    usrp_sulfur_eeprom_recrc(ep);
++    usrp_sulfur_eeprom_to_i2c(ep, "/dev/i2c-2");
+ 
+ 
+-	free(ep);
++    free(ep);
+ 
+-	return 0;
++    return 0;
+ }
+diff --git a/mpm/tools/tlv_eeprom/crc.c b/mpm/tools/tlv_eeprom/crc.c
+index df16b71db9..c09e86501f 100644
+--- a/mpm/tools/tlv_eeprom/crc.c
++++ b/mpm/tools/tlv_eeprom/crc.c
+@@ -4,9 +4,10 @@
+ // SPDX-License-Identifier: GPL-3.0-or-later
+ //
+ 
+-#include <stdint.h>
+ #include "tlv_eeprom.h"
++#include <stdint.h>
+ 
++// clang-format off
+ static const uint32_t crc32_tab[] = {
+ 	0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
+ 	0xe963a535, 0x9e6495a3,	0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,
+@@ -52,20 +53,21 @@ static const uint32_t crc32_tab[] = {
+ 	0x54de5729, 0x23d967bf, 0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94,
+ 	0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
+ };
++// clang-format on
+ 
+-static uint32_t crc32(uint32_t crc, const void *buf, size_t size)
++static uint32_t crc32(uint32_t crc, const void* buf, size_t size)
+ {
+-	const uint8_t *p;
++    const uint8_t* p;
+ 
+-	p = buf;
++    p = buf;
+ 
+-	while (size--)
+-		crc = crc32_tab[(crc ^ *p++) & 0xFF] ^ (crc >> 8);
++    while (size--)
++        crc = crc32_tab[(crc ^ *p++) & 0xFF] ^ (crc >> 8);
+ 
+-	return crc;
++    return crc;
+ }
+ 
+-uint32_t tlv_eeprom_crc(const struct tlv_eeprom *e)
++uint32_t tlv_eeprom_crc(const struct tlv_eeprom* e)
+ {
+-	return crc32(0, &e->size, sizeof(e->size) + e->size);
++    return crc32(0, &e->size, sizeof(e->size) + e->size);
+ }
+diff --git a/mpm/tools/tlv_eeprom/eeprom-dump.c b/mpm/tools/tlv_eeprom/eeprom-dump.c
+index 9afcef4313..13efedd854 100644
+--- a/mpm/tools/tlv_eeprom/eeprom-dump.c
++++ b/mpm/tools/tlv_eeprom/eeprom-dump.c
+@@ -10,25 +10,25 @@
+ #include "tlv_eeprom_io.h"
+ #include "usrp_eeprom.h"
+ 
+-int main(int argc, char **argv)
++int main(int argc, char** argv)
+ {
+-	struct tlv_eeprom *eeprom;
++    struct tlv_eeprom* eeprom;
+ 
+-	if (argc != 2) {
+-		fprintf(stderr, "usage: %s <eeprom>\n", argv[0]);
+-		return 1;
+-	}
++    if (argc != 2) {
++        fprintf(stderr, "usage: %s <eeprom>\n", argv[0]);
++        return 1;
++    }
+ 
+-	eeprom = tlv_eeprom_read_from_file(argv[1]);
+-	if (!eeprom)
+-		return 1;
++    eeprom = tlv_eeprom_read_from_file(argv[1]);
++    if (!eeprom)
++        return 1;
+ 
+-	if (!tlv_eeprom_validate(eeprom, USRP_EEPROM_MAGIC))
+-		tlv_for_each(eeprom->tlv, eeprom->size, usrp_eeprom_trace);
+-	else
+-		fprintf(stderr, "eeprom contents invalid!\n");
++    if (!tlv_eeprom_validate(eeprom, USRP_EEPROM_MAGIC))
++        tlv_for_each(eeprom->tlv, eeprom->size, usrp_eeprom_trace);
++    else
++        fprintf(stderr, "eeprom contents invalid!\n");
+ 
+-	free(eeprom);
++    free(eeprom);
+ 
+-	return 0;
++    return 0;
+ }
+diff --git a/mpm/tools/tlv_eeprom/eeprom-id.c b/mpm/tools/tlv_eeprom/eeprom-id.c
+index e00732f0a7..42388894ff 100644
+--- a/mpm/tools/tlv_eeprom/eeprom-id.c
++++ b/mpm/tools/tlv_eeprom/eeprom-id.c
+@@ -7,60 +7,59 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ 
++#include "eeprom-pids.h"
+ #include "tlv_eeprom.h"
+ #include "tlv_eeprom_io.h"
+ #include "usrp_eeprom.h"
+-#include "eeprom-pids.h"
+ 
+-int main(int argc, char **argv)
++int main(int argc, char** argv)
+ {
+-	struct tlv_eeprom *eeprom;
+-	const struct usrp_eeprom_module_info *module_info;
+-	const struct usrp_eeprom_board_info *board_info;
+-	const struct pid_info *pid_info;
+-	unsigned int pid, rev;
+-	const char *serial;
++    struct tlv_eeprom* eeprom;
++    const struct usrp_eeprom_module_info* module_info;
++    const struct usrp_eeprom_board_info* board_info;
++    const struct pid_info* pid_info;
++    unsigned int pid, rev;
++    const char* serial;
+ 
+-	if (argc != 2) {
+-		fprintf(stderr, "usage: %s <eeprom>\n", argv[0]);
+-		return 1;
+-	}
++    if (argc != 2) {
++        fprintf(stderr, "usage: %s <eeprom>\n", argv[0]);
++        return 1;
++    }
+ 
+-	eeprom = tlv_eeprom_read_from_file(argv[1]);
+-	if (tlv_eeprom_validate(eeprom, USRP_EEPROM_MAGIC)) {
+-		fprintf(stderr, "failed to validate eeprom\n");
+-		return 1;
+-	}
++    eeprom = tlv_eeprom_read_from_file(argv[1]);
++    if (tlv_eeprom_validate(eeprom, USRP_EEPROM_MAGIC)) {
++        fprintf(stderr, "failed to validate eeprom\n");
++        return 1;
++    }
+ 
+-	module_info = tlv_lookup(eeprom->tlv, eeprom->size,
+-				 USRP_EEPROM_MODULE_INFO_TAG);
+-	board_info = tlv_lookup(eeprom->tlv, eeprom->size,
+-				USRP_EEPROM_BOARD_INFO_TAG);
++    module_info = tlv_lookup(eeprom->tlv, eeprom->size, USRP_EEPROM_MODULE_INFO_TAG);
++    board_info  = tlv_lookup(eeprom->tlv, eeprom->size, USRP_EEPROM_BOARD_INFO_TAG);
+ 
+-	if (module_info) {
+-		serial = module_info->serial;
+-		pid = module_info->pid;
+-		rev = module_info->rev;
+-	} else if (board_info) {
+-		serial = board_info->serial;
+-		pid = board_info->pid;
+-		rev = board_info->rev;
+-	} else  {
+-		fprintf(stderr, "couldn't find module_info or board_info\n");
+-		return 1;
+-	}
++    if (module_info) {
++        serial = module_info->serial;
++        pid    = module_info->pid;
++        rev    = module_info->rev;
++    } else if (board_info) {
++        serial = board_info->serial;
++        pid    = board_info->pid;
++        rev    = board_info->rev;
++    } else {
++        fprintf(stderr, "couldn't find module_info or board_info\n");
++        return 1;
++    }
+ 
+-	pid_info = get_info_from_pid(pid);
++    pid_info = get_info_from_pid(pid);
+ 
+-	if (pid_info && pid_info->name) {
+-		printf("product=ni-%s-rev%u\n", pid_info->name, rev + pid_info->rev_offset);
+-	} else if (pid_info && pid_info->description) {
+-		printf("product=ni-(%s)-rev%u\n", pid_info->description, rev + pid_info->rev_offset);
+-	} else {
+-		printf("product=unknown-(%04x)\n", pid);
+-	}
+-	printf("serial=%s\n", serial);
++    if (pid_info && pid_info->name) {
++        printf("product=ni-%s-rev%u\n", pid_info->name, rev + pid_info->rev_offset);
++    } else if (pid_info && pid_info->description) {
++        printf(
++            "product=ni-(%s)-rev%u\n", pid_info->description, rev + pid_info->rev_offset);
++    } else {
++        printf("product=unknown-(%04x)\n", pid);
++    }
++    printf("serial=%s\n", serial);
+ 
+-	free(eeprom);
+-	return 0;
++    free(eeprom);
++    return 0;
+ }
+diff --git a/mpm/tools/tlv_eeprom/eeprom-init.c b/mpm/tools/tlv_eeprom/eeprom-init.c
+index 6cca434fc8..9e9b69f57b 100644
+--- a/mpm/tools/tlv_eeprom/eeprom-init.c
++++ b/mpm/tools/tlv_eeprom/eeprom-init.c
+@@ -14,363 +14,370 @@
+ 
+ #define ARRAY_SIZE(x) (sizeof((x)) / sizeof((*x)))
+ 
+-int parse_board_info(int argc, char **argv, void *data)
++int parse_board_info(int argc, char** argv, void* data)
+ {
+-	struct usrp_eeprom_board_info *info = data;
++    struct usrp_eeprom_board_info* info = data;
+ 
+-	if (!argc) {
+-		sprintf(data, "<pid> <rev> <compat_rev> <serial>");
+-		return 0;
+-	}
++    if (!argc) {
++        sprintf(data, "<pid> <rev> <compat_rev> <serial>");
++        return 0;
++    }
+ 
+-	assert(argc >= 4);
++    assert(argc >= 4);
+ 
+-	info->pid = strtoul(argv[0], NULL, 0);
+-	info->rev = strtoul(argv[1], NULL, 0);
+-	info->compat_rev = strtoul(argv[2], NULL, 0);
+-	strncpy(info->serial, argv[3], 8);
+-	info->serial[7] = '\0';
++    info->pid        = strtoul(argv[0], NULL, 0);
++    info->rev        = strtoul(argv[1], NULL, 0);
++    info->compat_rev = strtoul(argv[2], NULL, 0);
++    strncpy(info->serial, argv[3], 8);
++    info->serial[7] = '\0';
+ 
+-	return 4;
++    return 4;
+ }
+ static struct usrp_eeprom_board_info board_info;
+ 
+-int parse_module_info(int argc, char **argv, void *data)
++int parse_module_info(int argc, char** argv, void* data)
+ {
+-	struct usrp_eeprom_module_info *info = data;
++    struct usrp_eeprom_module_info* info = data;
+ 
+-	if (!argc) {
+-		sprintf(data, "<pid> <rev> <serial>");
+-		return 0;
+-	}
++    if (!argc) {
++        sprintf(data, "<pid> <rev> <serial>");
++        return 0;
++    }
+ 
+-	assert(argc >= 3);
++    assert(argc >= 3);
+ 
+-	info->pid = strtoul(argv[0], NULL, 0);
+-	info->rev = strtoul(argv[1], NULL, 0);
+-	strncpy(info->serial, argv[2], 8);
+-	info->serial[7] = '\0';
++    info->pid = strtoul(argv[0], NULL, 0);
++    info->rev = strtoul(argv[1], NULL, 0);
++    strncpy(info->serial, argv[2], 8);
++    info->serial[7] = '\0';
+ 
+-	return 3;
++    return 3;
+ }
+ static struct usrp_eeprom_module_info module_info;
+ 
+-int parse_mac(int argc, char **argv, void *data)
++int parse_mac(int argc, char** argv, void* data)
+ {
+-	struct usrp_eeprom_mac_addr *mac = data;
+-	int ret;
+-
+-	if (!argc) {
+-		sprintf(data, "<mac_addr>");
+-		return 0;
+-	}
+-
+-	assert(argc >= 1);
+-
+-	ret = sscanf(*argv, "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
+-	             mac->addr + 0, mac->addr + 1, mac->addr + 2,
+-	             mac->addr + 3, mac->addr + 4, mac->addr + 5);
+-	assert(ret == 6);
+-
+-	return 1;
++    struct usrp_eeprom_mac_addr* mac = data;
++    int ret;
++
++    if (!argc) {
++        sprintf(data, "<mac_addr>");
++        return 0;
++    }
++
++    assert(argc >= 1);
++
++    ret = sscanf(*argv,
++        "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
++        mac->addr + 0,
++        mac->addr + 1,
++        mac->addr + 2,
++        mac->addr + 3,
++        mac->addr + 4,
++        mac->addr + 5);
++    assert(ret == 6);
++
++    return 1;
+ }
+ static struct usrp_eeprom_mac_addr mac_addrs[USRP_EEPROM_MAX_MAC_ADDRS];
+ 
+-int parse_db_pwr_seq(int argc, char **argv, void *data)
++int parse_db_pwr_seq(int argc, char** argv, void* data)
+ {
+-	struct usrp_eeprom_db_pwr_seq *seq = data;
+-	uint8_t i;
++    struct usrp_eeprom_db_pwr_seq* seq = data;
++    uint8_t i;
+ 
+-	if (!argc) {
+-		sprintf(data, "<nsteps> [delay supply_mask]...");
+-		return 0;
+-	}
++    if (!argc) {
++        sprintf(data, "<nsteps> [delay supply_mask]...");
++        return 0;
++    }
+ 
+-	assert(argc >= 1);
+-	seq->nsteps = strtoul(argv[0], NULL, 0);
+-	assert(argc >= 1 + (2 * seq->nsteps));
++    assert(argc >= 1);
++    seq->nsteps = strtoul(argv[0], NULL, 0);
++    assert(argc >= 1 + (2 * seq->nsteps));
+ 
+-	argv++;
+-	for (i = 0; i < seq->nsteps; i++) {
+-		seq->steps[i].delay = strtoul(*argv++, NULL, 0);
+-		seq->steps[i].supply_mask = strtoul(*argv++, NULL, 0);
+-	}
++    argv++;
++    for (i = 0; i < seq->nsteps; i++) {
++        seq->steps[i].delay       = strtoul(*argv++, NULL, 0);
++        seq->steps[i].supply_mask = strtoul(*argv++, NULL, 0);
++    }
+ 
+-	return 1 + 2 * i;
++    return 1 + 2 * i;
+ }
+ static struct usrp_eeprom_db_pwr_seq db_pwr_seq;
+ 
+-int parse_mcu_flags(int argc, char **argv, void *data)
++int parse_mcu_flags(int argc, char** argv, void* data)
+ {
+-	struct usrp_eeprom_mcu_flags *flags = data;
+-	unsigned long tmp;
+-	int i;
+-
+-	if (!argc) {
+-		sprintf(data, "<flags[0]> <flags[1]> <flags[2]> "
+-		              "<flags[3]> <flags[4]> <flags[5]>");
+-		return 0;
+-	}
+-
+-	assert(argc >= ARRAY_SIZE(flags->flags));
+-	for (i = 0; i < ARRAY_SIZE(flags->flags); i++) {
+-		tmp = strtoul(argv[i], NULL, 0);
+-		assert(tmp <= 0xFF);
+-
+-		flags->flags[i] = tmp;
+-	}
+-
+-	return i;
++    struct usrp_eeprom_mcu_flags* flags = data;
++    unsigned long tmp;
++    int i;
++
++    if (!argc) {
++        sprintf(data,
++            "<flags[0]> <flags[1]> <flags[2]> "
++            "<flags[3]> <flags[4]> <flags[5]>");
++        return 0;
++    }
++
++    assert(argc >= ARRAY_SIZE(flags->flags));
++    for (i = 0; i < ARRAY_SIZE(flags->flags); i++) {
++        tmp = strtoul(argv[i], NULL, 0);
++        assert(tmp <= 0xFF);
++
++        flags->flags[i] = tmp;
++    }
++
++    return i;
+ }
+ static struct usrp_eeprom_mcu_flags mcu_flags;
+ 
+-int parse_fan_limits(int argc, char **argv, void *data)
++int parse_fan_limits(int argc, char** argv, void* data)
+ {
+-	struct usrp_eeprom_fan_limits *fan_limits = data;
+-	int i;
++    struct usrp_eeprom_fan_limits* fan_limits = data;
++    int i;
+ 
+-	if (!argc) {
+-		sprintf(data, "<fan min rpm> <fan start rpm> <fan max rpm>");
+-		return 0;
+-	}
++    if (!argc) {
++        sprintf(data, "<fan min rpm> <fan start rpm> <fan max rpm>");
++        return 0;
++    }
+ 
+-	assert(argc >= 3);
+-	fan_limits->min = strtoul(argv[0], NULL, 0);
+-	fan_limits->start = strtoul(argv[1], NULL, 0);
+-	fan_limits->max = strtoul(argv[2], NULL, 0);
++    assert(argc >= 3);
++    fan_limits->min   = strtoul(argv[0], NULL, 0);
++    fan_limits->start = strtoul(argv[1], NULL, 0);
++    fan_limits->max   = strtoul(argv[2], NULL, 0);
+ 
+-	return 3;
++    return 3;
+ }
+ static struct usrp_eeprom_fan_limits fan_limits;
+ 
+-int parse_fan_fixed_capacity(int argc, char **argv, void *data)
++int parse_fan_fixed_capacity(int argc, char** argv, void* data)
+ {
+-	struct usrp_eeprom_fan_fixed_capacity *fan_fixed_capacity = data;
++    struct usrp_eeprom_fan_fixed_capacity* fan_fixed_capacity = data;
+ 
+-	if (!argc) {
+-		sprintf(data, "<fan fixed capacity>");
+-		return 0;
+-	}
++    if (!argc) {
++        sprintf(data, "<fan fixed capacity>");
++        return 0;
++    }
+ 
+-	fan_fixed_capacity->capacity = strtoul(argv[0], NULL, 0);
++    fan_fixed_capacity->capacity = strtoul(argv[0], NULL, 0);
+ 
+-	return 1;
++    return 1;
+ }
+ static struct usrp_eeprom_fan_fixed_capacity fan_fixed_capacity;
+ 
+-int parse_clkaux_tuning_word(int argc, char **argv, void *data)
++int parse_clkaux_tuning_word(int argc, char** argv, void* data)
+ {
+-	struct usrp_eeprom_clkaux_tuning_word *clkaux_tuning_word = data;
++    struct usrp_eeprom_clkaux_tuning_word* clkaux_tuning_word = data;
+ 
+-	if (!argc) {
+-		sprintf(data, "<dac tuning word>");
+-		return 0;
+-	}
++    if (!argc) {
++        sprintf(data, "<dac tuning word>");
++        return 0;
++    }
+ 
+-	clkaux_tuning_word->tuning_word = strtoul(argv[0], NULL, 0);
++    clkaux_tuning_word->tuning_word = strtoul(argv[0], NULL, 0);
+ 
+-	return 1;
++    return 1;
+ }
+ static struct usrp_eeprom_clkaux_tuning_word clkaux_tuning_word;
+ 
+-struct arg_parser {
+-	const char *arg;
+-	const char *alias;
+-	void *store;
+-	size_t size;
+-	uint8_t tag;
+-	int (*parse)(int, char **, void *);
+-	int dirty;
++struct arg_parser
++{
++    const char* arg;
++    const char* alias;
++    void* store;
++    size_t size;
++    uint8_t tag;
++    int (*parse)(int, char**, void*);
++    int dirty;
+ };
+ 
+-#define PARSER_(name_, alias_, data_, tag_, parser_) { \
+-	.arg = #name_, \
+-	.alias = alias_, \
+-	.store = &(data_), \
+-	.size = sizeof((data_)), \
+-	.tag = (tag_), \
+-	.parse = (parser_), \
+-}
+-
+-#define PARSER(param_, tag_) PARSER_(param_, NULL, param_, tag_, parse_ ##param_)
+-#define MAC_PARSER_ALIAS(idx_, alias_) PARSER_( mac_addr_ ## idx_, (alias_), mac_addrs[(idx_)], USRP_EEPROM_MAC_ADDR_TAG((idx_)), parse_mac)
++#define PARSER_(name_, alias_, data_, tag_, parser_)                                \
++    {                                                                               \
++        .arg = #name_, .alias = alias_, .store = &(data_), .size = sizeof((data_)), \
++        .tag = (tag_), .parse = (parser_),                                          \
++    }
++
++#define PARSER(param_, tag_) PARSER_(param_, NULL, param_, tag_, parse_##param_)
++#define MAC_PARSER_ALIAS(idx_, alias_)    \
++    PARSER_(mac_addr_##idx_,              \
++        (alias_),                         \
++        mac_addrs[(idx_)],                \
++        USRP_EEPROM_MAC_ADDR_TAG((idx_)), \
++        parse_mac)
+ #define MAC_PARSER(idx_) MAC_PARSER_ALIAS(idx_, NULL)
+ 
+ static struct arg_parser parsers[] = {
+-	PARSER(board_info, USRP_EEPROM_BOARD_INFO_TAG),
+-	PARSER(module_info, USRP_EEPROM_MODULE_INFO_TAG),
+-	MAC_PARSER_ALIAS(0, "eth0_mac"),
+-	MAC_PARSER_ALIAS(1, "qsfp0_mac"),
+-	MAC_PARSER_ALIAS(2, "qsfp1_mac"),
+-	MAC_PARSER(3),
+-	MAC_PARSER(4),
+-	MAC_PARSER(5),
+-	MAC_PARSER(6),
+-	MAC_PARSER(7),
+-	MAC_PARSER(8),
+-	MAC_PARSER(9),
+-	MAC_PARSER(10),
+-	MAC_PARSER(11),
+-	MAC_PARSER(12),
+-	PARSER(db_pwr_seq, USRP_EEPROM_DB_PWR_SEQ_TAG),
+-	PARSER(mcu_flags, USRP_EEPROM_MCU_FLAGS),
+-	PARSER(fan_limits, USRP_EEPROM_FAN_LIMITS),
+-	PARSER(fan_fixed_capacity, USRP_EEPROM_FAN_FIXED_CAPACITY),
+-	PARSER(clkaux_tuning_word, USRP_EEPROM_CLKAUX_TUNING_WORD),
++    PARSER(board_info, USRP_EEPROM_BOARD_INFO_TAG),
++    PARSER(module_info, USRP_EEPROM_MODULE_INFO_TAG),
++    MAC_PARSER_ALIAS(0, "eth0_mac"),
++    MAC_PARSER_ALIAS(1, "qsfp0_mac"),
++    MAC_PARSER_ALIAS(2, "qsfp1_mac"),
++    MAC_PARSER(3),
++    MAC_PARSER(4),
++    MAC_PARSER(5),
++    MAC_PARSER(6),
++    MAC_PARSER(7),
++    MAC_PARSER(8),
++    MAC_PARSER(9),
++    MAC_PARSER(10),
++    MAC_PARSER(11),
++    MAC_PARSER(12),
++    PARSER(db_pwr_seq, USRP_EEPROM_DB_PWR_SEQ_TAG),
++    PARSER(mcu_flags, USRP_EEPROM_MCU_FLAGS),
++    PARSER(fan_limits, USRP_EEPROM_FAN_LIMITS),
++    PARSER(fan_fixed_capacity, USRP_EEPROM_FAN_FIXED_CAPACITY),
++    PARSER(clkaux_tuning_word, USRP_EEPROM_CLKAUX_TUNING_WORD),
+ };
+ 
+-static struct arg_parser *parser_lookup(const char *arg)
++static struct arg_parser* parser_lookup(const char* arg)
+ {
+-	for (size_t i = 0; i < ARRAY_SIZE(parsers); i++) {
+-		if (!strcmp(parsers[i].arg, arg))
+-			return parsers + i;
+-		if (parsers[i].alias && !strcmp(parsers[i].alias, arg))
+-			return parsers + i;
+-	}
+-
+-	return NULL;
++    for (size_t i = 0; i < ARRAY_SIZE(parsers); i++) {
++        if (!strcmp(parsers[i].arg, arg))
++            return parsers + i;
++        if (parsers[i].alias && !strcmp(parsers[i].alias, arg))
++            return parsers + i;
++    }
++
++    return NULL;
+ }
+ 
+ #ifdef TLV_EEPROM_UPDATE
+-static void tlv_update(uint8_t tag, uint8_t len, const void *val)
++static void tlv_update(uint8_t tag, uint8_t len, const void* val)
+ {
+-	struct arg_parser *parser = NULL;
+-
+-	for (size_t i = 0; i < ARRAY_SIZE(parsers); i++) {
+-		if (parsers[i].tag == tag)
+-			parser = parsers + i;
+-	}
+-
+-	if (!parser) {
+-		fprintf(stderr, "found unknown tag %02x len %u", tag, len);
+-		fprintf(stderr, "cannot use this utility to update\n");
+-		exit(EXIT_FAILURE);
+-	}
+-
+-	assert(len == parser->size);
+-	memcpy(parser->store, val, len);
+-	parser->dirty = 1;
++    struct arg_parser* parser = NULL;
++
++    for (size_t i = 0; i < ARRAY_SIZE(parsers); i++) {
++        if (parsers[i].tag == tag)
++            parser = parsers + i;
++    }
++
++    if (!parser) {
++        fprintf(stderr, "found unknown tag %02x len %u", tag, len);
++        fprintf(stderr, "cannot use this utility to update\n");
++        exit(EXIT_FAILURE);
++    }
++
++    assert(len == parser->size);
++    memcpy(parser->store, val, len);
++    parser->dirty = 1;
+ }
+ 
+-static void handle_update(const char *filename)
++static void handle_update(const char* filename)
+ {
+-	struct tlv_eeprom *eeprom;
++    struct tlv_eeprom* eeprom;
+ 
+-	eeprom = tlv_eeprom_read_from_file(filename);
+-	if (!eeprom) {
+-		perror("failed to read");
+-		exit(EXIT_FAILURE);
+-	}
++    eeprom = tlv_eeprom_read_from_file(filename);
++    if (!eeprom) {
++        perror("failed to read");
++        exit(EXIT_FAILURE);
++    }
+ 
+-	if (tlv_eeprom_validate(eeprom, USRP_EEPROM_MAGIC)) {
+-		fprintf(stderr, "contents invalid, cannot update\n");
+-		exit(EXIT_FAILURE);
+-	}
++    if (tlv_eeprom_validate(eeprom, USRP_EEPROM_MAGIC)) {
++        fprintf(stderr, "contents invalid, cannot update\n");
++        exit(EXIT_FAILURE);
++    }
+ 
+-	tlv_for_each(eeprom->tlv, eeprom->size, tlv_update);
+-	free(eeprom);
++    tlv_for_each(eeprom->tlv, eeprom->size, tlv_update);
++    free(eeprom);
+ }
+ #else
+-static void handle_update(const char *filename)
+-{
+-}
++static void handle_update(const char* filename) {}
+ #endif
+ 
+-static void validate_file_matches(const struct tlv_eeprom *eeprom,
+-				  const char *filename)
++static void validate_file_matches(const struct tlv_eeprom* eeprom, const char* filename)
+ {
+-	struct tlv_eeprom *file_eeprom;
+-
+-	file_eeprom = tlv_eeprom_read_from_file(filename);
+-	if (!file_eeprom) {
+-		perror("failed to read for validate");
+-		exit(EXIT_FAILURE);
+-	}
+-
+-	if (memcmp(file_eeprom, eeprom, sizeof(*eeprom))) {
+-		fprintf(stderr, "eeprom validation failed! "
+-				"values read do not match what was written. "
+-				"perhaps the eeprom was write-protected?\n");
+-		exit(EXIT_FAILURE);
+-	}
+-
+-	free(file_eeprom);
++    struct tlv_eeprom* file_eeprom;
++
++    file_eeprom = tlv_eeprom_read_from_file(filename);
++    if (!file_eeprom) {
++        perror("failed to read for validate");
++        exit(EXIT_FAILURE);
++    }
++
++    if (memcmp(file_eeprom, eeprom, sizeof(*eeprom))) {
++        fprintf(stderr,
++            "eeprom validation failed! "
++            "values read do not match what was written. "
++            "perhaps the eeprom was write-protected?\n");
++        exit(EXIT_FAILURE);
++    }
++
++    free(file_eeprom);
+ }
+ 
+-static void usage(const char *argv0)
++static void usage(const char* argv0)
+ {
+-	const struct arg_parser *p;
+-	char buffer[4096];
+-
+-	fprintf(stderr, "usage: %s <output_file>\n", argv0);
+-	for (size_t i = 0; i < ARRAY_SIZE(parsers); i++) {
+-		p = parsers + i;
+-		p->parse(0, NULL, buffer);
+-		fprintf(stderr, "\t--%s %s\n", p->arg, buffer);
+-	}
++    const struct arg_parser* p;
++    char buffer[4096];
++
++    fprintf(stderr, "usage: %s <output_file>\n", argv0);
++    for (size_t i = 0; i < ARRAY_SIZE(parsers); i++) {
++        p = parsers + i;
++        p->parse(0, NULL, buffer);
++        fprintf(stderr, "\t--%s %s\n", p->arg, buffer);
++    }
+ }
+ 
+-int main(int argc, char **argv)
++int main(int argc, char** argv)
+ {
+-	struct arg_parser *parser;
+-	const char *output_file;
+-	struct tlv_eeprom eeprom;
+-	uint8_t *ptr;
+-	int ret;
+-
+-	if (argc < 2) {
+-		usage(argv[0]);
+-		return 1;
+-	}
+-
+-	output_file = argv[1];
+-	handle_update(output_file);
+-
+-	argc -= 2;
+-	argv += 2;
+-
+-	while (argc > 0) {
+-		if (strncmp("--", *argv, 2)) {
+-			fprintf(stderr, "unexpected arg\n");
+-			return 1;
+-		}
+-
+-		*argv += 2;
+-		parser = parser_lookup(*argv);
+-		if (!parser) {
+-			fprintf(stderr, "unknown type: %s\n", *argv);
+-			return 1;
+-		}
+-
+-		argc--;
+-		argv++;
+-
+-		ret = parser->parse(argc, argv, parser->store);
+-		if (ret < 0) {
+-			fprintf(stderr, "parsing failed\n");
+-			return 1;
+-		}
+-		parser->dirty = 1;
+-
+-		argc -= ret;
+-		argv += ret;
+-	}
+-
+-	/*
+-	 * Now that the data's been parsed, write back any changed fields
+-	 */
+-	memset(&eeprom, 0, sizeof(eeprom));
+-	ptr = eeprom.tlv;
+-	for (size_t i = 0; i < ARRAY_SIZE(parsers); i++) {
+-		parser = parsers + i;
+-		if (!parser->dirty)
+-			continue;
+-		ptr += tlv_write(ptr, parser->tag, parser->size, parser->store);
+-	}
+-
+-	tlv_eeprom_seal(&eeprom, USRP_EEPROM_MAGIC, ptr - eeprom.tlv);
+-	tlv_eeprom_write_to_file(&eeprom, output_file);
+-	validate_file_matches(&eeprom, output_file);
+-
+-	return 0;
++    struct arg_parser* parser;
++    const char* output_file;
++    struct tlv_eeprom eeprom;
++    uint8_t* ptr;
++    int ret;
++
++    if (argc < 2) {
++        usage(argv[0]);
++        return 1;
++    }
++
++    output_file = argv[1];
++    handle_update(output_file);
++
++    argc -= 2;
++    argv += 2;
++
++    while (argc > 0) {
++        if (strncmp("--", *argv, 2)) {
++            fprintf(stderr, "unexpected arg\n");
++            return 1;
++        }
++
++        *argv += 2;
++        parser = parser_lookup(*argv);
++        if (!parser) {
++            fprintf(stderr, "unknown type: %s\n", *argv);
++            return 1;
++        }
++
++        argc--;
++        argv++;
++
++        ret = parser->parse(argc, argv, parser->store);
++        if (ret < 0) {
++            fprintf(stderr, "parsing failed\n");
++            return 1;
++        }
++        parser->dirty = 1;
++
++        argc -= ret;
++        argv += ret;
++    }
++
++    /*
++     * Now that the data's been parsed, write back any changed fields
++     */
++    memset(&eeprom, 0, sizeof(eeprom));
++    ptr = eeprom.tlv;
++    for (size_t i = 0; i < ARRAY_SIZE(parsers); i++) {
++        parser = parsers + i;
++        if (!parser->dirty)
++            continue;
++        ptr += tlv_write(ptr, parser->tag, parser->size, parser->store);
++    }
++
++    tlv_eeprom_seal(&eeprom, USRP_EEPROM_MAGIC, ptr - eeprom.tlv);
++    tlv_eeprom_write_to_file(&eeprom, output_file);
++    validate_file_matches(&eeprom, output_file);
++
++    return 0;
+ }
+diff --git a/mpm/tools/tlv_eeprom/eeprom-pids.h b/mpm/tools/tlv_eeprom/eeprom-pids.h
+index 8358d63848..a4262c07b2 100644
+--- a/mpm/tools/tlv_eeprom/eeprom-pids.h
++++ b/mpm/tools/tlv_eeprom/eeprom-pids.h
+@@ -8,11 +8,12 @@
+ 
+ #include <stdint.h>
+ 
+-struct pid_info {
+-  uint16_t pid;
+-  const char* name;
+-  const char* description;
+-  uint16_t rev_offset;
++struct pid_info
++{
++    uint16_t pid;
++    const char* name;
++    const char* description;
++    uint16_t rev_offset;
+ };
+ 
+ const struct pid_info* get_info_from_pid(uint16_t pid);
+diff --git a/mpm/tools/tlv_eeprom/tlv_eeprom.c b/mpm/tools/tlv_eeprom/tlv_eeprom.c
+index 8b2e2d9c0d..e2d4d76b07 100644
+--- a/mpm/tools/tlv_eeprom/tlv_eeprom.c
++++ b/mpm/tools/tlv_eeprom/tlv_eeprom.c
+@@ -3,96 +3,97 @@
+  * Copyright 2019 Ettus Research, a National Instruments Brand
+  */
+ 
+-#include <string.h>
+ #include "tlv_eeprom.h"
++#include <string.h>
+ 
+-struct tlv_eeprom *tlv_eeprom_init(void *data)
++struct tlv_eeprom* tlv_eeprom_init(void* data)
+ {
+-	struct tlv_eeprom *e = data;
++    struct tlv_eeprom* e = data;
+ 
+-	return e;
++    return e;
+ }
+ 
+-void tlv_eeprom_seal(struct tlv_eeprom *e, uint32_t magic, size_t len)
++void tlv_eeprom_seal(struct tlv_eeprom* e, uint32_t magic, size_t len)
+ {
+-	e->magic = magic;
+-	e->size = len;
+-	e->crc = tlv_eeprom_crc(e);
++    e->magic = magic;
++    e->size  = len;
++    e->crc   = tlv_eeprom_crc(e);
+ }
+ 
+-int tlv_eeprom_validate(const struct tlv_eeprom *e, uint32_t magic)
++int tlv_eeprom_validate(const struct tlv_eeprom* e, uint32_t magic)
+ {
+-	uint32_t crc;
++    uint32_t crc;
+ 
+-	if (e->magic != magic)
+-		return -1;
++    if (e->magic != magic)
++        return -1;
+ 
+-	if (e->size > TLV_EEPROM_SIZE)
+-		return -2;
++    if (e->size > TLV_EEPROM_SIZE)
++        return -2;
+ 
+-	crc = tlv_eeprom_crc(e);
+-	if (e->crc != crc)
+-		return -3;
++    crc = tlv_eeprom_crc(e);
++    if (e->crc != crc)
++        return -3;
+ 
+-	return 0;
++    return 0;
+ }
+ 
+-struct tlv {
+-	uint8_t tag;
+-	uint8_t len;
+-	uint8_t val[0];
++struct tlv
++{
++    uint8_t tag;
++    uint8_t len;
++    uint8_t val[0];
+ };
+ 
+ 
+-static inline const struct tlv *tlv_next(const struct tlv *tlv, const void *end)
++static inline const struct tlv* tlv_next(const struct tlv* tlv, const void* end)
+ {
+-	const void *p = &tlv->val;
++    const void* p = &tlv->val;
+ 
+-	p += tlv->len;
+-	if (p >= end)
+-		return NULL;
+-	return p;
++    p += tlv->len;
++    if (p >= end)
++        return NULL;
++    return p;
+ }
+ 
+-static inline const struct tlv *tlv_find(const struct tlv *tlv,
+-					 const void *end, uint8_t tag)
++static inline const struct tlv* tlv_find(
++    const struct tlv* tlv, const void* end, uint8_t tag)
+ {
+-	do {
+-		if (tlv->tag == tag)
+-			break;
+-	} while ((tlv = tlv_next(tlv, end)));
++    do {
++        if (tlv->tag == tag)
++            break;
++    } while ((tlv = tlv_next(tlv, end)));
+ 
+-	return tlv;
++    return tlv;
+ }
+ 
+-void tlv_for_each(const void *buf, size_t bufsz,
+-		  void (*fn)(uint8_t tag, uint8_t len, const void *val))
++void tlv_for_each(
++    const void* buf, size_t bufsz, void (*fn)(uint8_t tag, uint8_t len, const void* val))
+ {
+-	const struct tlv *tlv = buf;
++    const struct tlv* tlv = buf;
+ 
+-	do {
+-		fn(tlv->tag, tlv->len, tlv->val);
+-	} while ((tlv = tlv_next(tlv, buf + bufsz)));
++    do {
++        fn(tlv->tag, tlv->len, tlv->val);
++    } while ((tlv = tlv_next(tlv, buf + bufsz)));
+ }
+ 
+-const void *tlv_lookup(const void *buf, size_t bufsz, uint8_t tag)
++const void* tlv_lookup(const void* buf, size_t bufsz, uint8_t tag)
+ {
+-	const struct tlv *tlv;
++    const struct tlv* tlv;
+ 
+-	tlv = tlv_find(buf, buf + bufsz, tag);
+-	if (!tlv)
+-		return tlv;
++    tlv = tlv_find(buf, buf + bufsz, tag);
++    if (!tlv)
++        return tlv;
+ 
+-	return tlv->val;
++    return tlv->val;
+ }
+ 
+-size_t tlv_write(void *buf, uint8_t tag, uint8_t len, const void *val)
++size_t tlv_write(void* buf, uint8_t tag, uint8_t len, const void* val)
+ {
+-	struct tlv *tlv = buf;
++    struct tlv* tlv = buf;
+ 
+-	tlv->tag = tag;
+-	tlv->len = len;
+-	memcpy(tlv->val, val, len);
++    tlv->tag = tag;
++    tlv->len = len;
++    memcpy(tlv->val, val, len);
+ 
+-	return sizeof(*tlv) + len;
++    return sizeof(*tlv) + len;
+ }
+diff --git a/mpm/tools/tlv_eeprom/tlv_eeprom.h b/mpm/tools/tlv_eeprom/tlv_eeprom.h
+index 319a3cc29a..7c09808c3f 100644
+--- a/mpm/tools/tlv_eeprom/tlv_eeprom.h
++++ b/mpm/tools/tlv_eeprom/tlv_eeprom.h
+@@ -25,18 +25,19 @@
+  * @size: size of remaining data in bytes
+  * @tlv: up to 244 bytes of tlv data
+  */
+-struct tlv_eeprom {
+-	uint32_t magic;
+-	uint32_t crc;
+-	uint32_t size;
+-	uint8_t  tlv[TLV_EEPROM_SIZE - 3 * sizeof(uint32_t)];
++struct tlv_eeprom
++{
++    uint32_t magic;
++    uint32_t crc;
++    uint32_t size;
++    uint8_t tlv[TLV_EEPROM_SIZE - 3 * sizeof(uint32_t)];
+ } __attribute__((packed));
+ 
+ /**
+  * tlv_eeprom_init - create tlv_eeprom from backing store
+  * @data: backing store, which must be at least TLV_EEPROM_SIZE bytes
+  */
+-struct tlv_eeprom *tlv_eeprom_init(void *data);
++struct tlv_eeprom* tlv_eeprom_init(void* data);
+ 
+ /**
+  * tlv_eeprom_validate - check if an eeprom is valid
+@@ -49,7 +50,7 @@ struct tlv_eeprom *tlv_eeprom_init(void *data);
+  * Return: zero on success, -1 for a magic mismatch, -2 for an invalid size, -3
+  *         for an invalid crc
+  */
+-int tlv_eeprom_validate(const struct tlv_eeprom *e, uint32_t magic);
++int tlv_eeprom_validate(const struct tlv_eeprom* e, uint32_t magic);
+ 
+ /**
+  * tlv_eeprom_seal - seal an eeprom
+@@ -60,7 +61,7 @@ int tlv_eeprom_validate(const struct tlv_eeprom *e, uint32_t magic);
+  * Updates the magic, size, and crc of the eeprom. This should be called prior
+  * to writing an eeprom.
+  */
+-void tlv_eeprom_seal(struct tlv_eeprom *e, uint32_t magic, size_t len);
++void tlv_eeprom_seal(struct tlv_eeprom* e, uint32_t magic, size_t len);
+ 
+ /*
+  * tlv_eeprom_crc - return the CRC for the eeprom
+@@ -70,7 +71,7 @@ void tlv_eeprom_seal(struct tlv_eeprom *e, uint32_t magic, size_t len);
+  *
+  * Returns: the crc
+  */
+-extern uint32_t tlv_eeprom_crc(const struct tlv_eeprom *e);
++extern uint32_t tlv_eeprom_crc(const struct tlv_eeprom* e);
+ 
+ /**
+  * tlv_write - writes a tlv tuple to the buffer
+@@ -81,7 +82,7 @@ extern uint32_t tlv_eeprom_crc(const struct tlv_eeprom *e);
+  *
+  * Return: number of bytes written to buffer, including tag and size
+  */
+-size_t tlv_write(void *buf, uint8_t tag, uint8_t len, const void *val);
++size_t tlv_write(void* buf, uint8_t tag, uint8_t len, const void* val);
+ 
+ /**
+  * tlv_lookup - lookup the value associated with a tag
+@@ -91,7 +92,7 @@ size_t tlv_write(void *buf, uint8_t tag, uint8_t len, const void *val);
+  *
+  * Return: pointer to value at tag, or NULL if tag was not found
+  */
+-const void *tlv_lookup(const void *buf, size_t bufsz, uint8_t tag);
++const void* tlv_lookup(const void* buf, size_t bufsz, uint8_t tag);
+ 
+ /*
+  * tlv_for_each - call fn for each value in buffer
+@@ -99,6 +100,5 @@ const void *tlv_lookup(const void *buf, size_t bufsz, uint8_t tag);
+  * @bufsz: size of buffer containing tlv data
+  * @fn: function to invoke for each value
+  */
+-void tlv_for_each(const void *buf, size_t bufsz,
+-		  void (*fn)(uint8_t tag, uint8_t len, const void *val));
+-
++void tlv_for_each(
++    const void* buf, size_t bufsz, void (*fn)(uint8_t tag, uint8_t len, const void* val));
+diff --git a/mpm/tools/tlv_eeprom/tlv_eeprom_io.c b/mpm/tools/tlv_eeprom/tlv_eeprom_io.c
+index 83586e4f6b..4f0d5f3e15 100644
+--- a/mpm/tools/tlv_eeprom/tlv_eeprom_io.c
++++ b/mpm/tools/tlv_eeprom/tlv_eeprom_io.c
+@@ -12,77 +12,77 @@
+ 
+ #include "tlv_eeprom.h"
+ 
+-struct tlv_eeprom *tlv_eeprom_read_from_file(const char *path)
++struct tlv_eeprom* tlv_eeprom_read_from_file(const char* path)
+ {
+-	struct tlv_eeprom *ep;
+-	int fd;
+-	uint8_t *ptr;
+-	size_t len;
+-	ssize_t rd;
+-
+-	fd = open(path, O_RDONLY);
+-	if (fd < 0) {
+-		perror("couldn't open file");
+-		return NULL;
+-	}
+-
+-
+-	ep = malloc(sizeof(struct tlv_eeprom));
+-	if (!ep) {
+-		perror("alloc failed");
+-		return NULL;
+-	}
+-
+-	len = sizeof(struct tlv_eeprom);
+-	ptr = (uint8_t *)ep;
+-
+-	while (len) {
+-		rd = read(fd, ptr, len);
+-		if (rd < 0) {
+-			perror("read failed");
+-			goto out;
+-		}
+-
+-		len -= rd;
+-		ptr += rd;
+-
+-		if (!rd)
+-			break;
+-	}
+-
+-	return ep;
++    struct tlv_eeprom* ep;
++    int fd;
++    uint8_t* ptr;
++    size_t len;
++    ssize_t rd;
++
++    fd = open(path, O_RDONLY);
++    if (fd < 0) {
++        perror("couldn't open file");
++        return NULL;
++    }
++
++
++    ep = malloc(sizeof(struct tlv_eeprom));
++    if (!ep) {
++        perror("alloc failed");
++        return NULL;
++    }
++
++    len = sizeof(struct tlv_eeprom);
++    ptr = (uint8_t*)ep;
++
++    while (len) {
++        rd = read(fd, ptr, len);
++        if (rd < 0) {
++            perror("read failed");
++            goto out;
++        }
++
++        len -= rd;
++        ptr += rd;
++
++        if (!rd)
++            break;
++    }
++
++    return ep;
+ out:
+-	free(ep);
+-	return NULL;
++    free(ep);
++    return NULL;
+ }
+ 
+-int tlv_eeprom_write_to_file(const struct tlv_eeprom *e, const char *path)
++int tlv_eeprom_write_to_file(const struct tlv_eeprom* e, const char* path)
+ {
+-	int fd, rv = 0;
+-	uint8_t *ptr;
+-	size_t len;
+-	ssize_t wr;
+-
+-	fd = open(path, O_WRONLY | O_CREAT, 0666);
+-	if (fd < 0) {
+-		perror("couldn't open file");
+-		return -1;
+-	}
+-
+-	len = sizeof(*e);
+-	ptr = (uint8_t *)e;
+-
+-	while (len) {
+-		wr = write(fd, ptr, len);
+-		if (wr < 0) {
+-			perror("error writing file");
+-			goto out;
+-		}
+-		len -= wr;
+-		ptr += wr;
+-	}
++    int fd, rv = 0;
++    uint8_t* ptr;
++    size_t len;
++    ssize_t wr;
++
++    fd = open(path, O_WRONLY | O_CREAT, 0666);
++    if (fd < 0) {
++        perror("couldn't open file");
++        return -1;
++    }
++
++    len = sizeof(*e);
++    ptr = (uint8_t*)e;
++
++    while (len) {
++        wr = write(fd, ptr, len);
++        if (wr < 0) {
++            perror("error writing file");
++            goto out;
++        }
++        len -= wr;
++        ptr += wr;
++    }
+ 
+ out:
+-	close(fd);
+-	return rv;
++    close(fd);
++    return rv;
+ }
+diff --git a/mpm/tools/tlv_eeprom/tlv_eeprom_io.h b/mpm/tools/tlv_eeprom/tlv_eeprom_io.h
+index 348bc62079..3e5f34ffa6 100644
+--- a/mpm/tools/tlv_eeprom/tlv_eeprom_io.h
++++ b/mpm/tools/tlv_eeprom/tlv_eeprom_io.h
+@@ -16,7 +16,7 @@
+  *
+  * Return: zero on success, else negative error code
+  */
+-int tlv_eeprom_write_to_file(const struct tlv_eeprom *e, const char *path);
++int tlv_eeprom_write_to_file(const struct tlv_eeprom* e, const char* path);
+ 
+ /**
+  * tlv_eeprom_read_from_file - read an eeprom from file
+@@ -27,5 +27,4 @@ int tlv_eeprom_write_to_file(const struct tlv_eeprom *e, const char *path);
+  *
+  * Return: eeprom, or NULL if error
+  */
+-struct tlv_eeprom *tlv_eeprom_read_from_file(const char *path);
+-
++struct tlv_eeprom* tlv_eeprom_read_from_file(const char* path);
+diff --git a/mpm/tools/tlv_eeprom/usrp_eeprom.h b/mpm/tools/tlv_eeprom/usrp_eeprom.h
+index 224ce8c1ba..759a501905 100644
+--- a/mpm/tools/tlv_eeprom/usrp_eeprom.h
++++ b/mpm/tools/tlv_eeprom/usrp_eeprom.h
+@@ -18,11 +18,12 @@
+  * @serial: NUL-terminated serial number string
+  */
+ #define USRP_EEPROM_BOARD_INFO_TAG (0x10)
+-struct usrp_eeprom_board_info {
+-	uint16_t pid;
+-	uint16_t rev;
+-	uint16_t compat_rev;
+-	char serial[8];
++struct usrp_eeprom_board_info
++{
++    uint16_t pid;
++    uint16_t rev;
++    uint16_t compat_rev;
++    char serial[8];
+ } __attribute__((packed));
+ 
+ /**
+@@ -33,10 +34,11 @@ struct usrp_eeprom_board_info {
+  * @serial: NUL-terminated serial number string for the module
+  */
+ #define USRP_EEPROM_MODULE_INFO_TAG (0x11)
+-struct usrp_eeprom_module_info {
+-	uint16_t pid;
+-	uint16_t rev;
+-	char serial[8];
++struct usrp_eeprom_module_info
++{
++    uint16_t pid;
++    uint16_t rev;
++    char serial[8];
+ } __attribute__((packed));
+ 
+ /**
+@@ -46,13 +48,14 @@ struct usrp_eeprom_module_info {
+  */
+ 
+ /* tags 0xA0 through 0xAF are reserved for MAC addresses */
+-#define USRP_EEPROM_MAX_MAC_ADDRS 0xF
+-#define USRP_EEPROM_MAC_ADDR_TAG(x) (0xA0 + ((x) & USRP_EEPROM_MAX_MAC_ADDRS))
+-#define USRP_EEPROM_ETH0_ADDR_TAG  USRP_EEPROM_MAC_ADDR_TAG(0)
+-#define USRP_EEPROM_QSFP0_ADDR_TAG USRP_EEPROM_MAC_ADDR_TAG(1)
+-#define USRP_EEPROM_QSFP1_ADDR_TAG USRP_EEPROM_MAC_ADDR_TAG(2)
+-struct usrp_eeprom_mac_addr {
+-	uint8_t addr[6];
++#define USRP_EEPROM_MAX_MAC_ADDRS   0xF
++#define USRP_EEPROM_MAC_ADDR_TAG(x) (0xA0 + ((x)&USRP_EEPROM_MAX_MAC_ADDRS))
++#define USRP_EEPROM_ETH0_ADDR_TAG   USRP_EEPROM_MAC_ADDR_TAG(0)
++#define USRP_EEPROM_QSFP0_ADDR_TAG  USRP_EEPROM_MAC_ADDR_TAG(1)
++#define USRP_EEPROM_QSFP1_ADDR_TAG  USRP_EEPROM_MAC_ADDR_TAG(2)
++struct usrp_eeprom_mac_addr
++{
++    uint8_t addr[6];
+ } __attribute__((packed));
+ 
+ /**
+@@ -64,17 +67,20 @@ struct usrp_eeprom_mac_addr {
+  *	For X410: bit 0 = 1.8, bit 1 = 2.5, 3.3, 3.7, 12
+  */
+ #define USRP_EEPROM_DB_PWR_SEQ_TAG (0x12)
+-struct usrp_eeprom_db_pwr_seq {
+-	uint8_t nsteps;
+-	struct {
+-		uint16_t delay;
+-		uint8_t supply_mask;
+-	} steps[8];
++struct usrp_eeprom_db_pwr_seq
++{
++    uint8_t nsteps;
++    struct
++    {
++        uint16_t delay;
++        uint8_t supply_mask;
++    } steps[8];
+ };
+ 
+ #define USRP_EEPROM_MCU_FLAGS (0x20)
+-struct usrp_eeprom_mcu_flags {
+-	uint8_t flags[6];
++struct usrp_eeprom_mcu_flags
++{
++    uint8_t flags[6];
+ } __attribute__((packed));
+ 
+ /**
+@@ -85,10 +91,11 @@ struct usrp_eeprom_mcu_flags {
+  * @max: maximum configurable speed
+  */
+ #define USRP_EEPROM_FAN_LIMITS (0x21)
+-struct usrp_eeprom_fan_limits {
+-	uint16_t min;
+-	uint16_t start;
+-	uint16_t max;
++struct usrp_eeprom_fan_limits
++{
++    uint16_t min;
++    uint16_t start;
++    uint16_t max;
+ } __attribute__((packed));
+ 
+ /**
+@@ -98,9 +105,10 @@ struct usrp_eeprom_fan_limits {
+  * @reserved: extra byte for alignment
+  */
+ #define USRP_EEPROM_FAN_FIXED_CAPACITY (0x22)
+-struct usrp_eeprom_fan_fixed_capacity {
+-	uint8_t capacity;
+-	uint8_t reserved; /* for natural alignment */
++struct usrp_eeprom_fan_fixed_capacity
++{
++    uint8_t capacity;
++    uint8_t reserved; /* for natural alignment */
+ } __attribute__((packed));
+ 
+ /**
+@@ -109,98 +117,87 @@ struct usrp_eeprom_fan_fixed_capacity {
+  * @tuning_word: clocking aux board dac tuning word. Range 0-1023.
+  */
+ #define USRP_EEPROM_CLKAUX_TUNING_WORD (0x23)
+-struct usrp_eeprom_clkaux_tuning_word {
+-	uint16_t tuning_word;
++struct usrp_eeprom_clkaux_tuning_word
++{
++    uint16_t tuning_word;
+ } __attribute__((packed));
+ 
+-#include <stdio.h>
+ #include <assert.h>
++#include <stdio.h>
+ 
+-static void usrp_eeprom_trace(uint8_t tag, uint8_t len, const void *val)
++static void usrp_eeprom_trace(uint8_t tag, uint8_t len, const void* val)
+ {
+-	uint8_t i;
++    uint8_t i;
+ 
+-	switch (tag) {
+-	case USRP_EEPROM_BOARD_INFO_TAG:
+-	{
+-		const struct usrp_eeprom_board_info *v = val;
+-		assert(sizeof(*v) == len);
+-		printf("%s (0x%02x) ", "usrp_eeprom_board_info", tag);
+-		printf("pid: 0x%04x, rev: 0x%04x, compat_rev: 0x%04x, serial: %s\n",
+-		       v->pid, v->rev, v->compat_rev, v->serial);
+-	}
+-	break;
+-	case USRP_EEPROM_MODULE_INFO_TAG:
+-	{
+-		const struct usrp_eeprom_module_info *v = val;
+-		assert(sizeof(*v) == len);
+-		printf("%s (0x%02x) ", "usrp_eeprom_module_info", tag);
+-		printf("pid: 0x%04x, rev: 0x%04x, serial: %s\n",
+-		       v->pid, v->rev, v->serial);
+-	}
+-	break;
+-	case USRP_EEPROM_MAC_ADDR_TAG(0) ... USRP_EEPROM_MAC_ADDR_TAG(USRP_EEPROM_MAX_MAC_ADDRS):
+-	{
+-		const struct usrp_eeprom_mac_addr *v = val;
+-		assert(sizeof(*v) == len);
+-		printf("%s mac_addr_%d (0x%02x) ", "usrp_eeprom_mac_addr",
+-		       tag - USRP_EEPROM_MAC_ADDR_TAG(0), tag);
+-		for (i = 0; i < 6; i++)
+-			printf("%02x%c", v->addr[i], i == 5 ? ' ' : ':');
+-		printf("\n");
+-	}
+-	break;
+-	case USRP_EEPROM_DB_PWR_SEQ_TAG:
+-	{
+-		const struct usrp_eeprom_db_pwr_seq *v = val;
+-		assert(sizeof(*v) == len);
+-		printf("%s (0x%02x) ", "usrp_eeprom_db_pwr_seq", tag);
+-		for (i = 0; i < 8; i++)
+-			printf("(%u, 0x%02x) ", v->steps[i].delay, v->steps[i].supply_mask);
+-		printf("\n");
+-	}
+-	break;
+-	case USRP_EEPROM_MCU_FLAGS:
+-	{
+-		const struct usrp_eeprom_mcu_flags *v = val;
+-		printf("%s (0x%02x) ", "usrp_eeprom_mcu_flags", tag);
+-		for (i = 0; i < 6; i++)
+-			printf("0x%02x ", v->flags[i]);
+-		printf("\n");
+-	}
+-	break;
+-	case USRP_EEPROM_FAN_LIMITS:
+-	{
+-		const struct usrp_eeprom_fan_limits *v = val;
+-		printf("%s (0x%02x) ", "usrp_eeprom_fan_limits", tag);
+-		printf("min: %d, start: %d, max: %d", v->min, v->start, v->max);
+-		printf("\n");
+-	}
+-	break;
+-	case USRP_EEPROM_FAN_FIXED_CAPACITY:
+-	{
+-		const struct usrp_eeprom_fan_fixed_capacity *v = val;
+-		printf("%s (0x%02x) ", "usrp_eeprom_fan_fixed_capacity", tag);
+-		printf("%d", v->capacity);
+-		printf("\n");
+-	}
+-	break;
+-	case USRP_EEPROM_CLKAUX_TUNING_WORD:
+-	{
+-		const struct usrp_eeprom_clkaux_tuning_word *v = val;
+-		printf("%s (0x%02x) ", "usrp_eeprom_clkaux_tuning_word", tag);
+-		printf("%d", v->tuning_word);
+-		printf("\n");
+-	}
+-	break;
+-	default:
+-	{
+-		const uint8_t *ptr = val;
+-		printf("%s (0x%02x) len: %hhu, val: ", "unknown", tag, len);
+-		for (i = 0; i < len; i++)
+-			printf("%02x ", ptr[i]);
+-		printf("\n");
+-		break;
+-	}
+-	}
++    switch (tag) {
++        case USRP_EEPROM_BOARD_INFO_TAG: {
++            const struct usrp_eeprom_board_info* v = val;
++            assert(sizeof(*v) == len);
++            printf("%s (0x%02x) ", "usrp_eeprom_board_info", tag);
++            printf("pid: 0x%04x, rev: 0x%04x, compat_rev: 0x%04x, serial: %s\n",
++                v->pid,
++                v->rev,
++                v->compat_rev,
++                v->serial);
++        } break;
++        case USRP_EEPROM_MODULE_INFO_TAG: {
++            const struct usrp_eeprom_module_info* v = val;
++            assert(sizeof(*v) == len);
++            printf("%s (0x%02x) ", "usrp_eeprom_module_info", tag);
++            printf("pid: 0x%04x, rev: 0x%04x, serial: %s\n", v->pid, v->rev, v->serial);
++        } break;
++        case USRP_EEPROM_MAC_ADDR_TAG(0)... USRP_EEPROM_MAC_ADDR_TAG(
++            USRP_EEPROM_MAX_MAC_ADDRS): {
++            const struct usrp_eeprom_mac_addr* v = val;
++            assert(sizeof(*v) == len);
++            printf("%s mac_addr_%d (0x%02x) ",
++                "usrp_eeprom_mac_addr",
++                tag - USRP_EEPROM_MAC_ADDR_TAG(0),
++                tag);
++            for (i = 0; i < 6; i++)
++                printf("%02x%c", v->addr[i], i == 5 ? ' ' : ':');
++            printf("\n");
++        } break;
++        case USRP_EEPROM_DB_PWR_SEQ_TAG: {
++            const struct usrp_eeprom_db_pwr_seq* v = val;
++            assert(sizeof(*v) == len);
++            printf("%s (0x%02x) ", "usrp_eeprom_db_pwr_seq", tag);
++            for (i = 0; i < 8; i++)
++                printf("(%u, 0x%02x) ", v->steps[i].delay, v->steps[i].supply_mask);
++            printf("\n");
++        } break;
++        case USRP_EEPROM_MCU_FLAGS: {
++            const struct usrp_eeprom_mcu_flags* v = val;
++            printf("%s (0x%02x) ", "usrp_eeprom_mcu_flags", tag);
++            for (i = 0; i < 6; i++)
++                printf("0x%02x ", v->flags[i]);
++            printf("\n");
++        } break;
++        case USRP_EEPROM_FAN_LIMITS: {
++            const struct usrp_eeprom_fan_limits* v = val;
++            printf("%s (0x%02x) ", "usrp_eeprom_fan_limits", tag);
++            printf("min: %d, start: %d, max: %d", v->min, v->start, v->max);
++            printf("\n");
++        } break;
++        case USRP_EEPROM_FAN_FIXED_CAPACITY: {
++            const struct usrp_eeprom_fan_fixed_capacity* v = val;
++            printf("%s (0x%02x) ", "usrp_eeprom_fan_fixed_capacity", tag);
++            printf("%d", v->capacity);
++            printf("\n");
++        } break;
++        case USRP_EEPROM_CLKAUX_TUNING_WORD: {
++            const struct usrp_eeprom_clkaux_tuning_word* v = val;
++            printf("%s (0x%02x) ", "usrp_eeprom_clkaux_tuning_word", tag);
++            printf("%d", v->tuning_word);
++            printf("\n");
++        } break;
++        default: {
++            const uint8_t* ptr = val;
++            printf("%s (0x%02x) len: %hhu, val: ", "unknown", tag, len);
++            for (i = 0; i < len; i++)
++                printf("%02x ", ptr[i]);
++            printf("\n");
++            break;
++        }
++    }
+ }
+-- 
+2.43.0
+

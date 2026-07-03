@@ -1,0 +1,38 @@
+From 79c480fdf407af65e7b3797bcbf95f42d7b9da37 Mon Sep 17 00:00:00 2001
+From: Martin Braun <martin.braun@ettus.com>
+Date: Thu, 26 Mar 2026 22:14:10 +0100
+Subject: [PATCH 01/13] mpm: Add rpc_version key in device find routine
+
+This adds a new key to the discovery information coming from MPM
+devices (rpc_version). The purpose of this is to smooth a transition to
+alternative RPC subsystems other than mprpc.
+
+If a device reports a different RPC version than supported by UHD, it
+can still be found, but cannot be used for UHD sessions.
+---
+ host/lib/usrp/mpmd/mpmd_impl.cpp | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/host/lib/usrp/mpmd/mpmd_impl.cpp b/host/lib/usrp/mpmd/mpmd_impl.cpp
+index 6ea8bfeed8..6e1a86c394 100644
+--- a/host/lib/usrp/mpmd/mpmd_impl.cpp
++++ b/host/lib/usrp/mpmd/mpmd_impl.cpp
+@@ -149,6 +149,15 @@ const std::string mpmd_impl::MPM_ECHO_CMD               = "MPM-ECHO";
+ mpmd_impl::mpmd_impl(const device_addr_t& device_args)
+     : rfnoc_device(), _device_args(device_args)
+ {
++    UHD_ASSERT_THROW(device_args.has_key(RPC_VERSION_KEY));
++    if (device_args.get(RPC_VERSION_KEY, DEFAULT_RPC_VERSION) != RPC_VERSION) {
++        UHD_LOG_THROW(uhd::runtime_error,
++            "MPMD",
++            "RPC version mismatch. Expected: "
++                << RPC_VERSION
++                << " Actual: " << device_args.get(RPC_VERSION_KEY, DEFAULT_RPC_VERSION)
++                << ". Please update the version of MPM on your USRP device.");
++    }
+     const device_addrs_t mb_args_without_prefs = separate_device_addr(device_args);
+     device_addrs_t mb_args;
+     for (size_t i = 0; i < mb_args_without_prefs.size(); ++i) {
+-- 
+2.43.0
+

@@ -1,0 +1,18 @@
+From 8de69412989609ad111113a2f20f36c2c54683e2 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Mon, 15 Jun 2026 09:42:29 +0200
+Subject: [PATCH 06/13] mpm: add executable flags to x4xx_bist
+
+This ensures that the ni-python-styleguide-fix pre-commit
+hook is being executed.
+---
+ mpm/python/x4xx_bist | 0
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ mode change 100644 => 100755 mpm/python/x4xx_bist
+
+diff --git a/mpm/python/x4xx_bist b/mpm/python/x4xx_bist
+old mode 100644
+new mode 100755
+-- 
+2.43.0
+

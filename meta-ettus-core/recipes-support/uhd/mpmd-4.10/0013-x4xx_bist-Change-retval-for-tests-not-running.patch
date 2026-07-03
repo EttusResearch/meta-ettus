@@ -1,0 +1,41 @@
+From 078603b2fd79a45a827effecf62d3b8af499c789 Mon Sep 17 00:00:00 2001
+From: Martin Anderseck <martin.anderseck@ni.com>
+Date: Mon, 1 Jun 2026 10:06:57 +0200
+Subject: [PATCH 13/13] x4xx_bist: Change retval for tests not running
+
+The SPI flash BiSTs can only run for X410 as only the X410
+daughterboards have a flash memory on them. There is a check for that in
+the tests already, but if they aren't running on X410 they used to
+return `False` indicating some kind of error. But since it is not an
+error if a test tries to test something that is definitely not there on
+a different device it now only reports that but returns `True` to not
+cause confusion for X420/X440 users.
+---
+ mpm/python/x4xx_bist | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/mpm/python/x4xx_bist b/mpm/python/x4xx_bist
+index c8f3e37a8f..2b4e0b2399 100755
+--- a/mpm/python/x4xx_bist
++++ b/mpm/python/x4xx_bist
+@@ -941,7 +941,7 @@ class X4XXBIST(bist.UsrpBIST):
+                 "Cannot run bist_spi_flash_integrity(): "
+                 "This device does not have daughterboard flash memory!\n"
+             )
+-            return False, {}
++            return True, {}
+ 
+         import os
+ 
+@@ -1011,7 +1011,7 @@ class X4XXBIST(bist.UsrpBIST):
+                 "Cannot run bist_spi_flash_speed(): "
+                 "This device does not have daughterboard flash memory!\n"
+             )
+-            return False, {}
++            return True, {}
+ 
+         import os
+         import re
+-- 
+2.43.0
+

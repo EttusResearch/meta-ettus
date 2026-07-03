@@ -1,0 +1,54 @@
+From f2a3a02c39095e11ff1809c1cf6c2ef7f7d4c28b Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Tue, 31 Mar 2026 11:32:30 +0200
+Subject: [PATCH 09/13] mpm: tools: Use dts labels for mb, db eeproms
+
+---
+ mpm/tools/CMakeLists.txt |  6 ++++++
+ mpm/tools/eeprom.h       | 13 ++++++++-----
+ 2 files changed, 14 insertions(+), 5 deletions(-)
+
+diff --git a/mpm/tools/CMakeLists.txt b/mpm/tools/CMakeLists.txt
+index 8c229158e5..d07ec313b4 100644
+--- a/mpm/tools/CMakeLists.txt
++++ b/mpm/tools/CMakeLists.txt
+@@ -41,6 +41,12 @@ endif(ENABLE_MYKONOS)
+ foreach(eeprom_tool_source ${eeprom_tool_sources})
+     get_filename_component(eeprom_tool ${eeprom_tool_source} NAME_WE)
+     add_executable(${eeprom_tool} ${eeprom_tool_source} ${eeprom_tool_libs})
++    if(ENABLE_MYKONOS)
++        target_compile_definitions(${eeprom_tool} PRIVATE ENABLE_MYKONOS)
++    endif()
++    if(ENABLE_E320)
++        target_compile_definitions(${eeprom_tool} PRIVATE ENABLE_E320)
++    endif()
+     install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${eeprom_tool} DESTINATION ${CMAKE_INSTALL_BINDIR})
+ endforeach(eeprom_tool_source ${eeprom_tool_sources})
+ 
+diff --git a/mpm/tools/eeprom.h b/mpm/tools/eeprom.h
+index b7856a9c85..aa3daf605e 100644
+--- a/mpm/tools/eeprom.h
++++ b/mpm/tools/eeprom.h
+@@ -15,11 +15,14 @@ typedef uint8_t u8;
+ 
+ #define ETH_ALEN 6
+ 
+-/* TODO: Come up with a smarter way to do this when we start using this on
+- * another device */
+-#define NVMEM_PATH_SLOT_A "/sys/bus/nvmem/devices/9-00500/nvmem"
+-#define NVMEM_PATH_SLOT_B "/sys/bus/nvmem/devices/10-00501/nvmem"
+-#define NVMEM_PATH_MB     "/sys/bus/nvmem/devices/2-00502/nvmem"
++#ifdef ENABLE_MYKONOS
++#    define NVMEM_PATH_SLOT_A "/sys/bus/nvmem/devices/db00/nvmem"
++#    define NVMEM_PATH_SLOT_B "/sys/bus/nvmem/devices/db11/nvmem"
++#    define NVMEM_PATH_MB     "/sys/bus/nvmem/devices/mb2/nvmem"
++#endif
++#ifdef ENABLE_E320
++#    define NVMEM_PATH_MB "/sys/bus/nvmem/devices/mb0/nvmem"
++#endif
+ 
+ /* Despite the "sulfur" name, this also applies for E320 ("neon")
+  */
+-- 
+2.43.0
+

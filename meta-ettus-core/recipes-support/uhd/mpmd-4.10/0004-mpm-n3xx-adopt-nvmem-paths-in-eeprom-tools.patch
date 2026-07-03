@@ -1,7 +1,7 @@
-From d8bcff6909377304d3690912837d4ac9ca6dcadc Mon Sep 17 00:00:00 2001
+From 41cafcbddfa8f62ce8ea5e70ecfd61d35ae338a8 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
 Date: Wed, 3 Dec 2025 10:38:45 +0100
-Subject: [PATCH] mpm: n3xx: adopt nvmem paths in eeprom tools
+Subject: [PATCH 04/13] mpm: n3xx: adopt nvmem paths in eeprom tools
 
 ---
  mpm/tools/eeprom.h | 4 ++--

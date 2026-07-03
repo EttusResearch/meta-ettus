@@ -1,0 +1,117 @@
+From 804f1166f7aac28761a6fb78a8ed210aa3873611 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Thu, 11 Jun 2026 15:44:18 +0200
+Subject: [PATCH 12/13] mpm: bist: fix temp and fan tests for e320, n3xx, x4xx
+
+Use HwmonTempSensors based tests for bist tests.
+---
+ mpm/python/e320_bist        |  4 ++--
+ mpm/python/n3xx_bist        |  6 ++----
+ mpm/python/usrp_mpm/bist.py | 22 ++++++++++++++++++++++
+ mpm/python/x4xx_bist        |  4 ++--
+ 4 files changed, 28 insertions(+), 8 deletions(-)
+
+diff --git a/mpm/python/e320_bist b/mpm/python/e320_bist
+index 4716779311..6456f0be76 100755
+--- a/mpm/python/e320_bist
++++ b/mpm/python/e320_bist
+@@ -371,7 +371,7 @@ class E320BIST(bist.UsrpBIST):
+         assert "temp" in self.tests_to_run
+         if self.args.dry_run:
+             return True, {"internal": 30000}
+-        result = bist.get_temp_sensor_value(lambda device: TEMP_SENSOR_MAP[device.sys_name])
++        result = bist.get_hwmon_temp_sensor_values(dev_filter={"OF_NAME": "embedded-controller"})
+         if len(result) < 1:
+             result["error_msg"] = "No temperature sensors found!"
+         return "error_msg" not in result, result
+@@ -389,7 +389,7 @@ class E320BIST(bist.UsrpBIST):
+         assert "fan" in self.tests_to_run
+         if self.args.dry_run:
+             return True, {"cooling_device0": 10000}
+-        result = bist.get_fan_values()
++        result = bist.get_hwmon_fan_sensor_values(dev_filter={"OF_NAME": "embedded-controller"})
+         return len(result) == 1, result
+ 
+     def bist_link_up(self):
+diff --git a/mpm/python/n3xx_bist b/mpm/python/n3xx_bist
+index 706a78c378..b5c036ed3b 100755
+--- a/mpm/python/n3xx_bist
++++ b/mpm/python/n3xx_bist
+@@ -514,9 +514,7 @@ class N3XXBIST(bist.UsrpBIST):
+         assert "temp" in self.tests_to_run
+         if self.args.dry_run:
+             return True, {"fpga-thermal-zone": 30000}
+-        result = bist.get_temp_sensor_value(
+-            lambda device: device.attributes.get("type").decode("ascii")
+-        )
++        result = bist.get_hwmon_temp_sensor_values(dev_filter={"OF_NAME": "embedded-controller"})
+         if len(result) < 1:
+             result["error_msg"] = "No temperature sensors found!"
+         return "error_msg" not in result, result
+@@ -534,7 +532,7 @@ class N3XXBIST(bist.UsrpBIST):
+         assert "fan" in self.tests_to_run
+         if self.args.dry_run:
+             return True, {"cooling_device0": 10000, "cooling_device1": 10000}
+-        result = bist.get_fan_values()
++        result = bist.get_hwmon_fan_sensor_values(dev_filter={"OF_NAME": "embedded-controller"})
+         return len(result) == 2, result
+ 
+     def bist_whiterabbit(self):
+diff --git a/mpm/python/usrp_mpm/bist.py b/mpm/python/usrp_mpm/bist.py
+index 1a5043e0dd..f548a12edc 100644
+--- a/mpm/python/usrp_mpm/bist.py
++++ b/mpm/python/usrp_mpm/bist.py
+@@ -389,6 +389,28 @@ def get_temp_sensor_value(temp_sensor_map):
+     }
+ 
+ 
++def get_hwmon_fan_sensor_values(dev_filter=None):
++    """
++    Read a fan sensor value from the system using the "hwmon" subsystem and
++    return a dictionary of the form {fan_sensor_lookup(device): $speed}
++    """
++    from usrp_mpm.sys_utils.sysfs_hwmon import HwmonTempSensors
++
++    sensors = HwmonTempSensors(sensor_list=["fan"], dev_filter=dev_filter)
++    return {name: int(sensors.read_raw_sensor_value(name)) for name in sensors.get_sensor_names()}
++
++
++def get_hwmon_temp_sensor_values(dev_filter=None):
++    """
++    Read a temp sensor value from the system using the "hwmon" subsystem and
++    return a dictionary of the form {temp_sensor_lookup(device): $temp}
++    """
++    from usrp_mpm.sys_utils.sysfs_hwmon import HwmonTempSensors
++
++    sensors = HwmonTempSensors(sensor_list=["temp"], dev_filter=dev_filter)
++    return {name: int(sensors.read_raw_sensor_value(name)) for name in sensors.get_sensor_names()}
++
++
+ def get_iio_temp_sensor_values():
+     """
+     Read all devices in the IIO subsystem that can report a temperature and
+diff --git a/mpm/python/x4xx_bist b/mpm/python/x4xx_bist
+index 2849cf8cd0..c8f3e37a8f 100755
+--- a/mpm/python/x4xx_bist
++++ b/mpm/python/x4xx_bist
+@@ -878,7 +878,7 @@ class X4XXBIST(bist.UsrpBIST):
+                 "TMP464 Internal": 47000,
+             }
+ 
+-        result = bist.get_iio_temp_sensor_values()
++        result = bist.get_hwmon_temp_sensor_values(dev_filter={"OF_NAME": "cros-ec"})
+ 
+         if len(result) < 1:
+             result["error_msg"] = "No temperature sensors found!"
+@@ -898,7 +898,7 @@ class X4XXBIST(bist.UsrpBIST):
+         assert "fan" in self.tests_to_run
+         if self.args.dry_run:
+             return True, {"fan0": 10000, "fan1": 10000}
+-        result = bist.get_ectool_fan_values()
++        result = bist.get_hwmon_fan_sensor_values(dev_filter={"OF_NAME": "cros-ec"})
+         return len(result) == 2, result
+ 
+     def _db_flash_init(self, db_flash):
+-- 
+2.43.0
+
