@@ -1,0 +1,8 @@
+patch 0001-fpga-add-bindings-document-for-secure-flags.patch
+patch 0002-fpga-mgr-Add-Xilinx-ZynqMP-Encrypted-Bitstream-loadi.patch
+patch 0003-fpga-fpga-mgr-Add-Xilinx-ZynqMP-Authenticated-Bitstr.patch
+patch 0004-fpga-mgr-Adds-secure-BitStream-loading-support.patch
+patch 0005-arm64-zynqmp-x4xx-add-variants-0x74-0-variants.patch
+patch 0006-drivers-fpga-print-ZynqMP-EEMI-flags.patch
+patch 0007-drivers-fpga-signed-bitstream-loading.patch
+patch 0008-arm64-zynqmp-x4xx-disable-cpu-debug-for-locked-devic.patch

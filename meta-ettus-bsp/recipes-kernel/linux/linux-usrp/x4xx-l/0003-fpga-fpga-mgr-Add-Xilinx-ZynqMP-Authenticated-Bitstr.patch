@@ -1,0 +1,75 @@
+From bdb730c3673dd6b9f0b8ae83b5bac2d0fbf643a1 Mon Sep 17 00:00:00 2001
+From: Nava kishore Manne <nava.manne@xilinx.com>
+Date: Fri, 8 Dec 2023 12:14:25 +0530
+Subject: [PATCH 3/8] fpga: fpga: mgr: Add Xilinx ZynqMP Authenticated
+ Bitstream loading support
+
+Add Authenticated BitStream Loading support for the Xilinx ZynqMP chip.
+
+Signed-off-by: Nava kishore Manne <nava.manne@xilinx.com>
+Signed-off-by: Radhey Shyam Pandey <radhey.shyam.pandey@xilinx.com>
+State: not-upstreamable
+Reason: The attacker can retrieve the keys and bitstream from the filesystem.
+It may lead to the security violations.
+---
+ drivers/fpga/zynqmp-fpga.c           | 5 +++++
+ include/linux/firmware/xlnx-zynqmp.h | 2 ++
+ include/linux/fpga/fpga-mgr.h        | 6 ++++++
+ 3 files changed, 13 insertions(+)
+
+diff --git a/drivers/fpga/zynqmp-fpga.c b/drivers/fpga/zynqmp-fpga.c
+index db923746cac58..d2434ed85efff 100644
+--- a/drivers/fpga/zynqmp-fpga.c
++++ b/drivers/fpga/zynqmp-fpga.c
+@@ -69,6 +69,11 @@ static int zynqmp_fpga_ops_write(struct fpga_manager *mgr,
+ 
+ 	wmb(); /* ensure all writes are done before initiate FW call */
+ 
++	if (priv->flags & FPGA_MGR_DDR_MEM_AUTH_BITSTREAM)
++		eemi_flags |= XILINX_ZYNQMP_PM_FPGA_AUTHENTICATION_DDR;
++	else if (priv->flags & FPGA_MGR_SECURE_MEM_AUTH_BITSTREAM)
++		eemi_flags |= XILINX_ZYNQMP_PM_FPGA_AUTHENTICATION_OCM;
++
+ 	if (priv->flags & FPGA_MGR_PARTIAL_RECONFIG)
+ 		eemi_flags |= XILINX_ZYNQMP_PM_FPGA_PARTIAL;
+ 
+diff --git a/include/linux/firmware/xlnx-zynqmp.h b/include/linux/firmware/xlnx-zynqmp.h
+index 4d80d3502d5d7..c2afeaeb445ad 100644
+--- a/include/linux/firmware/xlnx-zynqmp.h
++++ b/include/linux/firmware/xlnx-zynqmp.h
+@@ -91,6 +91,8 @@
+  */
+ #define XILINX_ZYNQMP_PM_FPGA_FULL	0x0U
+ #define XILINX_ZYNQMP_PM_FPGA_PARTIAL	BIT(0)
++#define XILINX_ZYNQMP_PM_FPGA_AUTHENTICATION_DDR	BIT(1)
++#define XILINX_ZYNQMP_PM_FPGA_AUTHENTICATION_OCM	BIT(2)
+ #define XILINX_ZYNQMP_PM_FPGA_ENCRYPTION_USERKEY	BIT(3)
+ #define XILINX_ZYNQMP_PM_FPGA_ENCRYPTION_DEVKEY		BIT(4)
+ 
+diff --git a/include/linux/fpga/fpga-mgr.h b/include/linux/fpga/fpga-mgr.h
+index 62d74a646e436..f0a81df4773fa 100644
+--- a/include/linux/fpga/fpga-mgr.h
++++ b/include/linux/fpga/fpga-mgr.h
+@@ -78,6 +78,10 @@ enum fpga_mgr_states {
+  *
+  * %FPGA_MGR_USERKEY_ENCRYPTED_BITSTREAM: indicates bitstream is encrypted with
+  *					  user key
++ * %FPGA_MGR_DDR_MEM_AUTH_BITSTREAM: do bitstream authentication using DDR
++ *				     memory if supported
++ * %FPGA_MGR_SECURE_MEM_AUTH_BITSTREAM: do bitstream authentication using secure
++ *					memory if supported
+  */
+ #define FPGA_MGR_PARTIAL_RECONFIG	BIT(0)
+ #define FPGA_MGR_EXTERNAL_CONFIG	BIT(1)
+@@ -85,6 +89,8 @@ enum fpga_mgr_states {
+ #define FPGA_MGR_BITSTREAM_LSB_FIRST	BIT(3)
+ #define FPGA_MGR_COMPRESSED_BITSTREAM	BIT(4)
+ #define FPGA_MGR_USERKEY_ENCRYPTED_BITSTREAM	BIT(5)
++#define FPGA_MGR_DDR_MEM_AUTH_BITSTREAM		BIT(6)
++#define FPGA_MGR_SECURE_MEM_AUTH_BITSTREAM	BIT(7)
+ 
+ /**
+  * struct fpga_image_info - information specific to an FPGA image
+-- 
+2.43.0
+

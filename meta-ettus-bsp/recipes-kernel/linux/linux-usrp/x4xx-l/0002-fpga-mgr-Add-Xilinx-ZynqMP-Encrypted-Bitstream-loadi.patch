@@ -1,0 +1,270 @@
+From dc7aed1c40f585d5f5a55a5ac2511fd17a41223b Mon Sep 17 00:00:00 2001
+From: Nava kishore Manne <nava.manne@xilinx.com>
+Date: Fri, 8 Dec 2023 12:14:24 +0530
+Subject: [PATCH 2/8] fpga: mgr: Add Xilinx ZynqMP Encrypted Bitstream loading
+ support
+
+Add Encrypted BitStream Loading support for the Xilinx ZynqMP chip.
+
+Signed-off-by: Nava kishore Manne <nava.manne@xilinx.com>
+Signed-off-by: Radhey Shyam Pandey <radhey.shyam.pandey@xilinx.com>
+Link: https://lore.kernel.org/all/20231122054404.3764288-1-nava.kishore.manne@amd.com/
+State: not-upstreamable
+Reason: The attacker can retrieve the keys and bitstream from the filesystem.
+It may lead to the security violations.
+---
+ drivers/fpga/fpga-mgr.c              | 79 ++++++++++++++++++++++++++++
+ drivers/fpga/zynqmp-fpga.c           | 23 ++++++--
+ include/linux/firmware/xlnx-zynqmp.h |  2 +
+ include/linux/fpga/fpga-mgr.h        | 15 +++++-
+ 4 files changed, 115 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/fpga/fpga-mgr.c b/drivers/fpga/fpga-mgr.c
+index 981ec31b6d996..a594b6f5555a4 100644
+--- a/drivers/fpga/fpga-mgr.c
++++ b/drivers/fpga/fpga-mgr.c
+@@ -8,6 +8,7 @@
+  * With code from the mailing list:
+  * Copyright (C) 2013 Xilinx, Inc.
+  */
++#include <linux/kernel.h>
+ #include <linux/firmware.h>
+ #include <linux/fpga/fpga-mgr.h>
+ #include <linux/idr.h>
+@@ -557,6 +558,10 @@ static int fpga_mgr_firmware_load(struct fpga_manager *mgr,
+ 
+ 	fpga_mgr_set_state(mgr, FPGA_MGR_STATE_FIRMWARE_REQ);
+ 
++	/* flags indicates whether to do full or partial reconfiguration */
++	info->flags = mgr->flags;
++	memcpy(info->key, mgr->key, ENCRYPTED_KEY_LEN);
++
+ 	ret = request_firmware(&fw, image_name, dev);
+ 	if (ret) {
+ 		fpga_mgr_set_state(mgr, FPGA_MGR_STATE_FIRMWARE_REQ_ERR);
+@@ -664,14 +669,88 @@ static ssize_t status_show(struct device *dev,
+ 	return len;
+ }
+ 
++static ssize_t firmware_store(struct device *dev,
++			      struct device_attribute *attr,
++			      const char *buf, size_t count)
++{
++	struct fpga_manager *mgr = to_fpga_manager(dev);
++	unsigned int len;
++	char image_name[NAME_MAX];
++	int ret;
++
++	/* struct with information about the FPGA image to program. */
++	struct fpga_image_info info = {0};
++
++	info.header_size = mgr->mops->initial_header_size;
++
++	/* lose terminating \n */
++	strcpy(image_name, buf);
++	len = strlen(image_name);
++	if (image_name[len - 1] == '\n')
++		image_name[len - 1] = 0;
++
++	ret = fpga_mgr_firmware_load(mgr, &info, image_name);
++	if (ret)
++		return ret;
++
++	return count;
++}
++
++static ssize_t key_show(struct device *dev,
++			struct device_attribute *attr, char *buf)
++{
++	struct fpga_manager *mgr = to_fpga_manager(dev);
++
++	return snprintf(buf, ENCRYPTED_KEY_LEN + 1, "%s\n", mgr->key);
++}
++
++static ssize_t key_store(struct device *dev,
++			 struct device_attribute *attr,
++			 const char *buf, size_t count)
++{
++	struct fpga_manager *mgr = to_fpga_manager(dev);
++
++	memcpy(mgr->key, buf, count);
++
++	return count;
++}
++
++static ssize_t flags_show(struct device *dev,
++			  struct device_attribute *attr, char *buf)
++{
++	struct fpga_manager *mgr = to_fpga_manager(dev);
++
++	return sprintf(buf, "%lx\n", mgr->flags);
++}
++
++static ssize_t flags_store(struct device *dev,
++			   struct device_attribute *attr,
++			   const char *buf, size_t count)
++{
++	struct fpga_manager *mgr = to_fpga_manager(dev);
++	int ret;
++
++	ret = kstrtol(buf, 16, &mgr->flags);
++	if (ret)
++		return ret;
++
++	return count;
++}
++
+ static DEVICE_ATTR_RO(name);
+ static DEVICE_ATTR_RO(state);
+ static DEVICE_ATTR_RO(status);
++static DEVICE_ATTR_WO(firmware);
++static DEVICE_ATTR_RW(flags);
++static DEVICE_ATTR_RW(key);
+ 
+ static struct attribute *fpga_mgr_attrs[] = {
+ 	&dev_attr_name.attr,
+ 	&dev_attr_state.attr,
+ 	&dev_attr_status.attr,
++	&dev_attr_firmware.attr,
++	&dev_attr_flags.attr,
++	&dev_attr_key.attr,
+ 	NULL,
+ };
+ ATTRIBUTE_GROUPS(fpga_mgr);
+diff --git a/drivers/fpga/zynqmp-fpga.c b/drivers/fpga/zynqmp-fpga.c
+index f3434e2c487bf..db923746cac58 100644
+--- a/drivers/fpga/zynqmp-fpga.c
++++ b/drivers/fpga/zynqmp-fpga.c
+@@ -43,25 +43,42 @@ static int zynqmp_fpga_ops_write(struct fpga_manager *mgr,
+ 	struct zynqmp_fpga_priv *priv;
+ 	dma_addr_t dma_addr;
+ 	u32 eemi_flags = 0;
++	size_t dma_size;
+ 	char *kbuf;
+ 	int ret;
+ 
+ 	priv = mgr->priv;
+ 
+-	kbuf = dma_alloc_coherent(priv->dev, size, &dma_addr, GFP_KERNEL);
++	if (priv->flags & FPGA_MGR_USERKEY_ENCRYPTED_BITSTREAM)
++		dma_size = size + ENCRYPTED_KEY_LEN;
++	else
++		dma_size = size;
++
++	kbuf = dma_alloc_coherent(priv->dev, dma_size, &dma_addr, GFP_KERNEL);
+ 	if (!kbuf)
+ 		return -ENOMEM;
+ 
+ 	memcpy(kbuf, buf, size);
+ 
++	if (priv->flags & FPGA_MGR_USERKEY_ENCRYPTED_BITSTREAM) {
++		eemi_flags |= XILINX_ZYNQMP_PM_FPGA_ENCRYPTION_USERKEY;
++		memcpy(kbuf + size, mgr->key, ENCRYPTED_KEY_LEN);
++	} else if (priv->flags & FPGA_MGR_ENCRYPTED_BITSTREAM) {
++		eemi_flags |= XILINX_ZYNQMP_PM_FPGA_ENCRYPTION_DEVKEY;
++	}
++
+ 	wmb(); /* ensure all writes are done before initiate FW call */
+ 
+ 	if (priv->flags & FPGA_MGR_PARTIAL_RECONFIG)
+ 		eemi_flags |= XILINX_ZYNQMP_PM_FPGA_PARTIAL;
+ 
+-	ret = zynqmp_pm_fpga_load(dma_addr, size, eemi_flags);
++	if (priv->flags & FPGA_MGR_USERKEY_ENCRYPTED_BITSTREAM)
++		ret = zynqmp_pm_fpga_load(dma_addr, dma_addr + size,
++					  eemi_flags);
++	else
++		ret = zynqmp_pm_fpga_load(dma_addr, size, eemi_flags);
+ 
+-	dma_free_coherent(priv->dev, size, kbuf, dma_addr);
++	dma_free_coherent(priv->dev, dma_size, kbuf, dma_addr);
+ 
+ 	return ret;
+ }
+diff --git a/include/linux/firmware/xlnx-zynqmp.h b/include/linux/firmware/xlnx-zynqmp.h
+index d7d07afc0532d..4d80d3502d5d7 100644
+--- a/include/linux/firmware/xlnx-zynqmp.h
++++ b/include/linux/firmware/xlnx-zynqmp.h
+@@ -91,6 +91,8 @@
+  */
+ #define XILINX_ZYNQMP_PM_FPGA_FULL	0x0U
+ #define XILINX_ZYNQMP_PM_FPGA_PARTIAL	BIT(0)
++#define XILINX_ZYNQMP_PM_FPGA_ENCRYPTION_USERKEY	BIT(3)
++#define XILINX_ZYNQMP_PM_FPGA_ENCRYPTION_DEVKEY		BIT(4)
+ 
+ /* FPGA Status Reg */
+ #define XILINX_ZYNQMP_PM_FPGA_CONFIG_STAT_OFFSET	7U
+diff --git a/include/linux/fpga/fpga-mgr.h b/include/linux/fpga/fpga-mgr.h
+index 4c9b69c1be5ad..62d74a646e436 100644
+--- a/include/linux/fpga/fpga-mgr.h
++++ b/include/linux/fpga/fpga-mgr.h
+@@ -12,6 +12,8 @@
+ #include <linux/platform_device.h>
+ #include <linux/leds.h>
+ 
++#define ENCRYPTED_KEY_LEN	64 /* Bytes */
++
+ struct fpga_manager;
+ struct sg_table;
+ 
+@@ -67,17 +69,22 @@ enum fpga_mgr_states {
+  *
+  * %FPGA_MGR_EXTERNAL_CONFIG: FPGA has been configured prior to Linux booting
+  *
+- * %FPGA_MGR_ENCRYPTED_BITSTREAM: indicates bitstream is encrypted
++ * %FPGA_MGR_ENCRYPTED_BITSTREAM: indicates bitstream is encrypted with
++ *				  device key
+  *
+  * %FPGA_MGR_BITSTREAM_LSB_FIRST: SPI bitstream bit order is LSB first
+  *
+  * %FPGA_MGR_COMPRESSED_BITSTREAM: FPGA bitstream is compressed
++ *
++ * %FPGA_MGR_USERKEY_ENCRYPTED_BITSTREAM: indicates bitstream is encrypted with
++ *					  user key
+  */
+ #define FPGA_MGR_PARTIAL_RECONFIG	BIT(0)
+ #define FPGA_MGR_EXTERNAL_CONFIG	BIT(1)
+ #define FPGA_MGR_ENCRYPTED_BITSTREAM	BIT(2)
+ #define FPGA_MGR_BITSTREAM_LSB_FIRST	BIT(3)
+ #define FPGA_MGR_COMPRESSED_BITSTREAM	BIT(4)
++#define FPGA_MGR_USERKEY_ENCRYPTED_BITSTREAM	BIT(5)
+ 
+ /**
+  * struct fpga_image_info - information specific to an FPGA image
+@@ -87,6 +94,7 @@ enum fpga_mgr_states {
+  * @config_complete_timeout_us: maximum time for FPGA to switch to operating
+  *	   status in the write_complete op.
+  * @firmware_name: name of FPGA image firmware file
++ * @key: key value useful for Encrypted Bitstream loading to read the userkey
+  * @sgt: scatter/gather table containing FPGA image
+  * @buf: contiguous buffer containing FPGA image
+  * @count: size of buf
+@@ -103,6 +111,7 @@ struct fpga_image_info {
+ 	u32 disable_timeout_us;
+ 	u32 config_complete_timeout_us;
+ 	char *firmware_name;
++	char key[ENCRYPTED_KEY_LEN];
+ 	struct sg_table *sgt;
+ 	const char *buf;
+ 	size_t count;
+@@ -197,6 +206,8 @@ struct fpga_manager_ops {
+ /**
+  * struct fpga_manager - fpga manager structure
+  * @name: name of low level fpga manager
++ * @flags: flags determines the type of Bitstream
++ * @key: key value useful for Encrypted Bitstream loading to read the userkey
+  * @dev: fpga manager device
+  * @ref_mutex: only allows one reference to fpga manager
+  * @state: state of fpga manager
+@@ -208,6 +219,8 @@ struct fpga_manager_ops {
+  */
+ struct fpga_manager {
+ 	const char *name;
++	unsigned long flags;
++	char key[ENCRYPTED_KEY_LEN + 1];
+ 	struct device dev;
+ 	struct mutex ref_mutex;
+ 	enum fpga_mgr_states state;
+-- 
+2.43.0
+

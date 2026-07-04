@@ -1,0 +1,56 @@
+From 5f5a907f86d3d4757ff8391f46abf61a2092d779 Mon Sep 17 00:00:00 2001
+From: Nava kishore Manne <nava.manne@xilinx.com>
+Date: Fri, 8 Dec 2023 12:14:23 +0530
+Subject: [PATCH 4/8] fpga: mgr: Adds secure BitStream loading support
+
+Add secure BitStream Loading support to the fpga subsystem.
+
+Signed-off-by: Nava kishore Manne <nava.manne@xilinx.com>
+Signed-off-by: Radhey Shyam Pandey <radhey.shyam.pandey@xilinx.com>
+Link: https://lore.kernel.org/all/20231122054404.3764288-1-nava.kishore.manne@amd.com/
+State: not-upstreamable
+Reason: The attacker can retrieve the keys and bitstream from the filesystem.
+It may lead to the security violations.
+---
+ drivers/fpga/fpga-mgr.c       |  3 +++
+ drivers/fpga/of-fpga-region.c | 10 ++++++++++
+ 2 files changed, 13 insertions(+)
+
+diff --git a/drivers/fpga/fpga-mgr.c b/drivers/fpga/fpga-mgr.c
+index a594b6f5555a4..5d9ec90297061 100644
+--- a/drivers/fpga/fpga-mgr.c
++++ b/drivers/fpga/fpga-mgr.c
+@@ -377,6 +377,9 @@ static int fpga_mgr_buf_load_sg(struct fpga_manager *mgr,
+ {
+ 	int ret;
+ 
++	if (info->flags & FPGA_MGR_USERKEY_ENCRYPTED_BITSTREAM)
++		memcpy(info->key, mgr->key, ENCRYPTED_KEY_LEN);
++
+ 	ret = fpga_mgr_prepare_sg(mgr, info, sgt);
+ 	if (ret)
+ 		return ret;
+diff --git a/drivers/fpga/of-fpga-region.c b/drivers/fpga/of-fpga-region.c
+index df6573b870c9b..057c79731b1f1 100644
+--- a/drivers/fpga/of-fpga-region.c
++++ b/drivers/fpga/of-fpga-region.c
+@@ -225,6 +225,16 @@ of_fpga_region_parse_ov(struct fpga_region *region,
+ 	if (of_property_read_bool(overlay, "encrypted-fpga-config"))
+ 		info->flags |= FPGA_MGR_ENCRYPTED_BITSTREAM;
+ 
++	if (of_property_read_bool(overlay, "userkey-encrypted-fpga-config"))
++		info->flags |= FPGA_MGR_USERKEY_ENCRYPTED_BITSTREAM;
++
++	if (of_property_read_bool(overlay, "ddrmem-authenticated-fpga-config"))
++		info->flags |= FPGA_MGR_DDR_MEM_AUTH_BITSTREAM;
++
++	if (of_property_read_bool(overlay,
++				  "securemem-authenticated-fpga-config"))
++		info->flags |= FPGA_MGR_SECURE_MEM_AUTH_BITSTREAM;
++
+ 	if (!of_property_read_string(overlay, "firmware-name",
+ 				     &firmware_name)) {
+ 		info->firmware_name = devm_kstrdup(dev, firmware_name,
+-- 
+2.43.0
+

@@ -1,3 +1,5 @@
+FILESEXTRAPATHS:prepend:ni-titanium := "${THISDIR}/linux-usrp/x4xx-l:"
+
 LIC_FILES_CHKSUM ?= "file://COPYING;md5=6bc538ed5bd9a7fc9398086aedcd7e46"
 
 require recipes-kernel/linux/linux-yocto.inc
@@ -29,6 +31,8 @@ SRC_URI = " \
     file://enable-early-debug.cfg \
     file://sound.cfg \
     "
+
+SRC_URI:append:ni-titanium = " file://x4xx-l.scc"
 
 KCONFIG_MODE = "alldefconfig"
 PV = "${LINUX_VERSION}+git${SRCPV}"

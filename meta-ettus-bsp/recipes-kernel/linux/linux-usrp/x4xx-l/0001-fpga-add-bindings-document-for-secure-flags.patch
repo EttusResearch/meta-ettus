@@ -1,0 +1,49 @@
+From da969d69bdaa7d57f004c25c58df3bbac28927e7 Mon Sep 17 00:00:00 2001
+From: Nava kishore Manne <nava.manne@xilinx.com>
+Date: Mon, 18 Nov 2024 15:44:47 +0100
+Subject: [PATCH 1/8] fpga: add bindings document for secure flags
+
+Add bindings document for secure flags to support secure Bitstream
+loading.
+
+Signed-off-by: Nava kishore Manne <nava.manne@xilinx.com>
+Signed-off-by: Radhey Shyam Pandey <radhey.shyam.pandey@xilinx.com>
+Link: https://lore.kernel.org/all/20231122054404.3764288-1-nava.kishore.manne@amd.com/
+State: not-upstreamable
+Reason: The attacker can retrieve the keys and bitstream from the filesystem.
+It may lead to the security violations.
+Signed-off-by: Michal Simek <michal.simek@amd.com>
+[michals v6.12 update - move to fpga-region.yaml]
+---
+ .../devicetree/bindings/fpga/fpga-region.yaml     | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/fpga/fpga-region.yaml b/Documentation/devicetree/bindings/fpga/fpga-region.yaml
+index 77554885a6c49..0afb959330ed4 100644
+--- a/Documentation/devicetree/bindings/fpga/fpga-region.yaml
++++ b/Documentation/devicetree/bindings/fpga/fpga-region.yaml
+@@ -279,6 +279,21 @@ properties:
+       Set if partial reconfiguration is to be done, otherwise full
+       reconfiguration is done.
+ 
++  userkey-encrypted-fpga-config:
++    type: boolean
++    description:
++      Set if the bitstream is encrypted with user key.
++
++  ddrmem-authenticated-fpga-config:
++    type: boolean
++    description:
++      Set if do bitstream authentication using DDR memory.
++
++  securemem-authenticated-fpga-config:
++    type: boolean
++    description:
++      Set if do bitstream authenticated using secure memory.
++
+   region-freeze-timeout-us:
+     description:
+       The maximum time in microseconds to wait for bridges to successfully
+-- 
+2.43.0
+

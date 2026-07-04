@@ -1,0 +1,25 @@
+From 9d76fc905b3d8c1edc57c585229383507958ef6c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Thu, 2 Apr 2026 08:23:59 +0200
+Subject: [PATCH 6/8] drivers: fpga: print ZynqMP EEMI flags
+
+---
+ drivers/fpga/zynqmp-fpga.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/fpga/zynqmp-fpga.c b/drivers/fpga/zynqmp-fpga.c
+index d2434ed85efff..e9a1245e26d8d 100644
+--- a/drivers/fpga/zynqmp-fpga.c
++++ b/drivers/fpga/zynqmp-fpga.c
+@@ -77,6 +77,8 @@ static int zynqmp_fpga_ops_write(struct fpga_manager *mgr,
+ 	if (priv->flags & FPGA_MGR_PARTIAL_RECONFIG)
+ 		eemi_flags |= XILINX_ZYNQMP_PM_FPGA_PARTIAL;
+ 
++	dev_info(priv->dev, "ZynqMP EEMI flags: %02X\n", eemi_flags);
++
+ 	if (priv->flags & FPGA_MGR_USERKEY_ENCRYPTED_BITSTREAM)
+ 		ret = zynqmp_pm_fpga_load(dma_addr, dma_addr + size,
+ 					  eemi_flags);
+-- 
+2.43.0
+

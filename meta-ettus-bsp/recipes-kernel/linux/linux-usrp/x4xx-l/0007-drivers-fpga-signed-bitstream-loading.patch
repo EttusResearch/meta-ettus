@@ -1,0 +1,52 @@
+From e660ce71b16c574a7ec064236ccbd51371f74397 Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@emerson.com>
+Date: Mon, 30 Mar 2026 15:54:13 +0200
+Subject: [PATCH 7/8] drivers: fpga: signed bitstream loading
+
+Signed-off-by: Joerg Hofrichter <joerg.hofrichter@emerson.com>
+---
+ drivers/fpga/fpga-mgr.c       | 4 +++-
+ drivers/fpga/of-fpga-region.c | 5 +++++
+ 2 files changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/fpga/fpga-mgr.c b/drivers/fpga/fpga-mgr.c
+index 5d9ec90297061..b3834c51d98cf 100644
+--- a/drivers/fpga/fpga-mgr.c
++++ b/drivers/fpga/fpga-mgr.c
+@@ -562,7 +562,9 @@ static int fpga_mgr_firmware_load(struct fpga_manager *mgr,
+ 	fpga_mgr_set_state(mgr, FPGA_MGR_STATE_FIRMWARE_REQ);
+ 
+ 	/* flags indicates whether to do full or partial reconfiguration */
+-	info->flags = mgr->flags;
++	info->flags |= mgr->flags;
++	if (info->flags & FPGA_MGR_SECURE_MEM_AUTH_BITSTREAM)
++		dev_info(dev, "Using bitstream authentication\n");
+ 	memcpy(info->key, mgr->key, ENCRYPTED_KEY_LEN);
+ 
+ 	ret = request_firmware(&fw, image_name, dev);
+diff --git a/drivers/fpga/of-fpga-region.c b/drivers/fpga/of-fpga-region.c
+index 057c79731b1f1..0b536de990c86 100644
+--- a/drivers/fpga/of-fpga-region.c
++++ b/drivers/fpga/of-fpga-region.c
+@@ -268,6 +268,7 @@ of_fpga_region_parse_ov(struct fpga_region *region,
+ 		goto ret_no_info;
+ 	}
+ 
++
+ 	return info;
+ ret_no_info:
+ 	fpga_image_info_free(info);
+@@ -412,6 +413,10 @@ static int of_fpga_region_probe(struct platform_device *pdev)
+ 	if (IS_ERR(mgr))
+ 		return -EPROBE_DEFER;
+ 
++	if (of_property_read_bool(np,
++				  "securemem-authenticated-fpga-config"))
++		mgr->flags |= FPGA_MGR_SECURE_MEM_AUTH_BITSTREAM;
++
+ 	region = fpga_region_register(dev, mgr, of_fpga_region_get_bridges);
+ 	if (IS_ERR(region)) {
+ 		ret = PTR_ERR(region);
+-- 
+2.43.0
+
