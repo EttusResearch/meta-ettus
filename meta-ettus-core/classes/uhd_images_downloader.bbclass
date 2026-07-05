@@ -6,6 +6,7 @@ inherit python3native
 UHD_IMAGES_TO_DOWNLOAD ??= ""
 UHD_IMAGES_DOWNLOAD_DIR ??= "${S}"
 UHD_BASE_URL ??= ""
+UHD_MANIFEST_FILE ??= ""
 
 addtask do_download_uhd_images after do_unpack do_prepare_recipe_sysroot before do_compile
 
@@ -22,6 +23,9 @@ do_download_uhd_images() {
         DOWNLOADER_OPTS="-i ${UHD_IMAGES_DOWNLOAD_DIR}"
         if [ -n "${UHD_BASE_URL}" ]; then
             DOWNLOADER_OPTS="$DOWNLOADER_OPTS -b ${UHD_BASE_URL}"
+        fi
+        if [ -n "${UHD_MANIFEST_FILE}" ]; then
+            DOWNLOADER_OPTS="$DOWNLOADER_OPTS -m ${UHD_MANIFEST_FILE}"
         fi
         mkdir -p ${UHD_IMAGES_DOWNLOAD_DIR}
         for type in ${UHD_IMAGES_TO_DOWNLOAD}; do
