@@ -49,7 +49,10 @@ KERNEL_DEVICETREE:ni-titanium ?= "\
 "
 FIT_CONF_PREFIX = "conf@ni_"
 
-IMAGE_BOOT_FILES ?= "boot.bin"
+BOOTBIN_DIR = "/uboot"
+BOOTBIN_NAME = "boot0001.bin"
+BOOTBIN_PRECOMPILED_NAME = "boot.bin"
+IMAGE_BOOT_FILES ?= "${BOOTBIN_NAME} ${BOOTBIN_PRECOMPILED_NAME}"
 # PMU_FIRMWARE_DEPLOY_DIR ?= "${TOPDIR}/tmp-xilinx/deploy/images/zynqmp-pmu"
 # PMU_FIRMWARE_IMAGE_NAME ?= "pmu-firmware-zynqmp-pmu"
 
@@ -59,6 +62,7 @@ INITRAMFS_IMAGE = "manufacturing-image"
 # INITRAMFS_IMAGE_BUNDLE = "1"
 
 MACHINE_ESSENTIAL_EXTRA_RDEPENDS += " \
+                             bootbin-signed \
                              kernel-image \
                              kernel-devicetree \
                              watchdog \
