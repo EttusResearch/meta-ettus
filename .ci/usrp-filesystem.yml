@@ -219,7 +219,7 @@ stages:
         pre_targets: ${{ parameters.pre_targets }}
         post_targets: ${{ parameters.post_targets }}
 
-- ${{ if parameters.build_x4xx }}:
+- ${{ if and(parameters.build_x4xx, parameters.build_default_targets) }}:
   - stage: x4xx_hardware_test
     displayName: Run x4xx hardware test
     dependsOn: build_meta_ettus
@@ -239,48 +239,49 @@ stages:
               machineName: x4xx
               agentDevice: sdr-test-x440-0
 
-- stage: filesystem_embedded_test
-  displayName: Run embedded test
-  dependsOn: build_meta_ettus
-  jobs:
-    - template: templates/job_filesystem_embedded_test.yml
-      parameters:
-        machines:
-          ${{ if parameters.build_e310_sg3 }}:
-            e310_sg3:
-              deviceType: e310_sg3
-              uartSerial: $(e310_sg3_uartSerial)
-              ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
-                machine: ni-e31x-sg3-mender
-              ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
-                machine: ni-e31x-sg3
-          ${{ if parameters.build_e320 }}:
-            e320:
-              deviceType: e320
-              uartSerial: $(e320_uartSerial)
-              ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
-                machine: ni-neon-rev2-mender
-              ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
-                machine: ni-neon-rev2
-          ${{ if parameters.build_n3xx }}:
-            n3xx:
-              deviceType: n3xx
-              uartSerial: $(n3xx_uartSerial)
-              ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
-                machine: ni-sulfur-rev11-mender
-              ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
-                machine: ni-sulfur-rev11
-          ${{ if parameters.build_x4xx }}:
-            x4xx:
-              deviceType: x4xx
-              uartSerial: $(x4xx_uartSerial)
-              ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
-                machine: ni-titanium-rev5-mender
-              ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
-                machine: ni-titanium-rev5
-        image: ${{ parameters.image }}
-        ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
-          image_ext: 'sdimg.bz2'
-        ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
-          image_ext: 'wic.xz'
-        flash_image: ${{ parameters.flash_image }}
+- ${{ if parameters.build_default_targets }}:
+  - stage: filesystem_embedded_test
+    displayName: Run embedded test
+    dependsOn: build_meta_ettus
+    jobs:
+      - template: templates/job_filesystem_embedded_test.yml
+        parameters:
+          machines:
+            ${{ if parameters.build_e310_sg3 }}:
+              e310_sg3:
+                deviceType: e310_sg3
+                uartSerial: $(e310_sg3_uartSerial)
+                ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
+                  machine: ni-e31x-sg3-mender
+                ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
+                  machine: ni-e31x-sg3
+            ${{ if parameters.build_e320 }}:
+              e320:
+                deviceType: e320
+                uartSerial: $(e320_uartSerial)
+                ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
+                  machine: ni-neon-rev2-mender
+                ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
+                  machine: ni-neon-rev2
+            ${{ if parameters.build_n3xx }}:
+              n3xx:
+                deviceType: n3xx
+                uartSerial: $(n3xx_uartSerial)
+                ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
+                  machine: ni-sulfur-rev11-mender
+                ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
+                  machine: ni-sulfur-rev11
+            ${{ if parameters.build_x4xx }}:
+              x4xx:
+                deviceType: x4xx
+                uartSerial: $(x4xx_uartSerial)
+                ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
+                  machine: ni-titanium-rev5-mender
+                ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
+                  machine: ni-titanium-rev5
+          image: ${{ parameters.image }}
+          ${{ if eq(parameters.kas_subdirectory, 'configs-mender') }}:
+            image_ext: 'sdimg.bz2'
+          ${{ if ne(parameters.kas_subdirectory, 'configs-mender') }}:
+            image_ext: 'wic.xz'
+          flash_image: ${{ parameters.flash_image }}
