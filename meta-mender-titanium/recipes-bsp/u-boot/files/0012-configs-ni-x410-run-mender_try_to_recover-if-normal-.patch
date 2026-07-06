@@ -1,0 +1,35 @@
+From aa34867c4a87c92e1e220110185eae6e03d313a6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B6rg=20Hofrichter?= <joerg.hofrichter@emerson.com>
+Date: Mon, 6 Jul 2026 19:59:12 +0200
+Subject: [PATCH] configs: ni-x410: run mender_try_to_recover if normal boot
+ failed
+
+---
+ include/configs/ni-x410.h | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/include/configs/ni-x410.h b/include/configs/ni-x410.h
+index fa3033ee769..a95a94c66d9 100644
+--- a/include/configs/ni-x410.h
++++ b/include/configs/ni-x410.h
+@@ -30,13 +30,15 @@
+           "setenv disk_name eMMC && " \
+           "setenv uboot_root ${mender_uboot_root} && " \
+           "setenv kernel_root ${mender_kernel_root} && " \
+-          "run disk_bootcmd\0" \
++          "run disk_bootcmd; " \
++          "run mender_try_to_recover\0" \
+         "sdboot=" \
+           "run mender_setup; " \
+           "setenv disk_name SD && " \
+           "setenv uboot_root ${mender_uboot_root} && " \
+           "setenv kernel_root ${mender_kernel_root} && " \
+-          "run disk_bootcmd\0" \
++          "run disk_bootcmd; "\
++          "run mender_try_to_recover\0" \
+         "disk_bootcmd=run swsync_disk; " \
+           "echo Copying FIT from ${disk_name} to RAM... && " \
+           "setenv bootargs root=${kernel_root} ${bootargs} && " \
+-- 
+2.34.1
+

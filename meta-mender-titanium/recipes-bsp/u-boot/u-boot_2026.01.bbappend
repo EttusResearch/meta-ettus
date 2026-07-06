@@ -32,11 +32,14 @@ MENDER_UBOOT_AUTO_CONFIGURE = "0"
 #           into the emmcboot and sdboot commands in ni-x410.h.
 #   0011 - Renames CONFIG_MENDER_BOOTCOMMAND -> MENDER_BOOTCOMMAND in
 #           env_mender.h to avoid the "ad-hoc CONFIG_ option" Kconfig error.
+#   0012 - Adds mender_try_to_recover to the sdboot and emmc boot commands
+#           in ni-x410.h
 SRC_URI:append:ni-titanium-mender = " \
     file://0001-Add-altbootcmd-which-was-missing.patch \
     file://0043-configs-ni_x410_rev5-add-redundant-env-for-Mender.patch \
     file://0010-x410-update-config-for-Mender.patch \
     file://0011-include-env_mender-rename-CONFIG_MENDER_BOOTCOMMAND.patch \
+    file://0012-configs-ni-x410-run-mender_try_to_recover-if-normal-.patch \
     "
 
 # do_provide_mender_defines:append:ni-titanium-mender() {
