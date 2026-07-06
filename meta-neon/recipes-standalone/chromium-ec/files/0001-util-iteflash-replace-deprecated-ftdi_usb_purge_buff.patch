@@ -1,0 +1,38 @@
+From c55f68a4942f573d49d0ce6ac83aba409bede92e Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Mon, 6 Jul 2026 15:58:55 +0200
+Subject: [PATCH] util/iteflash: replace deprecated ftdi_usb_purge_buffers with
+ ftdi_tcioflush
+
+ftdi_usb_purge_buffers() is deprecated in newer versions of libftdi.
+Replace all calls with ftdi_tcioflush() which is the recommended
+replacement and flushes both RX and TX buffers.
+---
+ util/iteflash.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/util/iteflash.c b/util/iteflash.c
+index 701c9dd2a..e263bcf82 100644
+--- a/util/iteflash.c
++++ b/util/iteflash.c
+@@ -469,7 +469,7 @@ static int config_i2c(struct ftdi_context *ftdi)
+ 		return -EIO;
+ 	}
+ 
+-	ret = ftdi_usb_purge_buffers(ftdi);
++	ret = ftdi_tcioflush(ftdi);
+ 	if (ret < 0)
+ 		fprintf(stderr, "Cannot purge buffers\n");
+ 
+@@ -563,7 +563,7 @@ retry:
+ 		fprintf(stderr, "Cannot output special waveform\n");
+ 
+ 	/* clean everything to go back to regular I2C communication */
+-	ftdi_usb_purge_buffers(ftdi);
++	ftdi_tcioflush(ftdi);
+ 	ftdi_set_bitmode(ftdi, 0xff, BITMODE_RESET);
+ 	config_i2c(ftdi);
+ 	ftdi_write_data(ftdi, release_lines, sizeof(release_lines));
+-- 
+2.43.0
+
