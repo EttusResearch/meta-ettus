@@ -17,7 +17,7 @@ class Uboot:
         self.uart.expect(self.prompt)
 
     def wait_for_uboot(self):
-        self.uart.expect("U-Boot SPL")
+        self.uart.expect(["U-Boot SPL", "Zynq MP First Stage Boot Loader"])
         self.uart.expect("U-Boot")
 
     def stop_autoboot(self):
