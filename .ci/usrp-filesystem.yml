@@ -45,15 +45,15 @@ parameters:
   - name: ext_linux
     displayName: Override linux source
     type: boolean
-    default: true
+    default: false
   - name: ext_uhd
     displayName: Override UHD source
     type: boolean
-    default: true
+    default: false
   - name: ext_fpga
     displayName: Override FPGA sources
     type: boolean
-    default: true
+    default: false
   - name: build_e310_sg1
     displayName: Build e310_sg1
     type: boolean
