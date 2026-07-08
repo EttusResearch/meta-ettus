@@ -68,7 +68,7 @@ EXTRA_OECMAKE = "-DENABLE_LIBUHD=TRUE \
                 "
 
 do_configure:append() {
-    if [ -n "${SOURCE_DATE_EPOCH}" ]; then
+    if [ -n "${SOURCE_DATE_EPOCH}" ] && [ -f "${B}/lib/build_info.cpp" ]; then
         echo "Replacing local build and sysroot directories in build_info.cpp"
         sed -i "s|${B}|BUILD_DIR|g" ${B}/lib/build_info.cpp
         sed -i "s|${S}|SOURCE_DIR|g" ${B}/lib/build_info.cpp
