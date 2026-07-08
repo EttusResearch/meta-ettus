@@ -206,7 +206,9 @@ class TestUsrpMethods(TestCommon):
         self.assertTrue(connected)
         self.assertGreater(methods_added, 0)
         self.assertTrue(command_executed)
-        self.assertEqual(init_status, "('true', 'No errors.')")
+        expected_mprpc = "('true', 'No errors.')"
+        expected_grpc = "['true', 'No errors.']"
+        self.assertTrue(init_status in (expected_mprpc, expected_grpc))
 
     def test_sshd(self):
         user = "root"
