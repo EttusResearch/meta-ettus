@@ -27,16 +27,28 @@ def flash_scu():
 
 
 def flash_emmc():
+
+    jtag_boot = True
+
+    if (len(sys.argv) > 1) and (sys.argv[1] == "--emmc-boot"):
+        jtag_boot = False
+
     with Titanium(FTDI_SERIAL) as ti:
         ti.crosec.reboot()
-        ti.crosec.set_bootmode('jtag')
+        if jtag_boot:
+            ti.crosec.set_bootmode('jtag')
+            print("bootmode: JTAG")
+        else:
+            ti.crosec.set_bootmode('emmc')
+            print("bootmode: EMMC")
         ti.crosec.powerbtn()
 
-        ti.boot_uboot(
-            pmu_elf=BRINGUP_PATH / "pmu-firmware.elf",
-            spl_bin=BRINGUP_PATH / "u-boot-spl.bin",
-            uboot_elf=BRINGUP_PATH / "u-boot.elf",
-            atf_elf=BRINGUP_PATH / "bl31.elf")
+        if jtag_boot:
+            ti.boot_uboot(
+                pmu_elf=BRINGUP_PATH / "pmu-firmware.elf",
+                spl_bin=BRINGUP_PATH / "u-boot-spl.bin",
+                uboot_elf=BRINGUP_PATH / "u-boot.elf",
+                atf_elf=BRINGUP_PATH / "bl31.elf")
 
         ti.uboot.wait_for_uboot()
         ti.uboot.stop_autoboot()
