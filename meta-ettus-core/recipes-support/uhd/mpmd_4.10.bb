@@ -1,5 +1,5 @@
 require uhd_4.10_src.inc
-require mpmd.inc
+require mpmd_4.10.inc
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/mpmd-4.10:"
 
