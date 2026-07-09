@@ -1,0 +1,62 @@
+From 5420da6b5a5c6bebdc8381d2c27f5614a8b42861 Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Wed, 8 Jul 2026 21:10:13 +0200
+Subject: [PATCH] configs/dts: ni-x410: fix MMC performance regression
+
+Switch from SDMA to ADMA2, add bus-width = <8> and to the eMMC DTS
+node, and enable CONFIG_BLOCK_CACHE.
+
+Without bus-width, mmc_of_parse() defaults to 1-bit mode and
+zynqmp_pm_set_sd_config(SD_CONFIG_8BIT) is called with false.
+
+SDMA causes high per-command overhead due to the DATA_INHIBIT
+busy-wait between each transfer; ADMA2 coalesces multi-block
+reads into a single descriptor chain, giving 25.9 MiB/s for
+large files.
+
+CONFIG_BLOCK_CACHE caches ext4 metadata (superblock, directory
+blocks, inode table) in RAM. Without it, every file open
+re-reads all directory levels from physical MMC (~50ms per
+transaction), causing 30 KiB/s for small files in deep paths.
+---
+ arch/arm/dts/zynqmp-ni-x410-rev2.dts | 1 +
+ configs/ni_x410_rev5_defconfig       | 4 +++-
+ 2 files changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/dts/zynqmp-ni-x410-rev2.dts b/arch/arm/dts/zynqmp-ni-x410-rev2.dts
+index 34ae2b0df83..03ace1ba9e1 100644
+--- a/arch/arm/dts/zynqmp-ni-x410-rev2.dts
++++ b/arch/arm/dts/zynqmp-ni-x410-rev2.dts
+@@ -52,6 +52,7 @@
+ 
+ &sdhci0 {
+ 	status = "okay";
++	bus-width = <8>;
+ 	// doesn't look like this is really used, unless it's 2
+ 	//xlnx,mio_bank = <1>;
+ };
+diff --git a/configs/ni_x410_rev5_defconfig b/configs/ni_x410_rev5_defconfig
+index 6eac60b7597..332a4f0dca6 100644
+--- a/configs/ni_x410_rev5_defconfig
++++ b/configs/ni_x410_rev5_defconfig
+@@ -76,7 +76,7 @@ CONFIG_OF_BOARD=y
+ CONFIG_ENV_IS_IN_MMC=y
+ CONFIG_NET_RANDOM_ETHADDR=y
+ CONFIG_SPL_DM_SEQ_ALIAS=y
+-# CONFIG_BLOCK_CACHE is not set
++CONFIG_SPL_BLOCK_CACHE=y
+ CONFIG_BOOTCOUNT_LIMIT=y
+ CONFIG_BOOTCOUNT_ENV=y
+ CONFIG_CLK_ZYNQMP=y
+@@ -103,6 +103,8 @@ CONFIG_SPL_MMC_UHS_SUPPORT=y
+ CONFIG_MMC_HS200_SUPPORT=y
+ CONFIG_SPL_MMC_HS200_SUPPORT=y
+ CONFIG_MMC_SDHCI=y
++CONFIG_MMC_SDHCI_ADMA=y
++CONFIG_SPL_MMC_SDHCI_ADMA=y
+ CONFIG_MMC_SDHCI_ZYNQ=y
+ CONFIG_SPI_FLASH_BAR=y
+ CONFIG_SPI_FLASH_ISSI=y
+-- 
+2.43.0
+
