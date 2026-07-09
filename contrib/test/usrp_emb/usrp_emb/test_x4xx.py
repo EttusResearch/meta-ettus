@@ -332,6 +332,8 @@ class EmbeddedTests(unittest.TestCase):
             ti.uboot.env_set("bootargs", "${bootargs} init=/bin/false")
             ti.uboot.boot()
 
+            ti.linux.wait_for_starting_kernel()
+            # Now we'll expect to panic.
             ti.linux.wait_for_panic()
             # Watchdog timer should reset after one minute
             time.sleep(60)
@@ -429,7 +431,8 @@ class MenderTests(unittest.TestCase):
             ti.linux.reboot()
             ti.uboot.wait_for_uboot()
 
-            # Okay, u-boot should have loaded. Now we'll expect to panic.
+            ti.linux.wait_for_starting_kernel()
+            # Now we'll expect to panic.
             ti.linux.wait_for_panic()
             # wait for watchdog to trigger a reset
             time.sleep(60)

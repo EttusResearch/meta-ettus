@@ -42,6 +42,13 @@ class Linux:
         self.uart.expect(['reboot: Power down', pexpect.EOF])
         self.uart.timeout = old_timeout
 
+    # TODO: remove workaround with high waiting time once Azure #3960042 is resolved
+    def wait_for_starting_kernel(self, timeout_sec=45):
+        old_timeout = self.uart.timeout
+        self.uart.timeout = timeout_sec
+        self.uart.expect('Starting kernel')
+        self.uart.timeout = old_timeout
+
     def wait_for_panic(self):
         self.uart.expect('Kernel panic')
 
