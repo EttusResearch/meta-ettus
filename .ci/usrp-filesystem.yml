@@ -239,7 +239,7 @@ stages:
               machineName: x4xx
               agentDevice: sdr-test-x440-0
 
-- ${{ if parameters.build_default_targets }}:
+- ${{ if and(parameters.run_embedded_test, parameters.build_default_targets) }}:
   - stage: filesystem_embedded_test
     displayName: Run embedded test
     dependsOn: build_meta_ettus
