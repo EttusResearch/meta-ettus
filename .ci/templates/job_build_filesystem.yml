@@ -272,6 +272,28 @@ jobs:
           EOF
         displayName: "Set reproducible timestamp for rootfs"
 
+      - task: DownloadSecureFile@1
+        name: psk0_pem
+        displayName: 'Download psk0.pem'
+        inputs:
+          secureFile: 'sdr_usrp_rnd_keys_psk0.pem'
+
+      - task: DownloadSecureFile@1
+        name: ssk0_pem
+        displayName: 'Download ssk0.pem'
+        inputs:
+          secureFile: 'sdr_usrp_rnd_keys_ssk0.pem'
+
+      - script: |
+          KEYS_PATH=$(Agent.TempDirectory)/rnd-keys
+          mkdir -p $KEYS_PATH
+          ln -sfn $(psk0_pem.secureFilePath) $KEYS_PATH/psk0.pem
+          ln -sfn $(ssk0_pem.secureFilePath) $KEYS_PATH/ssk0.pem
+          sha256sum $KEYS_PATH/psk0.pem $KEYS_PATH/ssk0.pem
+          echo "BOOTGEN_KEYS_PATH = \"$KEYS_PATH\""
+          echo "BOOTGEN_KEYS_PATH = \"$KEYS_PATH\"" >> $(Agent.BuildDirectory)/site.conf
+        displayName: prepare R&D keys
+
       - template: kas_build.yml
         parameters:
           kas_config:
