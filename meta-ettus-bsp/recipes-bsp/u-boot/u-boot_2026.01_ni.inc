@@ -6,8 +6,6 @@ PACKAGE_ARCH = "${MACHINE_ARCH}"
 FILESEXTRAPATHS:prepend:ni-titanium := "${THISDIR}/files/ni-titanium:"
 
 SRC_URI:prepend:ni-titanium = " \
-    file://boot_u-boot.tcl \
-    file://boot_u-boot \
     file://0001-misc-cros_ec-Add-trivial-support-for-software-sync.patch \
     file://0002-zynqmp-added-CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_SRC_FILE.patch \
     file://0003-board-ni-add-support-for-X410-rev-B.patch \
@@ -494,8 +492,6 @@ uboot_deploy_spl () {
     ln -sf ${SPL_IMAGE} ${DEPLOYDIR}/${SPL_SYMLINK}
 }
 
-DEPENDS:append:ni-titanium = " zip-native"
-
 FILES:${PN}:ni-titanium="/uboot /etc"
 
 PMU_FIRMWARE_DEPLOY_DIR:ni-titanium = "${BINARYDIR}/ni-titanium"
@@ -547,37 +543,6 @@ PACKAGES:append:ni-titanium = " ${PN}-devicetree"
 
 FILES:${PN}-devicetree = "/boot/system.dtb /boot/devicetree/system-top.dtb"
 PROVIDES:append:ni-titanium = " virtual/dtb"
-
-CROS_EC_DEPLOY_DIR_IMAGE:ni-titanium ?= "${TOPDIR}/tmp-stm32-baremetal/deploy/images/ni-titanium-ec-rev5"
-python __anonymous() {
-    if "ni-titanium-ec" in (d.getVar('BBMULTICONFIG') or "").split(' '):
-        d.appendVarFlag('do_deploy', 'mcdepends', ' mc:ni-titanium:ni-titanium-ec:chromium-ec:do_deploy')
-}
-
-do_deploy:append:ni-titanium() {
-  # prepare a zip file which includes all necessary files for loading u-boot
-  # via JTAG
-  UBOOT_JTAG_FILES_TARGET=u-boot-jtag-files-${MACHINE}-${PV}.zip
-  UBOOT_JTAG_FILES_SYMLINK1=u-boot-jtag-files-${MACHINE}.zip
-  UBOOT_JTAG_FILES_SYMLINK2=u-boot-jtag-files.zip
-
-  # Create a symlink to rename u-boot as u-boot.elf for the zip
-  # Only add EC files if they exist
-  if ls ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-titanium-rev*.bin 1>/dev/null 2>&1; then
-    zip -j -MM ${DEPLOYDIR}/${UBOOT_JTAG_FILES_TARGET} \
-      ${WORKDIR}/boot_u-boot ${WORKDIR}/boot_u-boot.tcl ${B}/pmu-firmware.elf \
-      ${B}/spl/u-boot-spl.bin ${B}/bl31.elf ${B}/u-boot.elf \
-      ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-titanium-rev*.bin
-  else
-    bbnote "EC firmware not found, building JTAG zip without EC files"
-    zip -j -MM ${DEPLOYDIR}/${UBOOT_JTAG_FILES_TARGET} \
-      ${WORKDIR}/boot_u-boot ${WORKDIR}/boot_u-boot.tcl ${B}/pmu-firmware.elf \
-      ${B}/spl/u-boot-spl.bin ${B}/bl31.elf ${B}/u-boot.elf
-  fi
-
-  ln -sf ${UBOOT_JTAG_FILES_TARGET} ${DEPLOYDIR}/${UBOOT_JTAG_FILES_SYMLINK1}
-  ln -sf ${UBOOT_JTAG_FILES_TARGET} ${DEPLOYDIR}/${UBOOT_JTAG_FILES_SYMLINK2}
-}
 
 # workarounds to remove the zynqmp-overrides to u-boot because the platform init
 # and the PMU firmware are already taken care of by the ni-titanium overrides
