@@ -10,6 +10,7 @@ target:
   # - mc:zynqmp-pmu:pmu-firmware
   - mc:ni-titanium-ec:chromium-ec
   - mc:ni-titanium:gnuradio-image
+  - mc:ni-titanium:u-boot-jtag-files
 local_conf_header:
   "SDK deploy directory": |
     SDK_DEPLOY:append = "/x4xx"
