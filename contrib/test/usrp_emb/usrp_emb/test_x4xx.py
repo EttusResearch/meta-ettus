@@ -44,11 +44,7 @@ def flash_emmc():
         ti.crosec.powerbtn()
 
         if jtag_boot:
-            ti.boot_uboot(
-                pmu_elf=BRINGUP_PATH / "pmu-firmware.elf",
-                spl_bin=BRINGUP_PATH / "u-boot-spl.bin",
-                uboot_elf=BRINGUP_PATH / "u-boot.elf",
-                atf_elf=BRINGUP_PATH / "bl31.elf")
+            ti.boot_uboot(tcl_script=BRINGUP_PATH / "boot_u-boot.tcl")
 
         ti.uboot.wait_for_uboot()
         ti.uboot.stop_autoboot()

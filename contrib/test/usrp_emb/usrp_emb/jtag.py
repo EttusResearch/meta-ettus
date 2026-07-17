@@ -11,14 +11,14 @@ class Xsdb:
     def __init__(self, port):
         self.port = port
 
-    def run_script(self, text):
+    def run_script(self, text, cwd=None):
         script = f"connect -host localhost -port {self.port}\n"
         script += text
 
         with tempfile.NamedTemporaryFile() as f:
             f.write(script.encode('ascii'))
             f.flush()
-            subprocess.run(['xsdb', f.name])
+            subprocess.run(['xsdb', f.name], cwd=cwd)
 
 
 class XilinxJtag:

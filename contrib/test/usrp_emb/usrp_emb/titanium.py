@@ -83,51 +83,22 @@ class Titanium:
         '''
 
         with self.xjtag.xsdb() as xsdb:
-            xsdb.run_script(script)
+            xsdb.run_script(script, cwd=Path(filename).parent)
 
-    def boot_uboot(self, pmu_elf, spl_bin, uboot_elf, atf_elf):
-        assert Path(pmu_elf).exists()
-        assert Path(spl_bin).exists()
-        assert Path(uboot_elf).exists()
-        assert Path(atf_elf).exists()
+    def boot_uboot(self, tcl_script):
+        assert Path(tcl_script).exists()
 
-        script = f'''
-            targets -set -nocase -filter {{name =~ "PSU"}}
+        # read provided tcl script
+        script = ""
+        with open(tcl_script, "r") as f:
+            script = f.read()
 
-            mwr 0xFFCA0038 0x1FF
-            after 500
+        # remove the "connect" command
+        script = re.sub(r"^connect.*$", "", script, flags=re.MULTILINE)
 
-            targets -set -filter {{name =~ "MicroBlaze PMU"}}
-
-            # download PMU firmware
-            dow "{pmu_elf}"
-            con
-            after 500
-
-            targets -set -nocase -filter {{name =~ "PSU"}}
-
-            mwr 0xffff0000 0x14000000
-
-            # bring APU 0 out of reset
-            # https://www.xilinx.com/html_docs/registers/ug1087/crf_apb___rst_fpd_apu.html
-            mwr 0xfd1a0104 0x380e
-
-            targets -set -filter {{name =~ "Cortex-A53 #0"}}
-
-            # download u-boot SPL
-            dow -data "{spl_bin}" 0xfffc0000
-            rwr pc 0xfffc0000
-            after 5000
-            stop
-
-            # download u-boot and ARM trusted firmware
-            dow "{uboot_elf}"
-            dow "{atf_elf}"
-            con
-        '''
-
+        # run the tctl script
         with self.xjtag.xsdb() as xsdb:
-            xsdb.run_script(script)
+            xsdb.run_script(script, cwd=Path(tcl_script).parent)
 
     def get_product_and_rev(self):
         self.ps.sendline("eeprom-id mb")
