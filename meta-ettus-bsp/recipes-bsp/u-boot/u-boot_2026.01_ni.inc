@@ -494,43 +494,8 @@ uboot_deploy_spl () {
 
 FILES:${PN}:ni-titanium="/uboot /etc"
 
-PMU_FIRMWARE_DEPLOY_DIR:ni-titanium = "${BINARYDIR}/ni-titanium"
-PMU_FIRMWARE_IMAGE_NAME:ni-titanium = "pmu-firmware"
-
-do_compile[depends] += "virtual/arm-trusted-firmware:do_deploy"
-
-EXTRA_OEMAKE:append:ni-titanium = " CONFIG_PMUFW_INIT_FILE=${PMU_FIRMWARE_DEPLOY_DIR}/${PMU_FIRMWARE_IMAGE_NAME}.bin"
-# BL31 is passed to binman via 'binman -a atf-bl31-path=${BL31}' in the U-Boot
-# Makefile. Without this, binman produces a zero-size ATF entry in the FIT image.
-EXTRA_OEMAKE:append:ni-titanium = " BL31=${B}/bl31.bin"
 # Add Python include directory to HOSTCFLAGS for building pylibfdt
 EXTRA_OEMAKE:append:ni-titanium = " HOSTCFLAGS='${BUILD_CFLAGS} -I${STAGING_INCDIR_NATIVE}/python3.12'"
-
-do_compile:prepend:ni-titanium() {
-    # load some variables from the config file
-    UBOOT_CONFIGFILE="${S}/configs/${UBOOT_MACHINE}"
-    grep -e "^CONFIG_SPL_FIT_SOURCE=" \
-      ${UBOOT_CONFIGFILE} > ${B}/config.temp || true
-    . ${B}/config.temp
-    # copy ARM Trusted firmware Image: EL3 Runtime Firmware: AP_BL31
-    # see https://github.com/ARM-software/arm-trusted-firmware/blob/master/docs/getting_started/image-terminology.rst
-    cp ${DEPLOY_DIR_IMAGE}/arm-trusted-firmware.bin ${B}/bl31.bin
-    cp ${DEPLOY_DIR_IMAGE}/arm-trusted-firmware.elf ${B}/bl31.elf
-    # reference/copy Platform Management Unit (PMU) Firmware
-    # see https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/18841724/PMU+Firmware
-    # note: u-boot-spl-zynq-init.inc from meta-xilinx sets CONFIG_PMUFW_INIT_FILE
-    # as EXTRA_OEMAKE option
-    echo "using CONFIG_PMUFW_INIT_FILE=${PMU_FIRMWARE_DEPLOY_DIR}/${PMU_FIRMWARE_IMAGE_NAME}.bin"
-    cp ${PMU_FIRMWARE_DEPLOY_DIR}/${PMU_FIRMWARE_IMAGE_NAME}.elf \
-      ${B}/pmu-firmware.elf
-    # copy the CONFIG_SPL_FIT_SOURCE file from the source to the build directory
-    # where the Makefile expects it (only if CONFIG_SPL_FIT_SOURCE is defined)
-    if [ -n "${CONFIG_SPL_FIT_SOURCE}" ]; then
-        mkdir -p $(dirname ${B}/${CONFIG_SPL_FIT_SOURCE})
-        cp ${S}/${CONFIG_SPL_FIT_SOURCE} \
-          ${B}/${CONFIG_SPL_FIT_SOURCE}
-    fi
-}
 
 do_install:append:ni-titanium() {
     mv ${D}/boot ${D}/uboot
