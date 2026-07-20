@@ -24,13 +24,15 @@ mwr 0xfd1a0104 0x380e
 
 targets -set -filter {name =~ "Cortex-A53 #0"}
 
-# download u-boot SPL
-dow -data "u-boot-spl.bin" 0xfffc0000
-rwr pc 0xfffc0000
-after 5000
+# download FSBL
+stop
+dow "fsbl.elf"
+con
+after 2000
 stop
 
 # download u-boot and ARM trusted firmware
+dow -data "system.dtb" 0x100000
 dow "u-boot.elf"
 dow "bl31.elf"
 con
