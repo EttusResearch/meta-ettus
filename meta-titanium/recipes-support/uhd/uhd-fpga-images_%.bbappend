@@ -50,3 +50,21 @@ do_install:append:ni-titanium() {
     mv ${D}${libdir}/firmware/${DEFAULT_BITFILE_NAME_X440}.bin ${D}${libdir}/firmware/x440.bin
     mv ${D}${libdir}/firmware/${DEFAULT_BITFILE_NAME_X440}.dtbo ${D}${libdir}/firmware/x440.dtbo
 }
+
+pkg_postinst_ontarget:${PN}-firmware() {
+    if eeprom-id mb | grep -q "customizeable_fpga=False"; then
+        # non-customizeable FPGA - nothing to do
+        true
+    else
+        # standard variant - use bootgen to extract raw bitstream from
+        # bootgen generated .bin file
+        for INPUT in /lib/firmware/*.bin; do
+            TEMP_DIR=$(mktemp -d)
+            if bootgen -arch zynqmp -dump $INPUT -dump_dir $TEMP_DIR; then
+                OUTPUT=$(ls -1 $TEMP_DIR/*.bin | head -n 1)
+                cp -v $OUTPUT $INPUT
+            fi
+            rm -rf $TEMP_DIR
+        done
+    fi
+}
