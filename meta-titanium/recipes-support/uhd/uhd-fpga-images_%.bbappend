@@ -3,7 +3,6 @@ inherit uhd_images_downloader
 # FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
 # SRC_URI:append:ni-titanium = " \
-#     file://set-symlinks.py \
 #     "
 
 FILES:${PN}:ni-titanium = " \
