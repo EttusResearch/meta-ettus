@@ -18,7 +18,6 @@ FILESEXTRAPATHS:prepend:ni-titanium := "${BINARYDIR}/ni-titanium:"
 SRC_URI:append:ni-neon = " \
                    file://ec-neon-rev1.RW.bin \
                    file://ec-neon-rev2.RW.bin \
-                   file://ec-neon-rev3.RW.bin \
                    file://LICENSE.ec-neon \
                  "
 
@@ -149,11 +148,11 @@ do_install:append:ni-neon() {
     install -D -m 0644 -v ${WORKDIR}/ec-neon-rev2.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/ec-neon-rev2.RW.bin
 
     # install embedded controller (ec) firmware
-    if [ -n "${CROS_EC_DEPLOY_DIR_IMAGE}" ]; then
-        install -m 0644 -v ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-neon-rev3.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/
-    else
-        install -m 0644 -v ${WORKDIR}/ec-neon-rev3.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/
+    if [ -z "${CROS_EC_DEPLOY_DIR_IMAGE}" ]; then
+        bberror "Multiconfig build (mc:ni-neon-ec:chromium-ec) is required for building firmware for sulfur"
     fi
+
+    install -m 0644 -v ${CROS_EC_DEPLOY_DIR_IMAGE}/ec-neon-rev3.RW.bin ${D}${nonarch_base_libdir}/firmware/ni/
 
     install -m 0644 -v ${WORKDIR}/LICENSE.ec-neon ${D}${nonarch_base_libdir}/firmware/ni/LICENSE.ec-neon
 }
