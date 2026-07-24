@@ -6,6 +6,7 @@ header:
 machine: ni-neon-rev2-mender
 target:
   - mc:ni-neon:gnuradio-image
+  - mc:ni-neon-ec:chromium-ec
 env:
   MENDER_ARTIFACT_NAME: git_e320
 local_conf_header:

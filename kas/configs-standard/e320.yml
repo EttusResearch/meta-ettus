@@ -6,6 +6,7 @@ header:
 machine: ni-neon-rev2
 target:
   - mc:ni-neon:gnuradio-image
+  - mc:ni-neon-ec:chromium-ec
 repos:
   meta-ettus:
     layers:
