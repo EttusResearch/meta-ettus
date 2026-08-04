@@ -214,6 +214,20 @@ jobs:
           EOF
         displayName: Enable archiver to generate sources
 
+      - script: |
+          set -e
+          if [[ -z "${PIP_INDEX_URL:-}" ]]; then
+            echo "Error: The variable pip_index_url is not set, its value was '$PIP_INDEX_URL'"
+            echo "It must be set as a variable in pipeline variable group meta-ettus-vars and point to the correct PyPI server"
+            exit 1
+          fi
+          set +e
+          cat <<EOF >>$(Agent.BuildDirectory)/site.conf
+          PREMIRRORS:prepend = "https://files.pythonhosted.org/.* $PIP_INDEX_URL/ \n"
+          EOF
+          cat $(Agent.BuildDirectory)/site.conf
+        displayName: Define global pypi mirror for bitbake
+        
       - ${{ if parameters.create_sbom }}:
         - script: |
             if [ "${{ parameters.sbom_cve_check }}" = "True" ]; then
