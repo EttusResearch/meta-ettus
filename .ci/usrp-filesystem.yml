@@ -148,99 +148,415 @@ variables:
   - name: AUTO_CONF
     value: $(Agent.BuildDirectory)/auto.conf
 stages:
-- stage: build_meta_ettus
-  displayName: Build meta-ettus
-  dependsOn: []
-  jobs:
-    - template: templates/job_build_filesystem.yml
-      parameters:
-        upload_packages_to_fileserver: ${{ parameters.upload_packages_to_fileserver }}
-        build_sdk: ${{ parameters.build_sdk }}
-        cache_sstate: ${{ and(parameters.cache_sstate, not(parameters.release_build)) }}
-        cache_downloads: ${{ and(parameters.cache_downloads, not(parameters.release_build)) }}
-        use_custom_mender_prefix: ${{ parameters.use_custom_mender_prefix }}
-        custom_mender_prefix: ${{ parameters.custom_mender_prefix }}
-        create_sbom: ${{ parameters.create_sbom }}
-        sbom_cve_check: ${{ parameters.sbom_cve_check }}
-        machines:
-          - ${{ if parameters.build_e310_sg1 }}:
+- ${{ if parameters.build_e310_sg1 }}:
+  - stage: build_meta_ettus_e310_sg1
+    displayName: Build e310_sg1
+    dependsOn: []
+    jobs:
+      - template: templates/job_build_filesystem.yml
+        parameters:
+          upload_packages_to_fileserver: ${{ parameters.upload_packages_to_fileserver }}
+          build_sdk: ${{ parameters.build_sdk }}
+          cache_sstate: ${{ and(parameters.cache_sstate, not(parameters.release_build)) }}
+          cache_downloads: ${{ and(parameters.cache_downloads, not(parameters.release_build)) }}
+          use_custom_mender_prefix: ${{ parameters.use_custom_mender_prefix }}
+          custom_mender_prefix: ${{ parameters.custom_mender_prefix }}
+          create_sbom: ${{ parameters.create_sbom }}
+          sbom_cve_check: ${{ parameters.sbom_cve_check }}
+          machines:
             - e310_sg1
-          - ${{ if parameters.build_e310_sg3 }}:
+          auto_conf: $AUTO_CONF
+          prebuild_steps:
+            - ${{ if or(parameters.ext_linux, parameters.ext_uhd, parameters.ext_fpga) }}:
+              - script: |
+                  rm $AUTO_CONF
+                  touch $AUTO_CONF
+            - ${{ if parameters.ext_linux }}:
+              # - script: |
+              #     cat <<EOF >>$AUTO_CONF
+              #     PREFERRED_PROVIDER_virtual/kernel = "linux-usrp"
+              #     PREFERRED_VERSION_linux-yocto = "5.10%"
+              #     KBUILD_DEFCONFIG = "usrp_defconfig"
+              #     EOF
+              - template: templates/oe_localconf_externalsrc.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  repository: linuxdev
+                  packages:
+                    - linux-usrp
+            - ${{ if parameters.ext_uhd }}:
+              - template: templates/oe_localconf_externalsrc.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  repository: uhddev
+                  package_paths:
+                    - package: 'uhd'
+                      path: 'host'
+                    - package: 'mpmd'
+                      path: 'mpm'
+            - ${{ if parameters.ext_fpga }}:
+              - template: templates/oe_localconf_externalsrc_pipeline.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  pipeline: uhddev-mono-pipeline
+                  patterns: |
+                    usrp_e310_*_fpga.*
+                    usrp_e320_fpga_*.*
+                    usrp_n3??_fpga_*.*
+                    usrp_x4??_fpga_*.*
+                  packages:
+                  - uhd-fpga-images
+                  flatten: true
+              - script: |
+                  ls -l $(Agent.BuildDirectory)/uhddev-mono-pipeline
+                displayName: list fpga images
+            - ${{ if and(parameters.ext_cpld, parameters.build_x4xx) }}:
+              - template: templates/oe_localconf_externalsrc_pipeline.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  pipeline: uhddev-mono-pipeline
+                  patterns: |
+                    usrp_x4??_cpld_*.*
+                    usrp_zbx_cpld_*.*
+                  packages:
+                  - uhd-cpld-images
+                  flatten: true
+              - script: |
+                  ls -l $(Agent.BuildDirectory)/uhddev-mono-pipeline
+                displayName: list CPLD images
+          kas_subdirectory: ${{ parameters.kas_subdirectory }}
+          build_default_targets: ${{ parameters.build_default_targets }}
+          pre_targets: ${{ parameters.pre_targets }}
+          post_targets: ${{ parameters.post_targets }}
+
+- ${{ if parameters.build_e310_sg3 }}:
+  - stage: build_meta_ettus_e310_sg3
+    displayName: Build e310_sg3
+    dependsOn: []
+    jobs:
+      - template: templates/job_build_filesystem.yml
+        parameters:
+          upload_packages_to_fileserver: ${{ parameters.upload_packages_to_fileserver }}
+          build_sdk: ${{ parameters.build_sdk }}
+          cache_sstate: ${{ and(parameters.cache_sstate, not(parameters.release_build)) }}
+          cache_downloads: ${{ and(parameters.cache_downloads, not(parameters.release_build)) }}
+          use_custom_mender_prefix: ${{ parameters.use_custom_mender_prefix }}
+          custom_mender_prefix: ${{ parameters.custom_mender_prefix }}
+          create_sbom: ${{ parameters.create_sbom }}
+          sbom_cve_check: ${{ parameters.sbom_cve_check }}
+          machines:
             - e310_sg3
-          - ${{ if parameters.build_e320 }}:
+          auto_conf: $AUTO_CONF
+          prebuild_steps:
+            - ${{ if or(parameters.ext_linux, parameters.ext_uhd, parameters.ext_fpga) }}:
+              - script: |
+                  rm $AUTO_CONF
+                  touch $AUTO_CONF
+            - ${{ if parameters.ext_linux }}:
+              # - script: |
+              #     cat <<EOF >>$AUTO_CONF
+              #     PREFERRED_PROVIDER_virtual/kernel = "linux-usrp"
+              #     PREFERRED_VERSION_linux-yocto = "5.10%"
+              #     KBUILD_DEFCONFIG = "usrp_defconfig"
+              #     EOF
+              - template: templates/oe_localconf_externalsrc.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  repository: linuxdev
+                  packages:
+                    - linux-usrp
+            - ${{ if parameters.ext_uhd }}:
+              - template: templates/oe_localconf_externalsrc.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  repository: uhddev
+                  package_paths:
+                    - package: 'uhd'
+                      path: 'host'
+                    - package: 'mpmd'
+                      path: 'mpm'
+            - ${{ if parameters.ext_fpga }}:
+              - template: templates/oe_localconf_externalsrc_pipeline.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  pipeline: uhddev-mono-pipeline
+                  patterns: |
+                    usrp_e310_*_fpga.*
+                    usrp_e320_fpga_*.*
+                    usrp_n3??_fpga_*.*
+                    usrp_x4??_fpga_*.*
+                  packages:
+                  - uhd-fpga-images
+                  flatten: true
+              - script: |
+                  ls -l $(Agent.BuildDirectory)/uhddev-mono-pipeline
+                displayName: list fpga images
+            - ${{ if and(parameters.ext_cpld, parameters.build_x4xx) }}:
+              - template: templates/oe_localconf_externalsrc_pipeline.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  pipeline: uhddev-mono-pipeline
+                  patterns: |
+                    usrp_x4??_cpld_*.*
+                    usrp_zbx_cpld_*.*
+                  packages:
+                  - uhd-cpld-images
+                  flatten: true
+              - script: |
+                  ls -l $(Agent.BuildDirectory)/uhddev-mono-pipeline
+                displayName: list CPLD images
+          kas_subdirectory: ${{ parameters.kas_subdirectory }}
+          build_default_targets: ${{ parameters.build_default_targets }}
+          pre_targets: ${{ parameters.pre_targets }}
+          post_targets: ${{ parameters.post_targets }}
+
+- ${{ if parameters.build_e320 }}:
+  - stage: build_meta_ettus_e320
+    displayName: Build e320
+    dependsOn: []
+    jobs:
+      - template: templates/job_build_filesystem.yml
+        parameters:
+          upload_packages_to_fileserver: ${{ parameters.upload_packages_to_fileserver }}
+          build_sdk: ${{ parameters.build_sdk }}
+          cache_sstate: ${{ and(parameters.cache_sstate, not(parameters.release_build)) }}
+          cache_downloads: ${{ and(parameters.cache_downloads, not(parameters.release_build)) }}
+          use_custom_mender_prefix: ${{ parameters.use_custom_mender_prefix }}
+          custom_mender_prefix: ${{ parameters.custom_mender_prefix }}
+          create_sbom: ${{ parameters.create_sbom }}
+          sbom_cve_check: ${{ parameters.sbom_cve_check }}
+          machines:
             - e320
-          - ${{ if parameters.build_n3xx }}:
+          auto_conf: $AUTO_CONF
+          prebuild_steps:
+            - ${{ if or(parameters.ext_linux, parameters.ext_uhd, parameters.ext_fpga) }}:
+              - script: |
+                  rm $AUTO_CONF
+                  touch $AUTO_CONF
+            - ${{ if parameters.ext_linux }}:
+              # - script: |
+              #     cat <<EOF >>$AUTO_CONF
+              #     PREFERRED_PROVIDER_virtual/kernel = "linux-usrp"
+              #     PREFERRED_VERSION_linux-yocto = "5.10%"
+              #     KBUILD_DEFCONFIG = "usrp_defconfig"
+              #     EOF
+              - template: templates/oe_localconf_externalsrc.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  repository: linuxdev
+                  packages:
+                    - linux-usrp
+            - ${{ if parameters.ext_uhd }}:
+              - template: templates/oe_localconf_externalsrc.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  repository: uhddev
+                  package_paths:
+                    - package: 'uhd'
+                      path: 'host'
+                    - package: 'mpmd'
+                      path: 'mpm'
+            - ${{ if parameters.ext_fpga }}:
+              - template: templates/oe_localconf_externalsrc_pipeline.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  pipeline: uhddev-mono-pipeline
+                  patterns: |
+                    usrp_e310_*_fpga.*
+                    usrp_e320_fpga_*.*
+                    usrp_n3??_fpga_*.*
+                    usrp_x4??_fpga_*.*
+                  packages:
+                  - uhd-fpga-images
+                  flatten: true
+              - script: |
+                  ls -l $(Agent.BuildDirectory)/uhddev-mono-pipeline
+                displayName: list fpga images
+            - ${{ if and(parameters.ext_cpld, parameters.build_x4xx) }}:
+              - template: templates/oe_localconf_externalsrc_pipeline.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  pipeline: uhddev-mono-pipeline
+                  patterns: |
+                    usrp_x4??_cpld_*.*
+                    usrp_zbx_cpld_*.*
+                  packages:
+                  - uhd-cpld-images
+                  flatten: true
+              - script: |
+                  ls -l $(Agent.BuildDirectory)/uhddev-mono-pipeline
+                displayName: list CPLD images
+          kas_subdirectory: ${{ parameters.kas_subdirectory }}
+          build_default_targets: ${{ parameters.build_default_targets }}
+          pre_targets: ${{ parameters.pre_targets }}
+          post_targets: ${{ parameters.post_targets }}
+
+- ${{ if parameters.build_n3xx }}:
+  - stage: build_meta_ettus_n3xx
+    displayName: Build n3xx
+    dependsOn: []
+    jobs:
+      - template: templates/job_build_filesystem.yml
+        parameters:
+          upload_packages_to_fileserver: ${{ parameters.upload_packages_to_fileserver }}
+          build_sdk: ${{ parameters.build_sdk }}
+          cache_sstate: ${{ and(parameters.cache_sstate, not(parameters.release_build)) }}
+          cache_downloads: ${{ and(parameters.cache_downloads, not(parameters.release_build)) }}
+          use_custom_mender_prefix: ${{ parameters.use_custom_mender_prefix }}
+          custom_mender_prefix: ${{ parameters.custom_mender_prefix }}
+          create_sbom: ${{ parameters.create_sbom }}
+          sbom_cve_check: ${{ parameters.sbom_cve_check }}
+          machines:
             - n3xx
-          - ${{ if parameters.build_x4xx }}:
+          auto_conf: $AUTO_CONF
+          prebuild_steps:
+            - ${{ if or(parameters.ext_linux, parameters.ext_uhd, parameters.ext_fpga) }}:
+              - script: |
+                  rm $AUTO_CONF
+                  touch $AUTO_CONF
+            - ${{ if parameters.ext_linux }}:
+              # - script: |
+              #     cat <<EOF >>$AUTO_CONF
+              #     PREFERRED_PROVIDER_virtual/kernel = "linux-usrp"
+              #     PREFERRED_VERSION_linux-yocto = "5.10%"
+              #     KBUILD_DEFCONFIG = "usrp_defconfig"
+              #     EOF
+              - template: templates/oe_localconf_externalsrc.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  repository: linuxdev
+                  packages:
+                    - linux-usrp
+            - ${{ if parameters.ext_uhd }}:
+              - template: templates/oe_localconf_externalsrc.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  repository: uhddev
+                  package_paths:
+                    - package: 'uhd'
+                      path: 'host'
+                    - package: 'mpmd'
+                      path: 'mpm'
+            - ${{ if parameters.ext_fpga }}:
+              - template: templates/oe_localconf_externalsrc_pipeline.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  pipeline: uhddev-mono-pipeline
+                  patterns: |
+                    usrp_e310_*_fpga.*
+                    usrp_e320_fpga_*.*
+                    usrp_n3??_fpga_*.*
+                    usrp_x4??_fpga_*.*
+                  packages:
+                  - uhd-fpga-images
+                  flatten: true
+              - script: |
+                  ls -l $(Agent.BuildDirectory)/uhddev-mono-pipeline
+                displayName: list fpga images
+            - ${{ if and(parameters.ext_cpld, parameters.build_x4xx) }}:
+              - template: templates/oe_localconf_externalsrc_pipeline.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  pipeline: uhddev-mono-pipeline
+                  patterns: |
+                    usrp_x4??_cpld_*.*
+                    usrp_zbx_cpld_*.*
+                  packages:
+                  - uhd-cpld-images
+                  flatten: true
+              - script: |
+                  ls -l $(Agent.BuildDirectory)/uhddev-mono-pipeline
+                displayName: list CPLD images
+          kas_subdirectory: ${{ parameters.kas_subdirectory }}
+          build_default_targets: ${{ parameters.build_default_targets }}
+          pre_targets: ${{ parameters.pre_targets }}
+          post_targets: ${{ parameters.post_targets }}
+
+- ${{ if parameters.build_x4xx }}:
+  - stage: build_meta_ettus_x4xx
+    displayName: Build x4xx
+    dependsOn: []
+    jobs:
+      - template: templates/job_build_filesystem.yml
+        parameters:
+          upload_packages_to_fileserver: ${{ parameters.upload_packages_to_fileserver }}
+          build_sdk: ${{ parameters.build_sdk }}
+          cache_sstate: ${{ and(parameters.cache_sstate, not(parameters.release_build)) }}
+          cache_downloads: ${{ and(parameters.cache_downloads, not(parameters.release_build)) }}
+          use_custom_mender_prefix: ${{ parameters.use_custom_mender_prefix }}
+          custom_mender_prefix: ${{ parameters.custom_mender_prefix }}
+          create_sbom: ${{ parameters.create_sbom }}
+          sbom_cve_check: ${{ parameters.sbom_cve_check }}
+          machines:
             - x4xx
-        auto_conf: $AUTO_CONF
-        prebuild_steps:
-          - ${{ if or(parameters.ext_linux, parameters.ext_uhd, parameters.ext_fpga) }}:
-            - script: |
-                rm $AUTO_CONF
-                touch $AUTO_CONF
-          - ${{ if parameters.ext_linux }}:
-            # - script: |
-            #     cat <<EOF >>$AUTO_CONF
-            #     PREFERRED_PROVIDER_virtual/kernel = "linux-usrp"
-            #     PREFERRED_VERSION_linux-yocto = "5.10%"
-            #     KBUILD_DEFCONFIG = "usrp_defconfig"
-            #     EOF
-            - template: templates/oe_localconf_externalsrc.yml
-              parameters:
-                conf_file: $AUTO_CONF
-                repository: linuxdev
-                packages:
-                  - linux-usrp
-          - ${{ if parameters.ext_uhd }}:
-            - template: templates/oe_localconf_externalsrc.yml
-              parameters:
-                conf_file: $AUTO_CONF
-                repository: uhddev
-                package_paths:
-                  - package: 'uhd'
-                    path: 'host'
-                  - package: 'mpmd'
-                    path: 'mpm'
-          - ${{ if parameters.ext_fpga }}:
-            - template: templates/oe_localconf_externalsrc_pipeline.yml
-              parameters:
-                conf_file: $AUTO_CONF
-                pipeline: uhddev-mono-pipeline
-                patterns: |
-                  usrp_e310_*_fpga.*
-                  usrp_e320_fpga_*.*
-                  usrp_n3??_fpga_*.*
-                  usrp_x4??_fpga_*.*
-                packages:
-                - uhd-fpga-images
-                flatten: true
-            - script: |
-                ls -l $(Agent.BuildDirectory)/uhddev-mono-pipeline
-              displayName: list fpga images
-          - ${{ if and(parameters.ext_cpld, parameters.build_x4xx) }}:
-            - template: templates/oe_localconf_externalsrc_pipeline.yml
-              parameters:
-                conf_file: $AUTO_CONF
-                pipeline: uhddev-mono-pipeline
-                patterns: |
-                  usrp_x4??_cpld_*.*
-                  usrp_zbx_cpld_*.*
-                packages:
-                - uhd-cpld-images
-                flatten: true
-            - script: |
-                ls -l $(Agent.BuildDirectory)/uhddev-mono-pipeline
-              displayName: list CPLD images
-        kas_subdirectory: ${{ parameters.kas_subdirectory }}
-        build_default_targets: ${{ parameters.build_default_targets }}
-        pre_targets: ${{ parameters.pre_targets }}
-        post_targets: ${{ parameters.post_targets }}
+          auto_conf: $AUTO_CONF
+          prebuild_steps:
+            - ${{ if or(parameters.ext_linux, parameters.ext_uhd, parameters.ext_fpga) }}:
+              - script: |
+                  rm $AUTO_CONF
+                  touch $AUTO_CONF
+            - ${{ if parameters.ext_linux }}:
+              # - script: |
+              #     cat <<EOF >>$AUTO_CONF
+              #     PREFERRED_PROVIDER_virtual/kernel = "linux-usrp"
+              #     PREFERRED_VERSION_linux-yocto = "5.10%"
+              #     KBUILD_DEFCONFIG = "usrp_defconfig"
+              #     EOF
+              - template: templates/oe_localconf_externalsrc.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  repository: linuxdev
+                  packages:
+                    - linux-usrp
+            - ${{ if parameters.ext_uhd }}:
+              - template: templates/oe_localconf_externalsrc.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  repository: uhddev
+                  package_paths:
+                    - package: 'uhd'
+                      path: 'host'
+                    - package: 'mpmd'
+                      path: 'mpm'
+            - ${{ if parameters.ext_fpga }}:
+              - template: templates/oe_localconf_externalsrc_pipeline.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  pipeline: uhddev-mono-pipeline
+                  patterns: |
+                    usrp_e310_*_fpga.*
+                    usrp_e320_fpga_*.*
+                    usrp_n3??_fpga_*.*
+                    usrp_x4??_fpga_*.*
+                  packages:
+                  - uhd-fpga-images
+                  flatten: true
+              - script: |
+                  ls -l $(Agent.BuildDirectory)/uhddev-mono-pipeline
+                displayName: list fpga images
+            - ${{ if and(parameters.ext_cpld, parameters.build_x4xx) }}:
+              - template: templates/oe_localconf_externalsrc_pipeline.yml
+                parameters:
+                  conf_file: $AUTO_CONF
+                  pipeline: uhddev-mono-pipeline
+                  patterns: |
+                    usrp_x4??_cpld_*.*
+                    usrp_zbx_cpld_*.*
+                  packages:
+                  - uhd-cpld-images
+                  flatten: true
+              - script: |
+                  ls -l $(Agent.BuildDirectory)/uhddev-mono-pipeline
+                displayName: list CPLD images
+          kas_subdirectory: ${{ parameters.kas_subdirectory }}
+          build_default_targets: ${{ parameters.build_default_targets }}
+          pre_targets: ${{ parameters.pre_targets }}
+          post_targets: ${{ parameters.post_targets }}
 
 - ${{ if and(parameters.build_x4xx, parameters.build_default_targets) }}:
   - stage: x4xx_hardware_test
     displayName: Run x4xx hardware test
-    dependsOn: build_meta_ettus
+    dependsOn: build_meta_ettus_x4xx
     jobs:
       - template: templates/job_x4xx_filesystem_test.yml
         parameters:
@@ -260,7 +576,15 @@ stages:
 - ${{ if and(parameters.run_embedded_test, parameters.build_default_targets) }}:
   - stage: filesystem_embedded_test
     displayName: Run embedded test
-    dependsOn: build_meta_ettus
+    dependsOn:
+      - ${{ if parameters.build_e310_sg3 }}:
+        - build_meta_ettus_e310_sg3
+      - ${{ if parameters.build_e320 }}:
+        - build_meta_ettus_e320
+      - ${{ if parameters.build_n3xx }}:
+        - build_meta_ettus_n3xx
+      - ${{ if parameters.build_x4xx }}:
+        - build_meta_ettus_x4xx
     jobs:
       - template: templates/job_filesystem_embedded_test.yml
         parameters:
