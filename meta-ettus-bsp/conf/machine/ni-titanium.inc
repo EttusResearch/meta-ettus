@@ -19,8 +19,8 @@ UBOOT_DTBO_LOADADDRESS = "0x7C000"
 SPL_BINARY ?= "spl/boot.bin"
 PREFERRED_VERSION_u-boot ?= "2026.01%"
 
-PREFERRED_PROVIDER_virtual/arm-trusted-firmware = "arm-trusted-firmware"
-PREFERRED_VERSION_arm-trusted-firmware = "2.8-xilinx-v2023.1+git"
+PREFERRED_PROVIDER_virtual/arm-trusted-firmware = "trusted-firmware-a"
+PREFERRED_VERSION_trusted-firmware-a = "2.12.0-xilinx-v2025.1"
 
 SERIAL_CONSOLES ?= "115200;ttyPS0"
 SERIAL_CONSOLES_CHECK ?= "${SERIAL_CONSOLES}"

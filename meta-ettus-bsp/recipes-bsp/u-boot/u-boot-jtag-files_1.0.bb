@@ -9,7 +9,7 @@ PACKAGE_ARCH = "${MACHINE_ARCH}"
 
 inherit deploy
 
-DEPENDS = "pmufw fsbl arm-trusted-firmware u-boot virtual/dtb zip-native"
+DEPENDS = "pmufw fsbl virtual/arm-trusted-firmware u-boot virtual/dtb zip-native"
 
 SRC_URI = " \
     file://boot_u-boot \
