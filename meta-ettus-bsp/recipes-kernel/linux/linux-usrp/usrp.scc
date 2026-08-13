@@ -55,7 +55,6 @@ patch 0054-ARM-usrp_defconfig-Enable-ni-e31x-pmu-battery-and-ch.patch
 patch 0055-x410-iio-based-cros-ec-temperature-sensor-driver.patch
 patch 0056-arm64-usrp_defconfig-Rename-dt-compatible-string-to-.patch
 patch 0057-rtc-ds1374-Add-trickle-charger-device-tree-binding.patch
-patch 0058-hwmon-lm75-Add-thermal-support.patch
 patch 0059-hwmon-lm95234-Add-thermal-support.patch
 patch 0060-hwmon-cros_ec-register-thermal-sensors-to-thermal-fr.patch
 patch 0061-hwmon-cros_ec-add-PWM-control-over-fans.patch
@@ -111,3 +110,4 @@ patch 0110-net-axienet-Fix-mainline-6.12-build-after-linux-xlnx.patch
 patch 0111-mtd-spi-nor-sst-fix-write-support-for-SST_WRITE-mark.patch
 patch 0112-mtd-spi-nor-sst-Fix-write-enable-before-AAI-sequence.patch
 patch 0113-mtd-spi-nor-sst-move-sst_write_second-to-local-drive.patch
+patch 0114-hwmon-cros-ec-integrate-EC-fans-with-thermal-framewo.patch

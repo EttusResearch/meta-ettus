@@ -1,0 +1,543 @@
+From 9aa1c69a0f53e3d011a6ab9a618edfa8f33f2eda Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Thu, 13 Aug 2026 15:47:47 +0200
+Subject: [PATCH] hwmon: cros_ec: integrate EC fans with thermal framework
+
+Bind EC fan cooling devices to their device-tree nodes, switch to manual control when applying thermal PWM requests, and restore EC automatic mode during shutdown.
+
+Use board-specific PWM state ranges for the N3xx thermal maps and document the RPM-to-PWM normalization.
+---
+ .../arm/boot/dts/xilinx/ni-magnesium-db0.dtsi | 13 +++--
+ .../arm/boot/dts/xilinx/ni-magnesium-db1.dtsi | 13 +++--
+ .../dts/xilinx/ni-rhodium-rev0-thermal.dts    | 31 +++++-----
+ .../zynq-ni-sulfur-rev3-eiscat-rev1.dts       | 31 +++++-----
+ .../zynq-ni-sulfur-rev3-eiscat-rev2.dts       | 31 +++++-----
+ .../boot/dts/xilinx/zynq-ni-sulfur-rev3.dts   | 16 +++--
+ drivers/hwmon/cros_ec_hwmon.c                 | 58 ++++++++++++++++++-
+ 7 files changed, 125 insertions(+), 68 deletions(-)
+
+diff --git a/arch/arm/boot/dts/xilinx/ni-magnesium-db0.dtsi b/arch/arm/boot/dts/xilinx/ni-magnesium-db0.dtsi
+index cec8bbf763aa..f2362ca60aa7 100644
+--- a/arch/arm/boot/dts/xilinx/ni-magnesium-db0.dtsi
++++ b/arch/arm/boot/dts/xilinx/ni-magnesium-db0.dtsi
+@@ -60,27 +60,32 @@ db0_crit: db0-crit {
+ 		};
+ 
+ 		cooling-maps {
++			/*
++			 * Preserve the original 6000/8000/12500/13500 RPM
++			 * thresholds as PWM states. This assumes 13500 RPM
++			 * corresponds to full PWM and a linear relationship.
++			 */
+ 			map0 {
+ 				trip = <&db0_alert0>;
+-				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
++				cooling-device = <&fan1 0 113>; /* 0-6000 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map1 {
+ 				trip = <&db0_alert1>;
+-				cooling-device = <&fan1 6000 8000>;
++				cooling-device = <&fan1 113 151>; /* 6000-8000 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map2 {
+ 				trip = <&db0_alert2>;
+-				cooling-device = <&fan1 8000 12500>;
++				cooling-device = <&fan1 151 236>; /* 8000-12500 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map3 {
+ 				trip = <&db0_crit>;
+-				cooling-device = <&fan1 12500 13500>;
++				cooling-device = <&fan1 236 255>; /* 12500-13500 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+diff --git a/arch/arm/boot/dts/xilinx/ni-magnesium-db1.dtsi b/arch/arm/boot/dts/xilinx/ni-magnesium-db1.dtsi
+index 5f72004bf14d..0ec5eb373ef2 100644
+--- a/arch/arm/boot/dts/xilinx/ni-magnesium-db1.dtsi
++++ b/arch/arm/boot/dts/xilinx/ni-magnesium-db1.dtsi
+@@ -59,27 +59,32 @@ db1_crit: db1-crit {
+ 		};
+ 
+ 		cooling-maps {
++			/*
++			 * Preserve the original 6000/8000/12500/13500 RPM
++			 * thresholds as PWM states. This assumes 13500 RPM
++			 * corresponds to full PWM and a linear relationship.
++			 */
+ 			map0 {
+ 				trip = <&db1_alert0>;
+-				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
++				cooling-device = <&fan1 0 113>; /* 0-6000 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map1 {
+ 				trip = <&db1_alert1>;
+-				cooling-device = <&fan1 6000 8000>;
++				cooling-device = <&fan1 113 151>; /* 6000-8000 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map2 {
+ 				trip = <&db1_alert2>;
+-				cooling-device = <&fan1 8000 12500>;
++				cooling-device = <&fan1 151 236>; /* 8000-12500 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map3 {
+ 				trip = <&db1_crit>;
+-				cooling-device = <&fan1 12500 13500>;
++				cooling-device = <&fan1 236 255>; /* 12500-13500 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+diff --git a/arch/arm/boot/dts/xilinx/ni-rhodium-rev0-thermal.dts b/arch/arm/boot/dts/xilinx/ni-rhodium-rev0-thermal.dts
+index 194e9edbb095..e9caa6a38d30 100644
+--- a/arch/arm/boot/dts/xilinx/ni-rhodium-rev0-thermal.dts
++++ b/arch/arm/boot/dts/xilinx/ni-rhodium-rev0-thermal.dts
+@@ -37,16 +37,6 @@ gpio@20 {
+ 	};
+ };
+ 
+-&fan0 {
+-	cooling-min-state = <3300>;
+-	cooling-max-state = <13500>;
+-};
+-
+-&fan1 {
+-	cooling-min-state = <3300>;
+-	cooling-max-state = <13500>;
+-};
+-
+ &thermal_zones {
+ 	rhodium-db0-zone {
+ 		polling-delay-passive = <1000>;
+@@ -83,27 +73,32 @@ db0_crit: db0-crit {
+ 		};
+ 
+ 		cooling-maps {
++			/*
++			 * Preserve the original 6000/8000/12500/13500 RPM
++			 * thresholds as PWM states. This assumes 13500 RPM
++			 * corresponds to full PWM and a linear relationship.
++			 */
+ 			map0 {
+ 				trip = <&db0_alert0>;
+-				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
++				cooling-device = <&fan1 0 113>; /* 0-6000 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map1 {
+ 				trip = <&db0_alert1>;
+-				cooling-device = <&fan1 6000 8000>;
++				cooling-device = <&fan1 113 151>; /* 6000-8000 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map2 {
+ 				trip = <&db0_alert2>;
+-				cooling-device = <&fan1 8000 12500>;
++				cooling-device = <&fan1 151 236>; /* 8000-12500 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map3 {
+ 				trip = <&db0_crit>;
+-				cooling-device = <&fan1 12500 13500>;
++				cooling-device = <&fan1 236 255>; /* 12500-13500 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+@@ -147,25 +142,25 @@ db1_crit: db1-crit {
+ 		cooling-maps {
+ 			map0 {
+ 				trip = <&db1_alert0>;
+-				cooling-device = <&fan1 THERMAL_NO_LIMIT 6000>;
++				cooling-device = <&fan1 0 113>; /* 0-6000 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map1 {
+ 				trip = <&db1_alert1>;
+-				cooling-device = <&fan1 6000 8000>;
++				cooling-device = <&fan1 113 151>; /* 6000-8000 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map2 {
+ 				trip = <&db1_alert2>;
+-				cooling-device = <&fan1 8000 12500>;
++				cooling-device = <&fan1 151 236>; /* 8000-12500 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map3 {
+ 				trip = <&db1_crit>;
+-				cooling-device = <&fan1 12500 13500>;
++				cooling-device = <&fan1 236 255>; /* 12500-13500 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+diff --git a/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3-eiscat-rev1.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3-eiscat-rev1.dts
+index 14796e8cfa29..78bae715db12 100644
+--- a/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3-eiscat-rev1.dts
++++ b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3-eiscat-rev1.dts
+@@ -24,16 +24,6 @@ db_temp1: hwmon@18 {
+ 	};
+ };
+ 
+-&fan0 {
+-	cooling-min-state = <0>;
+-	cooling-max-state = <13500>;
+-};
+-
+-&fan1 {
+-	cooling-min-state = <0>;
+-	cooling-max-state = <13500>;
+-};
+-
+ &thermal_zones {
+ 	eiscat-db0-zone {
+ 		polling-delay-passive = <1000>;
+@@ -70,27 +60,32 @@ db0_crit: db0-crit {
+ 		};
+ 
+ 		cooling-maps {
++			/*
++			 * Preserve the original 6000/8000/12500/13500 RPM
++			 * thresholds as PWM states. This assumes 13500 RPM
++			 * corresponds to full PWM and a linear relationship.
++			 */
+ 			map0 {
+ 				trip = <&db0_alert0>;
+-				cooling-device = <&fan1 0 6000>;
++				cooling-device = <&fan1 0 113>; /* 0-6000 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map1 {
+ 				trip = <&db0_alert1>;
+-				cooling-device = <&fan1 6000 8000>;
++				cooling-device = <&fan1 113 151>; /* 6000-8000 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map2 {
+ 				trip = <&db0_alert2>;
+-				cooling-device = <&fan1 8000 12500>;
++				cooling-device = <&fan1 151 236>; /* 8000-12500 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map3 {
+ 				trip = <&db0_crit>;
+-				cooling-device = <&fan1 12500 13500>;
++				cooling-device = <&fan1 236 255>; /* 12500-13500 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+@@ -134,25 +129,25 @@ db1_crit: db1-crit {
+ 		cooling-maps {
+ 			map0 {
+ 				trip = <&db1_alert0>;
+-				cooling-device = <&fan1 0 6000>;
++				cooling-device = <&fan1 0 113>; /* 0-6000 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map1 {
+ 				trip = <&db1_alert1>;
+-				cooling-device = <&fan1 6000 8000>;
++				cooling-device = <&fan1 113 151>; /* 6000-8000 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map2 {
+ 				trip = <&db1_alert2>;
+-				cooling-device = <&fan1 8000 12500>;
++				cooling-device = <&fan1 151 236>; /* 8000-12500 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map3 {
+ 				trip = <&db1_crit>;
+-				cooling-device = <&fan1 12500 13500>;
++				cooling-device = <&fan1 236 255>; /* 12500-13500 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+diff --git a/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3-eiscat-rev2.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3-eiscat-rev2.dts
+index 14796e8cfa29..78bae715db12 100644
+--- a/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3-eiscat-rev2.dts
++++ b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3-eiscat-rev2.dts
+@@ -24,16 +24,6 @@ db_temp1: hwmon@18 {
+ 	};
+ };
+ 
+-&fan0 {
+-	cooling-min-state = <0>;
+-	cooling-max-state = <13500>;
+-};
+-
+-&fan1 {
+-	cooling-min-state = <0>;
+-	cooling-max-state = <13500>;
+-};
+-
+ &thermal_zones {
+ 	eiscat-db0-zone {
+ 		polling-delay-passive = <1000>;
+@@ -70,27 +60,32 @@ db0_crit: db0-crit {
+ 		};
+ 
+ 		cooling-maps {
++			/*
++			 * Preserve the original 6000/8000/12500/13500 RPM
++			 * thresholds as PWM states. This assumes 13500 RPM
++			 * corresponds to full PWM and a linear relationship.
++			 */
+ 			map0 {
+ 				trip = <&db0_alert0>;
+-				cooling-device = <&fan1 0 6000>;
++				cooling-device = <&fan1 0 113>; /* 0-6000 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map1 {
+ 				trip = <&db0_alert1>;
+-				cooling-device = <&fan1 6000 8000>;
++				cooling-device = <&fan1 113 151>; /* 6000-8000 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map2 {
+ 				trip = <&db0_alert2>;
+-				cooling-device = <&fan1 8000 12500>;
++				cooling-device = <&fan1 151 236>; /* 8000-12500 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map3 {
+ 				trip = <&db0_crit>;
+-				cooling-device = <&fan1 12500 13500>;
++				cooling-device = <&fan1 236 255>; /* 12500-13500 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+@@ -134,25 +129,25 @@ db1_crit: db1-crit {
+ 		cooling-maps {
+ 			map0 {
+ 				trip = <&db1_alert0>;
+-				cooling-device = <&fan1 0 6000>;
++				cooling-device = <&fan1 0 113>; /* 0-6000 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map1 {
+ 				trip = <&db1_alert1>;
+-				cooling-device = <&fan1 6000 8000>;
++				cooling-device = <&fan1 113 151>; /* 6000-8000 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map2 {
+ 				trip = <&db1_alert2>;
+-				cooling-device = <&fan1 8000 12500>;
++				cooling-device = <&fan1 151 236>; /* 8000-12500 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+ 			map3 {
+ 				trip = <&db1_crit>;
+-				cooling-device = <&fan1 12500 13500>;
++				cooling-device = <&fan1 236 255>; /* 12500-13500 RPM equivalent */
+ 				contribution = <100>;
+ 			};
+ 
+diff --git a/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts
+index 4c267adb42ff..a09a7d487d8c 100644
+--- a/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts
++++ b/arch/arm/boot/dts/xilinx/zynq-ni-sulfur-rev3.dts
+@@ -116,27 +116,33 @@ fpga_crit: fpga-crit {
+ 			};
+ 
+ 			cooling-maps {
++				/*
++				 * Preserve the original 6000/8000/12500 RPM
++				 * thresholds. cros_ec_hwmon exposes PWM states
++				 * from 0 to 255; these values assume a linear
++				 * RPM-to-PWM relationship with 12500 RPM at 255.
++				 */
+ 				map0 {
+ 					trip = <&fpga_alert0>;
+-					cooling-device = <&fan0 0 64>;  /* 0-25% PWM */
++					cooling-device = <&fan0 0 122>; /* 0-6000 RPM equivalent */
+ 					contribution = <100>;
+ 				};
+ 
+ 				map1 {
+ 					trip = <&fpga_alert1>;
+-					cooling-device = <&fan0 64 128>;  /* 25-50% PWM */
++					cooling-device = <&fan0 122 163>; /* 6000-8000 RPM equivalent */
+ 					contribution = <100>;
+ 				};
+ 
+ 				map2 {
+ 					trip = <&fpga_alert2>;
+-					cooling-device = <&fan0 128 192>;  /* 50-75% PWM */
++					cooling-device = <&fan0 163 255>; /* 8000-12500 RPM equivalent */
+ 					contribution = <100>;
+ 				};
+ 
+ 				map3 {
+ 					trip = <&fpga_crit>;
+-					cooling-device = <&fan0 192 255>;  /* 75-100% PWM */
++					cooling-device = <&fan0 255 255>; /* 12500 RPM maximum */
+ 					contribution = <100>;
+ 				};
+ 
+@@ -251,6 +257,8 @@ cros_ec: embedded-controller@1e {
+ 		interrupts = <0 IRQ_TYPE_EDGE_FALLING>;
+ 		interrupt-parent = <&gpio0>;
+ 		google,has-vbc-nvram;
++		/* Index 0 and 1 correspond to the fan0 and fan1 cooling nodes. */
++		thermal-cooling-devices = <&fan0>, <&fan1>;
+ 
+ 		#thermal-sensor-cells = <1>;
+ 
+diff --git a/drivers/hwmon/cros_ec_hwmon.c b/drivers/hwmon/cros_ec_hwmon.c
+index 8b3453873428..0b8d1d6bfa20 100644
+--- a/drivers/hwmon/cros_ec_hwmon.c
++++ b/drivers/hwmon/cros_ec_hwmon.c
+@@ -10,6 +10,7 @@
+ #include <linux/math.h>
+ #include <linux/mod_devicetable.h>
+ #include <linux/module.h>
++#include <linux/of.h>
+ #include <linux/platform_device.h>
+ #include <linux/platform_data/cros_ec_commands.h>
+ #include <linux/platform_data/cros_ec_proto.h>
+@@ -25,6 +26,7 @@
+ 
+ struct cros_ec_hwmon_priv {
+ 	struct cros_ec_device *cros_ec;
++	struct device_node *cooling_nodes[EC_FAN_SPEED_ENTRIES];
+ 	const char *temp_sensor_names[EC_TEMP_SENSOR_ENTRIES + EC_TEMP_SENSOR_B_ENTRIES];
+ 	u8 usable_fans;
+ 	bool fan_control_supported;
+@@ -341,7 +343,10 @@ static int cros_ec_hwmon_cooling_set_cur_state(struct thermal_cooling_device *cd
+ {
+ 	const struct cros_ec_hwmon_cooling_priv *priv = cdev->devdata;
+ 
+-	return cros_ec_hwmon_write_pwm_input(priv->hwmon_priv->cros_ec, priv->index, val);
++	if (val > 255)
++		return -EINVAL;
++
++	return cros_ec_hwmon_set_fan_pwm_val(priv->hwmon_priv->cros_ec, priv->index, val);
+ }
+ 
+ static const struct thermal_cooling_device_ops cros_ec_thermal_cooling_ops = {
+@@ -362,6 +367,17 @@ static const struct hwmon_chip_info cros_ec_hwmon_chip_info = {
+ 	.info = cros_ec_hwmon_info,
+ };
+ 
++static void cros_ec_hwmon_put_cooling_nodes(void *data)
++{
++	struct cros_ec_hwmon_priv *priv = data;
++	size_t i;
++
++	for (i = 0; i < ARRAY_SIZE(priv->cooling_nodes); i++) {
++		of_node_put(priv->cooling_nodes[i]);
++		priv->cooling_nodes[i] = NULL;
++	}
++}
++
+ static void cros_ec_hwmon_probe_temp_sensors(struct device *dev, struct cros_ec_hwmon_priv *priv,
+ 					     u8 thermal_version)
+ {
+@@ -435,6 +451,7 @@ static void cros_ec_hwmon_register_fan_cooling_devices(struct device *dev,
+ 	struct thermal_cooling_device *cdev;
+ 	const char *type;
+ 	size_t i;
++	int ret;
+ 
+ 	if (!IS_ENABLED(CONFIG_THERMAL))
+ 		return;
+@@ -446,6 +463,22 @@ static void cros_ec_hwmon_register_fan_cooling_devices(struct device *dev,
+ 		if (!(priv->usable_fans & BIT(i)))
+ 			continue;
+ 
++		priv->cooling_nodes[i] = of_parse_phandle(priv->cros_ec->dev->of_node,
++							  "thermal-cooling-devices", i);
++		if (!priv->cooling_nodes[i]) {
++			dev_warn(dev, "no cooling DT node for fan %zu\n", i);
++			continue;
++		}
++	}
++
++	ret = devm_add_action_or_reset(dev, cros_ec_hwmon_put_cooling_nodes, priv);
++	if (ret)
++		return;
++
++	for (i = 0; i < EC_FAN_SPEED_ENTRIES; i++) {
++		if (!priv->cooling_nodes[i])
++			continue;
++
+ 		cpriv = devm_kzalloc(dev, sizeof(*cpriv), GFP_KERNEL);
+ 		if (!cpriv)
+ 			continue;
+@@ -458,7 +491,7 @@ static void cros_ec_hwmon_register_fan_cooling_devices(struct device *dev,
+ 
+ 		cpriv->hwmon_priv = priv;
+ 		cpriv->index = i;
+-		cdev = devm_thermal_of_cooling_device_register(dev, NULL, type, cpriv,
++		cdev = devm_thermal_of_cooling_device_register(dev, priv->cooling_nodes[i], type, cpriv,
+ 							       &cros_ec_thermal_cooling_ops);
+ 		if (IS_ERR(cdev)) {
+ 			dev_warn(dev, "failed to register fan %zu as a cooling device: %pe\n", i,
+@@ -578,6 +611,26 @@ static int cros_ec_hwmon_resume(struct platform_device *pdev)
+ 	return 0;
+ }
+ 
++static void cros_ec_hwmon_shutdown(struct platform_device *pdev)
++{
++	const struct cros_ec_hwmon_priv *priv = platform_get_drvdata(pdev);
++	size_t i;
++	int ret;
++
++	if (!priv->fan_control_supported)
++		return;
++
++	for (i = 0; i < EC_FAN_SPEED_ENTRIES; i++) {
++		if (!(priv->usable_fans & BIT(i)))
++			continue;
++
++		ret = cros_ec_hwmon_write_pwm_enable(priv->cros_ec, i, 2);
++		if (ret)
++			dev_warn(&pdev->dev, "failed to restore automatic mode for fan %zu: %pe\n",
++				 i, ERR_PTR(ret));
++	}
++}
++
+ static const struct platform_device_id cros_ec_hwmon_id[] = {
+ 	{ DRV_NAME, 0 },
+ 	{}
+@@ -588,6 +641,7 @@ static struct platform_driver cros_ec_hwmon_driver = {
+ 	.probe		= cros_ec_hwmon_probe,
+ 	.suspend	= pm_ptr(cros_ec_hwmon_suspend),
+ 	.resume		= pm_ptr(cros_ec_hwmon_resume),
++	.shutdown	= cros_ec_hwmon_shutdown,
+ 	.id_table	= cros_ec_hwmon_id,
+ };
+ module_platform_driver(cros_ec_hwmon_driver);
+-- 
+2.43.0
+
