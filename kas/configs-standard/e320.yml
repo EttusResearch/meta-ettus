@@ -11,3 +11,6 @@ repos:
   meta-ettus:
     layers:
       meta-neon:
+local_conf_header:
+  "no FEATURE_C12 in ext4 images": |
+    EXTRA_IMAGECMD:ext4 = "-i 4096 -O ^orphan_file"

@@ -8,6 +8,9 @@ env:
 local_conf_header:
   "SDK deploy directory": |
     SDK_DEPLOY:append = "/e310_sg3"
+  "no FEATURE_C12 in ext4 images": |
+    EXTRA_IMAGECMD:ext4 = "-i 4096 -O ^orphan_file"
+    MENDER_DATA_PART_FSOPTS = "-i 4096 -O ^orphan_file"
 repos:
   meta-ettus:
     layers:
