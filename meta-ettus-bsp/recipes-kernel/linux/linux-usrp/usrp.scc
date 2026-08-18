@@ -111,3 +111,4 @@ patch 0111-mtd-spi-nor-sst-fix-write-support-for-SST_WRITE-mark.patch
 patch 0112-mtd-spi-nor-sst-Fix-write-enable-before-AAI-sequence.patch
 patch 0113-mtd-spi-nor-sst-move-sst_write_second-to-local-drive.patch
 patch 0114-hwmon-cros-ec-integrate-EC-fans-with-thermal-framewo.patch
+patch 0115-misc-eeprom-Set-io_limit-to-64-to-avoid-overflowing.patch
