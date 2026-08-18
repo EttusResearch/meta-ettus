@@ -111,6 +111,7 @@ jobs:
       demands:
         - docker
         - Agent.OS -equals Linux
+        - FORCE_ORG_PYPI_MIRROR -equals 0
 
     variables:
       - group: meta-ettus-vars
