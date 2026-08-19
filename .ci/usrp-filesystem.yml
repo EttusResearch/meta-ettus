@@ -118,6 +118,10 @@ parameters:
     displayName: Enable CVE check when creating SBOM
     type: boolean
     default: false
+  - name: additional_build_demands_text
+    displayName: Additional build demands (; separated).
+    type: string
+    default: "FORCE_ORG_PYPI_MIRROR -equals 0"
 
 resources:
   pipelines:
@@ -228,6 +232,8 @@ stages:
           build_default_targets: ${{ parameters.build_default_targets }}
           pre_targets: ${{ parameters.pre_targets }}
           post_targets: ${{ parameters.post_targets }}
+          ${{ if ne(trim(parameters.additional_build_demands_text), '') }}:
+            additional_build_demands_text: ${{ parameters.additional_build_demands_text }}
 
 - ${{ if parameters.build_e310_sg3 }}:
   - stage: build_meta_ettus_e310_sg3
@@ -309,6 +315,8 @@ stages:
           build_default_targets: ${{ parameters.build_default_targets }}
           pre_targets: ${{ parameters.pre_targets }}
           post_targets: ${{ parameters.post_targets }}
+          ${{ if ne(trim(parameters.additional_build_demands_text), '') }}:
+            additional_build_demands_text: ${{ parameters.additional_build_demands_text }}
 
 - ${{ if parameters.build_e320 }}:
   - stage: build_meta_ettus_e320
@@ -390,6 +398,8 @@ stages:
           build_default_targets: ${{ parameters.build_default_targets }}
           pre_targets: ${{ parameters.pre_targets }}
           post_targets: ${{ parameters.post_targets }}
+          ${{ if ne(trim(parameters.additional_build_demands_text), '') }}:
+            additional_build_demands_text: ${{ parameters.additional_build_demands_text }}
 
 - ${{ if parameters.build_n3xx }}:
   - stage: build_meta_ettus_n3xx
@@ -471,6 +481,8 @@ stages:
           build_default_targets: ${{ parameters.build_default_targets }}
           pre_targets: ${{ parameters.pre_targets }}
           post_targets: ${{ parameters.post_targets }}
+          ${{ if ne(trim(parameters.additional_build_demands_text), '') }}:
+            additional_build_demands_text: ${{ parameters.additional_build_demands_text }}
 
 - ${{ if parameters.build_x4xx }}:
   - stage: build_meta_ettus_x4xx
@@ -552,6 +564,8 @@ stages:
           build_default_targets: ${{ parameters.build_default_targets }}
           pre_targets: ${{ parameters.pre_targets }}
           post_targets: ${{ parameters.post_targets }}
+          ${{ if ne(trim(parameters.additional_build_demands_text), '') }}:
+            additional_build_demands_text: ${{ parameters.additional_build_demands_text }}
 
 - ${{ if and(parameters.build_x4xx, parameters.build_default_targets) }}:
   - stage: x4xx_hardware_test

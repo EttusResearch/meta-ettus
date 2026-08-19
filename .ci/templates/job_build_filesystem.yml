@@ -68,6 +68,10 @@ parameters:
   - name: sbom_project_os_id
     type: string
     default: "scarthgap"
+  - name: additional_build_demands_text
+    displayName: Additional build demands (; separated)
+    type: string
+    default: ""
 
 jobs:
   - job: get_usrp_kas_docker_image
@@ -111,7 +115,9 @@ jobs:
       demands:
         - docker
         - Agent.OS -equals Linux
-        - FORCE_ORG_PYPI_MIRROR -equals 0
+        - ${{ each demand in split(coalesce(parameters.additional_build_demands_text, ''), ';') }}:
+          - ${{ if ne(trim(demand), '') }}:
+            - ${{ trim(demand) }}
 
     variables:
       - group: meta-ettus-vars
