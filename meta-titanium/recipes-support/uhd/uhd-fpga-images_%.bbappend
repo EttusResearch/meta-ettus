@@ -52,8 +52,8 @@ do_install:append:ni-titanium() {
 }
 
 pkg_postinst_ontarget:${PN}-firmware() {
-    if eeprom-id mb | grep -q "customizeable_fpga=False"; then
-        # non-customizeable FPGA - nothing to do
+    if eeprom-id mb | grep -q "locked_fpga=True"; then
+        # Locked FPGA variant - nothing to do
         true
     else
         # standard variant - use bootgen to extract raw bitstream from
