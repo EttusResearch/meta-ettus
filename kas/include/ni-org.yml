@@ -1,0 +1,13 @@
+# additional configuration for if inside NI network
+#
+# This file is not included from default.yml; it's intended to be passed
+# to kas as additional configuration, eg:
+#     kas build kas/default.yml:kas/ni-org.yml
+
+header:
+  version: 19
+
+local_conf_header:
+  ni-local-mirror: |
+    INHERIT += "own-mirrors"
+    SOURCE_MIRROR_URL ?= "http://argohttp.natinst.com/RTOS/oe-source-mirror/"

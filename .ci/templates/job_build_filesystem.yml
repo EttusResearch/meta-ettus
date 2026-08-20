@@ -228,6 +228,7 @@ jobs:
             echo "It must be set as a variable in pipeline variable group meta-ettus-vars and point to the correct PyPI server"
             exit 1
           fi
+
           set +e
           cat <<EOF >>$(Agent.BuildDirectory)/site.conf
           PREMIRRORS:prepend = "https://files.pythonhosted.org/.* $PIP_INDEX_URL/ \n"
@@ -271,6 +272,30 @@ jobs:
         displayName: Find kas base path
 
       - script: |
+          NOOP_NI_ORG_YML="$(Agent.BuildDirectory)/ni-org-disabled.yml"
+          cat <<EOF > "$NOOP_NI_ORG_YML"
+          header:
+            version: 19
+          EOF
+
+          if [[ -z "${INCLUDE_NI_ORG_MIRRORS:-}" ]]; then
+            echo "Error: The variable INCLUDE_NI_ORG_MIRRORS is not set, its value was '$INCLUDE_NI_ORG_MIRRORS'"
+            echo "It must be set as a variable in pipeline variable group meta-ettus-vars."
+            exit 1
+          fi
+          case "${INCLUDE_NI_ORG_MIRRORS:-}" in
+            1|true|TRUE|True|yes|YES|Yes)
+              KAS_INCLUDE_FILE="$(KAS_BASE_PATH)/include/ni-org.yml"
+              ;;
+            *)
+              KAS_INCLUDE_FILE="$NOOP_NI_ORG_YML"
+              ;;
+          esac
+          echo "Using kas include file $KAS_INCLUDE_FILE"
+          echo "###vso[task.setVariable variable=KAS_NI_ORG_CONFIG]$KAS_INCLUDE_FILE"
+        displayName: Resolve optional ni-org kas config
+
+      - script: |
           git -C $KAS_BASE_PATH/.. log -1
           REPRODUCIBLE_TIMESTAMP_ROOTFS=$(git -C $KAS_BASE_PATH/.. log -1 --pretty=%ct 2>/dev/null)
           echo REPRODUCIBLE_TIMESTAMP_ROOTFS=$REPRODUCIBLE_TIMESTAMP_ROOTFS
@@ -307,6 +332,7 @@ jobs:
             - $KAS_BASE_PATH/${{ parameters.kas_subdirectory }}/$(machineName).yml
             - ${{ if eq(parameters.include_internal, true) }}:
               - $KAS_BASE_PATH/internal.yml
+            - $(KAS_NI_ORG_CONFIG)
           auto_conf: ${{ parameters.auto_conf }}
           site_conf: $(Agent.BuildDirectory)/site.conf
           build_package_feed: True
