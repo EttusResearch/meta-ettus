@@ -55,7 +55,7 @@ steps:
     workingDirectory: $(Agent.BuildDirectory)
     condition: and(succeeded(), ${{ parameters.build_default_targets }})
   - script: |
-      kas shell $KAS_CONFIG -c "bitbake -k gnuradio-image"
+      kas shell $KAS_CONFIG -c "bitbake -c populate_sdk gnuradio-image"
     displayName: Build SDK
     workingDirectory: $(Agent.BuildDirectory)
     condition: and(succeeded(), ${{ parameters.build_sdk }})
