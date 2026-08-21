@@ -86,7 +86,6 @@ do_image_wic[depends] += " \
     u-boot:do_deploy \
     "
 
-# On non-Mender devices, build "wic.xz" and "wic.bmap"
-# On Mender enabled devices build "sdimg.bz2" (instead of "sdimg") and "sdimg.bmap"
-IMAGE_FSTYPES += "${@bb.utils.contains('MENDER_FEATURES', 'mender-image-sd', ' sdimg.bz2', ' wic.bz2 wic.bmap', d)} tar.xz"
-IMAGE_FSTYPES:remove = "${@bb.utils.contains('MENDER_FEATURES', 'mender-image-sd', ' sdimg', '', d)}"
+# On non-Mender devices, build "wic.bz2" and "wic.bmap"
+# On Mender enabled devices build Mender default ("sdimg" and "sdimg.bmap")
+IMAGE_FSTYPES += "${@bb.utils.contains('MENDER_FEATURES', 'mender-image-sd', '', ' wic.bz2 wic.bmap', d)} tar.xz"
