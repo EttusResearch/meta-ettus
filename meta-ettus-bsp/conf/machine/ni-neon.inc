@@ -40,7 +40,7 @@ IMAGE_BOOT_FILES ?= "u-boot.${UBOOT_SUFFIX} ${SPL_BINARY} ${KERNEL_IMAGETYPE}"
 
 # On non-Mender devices, build "wic.xz" and "wic.bmap"
 # On Mender enabled devices build Mender default ("sdimg" and "sdimg.bmap")
-IMAGE_FSTYPES += "${@bb.utils.contains('MENDER_FEATURES', 'mender-image-sd', '', ' wic.xz wic.bmap', d)} tar.xz"
+IMAGE_FSTYPES += "${@bb.utils.contains('MENDER_FEATURES', 'mender-image-sd', 'sdimg.bz2', ' wic.xz wic.bmap', d)} tar.xz"
 
 WKS_FILE ?= "sdimage-minimal.wks"
 
