@@ -1,0 +1,46 @@
+From d73be813a7118475c270aa1539bc3f442583e3e9 Mon Sep 17 00:00:00 2001
+From: Piyush Mehta <piyush.mehta@amd.com>
+Date: Mon, 18 Nov 2024 14:27:42 +0100
+Subject: [PATCH] usb: chipidea: add usb2 phy interface for Zynq platform
+
+USB2 phy has been added to the Zynq platform data. This defines the ULPI
+phy interface for accessing the ULPI register.
+
+Signed-off-by: Piyush Mehta <piyush.mehta@amd.com>
+Link: https://lore.kernel.org/r/20230929064852.16642-3-piyush.mehta@amd.com
+State: waiting
+[michals: v6.12 update
+usb: chipidea: add missing braces in platform_data pointer check
+]
+(cherry picked from commit 319b9533367ce3838c588f24f29d9d23bf479f3d)
+---
+ drivers/usb/chipidea/ci_hdrc_usb2.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/usb/chipidea/ci_hdrc_usb2.c b/drivers/usb/chipidea/ci_hdrc_usb2.c
+index 97379f653b06..b6c294cd1e0d 100644
+--- a/drivers/usb/chipidea/ci_hdrc_usb2.c
++++ b/drivers/usb/chipidea/ci_hdrc_usb2.c
+@@ -62,9 +62,18 @@ static int ci_hdrc_usb2_probe(struct platform_device *pdev)
+ 	}
+ 
+ 	data = device_get_match_data(&pdev->dev);
+-	if (data)
++	if (data) {
+ 		/* struct copy */
+ 		*ci_pdata = *data;
++		if (of_device_is_compatible(pdev->dev.of_node,
++					    "xlnx,zynq-usb-2.20a")) {
++			ci_pdata->usb_phy = devm_usb_get_phy_by_phandle(dev,
++									"usb-phy",
++									0);
++			if (IS_ERR(ci_pdata->usb_phy))
++				return PTR_ERR(ci_pdata->usb_phy);
++		}
++	}
+ 
+ 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
+ 	if (!priv)
+-- 
+2.43.0
+
