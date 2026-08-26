@@ -1,0 +1,43 @@
+From a9f9387f0119c3fde30ab4e2563be270b3b40696 Mon Sep 17 00:00:00 2001
+From: Bjoern Bachmann <bjoern.bachmann@emerson.com>
+Date: Wed, 26 Aug 2026 12:38:37 +0200
+Subject: [PATCH] board: ni: zynq: retry N3xx motherboard EEPROM probe
+
+Retry the motherboard EEPROM probe up to three times to tolerate
+transient I2C/Chrome EC tunnel communication failures during boot.
+---
+ board/ni/zynq/board.c | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/board/ni/zynq/board.c b/board/ni/zynq/board.c
+index d04c002a878..5b5e85f45e8 100644
+--- a/board/ni/zynq/board.c
++++ b/board/ni/zynq/board.c
+@@ -120,7 +120,7 @@ int board_late_init(void)
+ {
+ 	int slot0, slot1, slot0_rev, slot1_rev;
+ 	char dboard[128];
+-	int rev;
++	int rev, retry;
+ 
+ 	switch ((zynq_slcr_get_boot_mode()) & ZYNQ_BM_MASK) {
+ 	case ZYNQ_BM_QSPI:
+@@ -148,7 +148,14 @@ int board_late_init(void)
+ #endif
+ 
+ 	/* zero is a legit mboard revision */
+-	rev = n3xx_probe_mboard();
++	for (retry = 0; retry < 3; retry++) {
++		rev = n3xx_probe_mboard();
++		if (rev >= 0)
++			break;
++
++		printf("Mboard EEPROM probe failed (attempt %d/3): %d\n",
++		       retry + 1, rev);
++	}
+ 	if (rev >= 0) {
+ 		slot0 = n3xx_probe_dboard(0, &slot0_rev);
+ 		slot1 = n3xx_probe_dboard(1, &slot1_rev);
+-- 
+2.43.0
+

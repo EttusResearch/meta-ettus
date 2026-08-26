@@ -29,6 +29,7 @@ SRC_URI:prepend:ni-sulfur = " \
     file://0001-misc-cros_ec-Add-trivial-support-for-software-sync.patch \
     file://0001-ni-zynq-Add-support-for-NI-Ettus-Research-Project-Su.patch \
     file://0002-configs-ni_sulfur_rev3-Add-tftp-port-selection.patch \
+    file://0003-board-ni-zynq-retry-N3xx-motherboard-EEPROM-probe.patch \
     "
 
 do_compile:append:ni-e31x() {
