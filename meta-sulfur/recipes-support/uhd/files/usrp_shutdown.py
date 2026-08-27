@@ -10,9 +10,11 @@ Script to turn off the regulators on N321's LO distribution board
 """
 import subprocess
 import pyudev
+
 from usrp_mpm.mpmlog import get_main_logger
 from usrp_mpm.dboard_manager.rh_periphs import FPGAtoLoDist
 from usrp_mpm.sys_utils import dtoverlay
+from usrp_mpm.sys_utils.i2c_dev import dt_symbol_get_i2c_bus
 
 def get_dboard_id_from_eeprom(valid_ids):
     """
@@ -41,9 +43,14 @@ def main():
         exit()
     get_main_logger()
     dtoverlay.apply_overlay_safe('n320')
-    context = pyudev.Context()
-    adapter = pyudev.Devices.from_sys_path(context, '/sys/class/i2c-adapter/i2c-9')
-    lodist = FPGAtoLoDist(adapter)
+    i2c_bus = dt_symbol_get_i2c_bus("usrpio_i2c0")
+    if i2c_bus is None:
+        print("error: Failed to resolve I2C bus")
+        sys.exit(1)
+    if not FPGAtoLoDist.lo_dist_present(i2c_bus):
+        print("error: LO distribution board not found")
+        sys.exit(1)
+    lodist = FPGAtoLoDist(i2c_bus)
     lodist.reset('P3_3V_RF_EN')
     lodist.reset('P6_5V_LDO_EN')
     lodist.reset('P6_8V_EN')
