@@ -1,4 +1,4 @@
 # meta-ettus manifest File
 # Target    hash    url     SHA256
 
-x4xx-boot-bin    meta-ettus-143817f    x4xx/meta-ettus-143817f/boot.bin    7d3203217562ba2b63af28300a145e5d2eb7ef57b9e4afbd6e62fa27adaf9b67
+x4xx-boot-bin    meta-ettus-143817f    x4xx/meta-ettus-143817f/boot.bin    cbfad7085d8740b9bf0c928f98928cbb7083168f9212d367a11d35574ae694c9
