@@ -113,3 +113,4 @@ patch 0113-mtd-spi-nor-sst-move-sst_write_second-to-local-drive.patch
 patch 0114-hwmon-cros-ec-integrate-EC-fans-with-thermal-framewo.patch
 patch 0115-misc-eeprom-Set-io_limit-to-64-to-avoid-overflowing.patch
 patch 0116-usb-chipidea-add-usb2-phy-interface-for-Zynq-platfor.patch
+patch 0117-net-nixge-handle-skb-allocation-failures-low-memory-.patch

@@ -1,0 +1,85 @@
+From 23986d38ec1a5d0f60ad01608136bd64670ed7ba Mon Sep 17 00:00:00 2001
+From: Joerg Hofrichter <joerg.hofrichter@emerson.com>
+Date: Wed, 26 Aug 2026 17:46:59 +0200
+Subject: [PATCH] net: nixge: handle skb allocation failures (low memory
+ scenario)
+
+The old implementation did not handle the case when SKB allocation
+failed correctly. It exited the function without clearing
+cur_p->status or advancing priv->rx_bd_ci leaving cur_p pointing
+to the consumed skb with XAXIDMA_BD_STS_COMPLETE_MASK still set.
+The next execution of nixge_recv would access the freed skb again,
+causing a kernel panic.
+
+The new implementation allocates the new SKB before processing or
+passing the received SKB to the network stack. If allocation fails,
+the existing SKB is reused to replenish the DMA ring, dropping the
+current packet.
+---
+ drivers/net/ethernet/ni/nixge.c | 42 ++++++++++++++++++++-------------
+ 1 file changed, 26 insertions(+), 16 deletions(-)
+
+diff --git a/drivers/net/ethernet/ni/nixge.c b/drivers/net/ethernet/ni/nixge.c
+index 551e5f047cd5e..ea70f2ad2e1b8 100755
+--- a/drivers/net/ethernet/ni/nixge.c
++++ b/drivers/net/ethernet/ni/nixge.c
+@@ -590,11 +590,32 @@ static int nixge_recv(struct net_device *ndev, int budget)
+ 
+ 	cur_p = &priv->rx_bd_v[priv->rx_bd_ci];
+ 
+-	while ((cur_p->status & XAXIDMA_BD_STS_COMPLETE_MASK &&
+-		budget > packets)) {
+-		tail_p = priv->rx_bd_p + sizeof(*priv->rx_bd_v) *
+-			 priv->rx_bd_ci;
++	while ((cur_p->status & XAXIDMA_BD_STS_COMPLETE_MASK) && budget > packets) {
++		tail_p = priv->rx_bd_p + sizeof(*priv->rx_bd_v) * priv->rx_bd_ci;
++
++		new_skb = netdev_alloc_skb_ip_align(ndev, NIXGE_MAX_JUMBO_FRAME_SIZE);
++		if (!new_skb) {
++			ndev->stats.rx_dropped++;
++			cur_p->status = 0;
++			++priv->rx_bd_ci;
++			priv->rx_bd_ci %= RX_BD_NUM;
++			cur_p = &priv->rx_bd_v[priv->rx_bd_ci];
++			continue;
++		}
++
++		cur_phys = dma_map_single(ndev->dev.parent, new_skb->data,
++					  NIXGE_MAX_JUMBO_FRAME_SIZE, DMA_FROM_DEVICE);
++		if (dma_mapping_error(ndev->dev.parent, cur_phys)) {
++			dev_kfree_skb(new_skb);
++			ndev->stats.rx_dropped++;
++			cur_p->status = 0;
++			++priv->rx_bd_ci;
++			priv->rx_bd_ci %= RX_BD_NUM;
++			cur_p = &priv->rx_bd_v[priv->rx_bd_ci];
++			continue;
++		}
+ 
++		/* Successfully allocated replacement SKB; process current SKB */
+ 		skb = (struct sk_buff *)(uintptr_t)
+ 			nixge_hw_dma_bd_get_addr(cur_p, sw_id_offset);
+ 
+@@ -622,18 +643,7 @@ static int nixge_recv(struct net_device *ndev, int budget)
+ 		size += length;
+ 		packets++;
+ 
+-		new_skb = netdev_alloc_skb_ip_align(ndev,
+-						    NIXGE_MAX_JUMBO_FRAME_SIZE);
+-		if (!new_skb)
+-			return packets;
+-
+-		cur_phys = dma_map_single(ndev->dev.parent, new_skb->data,
+-					  NIXGE_MAX_JUMBO_FRAME_SIZE,
+-					  DMA_FROM_DEVICE);
+-		if (dma_mapping_error(ndev->dev.parent, cur_phys)) {
+-			/* FIXME: bail out and clean up */
+-			netdev_err(ndev, "Failed to map ...\n");
+-		}
++		/* Refill BD with new SKB */
+ 		nixge_hw_dma_bd_set_phys(cur_p, cur_phys);
+ 		cur_p->cntrl = NIXGE_MAX_JUMBO_FRAME_SIZE;
+ 		cur_p->status = 0;
+-- 
+2.43.0
+
