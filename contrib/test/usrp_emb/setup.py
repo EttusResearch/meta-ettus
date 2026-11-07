@@ -20,7 +20,7 @@ setup(
     install_requires=[
         'PyYAML==6.0.1',
         'junit-xml==1.9',
-        'paramiko==3.4.0',
+        'paramiko==5.0.0',
         'pexpect==4.8.0',
         'psutil==5.8.0',
         'ptyprocess==0.7.0',
